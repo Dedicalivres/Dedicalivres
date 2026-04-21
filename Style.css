@@ -1,0 +1,318 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2869
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 /* ============================================\
+   Dedicalivres \'96 Style principal\
+   Palette : #FF6B35 | #3A1C71 | #55C5E9 | #F8F5F2\
+   ============================================ */\
+\
+* \{\
+  margin: 0;\
+  padding: 0;\
+  box-sizing: border-box;\
+\}\
+\
+body \{\
+  font-family: 'Lato', sans-serif;\
+  background-color: #F8F5F2;\
+  color: #1D1D1B;\
+\}\
+\
+/* --- HEADER --- */\
+.header \{\
+  background: linear-gradient(135deg, #FF6B35, #3A1C71);\
+  padding: 40px 20px;\
+  text-align: center;\
+  color: white;\
+\}\
+\
+.header-inner \{\
+  max-width: 900px;\
+  margin: 0 auto;\
+\}\
+\
+.logo \{\
+  height: 80px;\
+  margin-bottom: 12px;\
+\}\
+\
+.header-sub \{\
+  font-family: 'Playfair Display', serif;\
+  font-size: 1.2rem;\
+  color: rgba(255,255,255,0.85);\
+  font-style: italic;\
+\}\
+\
+/* --- FILTRES --- */\
+.filtres \{\
+  background: white;\
+  border-bottom: 3px solid #FF6B35;\
+  padding: 20px;\
+  position: sticky;\
+  top: 0;\
+  z-index: 100;\
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);\
+\}\
+\
+.filtres-inner \{\
+  max-width: 1000px;\
+  margin: 0 auto;\
+  display: flex;\
+  flex-wrap: wrap;\
+  gap: 16px;\
+  align-items: flex-end;\
+\}\
+\
+.filtre-group \{\
+  display: flex;\
+  flex-direction: column;\
+  gap: 6px;\
+  flex: 1;\
+  min-width: 160px;\
+\}\
+\
+.filtre-group label \{\
+  font-size: 0.8rem;\
+  font-weight: 700;\
+  color: #3A1C71;\
+  text-transform: uppercase;\
+  letter-spacing: 0.05em;\
+\}\
+\
+.filtre-group select \{\
+  padding: 10px 14px;\
+  border: 2px solid #e0d9f5;\
+  border-radius: 8px;\
+  font-family: 'Lato', sans-serif;\
+  font-size: 0.95rem;\
+  color: #1D1D1B;\
+  background: #F8F5F2;\
+  cursor: pointer;\
+  transition: border 0.2s;\
+\}\
+\
+.filtre-group select:focus \{\
+  outline: none;\
+  border-color: #FF6B35;\
+\}\
+\
+.btn-reset \{\
+  padding: 10px 20px;\
+  background: transparent;\
+  border: 2px solid #FF6B35;\
+  color: #FF6B35;\
+  border-radius: 8px;\
+  font-weight: 700;\
+  cursor: pointer;\
+  transition: all 0.2s;\
+\}\
+\
+.btn-reset:hover \{\
+  background: #FF6B35;\
+  color: white;\
+\}\
+\
+/* --- COMPTEUR --- */\
+.compteur \{\
+  text-align: center;\
+  padding: 16px;\
+  font-size: 0.9rem;\
+  color: #3A1C71;\
+  font-weight: 700;\
+\}\
+\
+/* --- GRILLE --- */\
+.grille \{\
+  max-width: 1100px;\
+  margin: 0 auto;\
+  padding: 20px;\
+  display: grid;\
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));\
+  gap: 24px;\
+\}\
+\
+/* --- CARTE \'c9V\'c9NEMENT --- */\
+.carte \{\
+  background: white;\
+  border-radius: 16px;\
+  overflow: hidden;\
+  box-shadow: 0 4px 20px rgba(58, 28, 113, 0.08);\
+  transition: transform 0.2s, box-shadow 0.2s;\
+  display: flex;\
+  flex-direction: column;\
+\}\
+\
+.carte:hover \{\
+  transform: translateY(-4px);\
+  box-shadow: 0 8px 30px rgba(58, 28, 113, 0.15);\
+\}\
+\
+.carte-image \{\
+  width: 100%;\
+  height: 180px;\
+  object-fit: cover;\
+  background: linear-gradient(135deg, #FF6B35, #3A1C71);\
+\}\
+\
+.carte-image-placeholder \{\
+  width: 100%;\
+  height: 180px;\
+  background: linear-gradient(135deg, #FF6B35, #3A1C71);\
+  display: flex;\
+  align-items: center;\
+  justify-content: center;\
+  font-size: 3rem;\
+\}\
+\
+.carte-body \{\
+  padding: 20px;\
+  flex: 1;\
+  display: flex;\
+  flex-direction: column;\
+  gap: 10px;\
+\}\
+\
+.carte-type \{\
+  display: inline-block;\
+  padding: 4px 12px;\
+  border-radius: 20px;\
+  font-size: 0.75rem;\
+  font-weight: 700;\
+  text-transform: uppercase;\
+  letter-spacing: 0.05em;\
+\}\
+\
+.type-salon     \{ background: #e8f4fd; color: #2196F3; \}\
+.type-festival  \{ background: #e8f8e8; color: #4CAF50; \}\
+.type-dedicace  \{ background: #fff3e0; color: #FF9800; \}\
+.type-autre     \{ background: #f3e8fd; color: #9C27B0; \}\
+\
+.carte-titre \{\
+  font-family: 'Playfair Display', serif;\
+  font-size: 1.15rem;\
+  font-weight: 700;\
+  color: #1D1D1B;\
+  line-height: 1.3;\
+\}\
+\
+.carte-meta \{\
+  display: flex;\
+  flex-direction: column;\
+  gap: 4px;\
+\}\
+\
+.carte-meta span \{\
+  font-size: 0.88rem;\
+  color: #666;\
+  display: flex;\
+  align-items: center;\
+  gap: 6px;\
+\}\
+\
+.carte-description \{\
+  font-size: 0.88rem;\
+  color: #555;\
+  line-height: 1.5;\
+  flex: 1;\
+  display: -webkit-box;\
+  -webkit-line-clamp: 3;\
+  -webkit-box-orient: vertical;\
+  overflow: hidden;\
+\}\
+\
+.carte-footer \{\
+  display: flex;\
+  justify-content: space-between;\
+  align-items: center;\
+  margin-top: 12px;\
+  padding-top: 12px;\
+  border-top: 1px solid #f0eaf8;\
+\}\
+\
+.carte-entree \{\
+  font-size: 0.8rem;\
+  font-weight: 700;\
+  padding: 4px 10px;\
+  border-radius: 12px;\
+\}\
+\
+.entree-gratuit \{ background: #e8f8e8; color: #4CAF50; \}\
+.entree-payant  \{ background: #fff3e0; color: #FF9800; \}\
+\
+.carte-lien \{\
+  text-decoration: none;\
+  color: #FF6B35;\
+  font-size: 0.85rem;\
+  font-weight: 700;\
+  transition: color 0.2s;\
+\}\
+\
+.carte-lien:hover \{ color: #3A1C71; \}\
+\
+/* --- LOADER --- */\
+.loader \{\
+  grid-column: 1 / -1;\
+  text-align: center;\
+  padding: 60px 20px;\
+  color: #3A1C71;\
+\}\
+\
+.spinner \{\
+  width: 48px;\
+  height: 48px;\
+  border: 4px solid #e0d9f5;\
+  border-top-color: #FF6B35;\
+  border-radius: 50%;\
+  animation: spin 0.8s linear infinite;\
+  margin: 0 auto 16px;\
+\}\
+\
+@keyframes spin \{\
+  to \{ transform: rotate(360deg); \}\
+\}\
+\
+/* --- MESSAGE VIDE --- */\
+.vide \{\
+  grid-column: 1 / -1;\
+  text-align: center;\
+  padding: 60px 20px;\
+  color: #999;\
+\}\
+\
+.vide-icon \{\
+  font-size: 4rem;\
+  margin-bottom: 16px;\
+\}\
+\
+/* --- FOOTER --- */\
+.footer \{\
+  background: #3A1C71;\
+  color: rgba(255,255,255,0.75);\
+  text-align: center;\
+  padding: 30px 20px;\
+  font-size: 0.85rem;\
+  line-height: 2;\
+  margin-top: 60px;\
+\}\
+\
+.footer a \{\
+  color: #FF6B35;\
+  text-decoration: none;\
+\}\
+\
+.footer a:hover \{\
+  text-decoration: underline;\
+\}\
+\
+/* --- RESPONSIVE --- */\
+@media (max-width: 600px) \{\
+  .header-sub \{ font-size: 1rem; \}\
+  .grille \{ grid-template-columns: 1fr; padding: 12px; \}\
+  .filtres-inner \{ flex-direction: column; \}\
+  .filtre-group \{ min-width: 100%; \}\
+\}\
+}
