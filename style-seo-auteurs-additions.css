@@ -1,0 +1,31 @@
+/* SEO auteurs indépendants / auto-édités */
+.seo-hero,
+.seo-text-block {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px);
+  border-radius: 24px;
+  padding: 34px;
+  margin-bottom: 28px;
+  box-shadow: 0 14px 34px rgba(58, 28, 113, 0.11);
+  border: 1px solid rgba(58, 28, 113, 0.08);
+}
+
+.seo-hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.3rem, 5vw, 4.4rem);
+  line-height: 1.05;
+  color: #2a2438;
+  margin: 0 0 16px;
+}
+
+.seo-hero p,
+.seo-text-block p {
+  color: #4f465f;
+  font-size: 1.06rem;
+  line-height: 1.75;
+  max-width: 900px;
+}
+
+.seo-content {
+  margin-top: 34px;
+}
