@@ -1,0 +1,61 @@
+/* PAGES SEO */
+.seo-hero,
+.seo-text-block {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px);
+  border-radius: 24px;
+  padding: 34px;
+  margin-bottom: 28px;
+  box-shadow: 0 14px 34px rgba(58, 28, 113, 0.11);
+  border: 1px solid rgba(58, 28, 113, 0.08);
+}
+
+.seo-hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.3rem, 5vw, 4.4rem);
+  line-height: 1.05;
+  color: #2a2438;
+  margin: 0 0 16px;
+}
+
+.seo-hero p,
+.seo-text-block p {
+  color: #4f465f;
+  font-size: 1.06rem;
+  line-height: 1.75;
+  max-width: 900px;
+}
+
+.seo-content {
+  margin-top: 34px;
+}
+
+.detail-back-link {
+  display: inline-flex;
+  flex: initial;
+  margin-bottom: 18px;
+}
+
+.badge-featured {
+  background: #3a1c71;
+  color: white;
+}
+
+.event-card-featured {
+  border-color: rgba(255, 107, 53, 0.45);
+  position: relative;
+}
+
+.featured-ribbon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  background: #ff6b35;
+  color: white;
+  font-weight: 900;
+  font-size: .78rem;
+  padding: 7px 12px;
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(255, 107, 53, .28);
+}
