@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<filter id="s" x="0" y="0" width="32" height="32"><feDropShadow dx="1" dy="2" stdDeviation="1.2" flood-color="#321955" flood-opacity=".35"/></filter>
+<g filter="url(#s)">
+<path d="M3 2L21 14L14 15L17 23L12 25L9 17L5 23L3 2Z" fill="white"/>
+<path d="M5 5L18 13L12 13L15 22L12 23L9 15L6 20L5 5Z" fill="#462082"/>
+<path d="M12 19H29V29H12V19Z" fill="#462082" rx="2"/>
+<path d="M13 18H28V27H13V18Z" fill="white" stroke="#D7D2E1"/>
+<path d="M20.5 18.5V27" stroke="#D7D2E1"/>
+<path d="M14 27L20.5 28.5L27 27" stroke="#6F3EB4"/>
+</g>
+</svg>
