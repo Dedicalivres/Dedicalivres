@@ -1,113 +1,289 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+
+<html lang="fr">
+
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.5">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
-  </style>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Dédicalivres — Agenda des événements littéraires</title>
+
+  <meta name="description" content="Agenda des salons du livre, festivals littéraires, dédicaces, auteurs indépendants et événements autour du livre en France." />
+
+  <link rel="canonical" href="https://dedicalivres.fr/" />
+
+  <meta property="og:title" content="Dédicalivres — Agenda des événements littéraires" />
+
+  <meta property="og:description" content="Trouvez les salons du livre, festivals littéraires, dédicaces et rencontres avec des auteurs partout en France." />
+
+  <meta property="og:type" content="website" />
+
+  <meta property="og:image" content="banner.jpg" />
+
+  <script type="application/ld+json">
+
+  {
+
+    "@context": "https://schema.org",
+
+    "@type": "WebSite",
+
+    "name": "Dédicalivres",
+
+    "url": "https://dedicalivres.fr",
+
+    "description": "Agenda des salons du livre, festivals littéraires, dédicaces et rencontres avec des auteurs."
+
+  }
+
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
+  <link rel="stylesheet" href="style.css" />
+
 </head>
+
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="fr"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta charset="UTF-8" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;title&gt;Dedicalivres – Agenda des événements littéraires&lt;/title&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;link rel="stylesheet" href="style.css" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;link href="[fonts.googleapis.com](https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&amp;family=Lato:wght@300;400;700&amp;display=swap)" rel="stylesheet"/&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- HEADER --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;header class="header"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="header-inner"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;img src="logo-Dedicalivres.png" alt="Dedicalivres" class="logo"/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;p class="header-sub"&gt;La carte des salons et festivals du livre en France&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/header&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- FILTRES --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;section class="filtres"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="filtres-inner"&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="filtre-group"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;label for="filtre-region"&gt;📍 Région&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;select id="filtre-region"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option value=""&gt;Toutes les régions&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Auvergne-Rhône-Alpes&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Bourgogne-Franche-Comté&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Bretagne&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Centre-Val de Loire&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Corse&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Grand Est&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Hauts-de-France&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Île-de-France&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Normandie&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Nouvelle-Aquitaine&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Occitanie&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Pays de la Loire&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Provence-Alpes-Côte d'Azur&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/select&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="filtre-group"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;label for="filtre-type"&gt;🏷️ Type&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;select id="filtre-type"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option value=""&gt;Tous les types&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Salon&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Festival&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Dédicace&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Autre&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/select&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="filtre-group"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;label for="filtre-entree"&gt;💰 Entrée&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;select id="filtre-entree"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option value=""&gt;Toutes&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Gratuit&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;option&gt;Payant&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/select&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;button class="btn-reset" onclick="resetFiltres()"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>✖ Réinitialiser</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/button&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/section&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- COMPTEUR --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div class="compteur"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;span id="compteur-texte"&gt;Chargement des événements...&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- GRILLE ÉVÉNEMENTS --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;main class="grille" id="grille-evenements"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="loader" id="loader"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="spinner"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;p&gt;Chargement de l'agenda...&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/main&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- FOOTER --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;footer class="footer"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;p&gt;© 2026 Dedicalivres – Association Dedicalivres, 12 rue des Lettres, 75005 Paris&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;p&gt;📧 contact@Dedicalivres.fr | 🌐 www.Dedicalivres.fr&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;a href="#"&gt;Mentions légales&lt;/a&gt; |</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;a href="#"&gt;Soumettre un événement&lt;/a&gt; |</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;a href="[instagram.com](https://instagram.com/Dedicalivres.fr)" target="_blank"&gt;Instagram&lt;/a&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/footer&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;script src="app.js"&gt;&lt;/script&gt;</p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+
+<header class="header">
+
+  <div class="container header-inner">
+
+    <a href="index.html" aria-label="Accueil Dédicalivres">
+
+      <img src="logo.png" class="logo" alt="Dédicalivres" />
+
+    </a>
+
+    <nav aria-label="Navigation principale">
+
+      <a href="#agenda">Agenda</a>
+
+      <a href="salons-du-livre.html">Salons</a>
+
+      <a href="auteurs-independants.html">Auteurs</a>
+
+      <a href="#soumettre">Soumettre</a>
+
+    </nav>
+
+  </div>
+
+</header>
+
+<section class="hero" aria-label="Bannière Dédicalivres"></section>
+
+<main class="container">
+
+  <section id="agenda" class="section">
+
+    <h2>Événements à venir</h2>
+
+    <p id="results-count">Chargement…</p>
+
+    <div class="filters">
+
+      <input id="search-input" type="search" placeholder="Rechercher un événement, une ville…" />
+
+      <select id="region-filter">
+
+        <option value="">Toutes les régions</option>
+
+        <option>Auvergne-Rhône-Alpes</option>
+
+        <option>Bourgogne-Franche-Comté</option>
+
+        <option>Bretagne</option>
+
+        <option>Centre-Val de Loire</option>
+
+        <option>Corse</option>
+
+        <option>Grand Est</option>
+
+        <option>Hauts-de-France</option>
+
+        <option>Île-de-France</option>
+
+        <option>Normandie</option>
+
+        <option>Nouvelle-Aquitaine</option>
+
+        <option>Occitanie</option>
+
+        <option>Pays de la Loire</option>
+
+        <option>Provence-Alpes-Côte d’Azur</option>
+
+      </select>
+
+      <select id="type-filter">
+
+        <option value="">Tous les types</option>
+
+        <option>Salon</option>
+
+        <option>Festival</option>
+
+        <option>Dédicace</option>
+
+        <option>Autre</option>
+
+      </select>
+
+      <input id="date-filter" type="date" />
+
+      <button id="apply-filters" class="btn-primary" type="button">Filtrer</button>
+
+      <button id="reset-filters" class="btn-secondary" type="button">Réinitialiser</button>
+
+    </div>
+
+    <div class="ux-actions">
+
+      <button id="mobile-map-toggle" class="btn-secondary mobile-map-toggle" type="button">Masquer la carte</button>
+
+      <button id="locate-me" class="btn-secondary" type="button">Me localiser</button>
+
+    </div>
+
+    <div class="agenda-layout">
+
+      <div>
+
+        <section id="events-grid" class="events-grid" aria-live="polite"></section>
+
+      </div>
+
+      <aside class="map-panel is-open" aria-label="Carte des événements">
+
+        <div id="map"></div>
+
+      </aside>
+
+    </div>
+
+  </section>
+
+  <section id="soumettre" class="section">
+
+    <h2>Proposer un événement</h2>
+
+    <form id="submission-form">
+
+      <input name="title" placeholder="Titre de l’événement" required />
+
+      <select name="type">
+
+        <option value="">Type d’événement</option>
+
+        <option>Salon</option>
+
+        <option>Festival</option>
+
+        <option>Dédicace</option>
+
+        <option>Autre</option>
+
+      </select>
+
+      <select name="region" id="region-submit">
+
+        <option value="">Région</option>
+
+        <option>Auvergne-Rhône-Alpes</option>
+
+        <option>Bourgogne-Franche-Comté</option>
+
+        <option>Bretagne</option>
+
+        <option>Centre-Val de Loire</option>
+
+        <option>Corse</option>
+
+        <option>Grand Est</option>
+
+        <option>Hauts-de-France</option>
+
+        <option>Île-de-France</option>
+
+        <option>Normandie</option>
+
+        <option>Nouvelle-Aquitaine</option>
+
+        <option>Occitanie</option>
+
+        <option>Pays de la Loire</option>
+
+        <option>Provence-Alpes-Côte d’Azur</option>
+
+      </select>
+
+      <div class="city-autocomplete-wrap">
+
+        <input id="city-input" name="city" list="city-suggestions" placeholder="Ville — commencez à taper puis choisissez dans la liste" autocomplete="off" required />
+
+        <datalist id="city-suggestions"></datalist>
+
+        <small id="city-help" class="field-help">Sélectionnez une ville proposée pour placer correctement l’événement sur la carte.</small>
+
+      </div>
+
+      <input type="hidden" name="lat" id="city-lat" />
+
+      <input type="hidden" name="lng" id="city-lng" />
+
+      <input name="start_date" type="date" />
+
+      <input name="end_date" type="date" />
+
+      <select name="price">
+
+        <option value="">Entrée</option>
+
+        <option>Gratuit</option>
+
+        <option>Payant</option>
+
+      </select>
+
+      <input name="website" type="url" placeholder="Site officiel" />
+
+      <textarea name="description" rows="5" placeholder="Description"></textarea>
+
+      <input name="image" type="file" accept="image/*" />
+
+      <button type="submit">Envoyer</button>
+
+      <p id="form-feedback"></p>
+
+    </form>
+
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<script src="config.js"></script>
+
+<script src="app.js"></script>
+
+
+
+<script src="custom-cursor.js"></script>
+
 </body>
+
 </html>
