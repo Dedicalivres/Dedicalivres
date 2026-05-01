@@ -547,8 +547,13 @@ function getLastDayOfMonth(monthValue) {
     section.querySelector("#newsletter-form").addEventListener("submit", handleNewsletterSubmit);
   }
 
-  async function handleNewsletterSubmit(event) {
+ let newsletterSubmitting = false;
+
+async function handleNewsletterSubmit(event) {
   event.preventDefault();
+
+  if (newsletterSubmitting) return;
+  newsletterSubmitting = true;
 
   const formData = new FormData(event.currentTarget);
   const feedback = document.getElementById("newsletter-feedback");
@@ -588,6 +593,8 @@ function getLastDayOfMonth(monthValue) {
       feedback.className = "error";
     }
   } finally {
+    newsletterSubmitting = false;
+
     if (submitButton) {
       submitButton.disabled = false;
       submitButton.textContent = "S’inscrire";
