@@ -1356,15 +1356,42 @@ function matchMonth(e, month) {
    CARD
 ========================= */
 function card(e) {
+  const imageUrl = e.image_url || "";
+  const title = e.title || "Sans titre";
+  const cityRegion = [e.city, e.region].filter(Boolean).join(", ");
+  const date = formatDate(e.start_date);
+  const description = e.description || "";
+
   return `
-    <div class="carte">
-      <div class="carte-body">
-        <h3>${e.title}</h3>
-        <p>${formatDate(e.start_date)}</p>
-        <p>${e.city || ""}</p>
-        <p>${e.description || ""}</p>
+    <article class="event-card ${e.featured ? "event-card-featured" : ""}">
+      ${e.featured ? `<div class="featured-ribbon">Mis en avant</div>` : ""}
+
+      ${imageUrl
+        ? `<img class="card-image" src="${imageUrl}" alt="${title}">`
+        : `<div class="card-image"></div>`
+      }
+
+      <div class="card-body">
+        <div class="card-tags">
+          ${e.type ? `<span class="badge">${e.type}</span>` : ""}
+          ${e.price ? `<span class="badge badge-price">${e.price}</span>` : ""}
+        </div>
+
+        <h3 class="card-title">${title}</h3>
+
+        <div class="card-meta">
+          ${date ? `<span>📅 ${date}</span>` : ""}
+          <span>📍 ${cityRegion || "Lieu non précisé"}</span>
+        </div>
+
+        <p class="card-description">${description}</p>
+
+        <div class="card-footer">
+          <a class="card-link" href="event.html?id=${encodeURIComponent(e.id)}">Voir le détail</a>
+          ${e.website ? `<a class="card-link" href="${e.website}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
+        </div>
       </div>
-    </div>
+    </article>
   `;
 }
 
