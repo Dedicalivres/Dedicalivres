@@ -255,19 +255,40 @@
     return haversine(userPosition.lat, userPosition.lng, Number(event.lat), Number(event.lng));
   }
 
-  function filterEvents(events) {
-    const search = normalize(searchInput?.value || "");
-    const region = regionFilter?.value || "";
-    const type = typeFilter?.value || "";
-    const date = dateFilter?.value || "";
-    return events.filter((event) => {
-      const haystack = normalize([event.title, event.city, event.region, event.description].filter(Boolean).join(" "));
-      return (!search || haystack.includes(search))
-        && (!region || event.region === region)
-        && (!type || event.type === type)
-        && (!date || (event.start_date && event.start_date >= date) || (event.end_date && event.end_date >= date));
-    });
-  }
+ function filterEvents(events) {
+  const search = normalize(searchInput?.value || "");
+  const region = regionFilter?.value || "";
+  const type = typeFilter?.value || "";
+  const selectedMonth = dateFilter?.value || "";
+
+  return events.filter((event) => {
+    const haystack = normalize([event.title, event.city, event.region, event.description].filter(Boolean).join(" "));
+
+    return (!search || haystack.includes(search))
+      && (!region || event.region === region)
+      && (!type || event.type === type)
+      && matchesMonth(event, selectedMonth);
+  });
+}
+
+function matchesMonth(event, selectedMonth) {
+  if (!selectedMonth) return true;
+
+  const eventStart = event.start_date || "";
+  const eventEnd = event.end_date || event.start_date || "";
+
+  const selectedStart = `${selectedMonth}-01`;
+  const selectedEnd = getLastDayOfMonth(selectedMonth);
+
+  return eventStart <= selectedEnd && eventEnd >= selectedStart;
+}
+
+function getLastDayOfMonth(monthValue) {
+  const [year, month] = monthValue.split("-").map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+
+  return `${monthValue}-${String(lastDay).padStart(2, "0")}`;
+}
 
   function renderEvents(events) {
     if (!eventsGrid || !resultsCount) return;
