@@ -183,7 +183,30 @@ function init() {
     }).addTo(map);
     markersLayer = L.layerGroup().addTo(map);
   }
+function populateMonthFilter() {
+  if (!dateFilter) return;
 
+  const alreadyFilled = dateFilter.options.length > 1;
+  if (alreadyFilled) return;
+
+  const formatter = new Intl.DateTimeFormat("fr-FR", {
+    month: "long",
+    year: "numeric"
+  });
+
+  const today = new Date();
+
+  for (let i = 0; i < 18; i++) {
+    const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = formatter.format(date);
+
+    dateFilter.appendChild(option);
+  }
+}
   async function loadEvents() {
     setLoadingState();
     const today = new Date().toISOString().slice(0, 10);
