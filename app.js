@@ -207,8 +207,52 @@
 
   function renderFilteredEvents() {
     const filtered = filterEvents(allEvents);
-    renderEvents(filtered);
-    renderMapMarkers(filtered);
+    const sorted = sortEventsForDisplay(filtered);
+
+    renderEvents(sorted);
+    renderMapMarkers(sorted);
+  }
+
+  function sortEventsForDisplay(events) {
+    return [...events].sort((a, b) => {
+      const dateA = getSortableDate(a);
+      const dateB = getSortableDate(b);
+
+      // Si l'utilisateur s'est localisé, priorité aux événements les plus proches.
+      if (userPosition) {
+        const distanceA = getSortableDistance(a);
+        const distanceB = getSortableDistance(b);
+
+        if (distanceA !== distanceB) return distanceA - distanceB;
+        if (dateA !== dateB) return dateA - dateB;
+        return compareFeatured(a, b);
+      }
+
+      // Sinon : événements mis en avant, puis ordre chronologique.
+      const featuredCompare = compareFeatured(a, b);
+      if (featuredCompare !== 0) return featuredCompare;
+
+      return dateA - dateB;
+    });
+  }
+
+  function compareFeatured(a, b) {
+    return Number(Boolean(b.featured)) - Number(Boolean(a.featured));
+  }
+
+  function getSortableDate(event) {
+    if (!event.start_date) return new Date("9999-12-31").getTime();
+
+    const timestamp = new Date(event.start_date).getTime();
+    return Number.isFinite(timestamp) ? timestamp : new Date("9999-12-31").getTime();
+  }
+
+  function getSortableDistance(event) {
+    if (!userPosition || !Number.isFinite(Number(event.lat)) || !Number.isFinite(Number(event.lng))) {
+      return Number.POSITIVE_INFINITY;
+    }
+
+    return haversine(userPosition.lat, userPosition.lng, Number(event.lat), Number(event.lng));
   }
 
   function filterEvents(events) {
@@ -334,7 +378,7 @@
         userMarker.bindPopup("Vous êtes ici").openPopup();
         map.setView([latitude, longitude], 9);
         locateMeButton.disabled = false;
-        locateMeButton.textContent = "Me localiser";
+        locateMeButton.textContent = "Tri par proximité actif";
         renderFilteredEvents();
       },
       () => {
@@ -511,3 +555,4 @@
   function escapeHtml(value) { return (value || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
   function escapeAttribute(value) { return escapeHtml(value).replace(/`/g, "&#096;"); }
 })();
+
