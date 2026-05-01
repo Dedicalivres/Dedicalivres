@@ -817,3 +817,12 @@ textarea {
     font-size: .84rem;
   }
 }
+#newsletter-feedback.success {
+  color: #17803d;
+  font-weight: 800;
+}
+
+#newsletter-feedback.error {
+  color: #b42318;
+  font-weight: 800;
+}
