@@ -316,3 +316,73 @@ body \{\
   .filtre-group \{ min-width: 100%; \}\
 \}\
 }
+                                  /* ===== FILTRES UI++ START ===== */
+
+.filters {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(58, 28, 113, 0.10);
+  box-shadow: 0 18px 42px rgba(58, 28, 113, 0.12);
+}
+
+.filters input,
+.filters select {
+  min-height: 52px;
+  border-radius: 18px;
+  font-weight: 700;
+}
+
+.filters button {
+  min-height: 52px;
+  white-space: nowrap;
+}
+
+#search-input {
+  font-size: 1rem;
+}
+
+#apply-filters {
+  background: linear-gradient(135deg, #ff6b35, #ff8a54);
+  color: white;
+}
+
+#reset-filters {
+  background: #fff;
+  color: #3a1c71;
+}
+
+/* Tablette */
+@media (max-width: 1000px) {
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  #search-input {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .filters {
+    grid-template-columns: 1fr;
+    padding: 14px;
+    border-radius: 22px;
+    gap: 10px;
+  }
+
+  .filters input,
+  .filters select,
+  .filters button {
+    width: 100%;
+    min-height: 50px;
+  }
+}
+
+/* ===== FILTRES UI++ END ===== */
