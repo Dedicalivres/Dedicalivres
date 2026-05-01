@@ -548,23 +548,52 @@ function getLastDayOfMonth(monthValue) {
   }
 
   async function handleNewsletterSubmit(event) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const feedback = document.getElementById("newsletter-feedback");
-    const email = formData.get("email")?.toString().trim().toLowerCase();
-    const region = formData.get("region")?.toString().trim() || null;
-    try {
-      const { error } = await supabaseClient.from("newsletter_subscribers").insert([{ email, region }]);
-      if (error) throw error;
-      event.currentTarget.reset();
-      feedback.textContent = "Merci, inscription enregistrée.";
+  event.preventDefault();
+
+  const formData = new FormData(event.currentTarget);
+  const feedback = document.getElementById("newsletter-feedback");
+  const submitButton = event.currentTarget.querySelector('button[type="submit"]');
+
+  const email = formData.get("email")?.toString().trim().toLowerCase();
+  const region = formData.get("region")?.toString().trim() || null;
+
+  if (!feedback) return;
+
+  try {
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Inscription…";
+    }
+
+    feedback.textContent = "Inscription en cours…";
+    feedback.className = "";
+
+    const { error } = await supabaseClient
+      .from("newsletter_subscribers")
+      .insert([{ email, region }]);
+
+    if (error) throw error;
+
+    event.currentTarget.reset();
+    feedback.textContent = "Merci, votre inscription est enregistrée 👍";
+    feedback.className = "success";
+  } catch (error) {
+    console.error("Erreur newsletter :", error);
+
+    if (error.code === "23505" || error.message?.toLowerCase().includes("duplicate")) {
+      feedback.textContent = "Vous êtes déjà inscrit à la newsletter 👍";
       feedback.className = "success";
-    } catch {
-      feedback.textContent = "Inscription déjà existante ou impossible pour le moment.";
+    } else {
+      feedback.textContent = "Une erreur est survenue. Réessayez plus tard.";
       feedback.className = "error";
     }
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = "S’inscrire";
+    }
   }
-
+}
   function createIcs(event) {
     const start = icsDate(event.start_date);
     const end = icsDate(event.end_date || event.start_date);
