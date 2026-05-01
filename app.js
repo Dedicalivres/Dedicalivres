@@ -1,5 +1,3 @@
-App sauvegarde 
-
 
  (function () {
    const config = window.DEDICALIVRES_CONFIG;
