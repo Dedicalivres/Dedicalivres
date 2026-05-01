@@ -35,14 +35,15 @@
 
   init();
 
-  function init() {
-    trackVisit();
-    initMap();
-    bindEvents();
-    bindCityAutocomplete();
-    loadEvents();
-    injectNewsletterBlock();
-  }
+function init() {
+  trackVisit();
+  initMap();
+  bindEvents();
+  bindCityAutocomplete();
+  populateMonthFilter(); // 👈 AJOUT IMPORTANT
+  loadEvents();
+  injectNewsletterBlock();
+}
 
   async function trackVisit() {
     try {
