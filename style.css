@@ -826,3 +826,41 @@ textarea {
   color: #b42318;
   font-weight: 800;
 }
+/* ===== FILTRES SELECT MOIS SAFARI + ALIGNEMENT START ===== */
+
+.filters select,
+.filters input,
+.filters button {
+  height: 56px;
+}
+
+.filters select,
+.filters input {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+#date-filter {
+  width: 100%;
+  min-width: 0;
+  appearance: auto;
+  -webkit-appearance: menulist;
+  background-color: #fff;
+}
+
+/* Assure que Région / Type / Mois ont la même taille */
+.filters {
+  grid-template-columns: 2fr 1fr 1fr 1fr auto auto;
+}
+
+@media (max-width: 780px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  #date-filter {
+    width: 100%;
+  }
+}
+
+/* ===== FILTRES SELECT MOIS SAFARI + ALIGNEMENT END ===== */
