@@ -624,47 +624,45 @@ textarea {
   }
 
   .book-trail {
-      .book-trail {
-        position: fixed;
-        width: 16px;
-        height: 16px;
-        background: url("book-mini.png") center / contain no-repeat;
-        pointer-events: none;
-        z-index: 9999;
+  position: fixed;
+  width: 16px;
+  height: 16px;
+  background: url("book-mini.png") center / contain no-repeat;
+  pointer-events: none;
+  z-index: 9999;
 
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(var(--scale)) rotate(var(--rotation));
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(var(--scale)) rotate(var(--rotation));
 
-        animation: trailPremium 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: trailPremium 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 
-        filter: drop-shadow(0 6px 10px rgba(58, 28, 113, 0.2));
-      }
+  filter: drop-shadow(0 6px 10px rgba(58, 28, 113, 0.2));
+}
 
-      @keyframes trailPremium {
-        0% {
-          opacity: 0;
-          transform:
-            translate(-50%, -50%)
-            scale(calc(var(--scale) * 0.6))
-            rotate(var(--rotation));
-        }
-
-        20% {
-          opacity: 0.85;
-        }
-
-        100% {
-          opacity: 0;
-          transform:
-            translate(
-              calc(-50% + var(--drift-x)),
-              calc(-50% + var(--drift-y))
-            )
-            scale(0.2)
-            rotate(calc(var(--rotation) + 60deg));
-        }
-      }
+@keyframes trailPremium {
+  0% {
+    opacity: 0;
+    transform:
+      translate(-50%, -50%)
+      scale(calc(var(--scale) * 0.6))
+      rotate(var(--rotation));
   }
+
+  20% {
+    opacity: 0.85;
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      translate(
+        calc(-50% + var(--drift-x)),
+        calc(-50% + var(--drift-y))
+      )
+      scale(0.2)
+      rotate(calc(var(--rotation) + 60deg));
+  }
+}
 
   @keyframes bookTrailFade {
     0% {
