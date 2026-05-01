@@ -1,121 +1,96 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dédicalivres</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css" />
+  <meta charset="UTF-8">
+  <title>Admin Dédicalivres V2</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="admin-upgrade.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
-<main class="admin-shell">
-  <section id="login-panel" class="panel login-panel">
-    <img src="logo.png" class="admin-logo" alt="Dédicalivres" />
-    <h1>Administration</h1>
-    <p>Connecte-toi pour valider les événements, importer les CSV et préparer Instagram.</p>
-    <input id="email" type="email" placeholder="Email administrateur" />
-    <input id="password" type="password" placeholder="Mot de passe" />
-    <button id="login-button">Connexion</button>
-    <p id="login-message" class="message"></p>
-  </section>
 
-  <section id="admin-panel" class="panel hidden">
-    <div class="admin-topbar">
-      <div>
-        <h1>Tableau de bord</h1>
-        <p id="admin-count">Chargement…</p>
-      </div>
-      <div class="topbar-actions">
-        <button id="refresh-button" class="secondary">Rafraîchir</button>
-        <button id="logout-button" class="danger">Déconnexion</button>
-      </div>
+<header class="admin-header">
+  <h1>📚 Admin Dédicalivres</h1>
+  <button id="refresh-btn">🔄 Rafraîchir</button>
+</header>
+
+<main class="admin-container">
+
+  <!-- STATS -->
+  <section class="admin-stats">
+    <div class="stat">
+      <span id="stat-total">0</span>
+      <small>Total événements</small>
     </div>
 
-    <section class="dashboard-garage">
-      <article class="speedometer-card">
-        <div class="speedometer">
-          <div class="speedometer-arc"></div>
-          <div class="speedometer-needle" id="visits-needle"></div>
-          <div class="speedometer-center"></div>
-          <div class="speedometer-value" id="visits-today-big">—</div>
-          <div class="speedometer-label">visites aujourd’hui</div>
-        </div>
-      </article>
-      <article class="odometer-card">
-        <span class="dashboard-label">Compteur total</span>
-        <div id="visits-total-odo" class="odometer">000000</div>
-        <p>Pages vues depuis l’installation.</p>
-      </article>
-      <article class="turbo-card">
-        <span class="dashboard-label">Turbo 7 jours</span>
-        <strong id="visits-week">—</strong>
-        <p>Visites sur les 7 derniers jours.</p>
-      </article>
-    </section>
-
-    <section class="mini-stats-grid">
-      <article class="mini-stat"><span>Visiteurs estimés aujourd’hui</span><strong id="unique-today">—</strong></article>
-      <article class="mini-stat"><span>Pages vues / visite</span><strong id="pages-per-visit">—</strong></article>
-      <article class="mini-stat"><span>Meilleure page</span><strong id="best-page">—</strong></article>
-    </section>
-
-    <section class="chart-panel">
-      <div class="chart-header"><h2>Activité des 7 derniers jours</h2><span>Vue rapide</span></div>
-      <div id="visits-bars" class="visits-bars"></div>
-    </section>
-
-    <section class="top-pages-panel">
-      <h2>Pages les plus vues</h2>
-      <div id="top-pages" class="top-pages-list"><p class="empty">Chargement…</p></div>
-    </section>
-
-    <section class="instagram-panel">
-      <div class="panel-title-row">
-        <div>
-          <h2>Instagram machine</h2>
-          <p>Prépare les posts, stories et revues hebdo sans publication automatique.</p>
-        </div>
-        <button id="generate-weekly-review" class="secondary">Revue hebdo</button>
-      </div>
-      <div class="instagram-grid">
-        <article class="insta-card"><span class="dashboard-label">À poster bientôt</span><strong id="insta-soon-count">—</strong><p>Événements validés dans les 14 prochains jours.</p></article>
-        <article class="insta-card"><span class="dashboard-label">À améliorer</span><strong id="insta-needs-work-count">—</strong><p>Sans image, description ou coordonnées.</p></article>
-        <article class="insta-card"><span class="dashboard-label">Premium potentiel</span><strong id="insta-featured-candidates-count">—</strong><p>Prochains événements à mettre en avant.</p></article>
-      </div>
-      <textarea id="instagram-output" class="instagram-output" placeholder="Les légendes Instagram apparaîtront ici…"></textarea>
-      <div class="actions">
-        <button id="copy-instagram-output" class="secondary">Copier le texte</button>
-        <button id="clear-instagram-output" class="ghost">Effacer</button>
-      </div>
-    </section>
-
-    <section class="import-panel">
-      <h2>Import CSV scraper</h2>
-      <p>Les événements importés restent toujours en attente de validation.</p>
-      <input id="csv-file" type="file" accept=".csv,text/csv" />
-      <button id="import-csv-button" class="secondary">Importer en attente</button>
-      <p id="import-feedback"></p>
-    </section>
-
-    <section class="newsletter-admin-panel">
-      <h2>Newsletter</h2>
-      <p id="newsletter-count">Chargement…</p>
-    </section>
-
-    <div class="admin-filters">
-      <button class="tab active" data-filter="pending">À valider</button>
-      <button class="tab" data-filter="published">Publiés</button>
-      <button class="tab" data-filter="featured">Mis en avant</button>
-      <button class="tab" data-filter="rejected">Refusés</button>
+    <div class="stat">
+      <span id="stat-pending">0</span>
+      <small>En attente</small>
     </div>
 
-    <div id="events-list" class="admin-list"></div>
+    <div class="stat">
+      <span id="stat-featured">0</span>
+      <small>Mis en avant</small>
+    </div>
   </section>
+
+  <!-- FILTRES -->
+  <section class="admin-filters">
+    <input id="search-admin" placeholder="Rechercher..." />
+
+    <select id="filter-status">
+      <option value="">Tous</option>
+      <option value="pending">En attente</option>
+      <option value="validated">Validé</option>
+    </select>
+
+    <select id="filter-region">
+      <option value="">Toutes régions</option>
+    </select>
+  </section>
+
+  <!-- TABLE -->
+  <section class="admin-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Titre</th>
+          <th>Ville</th>
+          <th>Date</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="admin-table-body">
+        <tr><td colspan="5">Chargement...</td></tr>
+      </tbody>
+    </table>
+  </section>
+
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- MODAL -->
+<div id="modal" class="modal hidden">
+  <div class="modal-content">
+    <span id="close-modal">✖</span>
+
+    <h2 id="modal-title"></h2>
+
+    <p id="modal-description"></p>
+
+    <div class="modal-actions">
+      <button id="validate-btn">✔ Valider</button>
+      <button id="reject-btn">❌ Rejeter</button>
+      <button id="feature-btn">⭐ Mettre en avant</button>
+    </div>
+  </div>
+</div>
+
 <script src="config.js"></script>
-<script src="admin.js"></script>
+<script src="admin-v2.js"></script>
+
 </body>
 </html>
