@@ -7,7 +7,7 @@
   <title>Admin Dédicalivres V3</title>
   <meta name="robots" content="noindex, nofollow" />
 
-  <!-- Styles V3 uniquement -->
+  <!-- Styles admin -->
   <link rel="stylesheet" href="admin.css" />
 
   <!-- Leaflet -->
@@ -52,7 +52,7 @@
 
         <p class="login-intro">
           Connecte-toi avec ton compte admin Supabase pour gérer les événements,
-          validations, mises en avant et exports.
+          validations, mises en avant, carte, exports et publications Instagram.
         </p>
 
         <form id="login-form" class="login-form">
@@ -79,9 +79,61 @@
           <button type="submit" class="btn btn-primary btn-full">
             Se connecter
           </button>
+
+          <button id="forgot-password-btn" type="button" class="btn btn-secondary btn-full">
+            Mot de passe oublié
+          </button>
         </form>
 
         <div id="login-message" class="message-box" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- =========================
+      RECOVERY PASSWORD
+    ========================== -->
+    <section id="recovery-view" class="login-view is-hidden">
+      <div class="login-card">
+        <div class="brand-block">
+          <div class="brand-mark">DL</div>
+          <div>
+            <p class="eyebrow">Réinitialisation</p>
+            <h1>Nouveau mot de passe</h1>
+          </div>
+        </div>
+
+        <p class="login-intro">
+          Choisis un nouveau mot de passe pour ton compte admin Dédicalivres.
+          Une fois enregistré, tu pourras te reconnecter normalement.
+        </p>
+
+        <form id="recovery-form" class="login-form">
+          <label for="new-password">Nouveau mot de passe</label>
+          <input
+            id="new-password"
+            name="new-password"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Nouveau mot de passe"
+            required
+          />
+
+          <label for="new-password-confirm">Confirmer le mot de passe</label>
+          <input
+            id="new-password-confirm"
+            name="new-password-confirm"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Confirmer le mot de passe"
+            required
+          />
+
+          <button type="submit" class="btn btn-primary btn-full">
+            Enregistrer le nouveau mot de passe
+          </button>
+        </form>
+
+        <div id="recovery-message" class="message-box" aria-live="polite"></div>
       </div>
     </section>
 
@@ -122,9 +174,9 @@
         <div id="global-message" class="message-box" aria-live="polite"></div>
 
         <!-- =========================
-          STATS
+          STATS ÉVÉNEMENTS
         ========================== -->
-        <section class="stats-grid" aria-label="Statistiques">
+        <section class="stats-grid" aria-label="Statistiques événements">
           <article class="stat-card">
             <span class="stat-label">Total</span>
             <strong id="stat-total">0</strong>
@@ -160,6 +212,32 @@
             <strong id="stat-verified">0</strong>
             <small>contrôlés</small>
           </article>
+        </section>
+
+        <!-- =========================
+          TRAFIC COMPACT
+          Nécessite le JS correspondant si ta table de visites existe
+        ========================== -->
+        <section class="traffic-compact" aria-label="Trafic du site">
+          <article class="traffic-card">
+            <span>Aujourd’hui</span>
+            <strong id="traffic-today">—</strong>
+            <small>visites</small>
+          </article>
+
+          <article class="traffic-card">
+            <span>7 jours</span>
+            <strong id="traffic-week">—</strong>
+            <small>visites</small>
+          </article>
+
+          <article class="traffic-card">
+            <span>Total</span>
+            <strong id="traffic-total">—</strong>
+            <small>visites</small>
+          </article>
+
+          <div id="traffic-message" class="traffic-message"></div>
         </section>
 
         <!-- =========================
@@ -255,19 +333,22 @@
               <button id="bulk-validate-btn" type="button" class="btn btn-small">
                 Valider
               </button>
+
               <button id="bulk-reject-btn" type="button" class="btn btn-small btn-warning">
                 Rejeter
               </button>
+
               <button id="bulk-feature-btn" type="button" class="btn btn-small">
                 Mettre en avant
               </button>
+
               <button id="bulk-unfeature-btn" type="button" class="btn btn-small btn-secondary">
                 Retirer mise en avant
               </button>
             </div>
           </div>
 
-          <!-- Liste responsive -->
+          <!-- Liste desktop/tablette -->
           <div class="table-shell">
             <table class="events-table">
               <thead>
@@ -374,6 +455,7 @@
               <label for="instagram-output" class="textarea-label">
                 Texte généré
               </label>
+
               <textarea
                 id="instagram-output"
                 class="instagram-output"
@@ -553,7 +635,7 @@
   <!-- Config existante du site -->
   <script src="config.js"></script>
 
-  <!-- Script V3 uniquement -->
+  <!-- Script admin -->
   <script src="admin.js"></script>
 </body>
 </html>
