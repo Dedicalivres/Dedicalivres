@@ -641,8 +641,8 @@
     populateInstagramSelect();
 
     if (state.currentView === "map") {
-      renderMap();
-    }
+  scheduleMapRender();
+}
   }
 
   function matchesDateFilter(event, filter) {
@@ -1301,6 +1301,13 @@
 
     if (viewName === "map") {
   setTimeout(function () {
+    function scheduleMapRender() {
+  window.clearTimeout(scheduleMapRender._timer);
+
+  scheduleMapRender._timer = window.setTimeout(function () {
+    renderMap();
+  }, 250);
+}
     renderMap();
 
     if (state.map) {
