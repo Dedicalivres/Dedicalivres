@@ -1231,8 +1231,9 @@ textarea::placeholder {
   }
 
   .admin-map {
-    min-height: 460px;
-  }
+  height: 460px;
+  min-height: 460px;
+}
 
   .status-fieldset {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1334,8 +1335,9 @@ textarea::placeholder {
   }
 
   .admin-map {
-    min-height: 380px;
-  }
+  height: 380px;
+  min-height: 380px;
+}
 
   .form-grid {
     grid-template-columns: 1fr;
