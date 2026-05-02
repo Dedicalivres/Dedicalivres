@@ -1200,10 +1200,12 @@ textarea::placeholder {
 }
 
 @media (max-width: 860px) {
-  .admin-view {
-    width: min(100% - 22px, var(--admin-width));
-    padding-top: 16px;
-  }
+  .admin-map,
+.admin-map.leaflet-container {
+  height: 460px;
+  min-height: 460px;
+}
+}
 
   .admin-header {
     display: grid;
@@ -1259,10 +1261,11 @@ textarea::placeholder {
     border-radius: 18px;
   }
 
-  .admin-view {
-    width: calc(100% - 18px);
-    padding-bottom: 28px;
-  }
+  .admin-map,
+.admin-map.leaflet-container {
+  height: 380px;
+  min-height: 380px;
+}
 
   .admin-header,
   .admin-panel {
