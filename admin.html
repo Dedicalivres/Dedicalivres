@@ -7,10 +7,10 @@
   <title>Admin Dédicalivres V3</title>
   <meta name="robots" content="noindex, nofollow" />
 
-  <!-- Styles admin -->
+  <!-- CSS admin -->
   <link rel="stylesheet" href="admin.css" />
 
-  <!-- Leaflet -->
+  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -35,6 +35,607 @@
       JavaScript est nécessaire pour utiliser l’interface admin Dédicalivres.
     </div>
   </noscript>
+
+  <div id="admin-app" class="admin-app">
+
+    <!-- =========================
+      LOGIN
+    ========================== -->
+    <section id="login-view" class="login-view">
+      <div class="login-card">
+        <div class="brand-block">
+          <div class="brand-mark">DL</div>
+          <div>
+            <p class="eyebrow">Administration</p>
+            <h1>Dédicalivres V3</h1>
+          </div>
+        </div>
+
+        <p class="login-intro">
+          Connecte-toi avec ton compte admin Supabase pour gérer les événements,
+          validations, mises en avant, carte, exports et publications Instagram.
+        </p>
+
+        <form id="login-form" class="login-form">
+          <label for="login-email">Email</label>
+          <input
+            id="login-email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            placeholder="dedicalivres@gmail.com"
+            required
+          />
+
+          <label for="login-password">Mot de passe</label>
+          <input
+            id="login-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            placeholder="••••••••"
+            required
+          />
+
+          <button type="submit" class="btn btn-primary btn-full">
+            Se connecter
+          </button>
+
+          <button id="forgot-password-btn" type="button" class="btn btn-secondary btn-full">
+            Mot de passe oublié
+          </button>
+        </form>
+
+        <div id="login-message" class="message-box" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- =========================
+      RECOVERY PASSWORD
+    ========================== -->
+    <section id="recovery-view" class="login-view is-hidden">
+      <div class="login-card">
+        <div class="brand-block">
+          <div class="brand-mark">DL</div>
+          <div>
+            <p class="eyebrow">Réinitialisation</p>
+            <h1>Nouveau mot de passe</h1>
+          </div>
+        </div>
+
+        <p class="login-intro">
+          Choisis un nouveau mot de passe pour ton compte admin Dédicalivres.
+          Une fois enregistré, tu pourras te reconnecter normalement.
+        </p>
+
+        <form id="recovery-form" class="login-form">
+          <label for="new-password">Nouveau mot de passe</label>
+          <input
+            id="new-password"
+            name="new-password"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Nouveau mot de passe"
+            required
+          />
+
+          <label for="new-password-confirm">Confirmer le mot de passe</label>
+          <input
+            id="new-password-confirm"
+            name="new-password-confirm"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Confirmer le mot de passe"
+            required
+          />
+
+          <button type="submit" class="btn btn-primary btn-full">
+            Enregistrer le nouveau mot de passe
+          </button>
+        </form>
+
+        <div id="recovery-message" class="message-box" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- =========================
+      ADMIN
+    ========================== -->
+    <section id="admin-view" class="admin-view is-hidden">
+      <header class="admin-header">
+        <div class="admin-header-main">
+          <div class="brand-block compact">
+            <div class="brand-mark">DL</div>
+            <div>
+              <p class="eyebrow">Interface admin</p>
+              <h1>Dédicalivres V3</h1>
+            </div>
+          </div>
+
+          <p class="admin-subtitle">
+            Gestion des événements, validations, carte, exports et publications Instagram.
+          </p>
+        </div>
+
+        <div class="header-actions">
+          <span id="admin-user-email" class="user-pill"></span>
+
+          <button id="refresh-btn" type="button" class="btn btn-secondary">
+            Rafraîchir
+          </button>
+
+          <button id="logout-btn" type="button" class="btn btn-ghost">
+            Déconnexion
+          </button>
+        </div>
+      </header>
+
+      <main class="admin-main">
+        <div id="global-message" class="message-box" aria-live="polite"></div>
+
+        <!-- =========================
+          STATS ÉVÉNEMENTS
+        ========================== -->
+        <section class="stats-grid" aria-label="Statistiques événements">
+          <article class="stat-card">
+            <span class="stat-label">Total</span>
+            <strong id="stat-total">0</strong>
+            <small>événements</small>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">En attente</span>
+            <strong id="stat-pending">0</strong>
+            <small>à modérer</small>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">Validés</span>
+            <strong id="stat-validated">0</strong>
+            <small>visibles</small>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">Rejetés</span>
+            <strong id="stat-rejected">0</strong>
+            <small>masqués</small>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">Mis en avant</span>
+            <strong id="stat-featured">0</strong>
+            <small>sélection</small>
+          </article>
+
+          <article class="stat-card">
+            <span class="stat-label">Vérifiés</span>
+            <strong id="stat-verified">0</strong>
+            <small>contrôlés</small>
+          </article>
+        </section>
+
+        <!-- =========================
+          TRAFIC COMPACT
+        ========================== -->
+        <section class="traffic-compact" aria-label="Trafic du site">
+          <article class="traffic-card">
+            <span>Aujourd’hui</span>
+            <strong id="traffic-today">—</strong>
+            <small>visites</small>
+          </article>
+
+          <article class="traffic-card">
+            <span>7 jours</span>
+            <strong id="traffic-week">—</strong>
+            <small>visites</small>
+          </article>
+
+          <article class="traffic-card">
+            <span>Total</span>
+            <strong id="traffic-total">—</strong>
+            <small>visites</small>
+          </article>
+
+          <div id="traffic-message" class="traffic-message"></div>
+        </section>
+
+        <!-- =========================
+          NAVIGATION
+        ========================== -->
+        <nav class="admin-tabs" aria-label="Navigation admin">
+          <button type="button" class="tab-btn is-active" data-view="list">
+            Événements
+          </button>
+
+          <button type="button" class="tab-btn" data-view="map">
+            Carte
+          </button>
+
+          <button type="button" class="tab-btn" data-view="tools">
+            Outils
+          </button>
+        </nav>
+
+        <!-- =========================
+          VIEW LIST
+        ========================== -->
+        <section id="view-list" class="admin-panel view-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Modération</p>
+              <h2>Événements</h2>
+            </div>
+
+            <div class="panel-actions">
+              <button id="export-csv-btn" type="button" class="btn btn-secondary">
+                Export CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="filters-grid">
+            <div class="field field-wide">
+              <label for="search-input">Recherche</label>
+              <input
+                id="search-input"
+                type="search"
+                placeholder="Titre, ville, région, description..."
+              />
+            </div>
+
+            <div class="field">
+              <label for="status-filter">Statut</label>
+              <select id="status-filter">
+                <option value="all">Tous</option>
+                <option value="pending">En attente</option>
+                <option value="validated">Validés</option>
+                <option value="rejected">Rejetés</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="region-filter">Région</label>
+              <select id="region-filter">
+                <option value="all">Toutes</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="type-filter">Type</label>
+              <select id="type-filter">
+                <option value="all">Tous</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="date-filter">Période</label>
+              <select id="date-filter">
+                <option value="all">Tous</option>
+                <option value="upcoming">À venir</option>
+                <option value="past">Passés</option>
+                <option value="no-date">Sans date</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bulk-bar">
+            <div class="bulk-left">
+              <label class="checkbox-line">
+                <input id="select-all-checkbox" type="checkbox" />
+                <span>Tout sélectionner</span>
+              </label>
+
+              <strong id="selected-count">0 sélectionné</strong>
+            </div>
+
+            <div class="bulk-actions">
+              <button id="bulk-validate-btn" type="button" class="btn btn-small">
+                Valider
+              </button>
+
+              <button id="bulk-reject-btn" type="button" class="btn btn-small btn-warning">
+                Rejeter
+              </button>
+
+              <button id="bulk-feature-btn" type="button" class="btn btn-small">
+                Mettre en avant
+              </button>
+
+              <button id="bulk-unfeature-btn" type="button" class="btn btn-small btn-secondary">
+                Retirer mise en avant
+              </button>
+            </div>
+          </div>
+
+          <div class="table-shell">
+            <table class="events-table">
+              <thead>
+                <tr>
+                  <th class="col-select">Sélection</th>
+                  <th>Événement</th>
+                  <th>Lieu</th>
+                  <th>Date</th>
+                  <th>Statut</th>
+                  <th>Options</th>
+                  <th class="col-actions">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody id="events-tbody">
+                <tr>
+                  <td colspan="7" class="table-empty">
+                    Chargement des événements...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="events-mobile-list" class="mobile-list"></div>
+        </section>
+
+        <!-- =========================
+          VIEW MAP
+        ========================== -->
+        <section id="view-map" class="admin-panel view-panel is-hidden">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Carte admin</p>
+              <h2>Localisation des événements</h2>
+            </div>
+
+            <div class="map-legend">
+              <span><i class="legend-dot validated"></i> Validé</span>
+              <span><i class="legend-dot pending"></i> En attente</span>
+              <span><i class="legend-dot rejected"></i> Rejeté</span>
+              <span><i class="legend-dot missing"></i> Sans coordonnées</span>
+            </div>
+          </div>
+
+          <div class="map-layout">
+            <div id="admin-map" class="admin-map" aria-label="Carte des événements"></div>
+
+            <aside class="missing-coordinates-panel">
+              <h3>Sans coordonnées</h3>
+              <p>
+                Ces événements n’ont pas de latitude ou longitude exploitable.
+              </p>
+
+              <div id="missing-coordinates-list" class="missing-list">
+                <div class="empty-state">Aucun événement chargé.</div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- =========================
+          VIEW TOOLS
+        ========================== -->
+        <section id="view-tools" class="admin-panel view-panel is-hidden">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Outils</p>
+              <h2>Export et Instagram</h2>
+            </div>
+          </div>
+
+          <div class="tools-grid">
+            <article class="tool-card">
+              <h3>Export CSV</h3>
+              <p>
+                Télécharge la liste filtrée des événements actuellement affichés.
+              </p>
+
+              <button id="export-csv-btn-tools" type="button" class="btn btn-primary">
+                Exporter les événements filtrés
+              </button>
+            </article>
+
+            <article class="tool-card">
+              <h3>Générateur Instagram</h3>
+              <p>
+                Sélectionne un événement dans la liste ou via le formulaire d’édition,
+                puis génère un texte prêt à adapter pour Instagram.
+              </p>
+
+              <div class="field">
+                <label for="instagram-event-select">Événement</label>
+                <select id="instagram-event-select">
+                  <option value="">Choisir un événement</option>
+                </select>
+              </div>
+
+              <button id="generate-instagram-btn" type="button" class="btn btn-primary">
+                Générer le texte
+              </button>
+
+              <label for="instagram-output" class="textarea-label">
+                Texte généré
+              </label>
+
+              <textarea
+                id="instagram-output"
+                class="instagram-output"
+                readonly
+                placeholder="Le texte Instagram apparaîtra ici..."
+              ></textarea>
+
+              <div class="tool-actions">
+                <button id="copy-instagram-btn" type="button" class="btn btn-secondary">
+                  Copier
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <!-- =========================
+      MODALE ÉDITION
+    ========================== -->
+    <div id="edit-modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Édition</p>
+            <h2 id="edit-modal-title">Modifier l’événement</h2>
+          </div>
+
+          <button id="close-edit-modal-btn" type="button" class="icon-btn" aria-label="Fermer">
+            ×
+          </button>
+        </div>
+
+        <form id="edit-form" class="edit-form">
+          <input id="edit-id" type="hidden" />
+
+          <div class="form-grid">
+            <div class="field field-wide">
+              <label for="edit-title">Titre</label>
+              <input id="edit-title" name="title" type="text" required />
+            </div>
+
+            <div class="field field-wide">
+              <label for="edit-description">Description</label>
+              <textarea id="edit-description" name="description"></textarea>
+            </div>
+
+            <div class="field">
+              <label for="edit-type">Type</label>
+              <input id="edit-type" name="type" type="text" placeholder="Salon, dédicace..." />
+            </div>
+
+            <div class="field">
+              <label for="edit-region">Région</label>
+              <input id="edit-region" name="region" type="text" />
+            </div>
+
+            <div class="field">
+              <label for="edit-city">Ville</label>
+              <input id="edit-city" name="city" type="text" />
+            </div>
+
+            <div class="field">
+              <label for="edit-price">Prix</label>
+              <input id="edit-price" name="price" type="text" placeholder="Gratuit, 5 €, ..." />
+            </div>
+
+            <div class="field">
+              <label for="edit-start-date">Date de début</label>
+              <input id="edit-start-date" name="start_date" type="date" />
+            </div>
+
+            <div class="field">
+              <label for="edit-end-date">Date de fin</label>
+              <input id="edit-end-date" name="end_date" type="date" />
+            </div>
+
+            <div class="field field-wide">
+              <label for="edit-website">Site web</label>
+              <input id="edit-website" name="website" type="url" placeholder="https://..." />
+            </div>
+
+            <div class="field field-wide">
+              <label for="edit-image-url">Image URL</label>
+              <input id="edit-image-url" name="image_url" type="url" placeholder="https://..." />
+            </div>
+
+            <div class="field">
+              <label for="edit-lat">Latitude</label>
+              <input id="edit-lat" name="lat" type="number" step="any" />
+            </div>
+
+            <div class="field">
+              <label for="edit-lng">Longitude</label>
+              <input id="edit-lng" name="lng" type="number" step="any" />
+            </div>
+
+            <div class="field">
+              <label for="edit-source-label">Source</label>
+              <input id="edit-source-label" name="source_label" type="text" />
+            </div>
+
+            <div class="status-fieldset field-wide">
+              <span class="fieldset-title">Statuts</span>
+
+              <label class="checkbox-card">
+                <input id="edit-validated" name="validated" type="checkbox" />
+                <span>Validé</span>
+              </label>
+
+              <label class="checkbox-card">
+                <input id="edit-rejected" name="rejected" type="checkbox" />
+                <span>Rejeté</span>
+              </label>
+
+              <label class="checkbox-card">
+                <input id="edit-featured" name="featured" type="checkbox" />
+                <span>Mis en avant</span>
+              </label>
+
+              <label class="checkbox-card">
+                <input id="edit-verified" name="verified" type="checkbox" />
+                <span>Vérifié</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="edit-message" class="message-box" aria-live="polite"></div>
+
+          <div class="modal-footer">
+            <button id="delete-event-btn" type="button" class="btn btn-danger">
+              Supprimer
+            </button>
+
+            <div class="modal-footer-right">
+              <button id="cancel-edit-btn" type="button" class="btn btn-secondary">
+                Annuler
+              </button>
+
+              <button type="submit" class="btn btn-primary">
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- =========================
+      MODALE CONFIRMATION
+    ========================== -->
+    <div id="confirm-modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="modal-backdrop" data-close-confirm="true"></div>
+
+      <div class="confirm-card">
+        <h2 id="confirm-title">Confirmation</h2>
+        <p id="confirm-message">
+          Confirmer cette action ?
+        </p>
+
+        <div class="confirm-actions">
+          <button id="confirm-cancel-btn" type="button" class="btn btn-secondary">
+            Annuler
+          </button>
+
+          <button id="confirm-ok-btn" type="button" class="btn btn-danger">
+            Confirmer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Config existante du site -->
+  <script src="config.js"></script>
+
+  <!-- Script admin -->
+  <script src="admin.js"></script>
+</body>
+</html>  </noscript>
 
   <div id="admin-app" class="admin-app">
     <!-- =========================
