@@ -933,13 +933,21 @@ textarea::placeholder {
 }
 
 .admin-map {
+  width: 100%;
+  height: 580px;
   min-height: 580px;
   border: 1px solid var(--dl-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--dl-soft);
+  position: relative;
 }
 
+.admin-map .leaflet-container,
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
 .missing-coordinates-panel {
   display: grid;
   align-content: start;
