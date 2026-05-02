@@ -1,7 +1,6 @@
 /* =========================================================
   DÉDICALIVRES — ADMIN
   Fichier : admin.css
-  Dépendances : aucune
 ========================================================= */
 
 :root {
@@ -960,7 +959,7 @@ textarea::placeholder {
 }
 
 /* =========================================================
-  MAP — VERSION CORRIGÉE
+  MAP
 ========================================================= */
 
 .map-legend {
@@ -1023,16 +1022,6 @@ textarea::placeholder {
   width: 100% !important;
   height: 620px !important;
   min-height: 620px !important;
-}
-
-.admin-map .leaflet-container,
-.admin-map .leaflet-map-pane,
-.admin-map .leaflet-tile-pane,
-.admin-map .leaflet-overlay-pane,
-.admin-map .leaflet-marker-pane,
-.admin-map .leaflet-popup-pane {
-  width: 100%;
-  height: 100%;
 }
 
 .admin-map .leaflet-pane,
@@ -1512,19 +1501,9 @@ textarea::placeholder {
 }
 
 /* =========================================================
-  ACCESSIBILITY / MOTION
+  CORRECTION LEAFLET DURE
 ========================================================= */
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition: none !important;
-    animation: none !important;
-  }
-}
-/* Correction Leaflet dure */
 #view-map:not(.is-hidden) {
   display: block;
 }
@@ -1545,6 +1524,29 @@ textarea::placeholder {
 
 .leaflet-container {
   font-family: inherit;
+}
+
+.leaflet-tile,
+.leaflet-tile-container,
+.leaflet-layer,
+.leaflet-pane,
+.leaflet-map-pane {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* =========================================================
+  ACCESSIBILITY / MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 @media (max-width: 680px) {
