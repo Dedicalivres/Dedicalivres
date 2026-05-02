@@ -1319,7 +1319,10 @@
     }
 
     if (!state.map) {
-      state.map = window.L.map(els.adminMap).setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
+      state.map = window.L.map(els.adminMap, {
+  preferCanvas: true,
+  zoomControl: true
+}).setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
 
       window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
