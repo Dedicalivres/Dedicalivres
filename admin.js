@@ -1678,13 +1678,145 @@ function switchView(viewName) {
   }
 
   function renderMap() {
-    if (!els.adminMap) return;
-    if (state.currentView !== "map") return;
+  if (!els.adminMap) return;
+  if (state.currentView !== "map") return;
 
-    if (!window.L) {
-      showMessage(els.globalMessage, "error", "Leaflet est introuvable.");
+  if (!window.L) {
+    showMessage(els.globalMessage, "error", "Leaflet est introuvable.");
+    return;
+  }
+
+  if (!state.map) {
+    state.map = window.L.map(els.adminMap, {
+      preferCanvas: true,
+      zoomControl: true,
+      attributionControl: true
+    });
+
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      keepBuffer: 3,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(state.map);
+
+    state.markerLayer = window.L.layerGroup().addTo(state.map);
+
+    state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
+  }
+
+  state.map.invalidateSize(true);
+  state.markerLayer.clearLayers();
+
+  const bounds = [];
+  const missing = [];
+
+  const eventsWithCoordinates = state.filteredEvents
+    .filter(function (event) {
+      if (!hasCoordinates(event)) return false;
+
+      /*
+        Sécurité France / Europe proche :
+        on évite qu’une coordonnée absurde envoie la carte au Groenland,
+        au Canada ou ailleurs.
+      */
+      return event.lat >= 35 && event.lat <= 60 && event.lng >= -12 && event.lng <= 20;
+    })
+    .sort(function (a, b) {
+      const dateA = parseDate(a.start_date) || new Date("9999-12-31");
+      const dateB = parseDate(b.start_date) || new Date("9999-12-31");
+      return dateA - dateB;
+    })
+    .slice(0, MAX_MAP_MARKERS);
+
+  state.filteredEvents.forEach(function (event) {
+    if (!hasCoordinates(event)) {
+      missing.push(event);
       return;
     }
+
+    if (!(event.lat >= 35 && event.lat <= 60 && event.lng >= -12 && event.lng <= 20)) {
+      missing.push(event);
+    }
+  });
+
+  eventsWithCoordinates.forEach(function (event) {
+    const latLng = [event.lat, event.lng];
+    bounds.push(latLng);
+
+    const marker = window.L.circleMarker(latLng, {
+      radius: 7,
+      color: getMarkerColor(event),
+      fillColor: getMarkerColor(event),
+      fillOpacity: 0.82,
+      weight: 1
+    });
+
+    marker.bindPopup(function () {
+      return `
+        <div class="admin-map-popup">
+          <strong>${escapeHtml(event.title)}</strong>
+          <small>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</small>
+          <small>${escapeHtml(formatDateRange(event.start_date, event.end_date))}</small>
+          <button type="button" data-map-edit-id="${escapeHtml(event.id)}">Modifier</button>
+        </div>
+      `;
+    });
+
+    marker.addTo(state.markerLayer);
+  });
+
+  state.map.off("popupopen");
+  state.map.on("popupopen", function (popupEvent) {
+    const popupElement = popupEvent.popup.getElement();
+    if (!popupElement) return;
+
+    const button = popupElement.querySelector("[data-map-edit-id]");
+    if (!button) return;
+
+    button.addEventListener("click", function () {
+      const eventItem = findEventById(button.dataset.mapEditId);
+      if (eventItem) openEditModal(eventItem);
+    });
+  });
+
+  renderMissingCoordinates(missing);
+
+  setTimeout(function () {
+    if (!state.map) return;
+
+    state.map.invalidateSize(true);
+
+    if (bounds.length) {
+      state.map.fitBounds(bounds, {
+        padding: [34, 34],
+        maxZoom: 11,
+        animate: false
+      });
+    } else {
+      state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, {
+        animate: false
+      });
+    }
+  }, 350);
+
+  setTimeout(function () {
+    if (state.map) state.map.invalidateSize(true);
+  }, 900);
+
+  setTimeout(function () {
+    if (state.map) state.map.invalidateSize(true);
+  }, 1500);
+
+  if (state.filteredEvents.filter(hasCoordinates).length > MAX_MAP_MARKERS) {
+    showMessage(
+      els.globalMessage,
+      "info",
+      `Carte optimisée : seuls les ${MAX_MAP_MARKERS} premiers événements géolocalisés sont affichés. Utilise les filtres pour affiner.`
+    );
+  }
+}
 
     if (!state.map) {
       state.map = window.L.map(els.adminMap, {
