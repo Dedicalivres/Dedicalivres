@@ -7,7 +7,7 @@
   "use strict";
 
   const TABLE_NAME = "events";
-  const TRAFFIC_ENABLED = false;
+  const TRAFFIC_ENABLED = true;
   const RECOVERY_REDIRECT_URL = "https://dedicalivres.fr/admin.html";
 
   const OPTIONAL_COLUMNS = [
