@@ -1300,8 +1300,14 @@
     els.viewTools.classList.toggle("is-hidden", viewName !== "tools");
 
     if (viewName === "map") {
-      setTimeout(renderMap, 80);
+  setTimeout(function () {
+    renderMap();
+
+    if (state.map) {
+      state.map.invalidateSize(false);
     }
+  }, 250);
+}
   }
 
   function renderMap() {
@@ -1380,8 +1386,16 @@
     }
 
     setTimeout(function () {
-      state.map.invalidateSize();
-    }, 100);
+  if (state.map) {
+    state.map.invalidateSize(false);
+  }
+}, 250);
+
+setTimeout(function () {
+  if (state.map) {
+    state.map.invalidateSize(false);
+  }
+}, 700);
   }
 
   function renderMissingCoordinates(events) {
