@@ -17,8 +17,12 @@
 
   const TABLE_NAME = "events";
 
-  const TRAFFIC_TABLE_NAME = "site_visits";
-  const TRAFFIC_DATE_COLUMN = "created_at";
+  /*
+    Compteurs désactivés temporairement.
+    La table site_visits n’existe pas encore dans Supabase, donc on évite
+    les erreurs 404 qui polluent la console.
+  */
+  const TRAFFIC_ENABLED = false;
 
   const RECOVERY_REDIRECT_URL = "https://dedicalivres.fr/admin.html";
 
@@ -68,7 +72,6 @@
     unavailableColumns: new Set(),
     pendingConfirmAction: null,
     isRecoveryMode: false,
-    trafficDisabled: false,
     initialized: false
   };
 
@@ -764,68 +767,21 @@
   }
 
   /* =========================================================
-    TRAFFIC STATS
+    TRAFFIC STATS — DÉSACTIVÉ PROPREMENT
   ========================================================= */
 
   async function loadTrafficStats() {
-    if (state.trafficDisabled) return;
-    if (!els.trafficToday && !els.trafficWeek && !els.trafficTotal) return;
-
-    clearTrafficMessage();
-
-    setText(els.trafficToday, "…");
-    setText(els.trafficWeek, "…");
-    setText(els.trafficTotal, "…");
-
-    try {
-      const todayStart = getTodayStartIso();
-      const weekStart = getLastSevenDaysStartIso();
-
-      const today = await countVisitsFrom(todayStart);
-      const week = await countVisitsFrom(weekStart);
-      const total = await countAllVisits();
-
-      setText(els.trafficToday, formatNumber(today));
-      setText(els.trafficWeek, formatNumber(week));
-      setText(els.trafficTotal, formatNumber(total));
-    } catch (_error) {
-      state.trafficDisabled = true;
-
+    if (!TRAFFIC_ENABLED) {
       setText(els.trafficToday, "—");
       setText(els.trafficWeek, "—");
       setText(els.trafficTotal, "—");
 
       showTrafficMessage(
-        `Compteurs de visites indisponibles. Vérifie la table Supabase "${TRAFFIC_TABLE_NAME}".`
+        "Compteurs de visites désactivés : la table site_visits n’existe pas encore."
       );
+
+      return;
     }
-  }
-
-  async function countVisitsFrom(isoDate) {
-    const { count, error } = await supabaseClient
-      .from(TRAFFIC_TABLE_NAME)
-      .select("*", {
-        count: "exact",
-        head: true
-      })
-      .gte(TRAFFIC_DATE_COLUMN, isoDate);
-
-    if (error) throw error;
-
-    return count || 0;
-  }
-
-  async function countAllVisits() {
-    const { count, error } = await supabaseClient
-      .from(TRAFFIC_TABLE_NAME)
-      .select("*", {
-        count: "exact",
-        head: true
-      });
-
-    if (error) throw error;
-
-    return count || 0;
   }
 
   function showTrafficMessage(message) {
@@ -833,13 +789,6 @@
 
     els.trafficMessage.textContent = message;
     els.trafficMessage.classList.add("is-visible");
-  }
-
-  function clearTrafficMessage() {
-    if (!els.trafficMessage) return;
-
-    els.trafficMessage.textContent = "";
-    els.trafficMessage.classList.remove("is-visible");
   }
 
   /* =========================================================
@@ -1626,182 +1575,193 @@
   }
 
   /* =========================================================
-  MAP — VERSION STABLE SANS FITBOUNDS
-========================================================= */
+    MAP — VERSION STABLE SANS FITBOUNDS
+  ========================================================= */
 
-function switchView(viewName) {
-  state.currentView = viewName;
+  function switchView(viewName) {
+    state.currentView = viewName;
 
-  els.tabButtons.forEach(function (button) {
-    button.classList.toggle("is-active", button.dataset.view === viewName);
-  });
-
-  if (els.viewList) els.viewList.classList.toggle("is-hidden", viewName !== "list");
-  if (els.viewMap) els.viewMap.classList.toggle("is-hidden", viewName !== "map");
-  if (els.viewTools) els.viewTools.classList.toggle("is-hidden", viewName !== "tools");
-
-  if (viewName === "map") {
-    setTimeout(renderMap, 150);
-    setTimeout(forceMapResize, 400);
-    setTimeout(forceMapResize, 900);
-    setTimeout(forceMapResize, 1600);
-  }
-}
-
-function forceMapResize() {
-  if (!state.map) return;
-  state.map.invalidateSize(true);
-}
-
-function renderMap() {
-  if (!els.adminMap) {
-    showMessage(els.globalMessage, "error", "Bloc carte introuvable dans le HTML.");
-    return;
-  }
-
-  if (state.currentView !== "map") return;
-
-  if (!window.L) {
-    showMessage(els.globalMessage, "error", "Leaflet est introuvable. Vérifie le chargement de leaflet.js.");
-    return;
-  }
-
-  if (!state.map) {
-    state.map = window.L.map(els.adminMap, {
-      preferCanvas: true,
-      zoomControl: true,
-      attributionControl: true
+    els.tabButtons.forEach(function (button) {
+      button.classList.toggle("is-active", button.dataset.view === viewName);
     });
 
-    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: "&copy; OpenStreetMap"
-    }).addTo(state.map);
+    if (els.viewList) els.viewList.classList.toggle("is-hidden", viewName !== "list");
+    if (els.viewMap) els.viewMap.classList.toggle("is-hidden", viewName !== "map");
+    if (els.viewTools) els.viewTools.classList.toggle("is-hidden", viewName !== "tools");
 
-    state.markerLayer = window.L.layerGroup().addTo(state.map);
-
-    state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
+    if (viewName === "map") {
+      setTimeout(renderMap, 150);
+      setTimeout(forceMapResize, 400);
+      setTimeout(forceMapResize, 900);
+      setTimeout(forceMapResize, 1600);
+    }
   }
 
-  forceMapResize();
-
-  if (state.markerLayer) {
-    state.markerLayer.clearLayers();
+  function forceMapResize() {
+    if (!state.map) return;
+    state.map.invalidateSize(true);
   }
 
-  const missing = [];
-  let visibleMarkers = 0;
+  function scheduleMapRender() {
+    window.clearTimeout(scheduleMapRender._timer);
 
-  state.filteredEvents.forEach(function (event) {
-    if (!hasCoordinates(event)) {
-      missing.push(event);
+    scheduleMapRender._timer = window.setTimeout(function () {
+      renderMap();
+    }, 250);
+  }
+
+  function renderMap() {
+    if (!els.adminMap) {
+      showMessage(els.globalMessage, "error", "Bloc carte introuvable dans le HTML.");
       return;
     }
 
-    const lat = Number(event.lat);
-    const lng = Number(event.lng);
+    if (state.currentView !== "map") return;
 
-    if (lat < 35 || lat > 60 || lng < -12 || lng > 20) {
-      missing.push(event);
+    if (!window.L) {
+      showMessage(
+        els.globalMessage,
+        "error",
+        "Leaflet est introuvable. Vérifie le chargement de leaflet.js."
+      );
       return;
     }
 
-    if (visibleMarkers >= MAX_MAP_MARKERS) return;
+    if (!state.map) {
+      state.map = window.L.map(els.adminMap, {
+        preferCanvas: true,
+        zoomControl: true,
+        attributionControl: true
+      });
 
-    visibleMarkers += 1;
+      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: "&copy; OpenStreetMap"
+      }).addTo(state.map);
 
-    const marker = window.L.circleMarker([lat, lng], {
-      radius: 7,
-      color: getMarkerColor(event),
-      fillColor: getMarkerColor(event),
-      fillOpacity: 0.82,
-      weight: 1
+      state.markerLayer = window.L.layerGroup().addTo(state.map);
+      state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
+    }
+
+    forceMapResize();
+
+    if (state.markerLayer) {
+      state.markerLayer.clearLayers();
+    }
+
+    const missing = [];
+    let visibleMarkers = 0;
+
+    state.filteredEvents.forEach(function (event) {
+      if (!hasCoordinates(event)) {
+        missing.push(event);
+        return;
+      }
+
+      const lat = Number(event.lat);
+      const lng = Number(event.lng);
+
+      if (lat < 35 || lat > 60 || lng < -12 || lng > 20) {
+        missing.push(event);
+        return;
+      }
+
+      if (visibleMarkers >= MAX_MAP_MARKERS) return;
+
+      visibleMarkers += 1;
+
+      const marker = window.L.circleMarker([lat, lng], {
+        radius: 7,
+        color: getMarkerColor(event),
+        fillColor: getMarkerColor(event),
+        fillOpacity: 0.82,
+        weight: 1
+      });
+
+      marker.bindPopup(`
+        <div class="admin-map-popup">
+          <strong>${escapeHtml(event.title)}</strong>
+          <small>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</small>
+          <small>${escapeHtml(formatDateRange(event.start_date, event.end_date))}</small>
+          <button type="button" data-map-edit-id="${escapeHtml(event.id)}">Modifier</button>
+        </div>
+      `);
+
+      marker.addTo(state.markerLayer);
     });
 
-    marker.bindPopup(`
-      <div class="admin-map-popup">
-        <strong>${escapeHtml(event.title)}</strong>
-        <small>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</small>
-        <small>${escapeHtml(formatDateRange(event.start_date, event.end_date))}</small>
-        <button type="button" data-map-edit-id="${escapeHtml(event.id)}">Modifier</button>
-      </div>
-    `);
+    state.map.off("popupopen");
+    state.map.on("popupopen", function (popupEvent) {
+      const popupElement = popupEvent.popup.getElement();
+      if (!popupElement) return;
 
-    marker.addTo(state.markerLayer);
-  });
+      const button = popupElement.querySelector("[data-map-edit-id]");
+      if (!button) return;
 
-  state.map.off("popupopen");
-  state.map.on("popupopen", function (popupEvent) {
-    const popupElement = popupEvent.popup.getElement();
-    if (!popupElement) return;
-
-    const button = popupElement.querySelector("[data-map-edit-id]");
-    if (!button) return;
-
-    button.addEventListener("click", function () {
-      const eventItem = findEventById(button.dataset.mapEditId);
-      if (eventItem) openEditModal(eventItem);
+      button.addEventListener("click", function () {
+        const eventItem = findEventById(button.dataset.mapEditId);
+        if (eventItem) openEditModal(eventItem);
+      });
     });
-  });
 
-  renderMissingCoordinates(missing);
+    renderMissingCoordinates(missing);
 
-  state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, {
-    animate: false
-  });
+    state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, {
+      animate: false
+    });
 
-  forceMapResize();
+    forceMapResize();
 
-  if (visibleMarkers === 0) {
-    showMessage(
-      els.globalMessage,
-      "warning",
-      "Carte chargée, mais aucun événement filtré n’a de coordonnées exploitables en France."
-    );
-  } else {
-    showMessage(
-      els.globalMessage,
-      "success",
-      `Carte chargée avec ${visibleMarkers} marqueur${visibleMarkers > 1 ? "s" : ""}.`
-    );
+    if (visibleMarkers === 0) {
+      showMessage(
+        els.globalMessage,
+        "warning",
+        "Carte chargée, mais aucun événement filtré n’a de coordonnées exploitables en France."
+      );
+    } else {
+      showMessage(
+        els.globalMessage,
+        "success",
+        `Carte chargée avec ${visibleMarkers} marqueur${visibleMarkers > 1 ? "s" : ""}.`
+      );
+    }
   }
-}
 
-function renderMissingCoordinates(events) {
-  if (!els.missingCoordinatesList) return;
+  function renderMissingCoordinates(events) {
+    if (!els.missingCoordinatesList) return;
 
-  if (!events.length) {
-    els.missingCoordinatesList.innerHTML = `
-      <div class="empty-state">Tous les événements filtrés ont des coordonnées exploitables.</div>
-    `;
-    return;
+    if (!events.length) {
+      els.missingCoordinatesList.innerHTML = `
+        <div class="empty-state">Tous les événements filtrés ont des coordonnées exploitables.</div>
+      `;
+      return;
+    }
+
+    els.missingCoordinatesList.innerHTML = events.slice(0, 150).map(function (event) {
+      return `
+        <button type="button" class="missing-item" data-action="edit" data-id="${escapeHtml(event.id)}">
+          <strong>${escapeHtml(event.title)}</strong>
+          <small>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</small>
+        </button>
+      `;
+    }).join("");
+
+    els.missingCoordinatesList.querySelectorAll("[data-action='edit']").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const eventItem = findEventById(button.dataset.id);
+        if (eventItem) openEditModal(eventItem);
+      });
+    });
   }
 
-  els.missingCoordinatesList.innerHTML = events.slice(0, 150).map(function (event) {
-    return `
-      <button type="button" class="missing-item" data-action="edit" data-id="${escapeHtml(event.id)}">
-        <strong>${escapeHtml(event.title)}</strong>
-        <small>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</small>
-      </button>
-    `;
-  }).join("");
+  function getMarkerColor(event) {
+    const status = getEventStatus(event);
 
-  els.missingCoordinatesList.querySelectorAll("[data-action='edit']").forEach(function (button) {
-    button.addEventListener("click", function () {
-      const eventItem = findEventById(button.dataset.id);
-      if (eventItem) openEditModal(eventItem);
-    });
-  });
-}
+    if (status === "validated") return "#16803c";
+    if (status === "rejected") return "#b42318";
 
-function getMarkerColor(event) {
-  const status = getEventStatus(event);
-
-  if (status === "validated") return "#16803c";
-  if (status === "rejected") return "#b42318";
-
-  return "#ff6b35";
-}
+    return "#ff6b35";
+  }
 
   /* =========================================================
     CSV
@@ -2121,23 +2081,6 @@ function getMarkerColor(event) {
       month: "short",
       year: "numeric"
     });
-  }
-
-  function getTodayStartIso() {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    return start.toISOString();
-  }
-
-  function getLastSevenDaysStartIso() {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    start.setDate(start.getDate() - 6);
-    return start.toISOString();
-  }
-
-  function formatNumber(value) {
-    return new Intl.NumberFormat("fr-FR").format(Number(value || 0));
   }
 
   function normalizeSearch(value) {
