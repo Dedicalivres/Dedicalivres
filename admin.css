@@ -1000,15 +1000,16 @@ textarea::placeholder {
 
 .map-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
 }
 
 .admin-map {
+  display: block;
   width: 100%;
-  height: 580px;
-  min-height: 580px;
+  height: 620px;
+  min-height: 620px;
   border: 1px solid var(--dl-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -1018,8 +1019,20 @@ textarea::placeholder {
 }
 
 .admin-map.leaflet-container {
+  display: block;
+  width: 100% !important;
+  height: 620px !important;
+  min-height: 620px !important;
+}
+
+.admin-map .leaflet-container,
+.admin-map .leaflet-map-pane,
+.admin-map .leaflet-tile-pane,
+.admin-map .leaflet-overlay-pane,
+.admin-map .leaflet-marker-pane,
+.admin-map .leaflet-popup-pane {
   width: 100%;
-  height: 580px;
+  height: 100%;
 }
 
 .admin-map .leaflet-pane,
@@ -1030,6 +1043,7 @@ textarea::placeholder {
 .admin-map .leaflet-pane > svg,
 .admin-map .leaflet-pane > canvas {
   max-width: none !important;
+  max-height: none !important;
 }
 
 .missing-coordinates-panel {
@@ -1050,7 +1064,7 @@ textarea::placeholder {
 .missing-list {
   display: grid;
   gap: 9px;
-  max-height: 500px;
+  max-height: 320px;
   overflow: auto;
   padding-right: 3px;
 }
