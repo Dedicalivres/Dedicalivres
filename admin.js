@@ -1639,27 +1639,35 @@
     MAP
   ========================================================= */
 
-  function switchView(viewName) {
-    state.currentView = viewName;
+function switchView(viewName) {
+  state.currentView = viewName;
 
-    els.tabButtons.forEach(function (button) {
-      button.classList.toggle("is-active", button.dataset.view === viewName);
+  els.tabButtons.forEach(function (button) {
+    button.classList.toggle("is-active", button.dataset.view === viewName);
+  });
+
+  if (els.viewList) els.viewList.classList.toggle("is-hidden", viewName !== "list");
+  if (els.viewMap) els.viewMap.classList.toggle("is-hidden", viewName !== "map");
+  if (els.viewTools) els.viewTools.classList.toggle("is-hidden", viewName !== "tools");
+
+  if (viewName === "map") {
+    requestAnimationFrame(function () {
+      scheduleMapRender();
     });
 
-    if (els.viewList) els.viewList.classList.toggle("is-hidden", viewName !== "list");
-    if (els.viewMap) els.viewMap.classList.toggle("is-hidden", viewName !== "map");
-    if (els.viewTools) els.viewTools.classList.toggle("is-hidden", viewName !== "tools");
+    setTimeout(function () {
+      if (state.map) state.map.invalidateSize(true);
+    }, 300);
 
-    if (viewName === "map") {
-      scheduleMapRender();
+    setTimeout(function () {
+      if (state.map) state.map.invalidateSize(true);
+    }, 900);
 
-      setTimeout(function () {
-        if (state.map) {
-          state.map.invalidateSize(false);
-        }
-      }, 500);
-    }
+    setTimeout(function () {
+      if (state.map) state.map.invalidateSize(true);
+    }, 1500);
   }
+}
 
   function scheduleMapRender() {
     window.clearTimeout(scheduleMapRender._timer);
