@@ -91,15 +91,30 @@
         }
       });
 
-      const { data, error } = await supabaseClient.auth.getSession();
+      let sessionResult = null;
 
-      if (error) {
+      try {
+        sessionResult = await withTimeout(
+          supabaseClient.auth.getSession(),
+          5000,
+          "Session Supabase trop longue à récupérer."
+        );
+      } catch (sessionError) {
+        console.warn("Session Supabase non récupérée rapidement :", sessionError);
+      }
+
+      if (sessionResult && sessionResult.error) {
         showMessage(els.loginMessage, "error", "Impossible de vérifier la session admin.");
         showLogin();
         return;
       }
 
-      state.session = data.session || null;
+      state.session =
+        sessionResult &&
+        sessionResult.data &&
+        sessionResult.data.session
+          ? sessionResult.data.session
+          : null;
 
       if (state.isRecoveryMode) {
         showRecovery();
@@ -111,6 +126,7 @@
         await loadEvents();
       } else {
         showLogin();
+        renderEmpty("Connecte-toi pour charger les événements.");
       }
     } catch (error) {
       showFatalError(getErrorMessage(error));
@@ -307,6 +323,7 @@
     if (els.deleteEventBtn) {
       els.deleteEventBtn.addEventListener("click", function () {
         if (!state.currentEditEvent) return;
+
         confirmAction("Supprimer définitivement cet événement ?", async function () {
           await deleteEvent(state.currentEditEvent.id);
           closeEditModal();
@@ -396,7 +413,9 @@
 
     try {
       const { error } = await withTimeout(
-        supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: RECOVERY_REDIRECT_URL }),
+        supabaseClient.auth.resetPasswordForEmail(email, {
+          redirectTo: RECOVERY_REDIRECT_URL
+        }),
         12000,
         "L’envoi de l’email prend trop de temps."
       );
@@ -437,7 +456,11 @@
     setLoadingButton(event.submitter, true, "Enregistrement...");
 
     try {
-      const { data } = await supabaseClient.auth.getSession();
+      const { data } = await withTimeout(
+        supabaseClient.auth.getSession(),
+        5000,
+        "Session de récupération trop longue à récupérer."
+      );
 
       if (!data || !data.session) {
         throw new Error("Session de récupération absente. Redemande un email de récupération et ouvre le dernier lien reçu.");
@@ -483,6 +506,7 @@
       state.isRecoveryMode = false;
 
       showLogin();
+      renderEmpty("Connecte-toi pour charger les événements.");
     } catch (error) {
       showMessage(els.globalMessage, "error", getErrorMessage(error));
     }
@@ -520,16 +544,14 @@
 
   async function loadEvents() {
     clearMessage(els.globalMessage);
-
-    if (!state.session) {
-      showMessage(els.globalMessage, "warning", "Aucune session admin active. Reconnecte-toi.");
-      return;
-    }
-
     setLoadingState(true);
 
     try {
-      const events = await fetchEventsWithFallback();
+      const events = await withTimeout(
+        fetchEventsWithFallback(),
+        12000,
+        "Le chargement des événements prend trop de temps."
+      );
 
       state.events = normalizeEvents(events);
       state.selectedIds.clear();
@@ -544,7 +566,7 @@
         showMessage(
           els.globalMessage,
           "warning",
-          "Connexion OK, mais aucun événement n’est retourné par Supabase. Vérifie les règles RLS SELECT sur la table events."
+          "Connexion OK, mais aucun événement n’est retourné par Supabase."
         );
         return;
       }
