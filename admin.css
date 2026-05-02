@@ -1524,3 +1524,33 @@ textarea::placeholder {
     animation: none !important;
   }
 }
+/* Correction Leaflet dure */
+#view-map:not(.is-hidden) {
+  display: block;
+}
+
+#admin-map {
+  display: block !important;
+  width: 100% !important;
+  height: 620px !important;
+  min-height: 620px !important;
+}
+
+#admin-map.leaflet-container {
+  display: block !important;
+  width: 100% !important;
+  height: 620px !important;
+  min-height: 620px !important;
+}
+
+.leaflet-container {
+  font-family: inherit;
+}
+
+@media (max-width: 680px) {
+  #admin-map,
+  #admin-map.leaflet-container {
+    height: 420px !important;
+    min-height: 420px !important;
+  }
+}
