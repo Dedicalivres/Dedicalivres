@@ -7,22 +7,20 @@
   <title>Admin Dédicalivres</title>
   <meta name="robots" content="noindex, nofollow" />
 
+  <!-- Style admin -->
   <link rel="stylesheet" href="admin.css" />
 
+  <!-- Leaflet CSS sans integrity pour éviter le blocage SRI -->
   <link
     rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIINfQplpUIqgPYyqDftLmjxDa2Dzx3yZpM="
-    crossorigin=""
+    href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
   />
 
+  <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
+  <!-- Leaflet JS sans integrity pour éviter le blocage SRI -->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 
 <body>
@@ -599,7 +597,10 @@
     </div>
   </div>
 
+  <!-- Config existante du site -->
   <script src="config.js"></script>
+
+  <!-- Script admin -->
   <script src="admin.js"></script>
 </body>
 </html>
