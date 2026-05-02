@@ -943,10 +943,9 @@ textarea::placeholder {
   position: relative;
 }
 
-.admin-map .leaflet-container,
-.leaflet-container {
+.admin-map.leaflet-container {
   width: 100%;
-  height: 100%;
+  height: 580px;
 }
 .missing-coordinates-panel {
   display: grid;
