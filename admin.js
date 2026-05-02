@@ -1626,222 +1626,182 @@
   }
 
   /* =========================================================
-    MAP — VERSION CORRIGÉE
-  ========================================================= */
+  MAP — VERSION STABLE SANS FITBOUNDS
+========================================================= */
 
-  function switchView(viewName) {
-    state.currentView = viewName;
+function switchView(viewName) {
+  state.currentView = viewName;
 
-    els.tabButtons.forEach(function (button) {
-      button.classList.toggle("is-active", button.dataset.view === viewName);
+  els.tabButtons.forEach(function (button) {
+    button.classList.toggle("is-active", button.dataset.view === viewName);
+  });
+
+  if (els.viewList) els.viewList.classList.toggle("is-hidden", viewName !== "list");
+  if (els.viewMap) els.viewMap.classList.toggle("is-hidden", viewName !== "map");
+  if (els.viewTools) els.viewTools.classList.toggle("is-hidden", viewName !== "tools");
+
+  if (viewName === "map") {
+    setTimeout(renderMap, 150);
+    setTimeout(forceMapResize, 400);
+    setTimeout(forceMapResize, 900);
+    setTimeout(forceMapResize, 1600);
+  }
+}
+
+function forceMapResize() {
+  if (!state.map) return;
+  state.map.invalidateSize(true);
+}
+
+function renderMap() {
+  if (!els.adminMap) {
+    showMessage(els.globalMessage, "error", "Bloc carte introuvable dans le HTML.");
+    return;
+  }
+
+  if (state.currentView !== "map") return;
+
+  if (!window.L) {
+    showMessage(els.globalMessage, "error", "Leaflet est introuvable. Vérifie le chargement de leaflet.js.");
+    return;
+  }
+
+  if (!state.map) {
+    state.map = window.L.map(els.adminMap, {
+      preferCanvas: true,
+      zoomControl: true,
+      attributionControl: true
     });
 
-    if (els.viewList) els.viewList.classList.toggle("is-hidden", viewName !== "list");
-    if (els.viewMap) els.viewMap.classList.toggle("is-hidden", viewName !== "map");
-    if (els.viewTools) els.viewTools.classList.toggle("is-hidden", viewName !== "tools");
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(state.map);
 
-    if (viewName === "map") {
-      requestAnimationFrame(function () {
-        scheduleMapRender();
-      });
+    state.markerLayer = window.L.layerGroup().addTo(state.map);
 
-      setTimeout(function () {
-        if (state.map) state.map.invalidateSize(true);
-      }, 300);
-
-      setTimeout(function () {
-        if (state.map) state.map.invalidateSize(true);
-      }, 900);
-
-      setTimeout(function () {
-        if (state.map) state.map.invalidateSize(true);
-      }, 1500);
-    }
+    state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
   }
 
-  function scheduleMapRender() {
-    window.clearTimeout(scheduleMapRender._timer);
+  forceMapResize();
 
-    scheduleMapRender._timer = window.setTimeout(function () {
-      renderMap();
-    }, 250);
-  }
-
-  function renderMap() {
-    if (!els.adminMap) return;
-    if (state.currentView !== "map") return;
-
-    if (!window.L) {
-      showMessage(els.globalMessage, "error", "Leaflet est introuvable.");
-      return;
-    }
-
-    if (!state.map) {
-      state.map = window.L.map(els.adminMap, {
-        preferCanvas: true,
-        zoomControl: true,
-        attributionControl: true
-      });
-
-      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-        updateWhenIdle: true,
-        updateWhenZooming: false,
-        keepBuffer: 3,
-        attribution: "&copy; OpenStreetMap"
-      }).addTo(state.map);
-
-      state.markerLayer = window.L.layerGroup().addTo(state.map);
-      state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
-    }
-
-    state.map.invalidateSize(true);
+  if (state.markerLayer) {
     state.markerLayer.clearLayers();
-
-    const bounds = [];
-    const missing = [];
-
-    const eventsWithCoordinates = state.filteredEvents
-      .filter(function (event) {
-        if (!hasCoordinates(event)) return false;
-
-        return (
-          event.lat >= 35 &&
-          event.lat <= 60 &&
-          event.lng >= -12 &&
-          event.lng <= 20
-        );
-      })
-      .sort(function (a, b) {
-        const dateA = parseDate(a.start_date) || new Date("9999-12-31");
-        const dateB = parseDate(b.start_date) || new Date("9999-12-31");
-        return dateA - dateB;
-      })
-      .slice(0, MAX_MAP_MARKERS);
-
-    state.filteredEvents.forEach(function (event) {
-      if (!hasCoordinates(event)) {
-        missing.push(event);
-        return;
-      }
-
-      if (!(event.lat >= 35 && event.lat <= 60 && event.lng >= -12 && event.lng <= 20)) {
-        missing.push(event);
-      }
-    });
-
-    eventsWithCoordinates.forEach(function (event) {
-      const latLng = [event.lat, event.lng];
-      bounds.push(latLng);
-
-      const marker = window.L.circleMarker(latLng, {
-        radius: 7,
-        color: getMarkerColor(event),
-        fillColor: getMarkerColor(event),
-        fillOpacity: 0.82,
-        weight: 1
-      });
-
-      marker.bindPopup(function () {
-        return `
-          <div class="admin-map-popup">
-            <strong>${escapeHtml(event.title)}</strong>
-            <small>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</small>
-            <small>${escapeHtml(formatDateRange(event.start_date, event.end_date))}</small>
-            <button type="button" data-map-edit-id="${escapeHtml(event.id)}">Modifier</button>
-          </div>
-        `;
-      });
-
-      marker.addTo(state.markerLayer);
-    });
-
-    state.map.off("popupopen");
-    state.map.on("popupopen", function (popupEvent) {
-      const popupElement = popupEvent.popup.getElement();
-      if (!popupElement) return;
-
-      const button = popupElement.querySelector("[data-map-edit-id]");
-      if (!button) return;
-
-      button.addEventListener("click", function () {
-        const eventItem = findEventById(button.dataset.mapEditId);
-        if (eventItem) openEditModal(eventItem);
-      });
-    });
-
-    renderMissingCoordinates(missing);
-
-    setTimeout(function () {
-      if (!state.map) return;
-
-      state.map.invalidateSize(true);
-
-      if (bounds.length) {
-        state.map.fitBounds(bounds, {
-          padding: [34, 34],
-          maxZoom: 11,
-          animate: false
-        });
-      } else {
-        state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, {
-          animate: false
-        });
-      }
-    }, 350);
-
-    setTimeout(function () {
-      if (state.map) state.map.invalidateSize(true);
-    }, 900);
-
-    setTimeout(function () {
-      if (state.map) state.map.invalidateSize(true);
-    }, 1500);
-
-    if (state.filteredEvents.filter(hasCoordinates).length > MAX_MAP_MARKERS) {
-      showMessage(
-        els.globalMessage,
-        "info",
-        `Carte optimisée : seuls les ${MAX_MAP_MARKERS} premiers événements géolocalisés sont affichés. Utilise les filtres pour affiner.`
-      );
-    }
   }
 
-  function renderMissingCoordinates(events) {
-    if (!els.missingCoordinatesList) return;
+  const missing = [];
+  let visibleMarkers = 0;
 
-    if (!events.length) {
-      els.missingCoordinatesList.innerHTML = `
-        <div class="empty-state">Tous les événements filtrés ont des coordonnées.</div>
-      `;
+  state.filteredEvents.forEach(function (event) {
+    if (!hasCoordinates(event)) {
+      missing.push(event);
       return;
     }
 
-    els.missingCoordinatesList.innerHTML = events.map(function (event) {
-      return `
-        <button type="button" class="missing-item" data-action="edit" data-id="${escapeHtml(event.id)}">
-          <strong>${escapeHtml(event.title)}</strong>
-          <small>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</small>
-        </button>
-      `;
-    }).join("");
+    const lat = Number(event.lat);
+    const lng = Number(event.lng);
 
-    els.missingCoordinatesList.querySelectorAll("[data-action='edit']").forEach(function (button) {
-      button.addEventListener("click", function () {
-        const eventItem = findEventById(button.dataset.id);
-        if (eventItem) openEditModal(eventItem);
-      });
+    if (lat < 35 || lat > 60 || lng < -12 || lng > 20) {
+      missing.push(event);
+      return;
+    }
+
+    if (visibleMarkers >= MAX_MAP_MARKERS) return;
+
+    visibleMarkers += 1;
+
+    const marker = window.L.circleMarker([lat, lng], {
+      radius: 7,
+      color: getMarkerColor(event),
+      fillColor: getMarkerColor(event),
+      fillOpacity: 0.82,
+      weight: 1
     });
+
+    marker.bindPopup(`
+      <div class="admin-map-popup">
+        <strong>${escapeHtml(event.title)}</strong>
+        <small>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</small>
+        <small>${escapeHtml(formatDateRange(event.start_date, event.end_date))}</small>
+        <button type="button" data-map-edit-id="${escapeHtml(event.id)}">Modifier</button>
+      </div>
+    `);
+
+    marker.addTo(state.markerLayer);
+  });
+
+  state.map.off("popupopen");
+  state.map.on("popupopen", function (popupEvent) {
+    const popupElement = popupEvent.popup.getElement();
+    if (!popupElement) return;
+
+    const button = popupElement.querySelector("[data-map-edit-id]");
+    if (!button) return;
+
+    button.addEventListener("click", function () {
+      const eventItem = findEventById(button.dataset.mapEditId);
+      if (eventItem) openEditModal(eventItem);
+    });
+  });
+
+  renderMissingCoordinates(missing);
+
+  state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, {
+    animate: false
+  });
+
+  forceMapResize();
+
+  if (visibleMarkers === 0) {
+    showMessage(
+      els.globalMessage,
+      "warning",
+      "Carte chargée, mais aucun événement filtré n’a de coordonnées exploitables en France."
+    );
+  } else {
+    showMessage(
+      els.globalMessage,
+      "success",
+      `Carte chargée avec ${visibleMarkers} marqueur${visibleMarkers > 1 ? "s" : ""}.`
+    );
+  }
+}
+
+function renderMissingCoordinates(events) {
+  if (!els.missingCoordinatesList) return;
+
+  if (!events.length) {
+    els.missingCoordinatesList.innerHTML = `
+      <div class="empty-state">Tous les événements filtrés ont des coordonnées exploitables.</div>
+    `;
+    return;
   }
 
-  function getMarkerColor(event) {
-    const status = getEventStatus(event);
+  els.missingCoordinatesList.innerHTML = events.slice(0, 150).map(function (event) {
+    return `
+      <button type="button" class="missing-item" data-action="edit" data-id="${escapeHtml(event.id)}">
+        <strong>${escapeHtml(event.title)}</strong>
+        <small>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</small>
+      </button>
+    `;
+  }).join("");
 
-    if (status === "validated") return "#16803c";
-    if (status === "rejected") return "#b42318";
+  els.missingCoordinatesList.querySelectorAll("[data-action='edit']").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const eventItem = findEventById(button.dataset.id);
+      if (eventItem) openEditModal(eventItem);
+    });
+  });
+}
 
-    return "#ff6b35";
-  }
+function getMarkerColor(event) {
+  const status = getEventStatus(event);
+
+  if (status === "validated") return "#16803c";
+  if (status === "rejected") return "#b42318";
+
+  return "#ff6b35";
+}
 
   /* =========================================================
     CSV
