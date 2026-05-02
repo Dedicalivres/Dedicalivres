@@ -1289,24 +1289,25 @@
   ========================================================= */
 
   function switchView(viewName) {
-    state.currentView = viewName;
+  state.currentView = viewName;
 
-    els.tabButtons.forEach(function (button) {
-      button.classList.toggle("is-active", button.dataset.view === viewName);
-    });
+  els.tabButtons.forEach(function (button) {
+    button.classList.toggle("is-active", button.dataset.view === viewName);
+  });
 
-    els.viewList.classList.toggle("is-hidden", viewName !== "list");
-    els.viewMap.classList.toggle("is-hidden", viewName !== "map");
-    els.viewTools.classList.toggle("is-hidden", viewName !== "tools");
+  els.viewList.classList.toggle("is-hidden", viewName !== "list");
+  els.viewMap.classList.toggle("is-hidden", viewName !== "map");
+  els.viewTools.classList.toggle("is-hidden", viewName !== "tools");
 
-    if (viewName === "map") {
-  setTimeout(function () {
-    function scheduleMapRender() {
-  window.clearTimeout(scheduleMapRender._timer);
+  if (viewName === "map") {
+    scheduleMapRender();
 
-  scheduleMapRender._timer = window.setTimeout(function () {
-    renderMap();
-  }, 250);
+    setTimeout(function () {
+      if (state.map) {
+        state.map.invalidateSize(false);
+      }
+    }, 500);
+  }
 }
     renderMap();
 
@@ -1318,95 +1319,125 @@
   }
 
   function renderMap() {
-    if (!els.adminMap) return;
+    function renderMap() {
+  if (!els.adminMap) return;
 
-    if (!window.L) {
-      showMessage(els.globalMessage, "error", "Leaflet est introuvable.");
-      return;
+  if (state.currentView !== "map") return;
+
+  if (!window.L) {
+    showMessage(els.globalMessage, "error", "Leaflet est introuvable.");
+    return;
+  }
+
+  if (!state.map) {
+    state.map = window.L.map(els.adminMap, {
+      preferCanvas: true,
+      zoomControl: true
+    }).setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
+
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      keepBuffer: 2,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(state.map);
+
+    state.markerLayer = window.L.layerGroup().addTo(state.map);
+  }
+
+  state.map.invalidateSize(false);
+  state.markerLayer.clearLayers();
+
+  const bounds = [];
+  const missing = [];
+
+  const eventsWithCoordinates = state.filteredEvents
+    .filter(hasCoordinates)
+    .sort(function (a, b) {
+      const dateA = parseDate(a.start_date) || new Date("9999-12-31");
+      const dateB = parseDate(b.start_date) || new Date("9999-12-31");
+      return dateA - dateB;
+    })
+    .slice(0, 300);
+
+  state.filteredEvents.forEach(function (event) {
+    if (!hasCoordinates(event)) {
+      missing.push(event);
     }
+  });
 
-    if (!state.map) {
-      state.map = window.L.map(els.adminMap, {
-  preferCanvas: true,
-  zoomControl: true
-}).setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
+  eventsWithCoordinates.forEach(function (event) {
+    const latLng = [event.lat, event.lng];
+    bounds.push(latLng);
 
-      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap"
-      }).addTo(state.map);
+    const marker = window.L.circleMarker(latLng, {
+      radius: 7,
+      color: getMarkerColor(event),
+      fillColor: getMarkerColor(event),
+      fillOpacity: 0.82,
+      weight: 1
+    });
 
-      state.markerLayer = window.L.layerGroup().addTo(state.map);
-    }
-
-    state.markerLayer.clearLayers();
-
-    const bounds = [];
-    const missing = [];
-
-    state.filteredEvents.forEach(function (event) {
-      if (!hasCoordinates(event)) {
-        missing.push(event);
-        return;
-      }
-
-      const latLng = [event.lat, event.lng];
-      bounds.push(latLng);
-
-      const marker = window.L.circleMarker(latLng, {
-        radius: 8,
-        color: getMarkerColor(event),
-        fillColor: getMarkerColor(event),
-        fillOpacity: 0.88,
-        weight: 2
-      });
-
-      marker.bindPopup(`
+    marker.bindPopup(function () {
+      return `
         <div class="admin-map-popup">
           <strong>${escapeHtml(event.title)}</strong>
           <small>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</small>
           <small>${escapeHtml(formatDateRange(event.start_date, event.end_date))}</small>
           <button type="button" data-map-edit-id="${escapeHtml(event.id)}">Modifier</button>
         </div>
-      `);
-
-      marker.addTo(state.markerLayer);
+      `;
     });
 
-    state.map.off("popupopen");
-    state.map.on("popupopen", function (popupEvent) {
-      const button = popupEvent.popup.getElement().querySelector("[data-map-edit-id]");
-      if (!button) return;
+    marker.addTo(state.markerLayer);
+  });
 
-      button.addEventListener("click", function () {
-        const eventItem = findEventById(button.dataset.mapEditId);
-        if (eventItem) openEditModal(eventItem);
-      });
+  state.map.off("popupopen");
+  state.map.on("popupopen", function (popupEvent) {
+    const button = popupEvent.popup.getElement().querySelector("[data-map-edit-id]");
+    if (!button) return;
+
+    button.addEventListener("click", function () {
+      const eventItem = findEventById(button.dataset.mapEditId);
+      if (eventItem) openEditModal(eventItem);
     });
+  });
 
-    renderMissingCoordinates(missing);
+  renderMissingCoordinates(missing);
+
+  setTimeout(function () {
+    if (!state.map) return;
+
+    state.map.invalidateSize(false);
 
     if (bounds.length) {
       state.map.fitBounds(bounds, {
-        padding: [32, 32],
-        maxZoom: 12
+        padding: [28, 28],
+        maxZoom: 11,
+        animate: false
       });
     } else {
-      state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
+      state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, {
+        animate: false
+      });
     }
+  }, 300);
 
-    setTimeout(function () {
-  if (state.map) {
-    state.map.invalidateSize(false);
-  }
-}, 250);
+  setTimeout(function () {
+    if (state.map) {
+      state.map.invalidateSize(false);
+    }
+  }, 900);
 
-setTimeout(function () {
-  if (state.map) {
-    state.map.invalidateSize(false);
+  if (state.filteredEvents.filter(hasCoordinates).length > 300) {
+    showMessage(
+      els.globalMessage,
+      "info",
+      "Carte optimisée : seuls les 300 premiers événements géolocalisés sont affichés. Utilise les filtres pour affiner."
+    );
   }
-}, 700);
-  }
+}
 
   function renderMissingCoordinates(events) {
     if (!els.missingCoordinatesList) return;
