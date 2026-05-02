@@ -1,29 +1,13 @@
 /* =========================================================
   DÉDICALIVRES — ADMIN
   Fichier : admin.js
-  Dépendances :
-  - config.js avec window.DEDICALIVRES_CONFIG
-  - Supabase JS v2
-  - Leaflet
-  - JavaScript vanilla uniquement
 ========================================================= */
 
 (function () {
   "use strict";
 
-  /* =========================================================
-    CONFIGURATION
-  ========================================================= */
-
   const TABLE_NAME = "events";
-
-  /*
-    Compteurs désactivés temporairement.
-    La table site_visits n’existe pas encore dans Supabase, donc on évite
-    les erreurs 404 qui polluent la console.
-  */
   const TRAFFIC_ENABLED = false;
-
   const RECOVERY_REDIRECT_URL = "https://dedicalivres.fr/admin.html";
 
   const OPTIONAL_COLUMNS = [
@@ -46,11 +30,7 @@
     "created_at"
   ];
 
-  const BASE_COLUMNS = [
-    "id",
-    "title",
-    ...OPTIONAL_COLUMNS
-  ];
+  const BASE_COLUMNS = ["id", "title", ...OPTIONAL_COLUMNS];
 
   const DEFAULT_MAP_CENTER = [46.7, 2.5];
   const DEFAULT_MAP_ZOOM = 6;
@@ -74,10 +54,6 @@
     isRecoveryMode: false,
     initialized: false
   };
-
-  /* =========================================================
-    INIT
-  ========================================================= */
 
   document.addEventListener("DOMContentLoaded", init);
 
@@ -143,8 +119,6 @@
 
   function cacheDom() {
     els = {
-      app: document.getElementById("admin-app"),
-
       loginView: document.getElementById("login-view"),
       adminView: document.getElementById("admin-view"),
       recoveryView: document.getElementById("recovery-view"),
@@ -260,25 +234,11 @@
   }
 
   function bindEvents() {
-    if (els.loginForm) {
-      els.loginForm.addEventListener("submit", handleLogin);
-    }
-
-    if (els.forgotPasswordBtn) {
-      els.forgotPasswordBtn.addEventListener("click", handleForgotPassword);
-    }
-
-    if (els.recoveryForm) {
-      els.recoveryForm.addEventListener("submit", handlePasswordRecoverySubmit);
-    }
-
-    if (els.logoutBtn) {
-      els.logoutBtn.addEventListener("click", handleLogout);
-    }
-
-    if (els.refreshBtn) {
-      els.refreshBtn.addEventListener("click", loadEvents);
-    }
+    if (els.loginForm) els.loginForm.addEventListener("submit", handleLogin);
+    if (els.forgotPasswordBtn) els.forgotPasswordBtn.addEventListener("click", handleForgotPassword);
+    if (els.recoveryForm) els.recoveryForm.addEventListener("submit", handlePasswordRecoverySubmit);
+    if (els.logoutBtn) els.logoutBtn.addEventListener("click", handleLogout);
+    if (els.refreshBtn) els.refreshBtn.addEventListener("click", loadEvents);
 
     els.tabButtons.forEach(function (button) {
       button.addEventListener("click", function () {
@@ -286,21 +246,13 @@
       });
     });
 
-    [
-      els.searchInput,
-      els.statusFilter,
-      els.regionFilter,
-      els.typeFilter,
-      els.dateFilter
-    ].forEach(function (input) {
+    [els.searchInput, els.statusFilter, els.regionFilter, els.typeFilter, els.dateFilter].forEach(function (input) {
       if (!input) return;
       input.addEventListener("input", applyFiltersAndRender);
       input.addEventListener("change", applyFiltersAndRender);
     });
 
-    if (els.selectAllCheckbox) {
-      els.selectAllCheckbox.addEventListener("change", handleSelectAll);
-    }
+    if (els.selectAllCheckbox) els.selectAllCheckbox.addEventListener("change", handleSelectAll);
 
     if (els.bulkValidateBtn) {
       els.bulkValidateBtn.addEventListener("click", function () {
@@ -336,69 +288,38 @@
       els.eventsMobileList.addEventListener("change", handleListChange);
     }
 
-    if (els.exportCsvBtn) {
-      els.exportCsvBtn.addEventListener("click", exportFilteredCsv);
-    }
-
-    if (els.exportCsvBtnTools) {
-      els.exportCsvBtnTools.addEventListener("click", exportFilteredCsv);
-    }
+    if (els.exportCsvBtn) els.exportCsvBtn.addEventListener("click", exportFilteredCsv);
+    if (els.exportCsvBtnTools) els.exportCsvBtnTools.addEventListener("click", exportFilteredCsv);
 
     if (els.instagramEventSelect) {
       els.instagramEventSelect.addEventListener("change", function () {
-        if (els.instagramOutput) {
-          els.instagramOutput.value = "";
-        }
+        if (els.instagramOutput) els.instagramOutput.value = "";
       });
     }
 
-    if (els.generateInstagramBtn) {
-      els.generateInstagramBtn.addEventListener("click", generateInstagramText);
-    }
+    if (els.generateInstagramBtn) els.generateInstagramBtn.addEventListener("click", generateInstagramText);
+    if (els.copyInstagramBtn) els.copyInstagramBtn.addEventListener("click", copyInstagramText);
 
-    if (els.copyInstagramBtn) {
-      els.copyInstagramBtn.addEventListener("click", copyInstagramText);
-    }
-
-    if (els.closeEditModalBtn) {
-      els.closeEditModalBtn.addEventListener("click", closeEditModal);
-    }
-
-    if (els.cancelEditBtn) {
-      els.cancelEditBtn.addEventListener("click", closeEditModal);
-    }
-
-    if (els.editForm) {
-      els.editForm.addEventListener("submit", handleEditSubmit);
-    }
+    if (els.closeEditModalBtn) els.closeEditModalBtn.addEventListener("click", closeEditModal);
+    if (els.cancelEditBtn) els.cancelEditBtn.addEventListener("click", closeEditModal);
+    if (els.editForm) els.editForm.addEventListener("submit", handleEditSubmit);
 
     if (els.deleteEventBtn) {
       els.deleteEventBtn.addEventListener("click", function () {
         if (!state.currentEditEvent) return;
-
-        confirmAction(
-          "Supprimer définitivement cet événement ?",
-          async function () {
-            await deleteEvent(state.currentEditEvent.id);
-            closeEditModal();
-          }
-        );
+        confirmAction("Supprimer définitivement cet événement ?", async function () {
+          await deleteEvent(state.currentEditEvent.id);
+          closeEditModal();
+        });
       });
     }
 
     document.addEventListener("click", function (event) {
-      if (event.target && event.target.dataset.closeModal === "true") {
-        closeEditModal();
-      }
-
-      if (event.target && event.target.dataset.closeConfirm === "true") {
-        closeConfirmModal();
-      }
+      if (event.target && event.target.dataset.closeModal === "true") closeEditModal();
+      if (event.target && event.target.dataset.closeConfirm === "true") closeConfirmModal();
     });
 
-    if (els.confirmCancelBtn) {
-      els.confirmCancelBtn.addEventListener("click", closeConfirmModal);
-    }
+    if (els.confirmCancelBtn) els.confirmCancelBtn.addEventListener("click", closeConfirmModal);
 
     if (els.confirmOkBtn) {
       els.confirmOkBtn.addEventListener("click", async function () {
@@ -426,10 +347,6 @@
     });
   }
 
-  /* =========================================================
-    AUTH
-  ========================================================= */
-
   async function handleLogin(event) {
     event.preventDefault();
     clearMessage(els.loginMessage);
@@ -446,10 +363,7 @@
 
     try {
       const { data, error } = await withTimeout(
-        supabaseClient.auth.signInWithPassword({
-          email: email,
-          password: password
-        }),
+        supabaseClient.auth.signInWithPassword({ email, password }),
         12000,
         "Connexion trop longue. Vérifie ta connexion internet."
       );
@@ -474,11 +388,7 @@
     const email = valueOf(els.loginEmail);
 
     if (!email) {
-      showMessage(
-        els.loginMessage,
-        "error",
-        "Entre ton email admin avant de demander la récupération."
-      );
+      showMessage(els.loginMessage, "error", "Entre ton email admin avant de demander la récupération.");
       return;
     }
 
@@ -486,20 +396,14 @@
 
     try {
       const { error } = await withTimeout(
-        supabaseClient.auth.resetPasswordForEmail(email, {
-          redirectTo: RECOVERY_REDIRECT_URL
-        }),
+        supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: RECOVERY_REDIRECT_URL }),
         12000,
         "L’envoi de l’email prend trop de temps."
       );
 
       if (error) throw error;
 
-      showMessage(
-        els.loginMessage,
-        "success",
-        "Email de récupération envoyé. Vérifie ta boîte mail."
-      );
+      showMessage(els.loginMessage, "success", "Email de récupération envoyé. Vérifie ta boîte mail.");
     } catch (error) {
       showMessage(els.loginMessage, "error", getErrorMessage(error));
     } finally {
@@ -521,20 +425,12 @@
     }
 
     if (password.length < 8) {
-      showMessage(
-        els.recoveryMessage,
-        "error",
-        "Le mot de passe doit contenir au moins 8 caractères."
-      );
+      showMessage(els.recoveryMessage, "error", "Le mot de passe doit contenir au moins 8 caractères.");
       return;
     }
 
     if (password !== confirmation) {
-      showMessage(
-        els.recoveryMessage,
-        "error",
-        "Les deux mots de passe ne correspondent pas."
-      );
+      showMessage(els.recoveryMessage, "error", "Les deux mots de passe ne correspondent pas.");
       return;
     }
 
@@ -544,39 +440,28 @@
       const { data } = await supabaseClient.auth.getSession();
 
       if (!data || !data.session) {
-        throw new Error(
-          "Session de récupération absente. Redemande un email de récupération et ouvre le dernier lien reçu."
-        );
+        throw new Error("Session de récupération absente. Redemande un email de récupération et ouvre le dernier lien reçu.");
       }
 
       const { error } = await withTimeout(
-        supabaseClient.auth.updateUser({
-          password: password
-        }),
+        supabaseClient.auth.updateUser({ password }),
         12000,
         "La mise à jour du mot de passe prend trop de temps."
       );
 
       if (error) throw error;
 
-      showMessage(
-        els.recoveryMessage,
-        "success",
-        "Mot de passe modifié. Tu peux maintenant te reconnecter."
-      );
+      showMessage(els.recoveryMessage, "success", "Mot de passe modifié. Tu peux maintenant te reconnecter.");
 
       if (els.newPassword) els.newPassword.value = "";
       if (els.newPasswordConfirm) els.newPasswordConfirm.value = "";
 
       state.isRecoveryMode = false;
-
       window.history.replaceState({}, document.title, "admin.html");
 
       await supabaseClient.auth.signOut();
 
-      setTimeout(function () {
-        showLogin();
-      }, 1200);
+      setTimeout(showLogin, 1200);
     } catch (error) {
       showMessage(els.recoveryMessage, "error", getErrorMessage(error));
     } finally {
@@ -607,10 +492,7 @@
     if (els.loginView) els.loginView.classList.remove("is-hidden");
     if (els.adminView) els.adminView.classList.add("is-hidden");
     if (els.recoveryView) els.recoveryView.classList.add("is-hidden");
-
-    if (els.loginPassword) {
-      els.loginPassword.value = "";
-    }
+    if (els.loginPassword) els.loginPassword.value = "";
   }
 
   function showRecovery() {
@@ -633,20 +515,16 @@
   }
 
   function isRecoveryUrl() {
-    return (
-      window.location.hash.includes("type=recovery") ||
-      window.location.search.includes("type=recovery")
-    );
+    return window.location.hash.includes("type=recovery") || window.location.search.includes("type=recovery");
   }
-
-  /* =========================================================
-    LOAD EVENTS
-  ========================================================= */
 
   async function loadEvents() {
     clearMessage(els.globalMessage);
 
-    if (!state.session) return;
+    if (!state.session) {
+      showMessage(els.globalMessage, "warning", "Aucune session admin active. Reconnecte-toi.");
+      return;
+    }
 
     setLoadingState(true);
 
@@ -662,6 +540,15 @@
 
       await loadTrafficStats();
 
+      if (!state.events.length) {
+        showMessage(
+          els.globalMessage,
+          "warning",
+          "Connexion OK, mais aucun événement n’est retourné par Supabase. Vérifie les règles RLS SELECT sur la table events."
+        );
+        return;
+      }
+
       showMessage(
         els.globalMessage,
         "success",
@@ -676,43 +563,11 @@
   }
 
   async function fetchEventsWithFallback() {
-    const fullSelect = BASE_COLUMNS.join(",");
-
-    let response = await supabaseClient
+    const response = await supabaseClient
       .from(TABLE_NAME)
-      .select(fullSelect)
-      .order("start_date", { ascending: false, nullsFirst: false });
+      .select("*");
 
-    if (!response.error) {
-      response.data.forEach(function (event) {
-        Object.keys(event || {}).forEach(function (key) {
-          state.availableColumns.add(key);
-        });
-      });
-
-      return response.data || [];
-    }
-
-    const firstError = response.error;
-
-    if (!isMissingColumnError(firstError)) {
-      throw firstError;
-    }
-
-    response = await supabaseClient
-      .from(TABLE_NAME)
-      .select("*")
-      .order("created_at", { ascending: false, nullsFirst: false });
-
-    if (response.error) {
-      response = await supabaseClient
-        .from(TABLE_NAME)
-        .select("*");
-    }
-
-    if (response.error) {
-      throw response.error;
-    }
+    if (response.error) throw response.error;
 
     const rows = response.data || [];
 
@@ -731,6 +586,12 @@
       }
     });
 
+    rows.sort(function (a, b) {
+      const dateA = parseDate(a.start_date) || parseDate(a.created_at) || new Date(0);
+      const dateB = parseDate(b.start_date) || parseDate(b.created_at) || new Date(0);
+      return dateB - dateA;
+    });
+
     return rows;
   }
 
@@ -742,9 +603,7 @@
       normalized.title = safeString(event.title) || "Sans titre";
 
       OPTIONAL_COLUMNS.forEach(function (column) {
-        if (!(column in normalized)) {
-          normalized[column] = null;
-        }
+        if (!(column in normalized)) normalized[column] = null;
       });
 
       normalized.validated = toBoolean(normalized.validated);
@@ -760,40 +619,25 @@
   }
 
   function setLoadingState(isLoading) {
-    if (els.refreshBtn) {
-      els.refreshBtn.disabled = isLoading;
-      els.refreshBtn.textContent = isLoading ? "Chargement..." : "Rafraîchir";
-    }
+    if (!els.refreshBtn) return;
+    els.refreshBtn.disabled = isLoading;
+    els.refreshBtn.textContent = isLoading ? "Chargement..." : "Rafraîchir";
   }
-
-  /* =========================================================
-    TRAFFIC STATS — DÉSACTIVÉ PROPREMENT
-  ========================================================= */
 
   async function loadTrafficStats() {
     if (!TRAFFIC_ENABLED) {
       setText(els.trafficToday, "—");
       setText(els.trafficWeek, "—");
       setText(els.trafficTotal, "—");
-
-      showTrafficMessage(
-        "Compteurs de visites désactivés : la table site_visits n’existe pas encore."
-      );
-
-      return;
+      showTrafficMessage("Compteurs de visites désactivés : la table site_visits n’existe pas encore.");
     }
   }
 
   function showTrafficMessage(message) {
     if (!els.trafficMessage) return;
-
     els.trafficMessage.textContent = message;
     els.trafficMessage.classList.add("is-visible");
   }
-
-  /* =========================================================
-    FILTERS / RENDER
-  ========================================================= */
 
   function populateFilters() {
     fillSelectWithUniqueValues(els.regionFilter, state.events, "region", "Toutes");
@@ -804,7 +648,6 @@
     if (!select) return;
 
     const currentValue = select.value || "all";
-
     select.innerHTML = "";
 
     const defaultOption = document.createElement("option");
@@ -812,15 +655,9 @@
     defaultOption.textContent = defaultLabel;
     select.appendChild(defaultOption);
 
-    const values = uniqueSorted(
-      events
-        .map(function (event) {
-          return safeString(event[key]);
-        })
-        .filter(Boolean)
-    );
-
-    values.forEach(function (value) {
+    uniqueSorted(events.map(function (event) {
+      return safeString(event[key]);
+    }).filter(Boolean)).forEach(function (value) {
       const option = document.createElement("option");
       option.value = value;
       option.textContent = value;
@@ -844,12 +681,7 @@
     const dateFilter = valueOf(els.dateFilter) || "all";
 
     state.filteredEvents = state.events.filter(function (event) {
-      const haystack = normalizeSearch([
-        event.title,
-        event.city,
-        event.region,
-        event.description
-      ].join(" "));
+      const haystack = normalizeSearch([event.title, event.city, event.region, event.description].join(" "));
 
       if (query && !haystack.includes(query)) return false;
       if (status !== "all" && getEventStatus(event) !== status) return false;
@@ -867,9 +699,7 @@
     renderSelectionState();
     populateInstagramSelect();
 
-    if (state.currentView === "map") {
-      scheduleMapRender();
-    }
+    if (state.currentView === "map") scheduleMapRender();
   }
 
   function matchesDateFilter(event, filter) {
@@ -879,9 +709,7 @@
     const endDate = parseDate(event.end_date);
     const today = startOfToday();
 
-    if (filter === "no-date") {
-      return !startDate && !endDate;
-    }
+    if (filter === "no-date") return !startDate && !endDate;
 
     if (filter === "past") {
       const referenceDate = endDate || startDate;
@@ -900,52 +728,18 @@
     const all = state.events;
 
     setText(els.statTotal, all.length);
-
-    setText(
-      els.statPending,
-      all.filter(function (event) {
-        return getEventStatus(event) === "pending";
-      }).length
-    );
-
-    setText(
-      els.statValidated,
-      all.filter(function (event) {
-        return event.validated === true;
-      }).length
-    );
-
-    setText(
-      els.statRejected,
-      all.filter(function (event) {
-        return event.rejected === true;
-      }).length
-    );
-
-    setText(
-      els.statFeatured,
-      all.filter(function (event) {
-        return event.featured === true;
-      }).length
-    );
-
-    setText(
-      els.statVerified,
-      all.filter(function (event) {
-        return event.verified === true;
-      }).length
-    );
+    setText(els.statPending, all.filter(function (event) { return getEventStatus(event) === "pending"; }).length);
+    setText(els.statValidated, all.filter(function (event) { return event.validated === true; }).length);
+    setText(els.statRejected, all.filter(function (event) { return event.rejected === true; }).length);
+    setText(els.statFeatured, all.filter(function (event) { return event.featured === true; }).length);
+    setText(els.statVerified, all.filter(function (event) { return event.verified === true; }).length);
   }
 
   function renderList() {
     if (!els.eventsTbody) return;
 
     if (!state.filteredEvents.length) {
-      els.eventsTbody.innerHTML = `
-        <tr>
-          <td colspan="7" class="table-empty">Aucun événement ne correspond aux filtres.</td>
-        </tr>
-      `;
+      els.eventsTbody.innerHTML = `<tr><td colspan="7" class="table-empty">Aucun événement ne correspond aux filtres.</td></tr>`;
       return;
     }
 
@@ -956,15 +750,8 @@
       return `
         <tr data-event-id="${escapeHtml(event.id)}">
           <td class="col-select">
-            <input
-              type="checkbox"
-              class="event-select-checkbox"
-              data-event-id="${escapeHtml(event.id)}"
-              ${checked}
-              aria-label="Sélectionner ${escapeHtml(event.title)}"
-            />
+            <input type="checkbox" class="event-select-checkbox" data-event-id="${escapeHtml(event.id)}" ${checked} />
           </td>
-
           <td>
             <div class="event-title-cell">
               <strong>${escapeHtml(event.title)}</strong>
@@ -975,27 +762,19 @@
               </div>
             </div>
           </td>
-
           <td>
             <div class="event-location-cell">
               <span>${escapeHtml(event.city || "Ville inconnue")}</span>
               <small>${escapeHtml(event.region || "Région inconnue")}</small>
             </div>
           </td>
-
           <td>
             <div class="event-date-cell">
               <span>${escapeHtml(formatDateRange(event.start_date, event.end_date))}</span>
               <small>${escapeHtml(event.type || "Type non renseigné")}</small>
             </div>
           </td>
-
-          <td>
-            <div class="badges-row">
-              ${statusBadge(status)}
-            </div>
-          </td>
-
+          <td><div class="badges-row">${statusBadge(status)}</div></td>
           <td>
             <div class="badges-row">
               ${event.featured ? `<span class="badge featured">Mis en avant</span>` : ""}
@@ -1003,10 +782,7 @@
               ${event.price ? `<span class="badge">${escapeHtml(event.price)}</span>` : ""}
             </div>
           </td>
-
-          <td class="col-actions">
-            ${rowActionsHtml(event)}
-          </td>
+          <td class="col-actions">${rowActionsHtml(event)}</td>
         </tr>
       `;
     }).join("");
@@ -1016,9 +792,7 @@
     if (!els.eventsMobileList) return;
 
     if (!state.filteredEvents.length) {
-      els.eventsMobileList.innerHTML = `
-        <div class="empty-state">Aucun événement ne correspond aux filtres.</div>
-      `;
+      els.eventsMobileList.innerHTML = `<div class="empty-state">Aucun événement ne correspond aux filtres.</div>`;
       return;
     }
 
@@ -1030,40 +804,26 @@
         <article class="mobile-event-card" data-event-id="${escapeHtml(event.id)}">
           <div class="mobile-card-top">
             <label class="checkbox-line">
-              <input
-                type="checkbox"
-                class="event-select-checkbox"
-                data-event-id="${escapeHtml(event.id)}"
-                ${checked}
-              />
+              <input type="checkbox" class="event-select-checkbox" data-event-id="${escapeHtml(event.id)}" ${checked} />
               <span>Sélectionner</span>
             </label>
-
-            <div class="badges-row">
-              ${statusBadge(status)}
-            </div>
+            <div class="badges-row">${statusBadge(status)}</div>
           </div>
-
           <div class="mobile-card-title">
             <strong>${escapeHtml(event.title)}</strong>
             <small>${escapeHtml(event.type || "Type non renseigné")}</small>
           </div>
-
           <div class="mobile-card-meta">
             <span>${escapeHtml(event.city || "Ville inconnue")} · ${escapeHtml(event.region || "Région inconnue")}</span>
             <span>${escapeHtml(formatDateRange(event.start_date, event.end_date))}</span>
             ${!hasCoordinates(event) ? `<span class="badge missing">Sans coordonnées</span>` : ""}
           </div>
-
           <div class="badges-row">
             ${event.featured ? `<span class="badge featured">Mis en avant</span>` : ""}
             ${event.verified ? `<span class="badge verified">Vérifié</span>` : ""}
             ${event.price ? `<span class="badge">${escapeHtml(event.price)}</span>` : ""}
           </div>
-
-          <div class="mobile-card-actions">
-            ${rowActionsHtml(event)}
-          </div>
+          <div class="mobile-card-actions">${rowActionsHtml(event)}</div>
         </article>
       `;
     }).join("");
@@ -1074,66 +834,37 @@
 
     return `
       <div class="row-actions">
-        <button type="button" class="btn btn-small" data-action="validate" data-id="${id}">
-          Valider
-        </button>
-
-        <button type="button" class="btn btn-small btn-warning" data-action="reject" data-id="${id}">
-          Rejeter
-        </button>
-
+        <button type="button" class="btn btn-small" data-action="validate" data-id="${id}">Valider</button>
+        <button type="button" class="btn btn-small btn-warning" data-action="reject" data-id="${id}">Rejeter</button>
         <button type="button" class="btn btn-small btn-secondary" data-action="toggle-featured" data-id="${id}">
           ${event.featured ? "Retirer une" : "Mettre en"} avant
         </button>
-
         <button type="button" class="btn btn-small btn-secondary" data-action="toggle-verified" data-id="${id}">
           ${event.verified ? "Retirer vérif." : "Vérifier"}
         </button>
-
-        <button type="button" class="btn btn-small btn-primary" data-action="edit" data-id="${id}">
-          Modifier
-        </button>
-
-        <button type="button" class="btn btn-small btn-danger" data-action="delete" data-id="${id}">
-          Supprimer
-        </button>
+        <button type="button" class="btn btn-small btn-primary" data-action="edit" data-id="${id}">Modifier</button>
+        <button type="button" class="btn btn-small btn-danger" data-action="delete" data-id="${id}">Supprimer</button>
       </div>
     `;
   }
 
   function statusBadge(status) {
-    if (status === "validated") {
-      return `<span class="badge validated">Validé</span>`;
-    }
-
-    if (status === "rejected") {
-      return `<span class="badge rejected">Rejeté</span>`;
-    }
-
+    if (status === "validated") return `<span class="badge validated">Validé</span>`;
+    if (status === "rejected") return `<span class="badge rejected">Rejeté</span>`;
     return `<span class="badge pending">En attente</span>`;
   }
 
   function renderEmpty(message) {
     if (els.eventsTbody) {
-      els.eventsTbody.innerHTML = `
-        <tr>
-          <td colspan="7" class="table-empty">${escapeHtml(message)}</td>
-        </tr>
-      `;
+      els.eventsTbody.innerHTML = `<tr><td colspan="7" class="table-empty">${escapeHtml(message)}</td></tr>`;
     }
 
     if (els.eventsMobileList) {
-      els.eventsMobileList.innerHTML = `
-        <div class="empty-state">${escapeHtml(message)}</div>
-      `;
+      els.eventsMobileList.innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
     }
 
     renderStats();
   }
-
-  /* =========================================================
-    SELECTION
-  ========================================================= */
 
   function handleSelectAll() {
     if (!els.selectAllCheckbox) return;
@@ -1155,16 +886,12 @@
 
   function handleListChange(event) {
     const target = event.target;
-
     if (!target.classList.contains("event-select-checkbox")) return;
 
     const id = String(target.dataset.eventId);
 
-    if (target.checked) {
-      state.selectedIds.add(id);
-    } else {
-      state.selectedIds.delete(id);
-    }
+    if (target.checked) state.selectedIds.add(id);
+    else state.selectedIds.delete(id);
 
     renderList();
     renderMobileList();
@@ -1175,8 +902,7 @@
     const selectedCount = state.selectedIds.size;
 
     if (els.selectedCount) {
-      els.selectedCount.textContent =
-        selectedCount + " sélectionné" + (selectedCount > 1 ? "s" : "");
+      els.selectedCount.textContent = selectedCount + " sélectionné" + (selectedCount > 1 ? "s" : "");
     }
 
     if (els.selectAllCheckbox) {
@@ -1184,48 +910,32 @@
         return String(event.id);
       });
 
-      const allVisibleSelected =
-        visibleIds.length > 0 &&
-        visibleIds.every(function (id) {
-          return state.selectedIds.has(id);
-        });
+      const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(function (id) {
+        return state.selectedIds.has(id);
+      });
 
-      const someVisibleSelected =
-        visibleIds.some(function (id) {
-          return state.selectedIds.has(id);
-        });
+      const someVisibleSelected = visibleIds.some(function (id) {
+        return state.selectedIds.has(id);
+      });
 
       els.selectAllCheckbox.checked = allVisibleSelected;
       els.selectAllCheckbox.indeterminate = !allVisibleSelected && someVisibleSelected;
     }
 
-    [
-      els.bulkValidateBtn,
-      els.bulkRejectBtn,
-      els.bulkFeatureBtn,
-      els.bulkUnfeatureBtn
-    ].forEach(function (button) {
+    [els.bulkValidateBtn, els.bulkRejectBtn, els.bulkFeatureBtn, els.bulkUnfeatureBtn].forEach(function (button) {
       if (button) button.disabled = selectedCount === 0;
     });
   }
 
   function cleanSelection() {
-    const existingIds = new Set(
-      state.events.map(function (event) {
-        return String(event.id);
-      })
-    );
+    const existingIds = new Set(state.events.map(function (event) {
+      return String(event.id);
+    }));
 
     Array.from(state.selectedIds).forEach(function (id) {
-      if (!existingIds.has(id)) {
-        state.selectedIds.delete(id);
-      }
+      if (!existingIds.has(id)) state.selectedIds.delete(id);
     });
   }
-
-  /* =========================================================
-    ACTIONS
-  ========================================================= */
 
   async function handleListClick(event) {
     const button = event.target.closest("button[data-action]");
@@ -1241,33 +951,15 @@
     }
 
     try {
-      if (action === "validate") {
-        await updateEvent(id, { validated: true, rejected: false });
-      }
-
-      if (action === "reject") {
-        await updateEvent(id, { rejected: true, validated: false });
-      }
-
-      if (action === "toggle-featured") {
-        await updateEvent(id, { featured: !currentEvent.featured });
-      }
-
-      if (action === "toggle-verified") {
-        await updateEvent(id, { verified: !currentEvent.verified });
-      }
-
-      if (action === "edit") {
-        openEditModal(currentEvent);
-      }
-
+      if (action === "validate") await updateEvent(id, { validated: true, rejected: false });
+      if (action === "reject") await updateEvent(id, { rejected: true, validated: false });
+      if (action === "toggle-featured") await updateEvent(id, { featured: !currentEvent.featured });
+      if (action === "toggle-verified") await updateEvent(id, { verified: !currentEvent.verified });
+      if (action === "edit") openEditModal(currentEvent);
       if (action === "delete") {
-        confirmAction(
-          `Supprimer définitivement « ${currentEvent.title} » ?`,
-          async function () {
-            await deleteEvent(id);
-          }
-        );
+        confirmAction(`Supprimer définitivement « ${currentEvent.title} » ?`, async function () {
+          await deleteEvent(id);
+        });
       }
     } catch (error) {
       showMessage(els.globalMessage, "error", getErrorMessage(error));
@@ -1278,20 +970,12 @@
     const cleanPatch = sanitizePatch(patch);
 
     if (!Object.keys(cleanPatch).length) {
-      showMessage(
-        els.globalMessage,
-        "warning",
-        "Aucune colonne compatible à mettre à jour. Vérifie la structure de la table events."
-      );
+      showMessage(els.globalMessage, "warning", "Aucune colonne compatible à mettre à jour.");
       return;
     }
 
     const { data, error } = await withTimeout(
-      supabaseClient
-        .from(TABLE_NAME)
-        .update(cleanPatch)
-        .eq("id", id)
-        .select("id"),
+      supabaseClient.from(TABLE_NAME).update(cleanPatch).eq("id", id).select("id"),
       12000,
       "La mise à jour prend trop de temps. Vérifie la connexion ou les règles Supabase."
     );
@@ -1299,9 +983,7 @@
     if (error) throw error;
 
     if (!data || data.length === 0) {
-      throw new Error(
-        "Aucune ligne n’a été modifiée. Vérifie les règles RLS Supabase pour UPDATE sur la table events."
-      );
+      throw new Error("Aucune ligne n’a été modifiée. Vérifie les règles RLS Supabase pour UPDATE sur la table events.");
     }
 
     state.events = state.events.map(function (event) {
@@ -1324,30 +1006,20 @@
       const cleanPatch = sanitizePatch(patch);
 
       if (!Object.keys(cleanPatch).length) {
-        showMessage(
-          els.globalMessage,
-          "warning",
-          "Aucune colonne compatible à mettre à jour."
-        );
+        showMessage(els.globalMessage, "warning", "Aucune colonne compatible à mettre à jour.");
         return;
       }
 
       const { data, error } = await withTimeout(
-        supabaseClient
-          .from(TABLE_NAME)
-          .update(cleanPatch)
-          .in("id", ids)
-          .select("id"),
+        supabaseClient.from(TABLE_NAME).update(cleanPatch).in("id", ids).select("id"),
         12000,
-        "L’action en masse prend trop de temps. Vérifie la connexion ou les règles Supabase."
+        "L’action en masse prend trop de temps."
       );
 
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        throw new Error(
-          "Aucune ligne n’a été modifiée. Vérifie les règles RLS Supabase pour UPDATE sur la table events."
-        );
+        throw new Error("Aucune ligne n’a été modifiée. Vérifie les règles RLS Supabase pour UPDATE sur la table events.");
       }
 
       state.events = state.events.map(function (event) {
@@ -1357,28 +1029,21 @@
 
       state.selectedIds.clear();
       applyFiltersAndRender();
-
       showMessage(els.globalMessage, "success", "Actions en masse appliquées.");
     });
   }
 
   async function deleteEvent(id) {
     const { data, error } = await withTimeout(
-      supabaseClient
-        .from(TABLE_NAME)
-        .delete()
-        .eq("id", id)
-        .select("id"),
+      supabaseClient.from(TABLE_NAME).delete().eq("id", id).select("id"),
       12000,
-      "La suppression prend trop de temps. Vérifie la connexion ou les règles Supabase."
+      "La suppression prend trop de temps."
     );
 
     if (error) throw error;
 
     if (!data || data.length === 0) {
-      throw new Error(
-        "Aucune ligne n’a été supprimée. Vérifie les règles RLS Supabase pour DELETE sur la table events."
-      );
+      throw new Error("Aucune ligne n’a été supprimée. Vérifie les règles RLS Supabase pour DELETE sur la table events.");
     }
 
     state.events = state.events.filter(function (event) {
@@ -1387,7 +1052,6 @@
 
     state.selectedIds.delete(String(id));
     applyFiltersAndRender();
-
     showMessage(els.globalMessage, "success", "Événement supprimé.");
   }
 
@@ -1397,20 +1061,12 @@
     Object.keys(patch).forEach(function (key) {
       if (key === "id") return;
       if (state.unavailableColumns.has(key)) return;
-
-      if (state.availableColumns.size && !state.availableColumns.has(key)) {
-        return;
-      }
-
+      if (state.availableColumns.size && !state.availableColumns.has(key)) return;
       cleanPatch[key] = patch[key];
     });
 
     return cleanPatch;
   }
-
-  /* =========================================================
-    EDIT MODAL
-  ========================================================= */
 
   function openEditModal(event) {
     state.currentEditEvent = event;
@@ -1438,9 +1094,7 @@
 
     updateOptionalFieldAvailability();
 
-    if (els.editModal) {
-      els.editModal.classList.remove("is-hidden");
-    }
+    if (els.editModal) els.editModal.classList.remove("is-hidden");
 
     setTimeout(function () {
       if (els.editTitle) els.editTitle.focus();
@@ -1449,7 +1103,6 @@
 
   function closeEditModal() {
     if (!els.editModal) return;
-
     els.editModal.classList.add("is-hidden");
     state.currentEditEvent = null;
     clearMessage(els.editMessage);
@@ -1457,7 +1110,6 @@
 
   async function handleEditSubmit(event) {
     event.preventDefault();
-
     if (!state.currentEditEvent) return;
 
     clearMessage(els.editMessage);
@@ -1486,45 +1138,11 @@
         verified: Boolean(els.editVerified && els.editVerified.checked)
       };
 
-      if (patch.validated && patch.rejected) {
-        patch.rejected = false;
-      }
+      if (patch.validated && patch.rejected) patch.rejected = false;
 
-      const cleanPatch = sanitizePatch(patch);
-
-      if (!Object.keys(cleanPatch).length) {
-        showMessage(els.editMessage, "warning", "Aucune colonne compatible à enregistrer.");
-        return;
-      }
-
-      const { data, error } = await withTimeout(
-        supabaseClient
-          .from(TABLE_NAME)
-          .update(cleanPatch)
-          .eq("id", id)
-          .select("id"),
-        12000,
-        "L’enregistrement prend trop de temps. Vérifie la connexion ou les règles Supabase."
-      );
-
-      if (error) throw error;
-
-      if (!data || data.length === 0) {
-        throw new Error(
-          "Aucune ligne n’a été modifiée. Vérifie les règles RLS Supabase pour UPDATE sur la table events."
-        );
-      }
-
-      state.events = state.events.map(function (eventItem) {
-        if (String(eventItem.id) !== String(id)) return eventItem;
-        return normalizeEvents([Object.assign({}, eventItem, cleanPatch)])[0];
-      });
-
-      applyFiltersAndRender();
+      await updateEvent(id, patch);
 
       showMessage(els.editMessage, "success", "Événement enregistré.");
-      showMessage(els.globalMessage, "success", "Événement enregistré.");
-
       setTimeout(closeEditModal, 450);
     } catch (error) {
       showMessage(els.editMessage, "error", getErrorMessage(error));
@@ -1534,7 +1152,7 @@
   }
 
   function updateOptionalFieldAvailability() {
-    const fieldMap = [
+    [
       ["description", els.editDescription],
       ["type", els.editType],
       ["region", els.editRegion],
@@ -1551,32 +1169,23 @@
       ["rejected", els.editRejected],
       ["featured", els.editFeatured],
       ["verified", els.editVerified]
-    ];
-
-    fieldMap.forEach(function (item) {
+    ].forEach(function (item) {
       const column = item[0];
       const element = item[1];
 
       if (!element) return;
 
-      const isAvailable =
-        state.availableColumns.has(column) &&
-        !state.unavailableColumns.has(column);
+      const isAvailable = state.availableColumns.has(column) && !state.unavailableColumns.has(column);
 
       element.disabled = !isAvailable;
 
       const wrapper = element.closest(".field") || element.closest(".checkbox-card");
-
       if (wrapper) {
         wrapper.title = isAvailable ? "" : `Colonne "${column}" absente de la table events.`;
         wrapper.style.opacity = isAvailable ? "" : "0.55";
       }
     });
   }
-
-  /* =========================================================
-    MAP — VERSION STABLE SANS FITBOUNDS
-  ========================================================= */
 
   function switchView(viewName) {
     state.currentView = viewName;
@@ -1604,10 +1213,7 @@
 
   function scheduleMapRender() {
     window.clearTimeout(scheduleMapRender._timer);
-
-    scheduleMapRender._timer = window.setTimeout(function () {
-      renderMap();
-    }, 250);
+    scheduleMapRender._timer = window.setTimeout(renderMap, 250);
   }
 
   function renderMap() {
@@ -1619,11 +1225,7 @@
     if (state.currentView !== "map") return;
 
     if (!window.L) {
-      showMessage(
-        els.globalMessage,
-        "error",
-        "Leaflet est introuvable. Vérifie le chargement de leaflet.js."
-      );
+      showMessage(els.globalMessage, "error", "Leaflet est introuvable. Vérifie le chargement de leaflet.js.");
       return;
     }
 
@@ -1645,9 +1247,7 @@
 
     forceMapResize();
 
-    if (state.markerLayer) {
-      state.markerLayer.clearLayers();
-    }
+    if (state.markerLayer) state.markerLayer.clearLayers();
 
     const missing = [];
     let visibleMarkers = 0;
@@ -1706,24 +1306,13 @@
 
     renderMissingCoordinates(missing);
 
-    state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, {
-      animate: false
-    });
-
+    state.map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, { animate: false });
     forceMapResize();
 
     if (visibleMarkers === 0) {
-      showMessage(
-        els.globalMessage,
-        "warning",
-        "Carte chargée, mais aucun événement filtré n’a de coordonnées exploitables en France."
-      );
+      showMessage(els.globalMessage, "warning", "Carte chargée, mais aucun événement filtré n’a de coordonnées exploitables en France.");
     } else {
-      showMessage(
-        els.globalMessage,
-        "success",
-        `Carte chargée avec ${visibleMarkers} marqueur${visibleMarkers > 1 ? "s" : ""}.`
-      );
+      showMessage(els.globalMessage, "success", `Carte chargée avec ${visibleMarkers} marqueur${visibleMarkers > 1 ? "s" : ""}.`);
     }
   }
 
@@ -1731,9 +1320,7 @@
     if (!els.missingCoordinatesList) return;
 
     if (!events.length) {
-      els.missingCoordinatesList.innerHTML = `
-        <div class="empty-state">Tous les événements filtrés ont des coordonnées exploitables.</div>
-      `;
+      els.missingCoordinatesList.innerHTML = `<div class="empty-state">Tous les événements filtrés ont des coordonnées exploitables.</div>`;
       return;
     }
 
@@ -1756,16 +1343,10 @@
 
   function getMarkerColor(event) {
     const status = getEventStatus(event);
-
     if (status === "validated") return "#16803c";
     if (status === "rejected") return "#b42318";
-
     return "#ff6b35";
   }
-
-  /* =========================================================
-    CSV
-  ========================================================= */
 
   function exportFilteredCsv() {
     if (!state.filteredEvents.length) {
@@ -1774,25 +1355,9 @@
     }
 
     const columns = [
-      "id",
-      "title",
-      "type",
-      "region",
-      "city",
-      "price",
-      "start_date",
-      "end_date",
-      "website",
-      "description",
-      "image_url",
-      "lat",
-      "lng",
-      "validated",
-      "rejected",
-      "featured",
-      "verified",
-      "source_label",
-      "created_at"
+      "id", "title", "type", "region", "city", "price", "start_date", "end_date",
+      "website", "description", "image_url", "lat", "lng", "validated", "rejected",
+      "featured", "verified", "source_label", "created_at"
     ].filter(function (column) {
       return state.availableColumns.has(column) || column === "id" || column === "title";
     });
@@ -1806,14 +1371,12 @@
       })
     ];
 
-    const csv = rows.join("\n");
-    const blob = new Blob(["\uFEFF" + csv], {
+    const blob = new Blob(["\uFEFF" + rows.join("\n")], {
       type: "text/csv;charset=utf-8;"
     });
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-
     const date = new Date().toISOString().slice(0, 10);
 
     link.href = url;
@@ -1829,23 +1392,16 @@
 
   function csvEscape(value) {
     if (value === null || value === undefined) return "";
-
     const stringValue = String(value).replace(/\r?\n|\r/g, " ").trim();
     return `"${stringValue.replace(/"/g, '""')}"`;
   }
-
-  /* =========================================================
-    INSTAGRAM
-  ========================================================= */
 
   function populateInstagramSelect() {
     if (!els.instagramEventSelect) return;
 
     const previousValue = els.instagramEventSelect.value;
 
-    els.instagramEventSelect.innerHTML = `
-      <option value="">Choisir un événement</option>
-    `;
+    els.instagramEventSelect.innerHTML = `<option value="">Choisir un événement</option>`;
 
     state.filteredEvents.forEach(function (event) {
       const option = document.createElement("option");
@@ -1868,33 +1424,21 @@
       return;
     }
 
-    const dateText = formatDateRange(event.start_date, event.end_date);
-    const city = event.city || "ville à préciser";
-    const region = event.region || "région à préciser";
-    const type = event.type || "événement littéraire";
-    const price = event.price ? `\n💶 Tarif : ${event.price}` : "";
-    const website = event.website ? `\n🔗 Infos : ${event.website}` : "";
-    const description = event.description
-      ? `\n\n${truncate(event.description, 420)}`
-      : "";
-
     const text = [
       `📚 ${event.title}`,
       "",
-      `Un ${type} à découvrir à ${city}, en ${region}.`,
+      `Un ${event.type || "événement littéraire"} à découvrir à ${event.city || "ville à préciser"}, en ${event.region || "région à préciser"}.`,
       "",
-      `📍 ${city}`,
-      `📅 ${dateText}`,
-      price,
-      website,
-      description,
+      `📍 ${event.city || "Ville à préciser"}`,
+      `📅 ${formatDateRange(event.start_date, event.end_date)}`,
+      event.price ? `💶 Tarif : ${event.price}` : "",
+      event.website ? `🔗 Infos : ${event.website}` : "",
+      event.description ? `\n${truncate(event.description, 420)}` : "",
       "",
       "À enregistrer, partager et ajouter à ton agenda ✨",
       "",
       "#dedicalivres #livres #lecture #auteurs #dedicace #salondulivre #litterature #sortielitteraire"
-    ].filter(function (line) {
-      return line !== null && line !== undefined;
-    }).join("\n");
+    ].filter(Boolean).join("\n");
 
     if (els.instagramOutput) {
       els.instagramOutput.value = text.replace(/\n{3,}/g, "\n\n").trim();
@@ -1917,41 +1461,21 @@
     } catch (_error) {
       els.instagramOutput.focus();
       els.instagramOutput.select();
-
-      showMessage(
-        els.globalMessage,
-        "warning",
-        "Copie automatique impossible. Le texte est sélectionné, tu peux le copier manuellement."
-      );
+      showMessage(els.globalMessage, "warning", "Copie automatique impossible. Le texte est sélectionné.");
     }
   }
 
-  /* =========================================================
-    CONFIRM MODAL
-  ========================================================= */
-
   function confirmAction(message, callback) {
     state.pendingConfirmAction = callback;
-
-    if (els.confirmMessage) {
-      els.confirmMessage.textContent = message;
-    }
-
-    if (els.confirmModal) {
-      els.confirmModal.classList.remove("is-hidden");
-    }
+    if (els.confirmMessage) els.confirmMessage.textContent = message;
+    if (els.confirmModal) els.confirmModal.classList.remove("is-hidden");
   }
 
   function closeConfirmModal() {
     if (!els.confirmModal) return;
-
     els.confirmModal.classList.add("is-hidden");
     state.pendingConfirmAction = null;
   }
-
-  /* =========================================================
-    HELPERS
-  ========================================================= */
 
   function findEventById(id) {
     return state.events.find(function (event) {
@@ -1967,10 +1491,8 @@
 
   function hasCoordinates(event) {
     if (!isFiniteNumber(event.lat) || !isFiniteNumber(event.lng)) return false;
-
     const lat = Number(event.lat);
     const lng = Number(event.lng);
-
     return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
   }
 
@@ -1980,16 +1502,12 @@
 
   function toNumberOrNull(value) {
     if (value === null || value === undefined || value === "") return null;
-
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
   }
 
   function nullableNumber(value) {
-    if (value === null || value === undefined || String(value).trim() === "") {
-      return null;
-    }
-
+    if (value === null || value === undefined || String(value).trim() === "") return null;
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
   }
@@ -2030,10 +1548,8 @@
 
   function parseDate(value) {
     if (!value) return null;
-
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
-
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
   }
 
@@ -2044,12 +1560,8 @@
 
   function toDateInputValue(value) {
     if (!value) return "";
-
     const stringValue = String(value);
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) {
-      return stringValue;
-    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) return stringValue;
 
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
@@ -2063,9 +1575,7 @@
     const start = formatDate(startValue);
     const end = formatDate(endValue);
 
-    if (start && end && start !== end) {
-      return `${start} → ${end}`;
-    }
+    if (start && end && start !== end) return `${start} → ${end}`;
 
     return start || end || "Date non renseignée";
   }
@@ -2099,9 +1609,7 @@
 
   function truncate(value, maxLength) {
     const stringValue = safeString(value).trim();
-
     if (stringValue.length <= maxLength) return stringValue;
-
     return stringValue.slice(0, maxLength - 1).trim() + "…";
   }
 
@@ -2130,7 +1638,6 @@
 
   function clearMessage(element) {
     if (!element) return;
-
     element.textContent = "";
     element.className = "message-box";
   }
@@ -2140,63 +1647,23 @@
 
     const message = error.message || String(error);
 
-    if (message.includes("Invalid login credentials")) {
-      return "Identifiants invalides.";
-    }
-
-    if (
-      message.includes("Email rate limit exceeded") ||
-      message.includes("email rate limit exceeded") ||
-      message.includes("rate limit")
-    ) {
-      return "Trop d’emails envoyés en peu de temps. Attends avant de redemander un lien.";
-    }
-
-    if (message.includes("JWT")) {
-      return "Session expirée. Reconnecte-toi.";
-    }
-
-    if (message.includes("permission denied")) {
-      return "Permission refusée. Vérifie les règles RLS Supabase.";
-    }
-
-    if (message.includes("row-level security")) {
-      return "Action bloquée par les règles RLS Supabase. Vérifie les policies SELECT / UPDATE / DELETE.";
-    }
-
+    if (message.includes("Invalid login credentials")) return "Identifiants invalides.";
+    if (message.includes("rate limit")) return "Trop d’emails envoyés en peu de temps.";
+    if (message.includes("JWT")) return "Session expirée. Reconnecte-toi.";
+    if (message.includes("permission denied")) return "Permission refusée. Vérifie les règles RLS Supabase.";
+    if (message.includes("row-level security")) return "Action bloquée par les règles RLS Supabase.";
     if (message.includes("Could not find") && message.includes("schema cache")) {
-      return "Une colonne semble absente dans Supabase. Le code évite les colonnes indisponibles quand c’est possible.";
+      return "Une colonne semble absente dans Supabase.";
     }
 
     return message;
-  }
-
-  function isMissingColumnError(error) {
-    if (!error) return false;
-
-    const message = [
-      error.message,
-      error.details,
-      error.hint,
-      error.code
-    ].filter(Boolean).join(" ");
-
-    return (
-      message.includes("Could not find") ||
-      message.includes("schema cache") ||
-      message.includes("column") ||
-      message.includes("42703")
-    );
   }
 
   function setLoadingButton(button, isLoading, loadingText) {
     if (!button) return;
 
     if (isLoading) {
-      if (!button.dataset.originalText) {
-        button.dataset.originalText = button.textContent;
-      }
-
+      if (!button.dataset.originalText) button.dataset.originalText = button.textContent;
       button.textContent = loadingText || "Chargement...";
       button.disabled = true;
       return;
