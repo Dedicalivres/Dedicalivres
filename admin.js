@@ -2037,9 +2037,14 @@ function switchView(viewName) {
     return "pending";
   }
 
-  function hasCoordinates(event) {
-    return isFiniteNumber(event.lat) && isFiniteNumber(event.lng);
-  }
+ function hasCoordinates(event) {
+  if (!isFiniteNumber(event.lat) || !isFiniteNumber(event.lng)) return false;
+
+  const lat = Number(event.lat);
+  const lng = Number(event.lng);
+
+  return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
 
   function isFiniteNumber(value) {
     return typeof value === "number" && Number.isFinite(value);
