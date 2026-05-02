@@ -960,7 +960,7 @@ textarea::placeholder {
 }
 
 /* =========================================================
-  MAP
+  MAP — VERSION CORRIGÉE
 ========================================================= */
 
 .map-legend {
@@ -1297,7 +1297,6 @@ textarea::placeholder {
     grid-column: 1 / -1;
   }
 
-  .map-layout,
   .tools-grid {
     grid-template-columns: 1fr;
   }
@@ -1340,8 +1339,8 @@ textarea::placeholder {
 
   .admin-map,
   .admin-map.leaflet-container {
-    height: 460px;
-    min-height: 460px;
+    height: 520px !important;
+    min-height: 520px !important;
   }
 
   .status-fieldset {
@@ -1449,8 +1448,8 @@ textarea::placeholder {
 
   .admin-map,
   .admin-map.leaflet-container {
-    height: 380px;
-    min-height: 380px;
+    height: 420px !important;
+    min-height: 420px !important;
   }
 
   .form-grid {
