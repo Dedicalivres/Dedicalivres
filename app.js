@@ -192,9 +192,12 @@
     try {
       feedback.textContent = "Inscription...";
 
-      const { error } = await supabaseClient
-        .from("newsletter_subscribers")
-        .insert([{ email, region }]);
+    const { error } = await supabaseClient
+  .from("newsletter_subscribers")
+  .upsert(
+    [{ email, region }],
+    { onConflict: "email" }
+  );
 
       if (error) throw error;
 
