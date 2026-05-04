@@ -1157,3 +1157,64 @@ textarea {
 <script src="app.js"></script>
 <script src="author-search-index.js"></script>
 <script src="custom-cursor.js"></script>
+/* ===== DÉDICALIVRES — AUTEURS PRÉSENTS SUR CARTES ===== */
+
+#author-filter {
+  width: 100%;
+}
+
+.badge-author-present {
+  background: #fff0e7;
+  color: var(--orange);
+  border: 1px solid rgba(255, 107, 53, 0.28);
+}
+
+.card-authors-present {
+  display: block;
+  margin-top: 4px;
+  color: var(--purple);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.card-authors-present a {
+  color: var(--orange);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.card-authors-present a:hover {
+  text-decoration: underline;
+}
+
+/* Le champ auteur est ajouté dynamiquement dans .filters.
+   Cette grille évite que les filtres se tassent trop sur grand écran. */
+@media (min-width: 1081px) {
+  .filters:has(#author-filter) {
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 1.2fr auto auto;
+  }
+}
+
+@media (max-width: 1080px) {
+  .filters:has(#author-filter) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  #search-input,
+  #author-filter {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 780px) {
+  .filters:has(#author-filter) {
+    grid-template-columns: 1fr;
+  }
+
+  #search-input,
+  #author-filter {
+    grid-column: auto;
+  }
+}
+
+/* ===== FIN AUTEURS PRÉSENTS SUR CARTES ===== */
