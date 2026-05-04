@@ -608,3 +608,49 @@
   function escapeHtml(value) { return (value || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
   function escapeAttribute(value) { return escapeHtml(value).replace(/`/g, "&#096;"); }
 })();
+// ===============================
+// 📩 NEWSLETTER DEDICALIVRES
+// ===============================
+
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("newsletter-form");
+  if (!form) return;
+
+  const feedback = document.getElementById("newsletter-feedback");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = form.email.value.trim();
+    const region = form.region.value;
+
+    if (!email) {
+      feedback.textContent = "Veuillez entrer un email.";
+      feedback.className = "error";
+      return;
+    }
+
+    feedback.textContent = "Inscription en cours...";
+    feedback.className = "";
+
+    try {
+      const { error } = await supabaseClient
+        .from("newsletter_subscribers")
+        .upsert(
+          [{ email, region }],
+          { onConflict: "email" }
+        );
+
+      if (error) throw error;
+
+      feedback.textContent = "Inscription réussie ✅";
+      feedback.className = "success";
+      form.reset();
+
+    } catch (err) {
+      console.error("Erreur newsletter :", err);
+      feedback.textContent = "Erreur lors de l'inscription.";
+      feedback.className = "error";
+    }
+  });
+});
