@@ -254,16 +254,39 @@
     - si l’utilisateur choisit une suggestion exacte, le résultat sera naturellement précis
   */
   function applyAuthorFilterToCards() {
-    const cards = [...document.querySelectorAll(".event-card[data-event-id]")];
-    if (!cards.length) return;
+  const cards = [...document.querySelectorAll(".event-card[data-event-id]")];
+  if (!cards.length) return;
 
-    if (!selectedAuthor || selectedAuthor.length < 2) {
-      cards.forEach((card) => {
-        card.hidden = false;
-      });
-      updateVisibleCount(cards.length);
-      return;
-    }
+  if (!selectedAuthor || selectedAuthor.length < 2) {
+    cards.forEach((card) => {
+      card.hidden = false;
+    });
+    updateVisibleCount(cards.length);
+    return;
+  }
+
+  const matchingEventIds = new Set(
+    authorPresences
+      .filter((item) => normalize(item.pseudo).includes(selectedAuthor))
+      .map((item) => String(item.event_id))
+  );
+
+  let visibleCount = 0;
+
+  cards.forEach((card) => {
+    const eventId = String(card.dataset.eventId);
+    const visible = matchingEventIds.has(eventId);
+
+    card.hidden = !visible;
+
+    if (visible) visibleCount++;
+  });
+
+  updateVisibleCount(
+    visibleCount,
+    visibleCount === 0 ? "Aucun événement trouvé pour cet auteur" : null
+  );
+}
 
     const matchingEventIds = new Set(
       authorPresences
