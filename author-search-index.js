@@ -1,6 +1,6 @@
 /*
   DÉDICALIVRES — Filtre auteur + affichage auteurs sur cartes
-  Version stable
+  Version V4 avec liens vers fiches auteurs publiques
 */
 
 (function () {
@@ -34,7 +34,9 @@
     await loadAuthorPresences();
     bindAuthorSearch();
     observeGrid();
+
     applyAuthorsToCards();
+    filterCardsByAuthor();
   }
 
   function createAuthorSearchField() {
@@ -64,11 +66,11 @@
   async function loadAuthorPresences() {
     const { data, error } = await supabaseClient
       .from("event_authors_presence")
-      .select("event_id, pseudo, website")
+      .select("event_id, pseudo, website, author_slug, author_id, validated")
       .eq("validated", true);
 
     if (error) {
-      console.error("Erreur auteurs :", error);
+      console.error("Erreur chargement auteurs :", error);
       return;
     }
 
@@ -153,8 +155,8 @@
     let visibleCount = 0;
 
     cards.forEach((card) => {
-      const cardEventId = String(card.dataset.eventId);
-      const shouldShow = matchingEventIds.has(cardEventId);
+      const eventId = String(card.dataset.eventId);
+      const shouldShow = matchingEventIds.has(eventId);
 
       card.style.display = shouldShow ? "" : "none";
 
@@ -185,9 +187,10 @@
     const authorsByEvent = new Map();
 
     authorPresences.forEach((author) => {
-      const eventId = String(author.event_id);
+      const eventId = String(author.event_id || "");
       const pseudo = clean(author.pseudo);
       const website = normalizeWebsite(author.website);
+      const slug = clean(author.author_slug);
 
       if (!eventId || !pseudo) return;
 
@@ -198,7 +201,7 @@
       const list = authorsByEvent.get(eventId);
 
       if (!list.some((item) => normalize(item.pseudo) === normalize(pseudo))) {
-        list.push({ pseudo, website });
+        list.push({ pseudo, website, slug });
       }
     });
 
@@ -236,6 +239,10 @@
 
     const authorLinks = authors.slice(0, 3).map((author) => {
       const pseudo = escapeHtml(author.pseudo);
+
+      if (author.slug) {
+        return `<a href="author.html?slug=${encodeURIComponent(author.slug)}">${pseudo}</a>`;
+      }
 
       if (author.website) {
         return `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${pseudo}</a>`;
