@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Auteur — Dédicalivres</title>
+  <meta name="description" content="Fiche auteur Dédicalivres : événements, présences déclarées et liens officiels." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" aria-label="Accueil Dédicalivres">
+      <img src="logo.png" class="logo" alt="Dédicalivres" />
+    </a>
+
+    <nav aria-label="Navigation principale">
+      <a href="index.html#agenda">Agenda</a>
+      <a href="salons-du-livre.html">Salons</a>
+      <a href="auteurs-independants.html">Auteurs</a>
+      <a href="index.html#soumettre">Soumettre</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container section">
+  <p>
+    <a class="card-link detail-back-link" href="index.html#agenda">
+      ← Retour à l’agenda
+    </a>
+  </p>
+
+  <article id="author-profile" class="author-profile">
+    <div class="empty-state">
+      <div class="loader"></div>
+      <p>Chargement de la fiche auteur…</p>
+    </div>
+  </article>
+
+  <section class="section">
+    <h2>Présences déclarées</h2>
+    <div id="author-events-grid" class="events-grid"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="author.js"></script>
+<script src="tracking-v4.js"></script>
+</body>
+</html>
