@@ -133,17 +133,40 @@
     });
   }
 
-  function applyAuthorFilterToCards() {
-    const cards = [...document.querySelectorAll(".event-card[data-event-id]")];
-    if (!cards.length) return;
+function applyAuthorFilterToCards() {
+  const cards = [...document.querySelectorAll(".event-card[data-event-id]")];
+  if (!cards.length) return;
 
-    if (!selectedAuthor || selectedAuthor.length < 2) {
-      cards.forEach((card) => {
-        card.hidden = false;
-      });
-      updateVisibleCount(cards.length);
-      return;
-    }
+  // 🔹 Si rien saisi → reset complet
+  if (!selectedAuthor || selectedAuthor.length < 2) {
+    cards.forEach(card => card.hidden = false);
+    updateVisibleCount(cards.length);
+    return;
+  }
+
+  const normalizedSearch = normalize(selectedAuthor);
+
+  // 🔥 MATCH STRICT (beaucoup plus fiable)
+  const matchingEventIds = new Set(
+    authorPresences
+      .filter(item => normalize(item.pseudo) === normalizedSearch)
+      .map(item => String(item.event_id))
+  );
+
+  let visibleCount = 0;
+
+  cards.forEach(card => {
+    const eventId = String(card.dataset.eventId);
+
+    const visible = matchingEventIds.has(eventId);
+
+    card.hidden = !visible;
+
+    if (visible) visibleCount++;
+  });
+
+  updateVisibleCount(visibleCount);
+}
 
     const matchingEventIds = new Set(
       authorPresences
