@@ -1,15 +1,17 @@
 /*
-  DÉDICALIVRES — Recherche par auteur présent
+  DÉDICALIVRES — Recherche + affichage auteurs présents sur les cartes
   Fichier : author-search-index.js
 
-  Rôle :
-  - ajoute un champ "Rechercher un auteur présent…" dans les filtres de l’agenda
-  - charge les auteurs déclarés présents depuis Supabase
-  - filtre les cartes déjà affichées par app.js sans modifier app.js
-  - ajoute un petit badge "Auteur présent" sur les cartes concernées
+  À charger APRÈS app.js dans index.html :
+  <script src="author-search-index.js"></script>
 
-  Important :
-  - ce script doit être chargé APRÈS app.js dans index.html
+  Ce module :
+  - ajoute le filtre "Rechercher un auteur présent…"
+  - charge les auteurs déclarés présents depuis Supabase
+  - filtre les cartes par auteur
+  - ajoute sur chaque carte concernée :
+      badge "Auteur présent"
+      ligne publique "👤 Auteurs présents : ..."
 */
 
 (function () {
@@ -43,7 +45,9 @@
     await loadAuthorPresences();
     bindAuthorSearch();
     observeEventGrid();
-    applyAuthorBadgesToCards();
+
+    applyAuthorsToCards();
+    applyAuthorFilterToCards();
   }
 
   function createAuthorSearchField() {
@@ -74,7 +78,7 @@
   async function loadAuthorPresences() {
     const { data, error } = await supabaseClient
       .from("event_authors_presence")
-      .select("event_id, pseudo")
+      .select("event_id, pseudo, website")
       .eq("validated", true)
       .order("pseudo", { ascending: true });
 
@@ -115,15 +119,15 @@
       input.value = "";
       selectedAuthor = "";
       setTimeout(() => {
+        applyAuthorsToCards();
         applyAuthorFilterToCards();
-        applyAuthorBadgesToCards();
       }, 80);
     });
   }
 
   function observeEventGrid() {
     const observer = new MutationObserver(() => {
-      applyAuthorBadgesToCards();
+      applyAuthorsToCards();
       applyAuthorFilterToCards();
     });
 
@@ -133,40 +137,116 @@
     });
   }
 
-function applyAuthorFilterToCards() {
-  const cards = [...document.querySelectorAll(".event-card[data-event-id]")];
-  if (!cards.length) return;
+  /*
+    Ajoute le badge + la ligne "Auteurs présents" sur chaque carte événement.
+    Le script ne modifie pas app.js : il enrichit le HTML généré après coup.
+  */
+  function applyAuthorsToCards() {
+    const authorsByEventId = groupAuthorsByEventId();
 
-  // 🔹 Si rien saisi → reset complet
-  if (!selectedAuthor || selectedAuthor.length < 2) {
-    cards.forEach(card => card.hidden = false);
-    updateVisibleCount(cards.length);
-    return;
+    document.querySelectorAll(".event-card[data-event-id]").forEach((card) => {
+      const eventId = String(card.dataset.eventId);
+      const authors = authorsByEventId.get(eventId) || [];
+
+      if (!authors.length) {
+        removeAuthorInfo(card);
+        return;
+      }
+
+      addAuthorBadge(card);
+      addAuthorLine(card, authors);
+    });
   }
 
-  const normalizedSearch = normalize(selectedAuthor);
+  function addAuthorBadge(card) {
+    if (card.querySelector(".badge-author-present")) return;
 
-  // 🔥 MATCH STRICT (beaucoup plus fiable)
-  const matchingEventIds = new Set(
-    authorPresences
-      .filter(item => normalize(item.pseudo) === normalizedSearch)
-      .map(item => String(item.event_id))
-  );
+    const tagContainer = card.querySelector(".card-tags");
+    if (!tagContainer) return;
 
-  let visibleCount = 0;
+    const badge = document.createElement("span");
+    badge.className = "badge badge-author-present";
+    badge.textContent = "Auteur présent";
 
-  cards.forEach(card => {
-    const eventId = String(card.dataset.eventId);
+    tagContainer.appendChild(badge);
+  }
 
-    const visible = matchingEventIds.has(eventId);
+  function addAuthorLine(card, authors) {
+    const meta = card.querySelector(".card-meta");
+    if (!meta) return;
 
-    card.hidden = !visible;
+    let line = card.querySelector(".card-authors-present");
 
-    if (visible) visibleCount++;
-  });
+    if (!line) {
+      line = document.createElement("span");
+      line.className = "card-authors-present";
+      meta.appendChild(line);
+    }
 
-  updateVisibleCount(visibleCount);
-}
+    const maxShown = 3;
+    const shownAuthors = authors.slice(0, maxShown);
+    const remainingCount = authors.length - shownAuthors.length;
+
+    const authorsHtml = shownAuthors
+      .map((author) => {
+        const pseudo = escapeHtml(author.pseudo);
+
+        if (author.website) {
+          return `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${pseudo}</a>`;
+        }
+
+        return `<strong>${pseudo}</strong>`;
+      })
+      .join(", ");
+
+    line.innerHTML = `👤 <strong>Auteurs présents :</strong> ${authorsHtml}${remainingCount > 0 ? ` +${remainingCount}` : ""}`;
+  }
+
+  function removeAuthorInfo(card) {
+    card.querySelector(".badge-author-present")?.remove();
+    card.querySelector(".card-authors-present")?.remove();
+  }
+
+  function groupAuthorsByEventId() {
+    const map = new Map();
+
+    authorPresences.forEach((item) => {
+      const eventId = String(item.event_id || "");
+      const pseudo = cleanText(item.pseudo);
+      const website = normalizeWebsite(item.website);
+
+      if (!eventId || !pseudo) return;
+
+      if (!map.has(eventId)) map.set(eventId, []);
+
+      const list = map.get(eventId);
+
+      const alreadyExists = list.some((author) => normalize(author.pseudo) === normalize(pseudo));
+      if (alreadyExists) return;
+
+      list.push({ pseudo, website });
+    });
+
+    return map;
+  }
+
+  /*
+    Filtre auteur fiable :
+    - rien saisi ou moins de 2 caractères => reset
+    - recherche souple includes() à partir de 2 caractères
+    - si l’utilisateur choisit une suggestion exacte, le résultat sera naturellement précis
+  */
+  function applyAuthorFilterToCards() {
+    const cards = [...document.querySelectorAll(".event-card[data-event-id]")];
+    if (!cards.length) return;
+
+    if (!selectedAuthor || selectedAuthor.length < 2) {
+      cards.forEach((card) => {
+        card.hidden = false;
+      });
+      updateVisibleCount(cards.length);
+      return;
+    }
 
     const matchingEventIds = new Set(
       authorPresences
@@ -185,33 +265,21 @@ function applyAuthorFilterToCards() {
       if (visible) visibleCount++;
     });
 
+    if (visibleCount === 0) {
+      updateVisibleCount(0, "Aucun événement trouvé pour cet auteur");
+      return;
+    }
+
     updateVisibleCount(visibleCount);
   }
 
-  function applyAuthorBadgesToCards() {
-    const eventIdsWithAuthors = new Set(
-      authorPresences.map((item) => String(item.event_id))
-    );
-
-    document.querySelectorAll(".event-card[data-event-id]").forEach((card) => {
-      const eventId = String(card.dataset.eventId);
-
-      if (!eventIdsWithAuthors.has(eventId)) return;
-      if (card.querySelector(".badge-author-present")) return;
-
-      const tagContainer = card.querySelector(".card-tags");
-      if (!tagContainer) return;
-
-      const badge = document.createElement("span");
-      badge.className = "badge badge-author-present";
-      badge.textContent = "Auteur présent";
-
-      tagContainer.appendChild(badge);
-    });
-  }
-
-  function updateVisibleCount(count) {
+  function updateVisibleCount(count, customText) {
     if (!resultsCount) return;
+
+    if (customText) {
+      resultsCount.textContent = customText;
+      return;
+    }
 
     resultsCount.textContent = `${count} événement${count > 1 ? "s" : ""} affiché${count > 1 ? "s" : ""}`;
   }
@@ -228,13 +296,23 @@ function applyAuthorFilterToCards() {
       .toLowerCase();
   }
 
-  function escapeAttribute(value) {
+  function normalizeWebsite(value) {
+    const raw = cleanText(value);
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return `https://${raw}`;
+  }
+
+  function escapeHtml(value) {
     return String(value || "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;")
-      .replace(/`/g, "&#096;");
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeAttribute(value) {
+    return escapeHtml(value).replace(/`/g, "&#096;");
   }
 })();
