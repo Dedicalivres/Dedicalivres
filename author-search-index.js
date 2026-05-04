@@ -1,6 +1,6 @@
 /*
-  DÉDICALIVRES — Recherche + affichage auteurs présents sur les cartes
-  VERSION STABLE CLEAN
+  DÉDICALIVRES — Filtre auteur + affichage auteurs sur cartes
+  Version stable
 */
 
 (function () {
@@ -8,8 +8,8 @@
 
   const config = window.DEDICALIVRES_CONFIG;
 
-  if (!config || !window.supabase) {
-    console.error("Config Supabase manquante");
+  if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
+    console.error("Configuration Supabase manquante pour author-search-index.js");
     return;
   }
 
@@ -31,11 +31,9 @@
     if (!filters || !eventsGrid) return;
 
     createAuthorSearchField();
-    await loadAuthors();
-
-    bindSearch();
+    await loadAuthorPresences();
+    bindAuthorSearch();
     observeGrid();
-
     applyAuthorsToCards();
   }
 
@@ -44,52 +42,62 @@
 
     const input = document.createElement("input");
     input.id = "author-filter";
+    input.type = "search";
     input.placeholder = "Rechercher un auteur présent…";
     input.setAttribute("list", "author-suggestions");
+    input.setAttribute("autocomplete", "off");
 
     const datalist = document.createElement("datalist");
     datalist.id = "author-suggestions";
 
-    const applyBtn = document.getElementById("apply-filters");
+    const applyButton = document.getElementById("apply-filters");
 
-    if (applyBtn) filters.insertBefore(input, applyBtn);
-    else filters.appendChild(input);
+    if (applyButton) {
+      filters.insertBefore(input, applyButton);
+    } else {
+      filters.appendChild(input);
+    }
 
     filters.appendChild(datalist);
   }
 
-  async function loadAuthors() {
+  async function loadAuthorPresences() {
     const { data, error } = await supabaseClient
       .from("event_authors_presence")
-      .select("event_id, pseudo, website");
+      .select("event_id, pseudo, website")
+      .eq("validated", true);
 
     if (error) {
-      console.error(error);
+      console.error("Erreur auteurs :", error);
       return;
     }
 
-    authorPresences = data || [];
+    authorPresences = Array.isArray(data) ? data : [];
     fillSuggestions();
   }
 
   function fillSuggestions() {
-    const list = document.getElementById("author-suggestions");
-    if (!list) return;
+    const datalist = document.getElementById("author-suggestions");
+    if (!datalist) return;
 
-    const uniques = [...new Set(authorPresences.map(a => a.pseudo))];
+    const authors = [...new Set(
+      authorPresences
+        .map((item) => clean(item.pseudo))
+        .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b, "fr"));
 
-    list.innerHTML = uniques
-      .map(a => `<option value="${a}"></option>`)
+    datalist.innerHTML = authors
+      .map((author) => `<option value="${escapeAttribute(author)}"></option>`)
       .join("");
   }
 
-  function bindSearch() {
+  function bindAuthorSearch() {
     const input = document.getElementById("author-filter");
     if (!input) return;
 
     const run = () => {
       selectedAuthor = normalize(input.value);
-      filterCards();
+      filterCardsByAuthor();
     };
 
     input.addEventListener("input", run);
@@ -97,7 +105,10 @@
     input.addEventListener("keyup", run);
 
     document.getElementById("apply-filters")?.addEventListener("click", () => {
-      setTimeout(run, 100);
+      setTimeout(() => {
+        applyAuthorsToCards();
+        run();
+      }, 150);
     });
 
     document.getElementById("reset-filters")?.addEventListener("click", () => {
@@ -105,108 +116,169 @@
       selectedAuthor = "";
 
       setTimeout(() => {
-        showAll();
+        showAllCards();
         applyAuthorsToCards();
-      }, 100);
+      }, 150);
     });
   }
 
   function observeGrid() {
-    new MutationObserver(() => {
+    const observer = new MutationObserver(() => {
       applyAuthorsToCards();
-      filterCards();
-    }).observe(eventsGrid, { childList: true });
+      filterCardsByAuthor();
+    });
+
+    observer.observe(eventsGrid, {
+      childList: true,
+      subtree: false
+    });
   }
 
-  function filterCards() {
-    const cards = [...document.querySelectorAll(".event-card[data-event-id]")];
+  function filterCardsByAuthor() {
+    const cards = Array.from(document.querySelectorAll(".event-card[data-event-id]"));
+
+    if (!cards.length) return;
 
     if (!selectedAuthor || selectedAuthor.length < 2) {
-      showAll();
+      showAllCards();
       return;
     }
 
-    const ids = new Set(
+    const matchingEventIds = new Set(
       authorPresences
-        .filter(a => normalize(a.pseudo).includes(selectedAuthor))
-        .map(a => String(a.event_id))
+        .filter((author) => normalize(author.pseudo).includes(selectedAuthor))
+        .map((author) => String(author.event_id))
     );
 
-    let count = 0;
+    let visibleCount = 0;
 
-    cards.forEach(card => {
-      const visible = ids.has(card.dataset.eventId);
-      card.hidden = !visible;
-      if (visible) count++;
+    cards.forEach((card) => {
+      const cardEventId = String(card.dataset.eventId);
+      const shouldShow = matchingEventIds.has(cardEventId);
+
+      card.style.display = shouldShow ? "" : "none";
+
+      if (shouldShow) visibleCount++;
     });
 
-    resultsCount.textContent =
-      count === 0
-        ? "Aucun événement trouvé pour cet auteur"
-        : `${count} événement(s) affiché(s)`;
+    if (resultsCount) {
+      resultsCount.textContent =
+        visibleCount === 0
+          ? "Aucun événement trouvé pour cet auteur"
+          : `${visibleCount} événement${visibleCount > 1 ? "s" : ""} affiché${visibleCount > 1 ? "s" : ""}`;
+    }
   }
 
-  function showAll() {
-    const cards = document.querySelectorAll(".event-card");
-    cards.forEach(c => (c.hidden = false));
+  function showAllCards() {
+    const cards = Array.from(document.querySelectorAll(".event-card[data-event-id]"));
 
-    resultsCount.textContent = `${cards.length} événement(s) affiché(s)`;
+    cards.forEach((card) => {
+      card.style.display = "";
+    });
+
+    if (resultsCount) {
+      resultsCount.textContent = `${cards.length} événement${cards.length > 1 ? "s" : ""} affiché${cards.length > 1 ? "s" : ""}`;
+    }
   }
 
   function applyAuthorsToCards() {
-    const map = new Map();
+    const authorsByEvent = new Map();
 
-    authorPresences.forEach(a => {
-      if (!map.has(a.event_id)) map.set(a.event_id, []);
-      map.get(a.event_id).push(a);
+    authorPresences.forEach((author) => {
+      const eventId = String(author.event_id);
+      const pseudo = clean(author.pseudo);
+      const website = normalizeWebsite(author.website);
+
+      if (!eventId || !pseudo) return;
+
+      if (!authorsByEvent.has(eventId)) {
+        authorsByEvent.set(eventId, []);
+      }
+
+      const list = authorsByEvent.get(eventId);
+
+      if (!list.some((item) => normalize(item.pseudo) === normalize(pseudo))) {
+        list.push({ pseudo, website });
+      }
     });
 
-    document.querySelectorAll(".event-card").forEach(card => {
-      const id = card.dataset.eventId;
-      const authors = map.get(id) || [];
+    document.querySelectorAll(".event-card[data-event-id]").forEach((card) => {
+      const eventId = String(card.dataset.eventId);
+      const authors = authorsByEvent.get(eventId) || [];
+
+      card.querySelector(".badge-author-present")?.remove();
+      card.querySelector(".card-authors-present")?.remove();
 
       if (!authors.length) return;
 
       addBadge(card);
-      addLine(card, authors);
+      addAuthorsLine(card, authors);
     });
   }
 
   function addBadge(card) {
-    if (card.querySelector(".badge-author")) return;
+    const tags = card.querySelector(".card-tags");
+    if (!tags) return;
 
-    const tag = card.querySelector(".card-tags");
-    if (!tag) return;
+    const badge = document.createElement("span");
+    badge.className = "badge badge-author-present";
+    badge.textContent = "Auteur présent";
 
-    const el = document.createElement("span");
-    el.className = "badge badge-author";
-    el.textContent = "Auteur présent";
-
-    tag.appendChild(el);
+    tags.appendChild(badge);
   }
 
-  function addLine(card, authors) {
+  function addAuthorsLine(card, authors) {
     const meta = card.querySelector(".card-meta");
     if (!meta) return;
 
-    if (card.querySelector(".authors-line")) return;
+    const line = document.createElement("span");
+    line.className = "card-authors-present";
 
-    const el = document.createElement("span");
-    el.className = "authors-line";
+    const authorLinks = authors.slice(0, 3).map((author) => {
+      const pseudo = escapeHtml(author.pseudo);
 
-    el.innerHTML =
-      "👤 " +
-      authors
-        .map(a => `<a href="${a.website}" target="_blank">${a.pseudo}</a>`)
-        .join(", ");
+      if (author.website) {
+        return `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${pseudo}</a>`;
+      }
 
-    meta.appendChild(el);
+      return `<strong>${pseudo}</strong>`;
+    });
+
+    const remaining = authors.length > 3 ? ` +${authors.length - 3}` : "";
+
+    line.innerHTML = `👤 <strong>Auteurs présents :</strong> ${authorLinks.join(", ")}${remaining}`;
+
+    meta.appendChild(line);
   }
 
-  function normalize(str) {
-    return (str || "")
-      .toLowerCase()
+  function clean(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function normalize(value) {
+    return clean(value)
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[’']/g, " ")
+      .toLowerCase();
+  }
+
+  function normalizeWebsite(value) {
+    const raw = clean(value);
+    if (!raw) return "";
+    return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeAttribute(value) {
+    return escapeHtml(value).replace(/`/g, "&#096;");
   }
 })();
