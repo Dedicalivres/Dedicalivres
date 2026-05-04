@@ -107,14 +107,31 @@
   }
 
   function bindAuthorSearch() {
-    const input = document.getElementById("author-filter");
-    if (!input) return;
+  const input = document.getElementById("author-filter");
+  if (!input) return;
 
-    input.addEventListener("input", () => {
-      selectedAuthor = normalize(input.value);
+  const runFilter = () => {
+    selectedAuthor = normalize(input.value);
+    applyAuthorFilterToCards();
+  };
+
+  input.addEventListener("input", runFilter);
+  input.addEventListener("change", runFilter);
+  input.addEventListener("keyup", runFilter);
+
+  document.getElementById("apply-filters")?.addEventListener("click", () => {
+    setTimeout(runFilter, 80);
+  });
+
+  document.getElementById("reset-filters")?.addEventListener("click", () => {
+    input.value = "";
+    selectedAuthor = "";
+    setTimeout(() => {
+      applyAuthorsToCards();
       applyAuthorFilterToCards();
-    });
-
+    }, 80);
+  });
+}
     document.getElementById("reset-filters")?.addEventListener("click", () => {
       input.value = "";
       selectedAuthor = "";
