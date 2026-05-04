@@ -96,3 +96,62 @@ button:hover{transform:translateY(-2px)}button.secondary{background:white;color:
     min-width: 0;
   }
 }
+/* ===== DÉDICALIVRES — ADMIN V4 AUTEURS ===== */
+
+.authors-admin-item-v4 {
+  align-items: center;
+  gap: 14px;
+}
+
+.authors-admin-item-v4 span {
+  display: grid;
+  gap: 5px;
+}
+
+.authors-admin-item-v4 small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.authors-admin-actions-v4 {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.mini-link,
+.mini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.mini-link {
+  background: white;
+  color: var(--purple);
+  border: 1px solid #ded4e9;
+}
+
+.mini-button {
+  border: 0;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .authors-admin-item-v4 {
+    align-items: flex-start;
+  }
+
+  .authors-admin-actions-v4 {
+    justify-content: flex-start;
+  }
+}
+
+/* ===== FIN ADMIN V4 AUTEURS ===== */
