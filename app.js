@@ -32,6 +32,7 @@
   let allEvents = [];
   let cityResults = [];
   let citySearchTimer;
+  let newsletterSubmitting = false;
 
   init();
 
@@ -40,9 +41,9 @@
     initMap();
     bindEvents();
     bindCityAutocomplete();
+    populateMonthFilter();
     loadEvents();
     bindNewsletterForm();
-    initAuthorSearch();
   }
 
   async function trackVisit() {
@@ -182,6 +183,31 @@
       attribution: "&copy; OpenStreetMap contributors"
     }).addTo(map);
     markersLayer = L.layerGroup().addTo(map);
+  }
+
+  function populateMonthFilter() {
+    if (!dateFilter) return;
+
+    const alreadyFilled = dateFilter.options && dateFilter.options.length > 1;
+    if (alreadyFilled) return;
+
+    const formatter = new Intl.DateTimeFormat("fr-FR", {
+      month: "long",
+      year: "numeric"
+    });
+
+    const today = new Date();
+
+    for (let i = 0; i < 18; i++) {
+      const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = formatter.format(date);
+
+      dateFilter.appendChild(option);
+    }
   }
 
   async function loadEvents() {
@@ -438,12 +464,33 @@
     return data.publicUrl;
   }
 
-
   function bindNewsletterForm() {
     const newsletterForm = document.getElementById("newsletter-form");
-    if (!newsletterForm) return;
+    if (!newsletterForm || newsletterForm.dataset.bound === "true") return;
 
+    newsletterForm.dataset.bound = "true";
     newsletterForm.addEventListener("submit", handleNewsletterSubmit);
+  }
+
+  function injectNewsletterBlock() {
+    const main = document.querySelector("main.container");
+    if (!main || document.getElementById("newsletter-form")) return;
+    const section = document.createElement("section");
+    section.className = "section newsletter-section";
+    section.innerHTML = `
+      <h2>Recevoir les prochains événements</h2>
+      <p>Inscrivez-vous pour recevoir les prochains salons, festivals et dédicaces de votre région.</p>
+      <form id="newsletter-form" class="newsletter-form">
+        <input name="email" type="email" placeholder="Votre email" required />
+        <select name="region">
+          <option value="">Toutes les régions</option><option>Bretagne</option><option>Île-de-France</option><option>Occitanie</option>
+          <option>Auvergne-Rhône-Alpes</option><option>Nouvelle-Aquitaine</option><option>Provence-Alpes-Côte d’Azur</option>
+        </select>
+        <button class="btn-primary" type="submit">S’inscrire</button>
+      </form>
+      <p id="newsletter-feedback"></p>`;
+    main.appendChild(section);
+    section.querySelector("#newsletter-form").addEventListener("submit", handleNewsletterSubmit);
   }
 
   async function handleNewsletterSubmit(event) {
@@ -460,20 +507,32 @@
     const email = formData.get("email")?.toString().trim().toLowerCase();
     const region = formData.get("region")?.toString().trim() || null;
 
-    try {
-      if (!email || !email.includes("@")) throw new Error("Merci d’indiquer un email valide.");
+    if (!feedback) {
+      newsletterSubmitting = false;
+      return;
+    }
 
+    if (!email || !email.includes("@")) {
+      feedback.textContent = "Merci d’indiquer une adresse email valide.";
+      feedback.className = "error";
+      newsletterSubmitting = false;
+      return;
+    }
+
+    try {
       if (submitButton) {
         submitButton.disabled = true;
         submitButton.textContent = "Inscription…";
       }
 
-      if (feedback) {
-        feedback.textContent = "Inscription en cours…";
-        feedback.className = "";
-      }
+      feedback.textContent = "Inscription en cours…";
+      feedback.className = "";
 
-      // Upsert : nouvel email = création, email existant = mise à jour de la région sans erreur.
+      /*
+        Newsletter :
+        - upsert évite les erreurs bloquantes si l’email existe déjà.
+        - onConflict: "email" nécessite une contrainte unique sur newsletter_subscribers.email.
+      */
       const { error } = await supabaseClient
         .from("newsletter_subscribers")
         .upsert([{ email, region }], { onConflict: "email" });
@@ -482,15 +541,20 @@
 
       newsletterForm.reset();
 
-      if (feedback) {
-        feedback.textContent = "Merci, votre inscription est enregistrée 👍";
-        feedback.className = "success";
-      }
+      feedback.textContent = "Merci, votre inscription est enregistrée 👍";
+      feedback.className = "success";
     } catch (error) {
       console.error("Erreur newsletter :", error);
 
-      if (feedback) {
-        feedback.textContent = error.message || "Une erreur est survenue. Réessayez plus tard.";
+      if (
+        error.code === "23505" ||
+        error.message?.toLowerCase().includes("duplicate") ||
+        error.message?.toLowerCase().includes("unique")
+      ) {
+        feedback.textContent = "Vous êtes déjà inscrit à la newsletter 👍";
+        feedback.className = "success";
+      } else {
+        feedback.textContent = "Une erreur est survenue. Réessayez plus tard.";
         feedback.className = "error";
       }
     } finally {
@@ -501,75 +565,6 @@
         submitButton.textContent = "S’inscrire";
       }
     }
-  }
-
-  function initAuthorSearch() {
-    if (!document.querySelector(".filters")) return;
-
-    createAuthorFilterField();
-    loadAuthorPresencesForIndex();
-  }
-
-  function createAuthorFilterField() {
-    const filters = document.querySelector(".filters");
-    if (!filters || document.getElementById("author-filter")) return;
-
-    authorFilterInput = document.createElement("input");
-    authorFilterInput.id = "author-filter";
-    authorFilterInput.type = "search";
-    authorFilterInput.placeholder = "Rechercher un auteur présent…";
-    authorFilterInput.setAttribute("list", "author-suggestions");
-    authorFilterInput.setAttribute("autocomplete", "off");
-
-    authorSuggestions = document.createElement("datalist");
-    authorSuggestions.id = "author-suggestions";
-
-    const applyButton = document.getElementById("apply-filters");
-    if (applyButton) filters.insertBefore(authorFilterInput, applyButton);
-    else filters.appendChild(authorFilterInput);
-
-    filters.appendChild(authorSuggestions);
-
-    authorFilterInput.addEventListener("input", renderFilteredEvents);
-    authorFilterInput.addEventListener("change", renderFilteredEvents);
-  }
-
-  async function loadAuthorPresencesForIndex() {
-    const { data, error } = await supabaseClient
-      .from("event_authors_presence")
-      .select("event_id, pseudo")
-      .eq("validated", true)
-      .order("pseudo", { ascending: true });
-
-    if (error) {
-      console.warn("Recherche auteur indisponible :", error);
-      return;
-    }
-
-    authorPresences = Array.isArray(data) ? data : [];
-    fillAuthorSuggestions();
-    renderFilteredEvents();
-  }
-
-  function fillAuthorSuggestions() {
-    if (!authorSuggestions) return;
-
-    const uniqueAuthors = [...new Set(authorPresences.map((item) => item.pseudo))]
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b, "fr"));
-
-    authorSuggestions.innerHTML = uniqueAuthors
-      .map((pseudo) => `<option value="${escapeAttribute(pseudo)}"></option>`)
-      .join("");
-  }
-
-  function matchesAuthorPresence(event, selectedAuthor) {
-    if (!selectedAuthor) return true;
-
-    return authorPresences.some((presence) => {
-      return String(presence.event_id) === String(event.id)
-        && normalize(presence.pseudo).includes(selectedAuthor);
-    });
   }
 
   function createIcs(event) {
@@ -593,7 +588,6 @@
     if (regionFilter) regionFilter.value = "";
     if (typeFilter) typeFilter.value = "";
     if (dateFilter) dateFilter.value = "";
-    if (authorFilterInput) authorFilterInput.value = "";
     renderFilteredEvents();
   }
 
@@ -608,49 +602,3 @@
   function escapeHtml(value) { return (value || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
   function escapeAttribute(value) { return escapeHtml(value).replace(/`/g, "&#096;"); }
 })();
-// ===============================
-// 📩 NEWSLETTER DEDICALIVRES
-// ===============================
-
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("newsletter-form");
-  if (!form) return;
-
-  const feedback = document.getElementById("newsletter-feedback");
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const email = form.email.value.trim();
-    const region = form.region.value;
-
-    if (!email) {
-      feedback.textContent = "Veuillez entrer un email.";
-      feedback.className = "error";
-      return;
-    }
-
-    feedback.textContent = "Inscription en cours...";
-    feedback.className = "";
-
-    try {
-      const { error } = await supabaseClient
-        .from("newsletter_subscribers")
-        .upsert(
-          [{ email, region }],
-          { onConflict: "email" }
-        );
-
-      if (error) throw error;
-
-      feedback.textContent = "Inscription réussie ✅";
-      feedback.className = "success";
-      form.reset();
-
-    } catch (err) {
-      console.error("Erreur newsletter :", err);
-      feedback.textContent = "Erreur lors de l'inscription.";
-      feedback.className = "error";
-    }
-  });
-});
