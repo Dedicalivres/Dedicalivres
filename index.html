@@ -14,7 +14,194 @@
   <meta property="og:image" content="banner.jpg" />
 
   <script type="application/ld+json">
-  {
+  {<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Dédicalivres — Agenda des événements littéraires</title>
+  <meta name="description" content="Agenda des salons du livre, festivals littéraires, dédicaces et événements autour du livre en France." />
+  <link rel="canonical" href="https://dedicalivres.fr/" />
+
+  <meta property="og:title" content="Dédicalivres — Agenda des événements littéraires" />
+  <meta property="og:description" content="Trouvez les salons du livre, festivals et dédicaces en France." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="banner.jpg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html">
+      <img src="logo.png" class="logo" alt="Dédicalivres" />
+    </a>
+
+    <nav>
+      <a href="#agenda">Agenda</a>
+      <a href="salons-du-livre.html">Salons</a>
+      <a href="auteurs-independants.html">Auteurs</a>
+      <a href="#soumettre">Soumettre</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero"></section>
+
+<main class="container">
+
+  <!-- INTRO -->
+  <section class="intro">
+    <h1>Explorez les événements littéraires près de vous</h1>
+    <p>Salons, festivals, dédicaces et rencontres auteurs en France.</p>
+  </section>
+
+  <!-- AGENDA -->
+  <section id="agenda" class="section">
+    <h2>Événements à venir</h2>
+    <p id="results-count">Chargement…</p>
+
+    <!-- FILTRES -->
+    <div class="filters">
+      <input id="search-input" type="search" placeholder="Rechercher un événement ou une ville…" />
+
+      <select id="region-filter">
+        <option value="">Toutes les régions</option>
+        <option>Auvergne-Rhône-Alpes</option>
+        <option>Bourgogne-Franche-Comté</option>
+        <option>Bretagne</option>
+        <option>Centre-Val de Loire</option>
+        <option>Corse</option>
+        <option>Grand Est</option>
+        <option>Hauts-de-France</option>
+        <option>Île-de-France</option>
+        <option>Normandie</option>
+        <option>Nouvelle-Aquitaine</option>
+        <option>Occitanie</option>
+        <option>Pays de la Loire</option>
+        <option>Provence-Alpes-Côte d’Azur</option>
+      </select>
+
+      <select id="type-filter">
+        <option value="">Tous les types</option>
+        <option>Salon</option>
+        <option>Festival</option>
+        <option>Dédicace</option>
+        <option>Autre</option>
+      </select>
+
+      <select id="date-filter">
+        <option value="">Tous les mois</option>
+      </select>
+
+      <button id="apply-filters" class="btn-primary">Filtrer</button>
+      <button id="reset-filters" class="btn-secondary">Reset</button>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="ux-actions">
+      <button id="mobile-map-toggle" class="btn-secondary">Masquer la carte</button>
+      <button id="locate-me" class="btn-secondary">Me localiser</button>
+    </div>
+
+    <!-- LAYOUT -->
+    <div class="agenda-layout">
+
+      <!-- LISTE -->
+      <div class="events-zone">
+        <section id="events-grid" class="events-grid"></section>
+      </div>
+
+      <!-- CARTE -->
+      <aside class="map-panel is-open">
+        <div id="map"></div>
+      </aside>
+
+    </div>
+
+  </section>
+
+  <!-- NEWSLETTER -->
+  <section id="newsletter" class="section newsletter-section">
+    <h2>Recevoir les événements</h2>
+
+    <form id="newsletter-form" class="newsletter-form">
+      <input name="email" type="email" placeholder="Votre email" required />
+
+      <select name="region">
+        <option value="">Toutes les régions</option>
+        <option>Île-de-France</option>
+        <option>Occitanie</option>
+        <option>Nouvelle-Aquitaine</option>
+      </select>
+
+      <button class="btn-primary">S’inscrire</button>
+    </form>
+
+    <p id="newsletter-feedback"></p>
+  </section>
+
+  <!-- SOUMISSION -->
+  <section id="soumettre" class="section">
+    <h2>Proposer un événement</h2>
+
+    <form id="submission-form">
+
+      <input name="title" placeholder="Titre" required />
+
+      <select name="type">
+        <option value="">Type</option>
+        <option>Salon</option>
+        <option>Festival</option>
+        <option>Dédicace</option>
+      </select>
+
+      <select name="region" id="region-submit">
+        <option value="">Région</option>
+        <option>Île-de-France</option>
+        <option>Occitanie</option>
+      </select>
+
+      <input id="city-input" name="city" list="city-suggestions" placeholder="Ville" required />
+      <datalist id="city-suggestions"></datalist>
+
+      <input type="hidden" name="lat" id="city-lat" />
+      <input type="hidden" name="lng" id="city-lng" />
+
+      <input name="start_date" type="date" />
+      <input name="end_date" type="date" />
+
+      <textarea name="description" placeholder="Description"></textarea>
+
+      <button type="submit">Envoyer</button>
+      <p id="form-feedback"></p>
+
+    </form>
+  </section>
+
+</main>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script src="tracking-v4.js"></script>
+<script src="author-search-index.js"></script>
+<script src="ui-effects-v6.js"></script>
+<script src="custom-cursor.js"></script>
+
+</body>
+</html>
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "Dédicalivres",
