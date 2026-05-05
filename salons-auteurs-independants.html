@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Salons pour auteurs indépendants — Agenda en France</title>
+  <title>Salons pour auteurs indépendants — Dédicalivres</title>
   <meta name="description" content="Liste des salons du livre et événements ouverts aux auteurs indépendants et maisons d’édition indépendantes." />
-  <link rel="canonical" href="https://www.dédicalivres.fr/salons-auteurs-independants" />
+  <link rel="canonical" href="https://dedicalivres.fr/salons-auteurs-independants.html" />
 
-  <meta property="og:title" content="Salons pour auteurs indépendants — Agenda en France" />
+  <meta property="og:title" content="Salons pour auteurs indépendants — Dédicalivres" />
   <meta property="og:description" content="Liste des salons du livre et événements ouverts aux auteurs indépendants et maisons d’édition indépendantes." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="banner.jpg" />
@@ -17,39 +17,44 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Salons pour auteurs indépendants — Agenda en France",
+    "name": "Salons pour auteurs indépendants — Dédicalivres",
     "description": "Liste des salons du livre et événements ouverts aux auteurs indépendants et maisons d’édition indépendantes.",
     "isPartOf": {
       "@type": "WebSite",
       "name": "Dédicalivres",
-      "url": "https://www.dédicalivres.fr"
+      "url": "https://dedicalivres.fr"
     }
   }
   </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body data-city="" data-event-type="Salon">
-
+<body class="category-page" data-event-types="Salon,Festival,Dédicace">
 <header class="header">
   <div class="container header-inner">
-    <a href="index.html"><img src="logo.png" class="logo" alt="Dédicalivres" /></a>
-    <nav>
-      <a href="index.html">Accueil</a>
-      <a href="salons-du-livre.html">Salons</a>
+    <a href="index.html" aria-label="Accueil Dédicalivres">
+      <img src="logo.png" class="logo" alt="Dédicalivres" />
+    </a>
+
+    <nav aria-label="Navigation principale">
+      <a href="index.html#agenda">Agenda</a>
+      <a href="salons-du-livre.html">Salons & Festivals</a>
+      <a href="dedicaces.html">Dédicaces</a>
+      <a href="auteurs-independants.html">Auteurs</a>
       <a href="index.html#soumettre">Soumettre</a>
     </nav>
   </div>
 </header>
 
 <main class="container section seo-page">
-  <p><a class="card-link detail-back-link" href="index.html">← Retour à l’accueil</a></p>
+  <p><a class="card-link detail-back-link" href="index.html#agenda">← Retour à l’agenda</a></p>
 
   <section class="seo-hero">
+    <p class="category-kicker">Agenda Dédicalivres</p>
     <h1>Salons pour auteurs indépendants</h1>
     <p>Retrouvez les salons du livre et événements littéraires susceptibles d’intéresser les auteurs indépendants, auto-édités et petites maisons d’édition.</p>
   </section>
@@ -62,17 +67,7 @@
 
   <section class="seo-text-block">
     <h2>Un agenda utile aux auteurs auto-édités et indépendants</h2>
-    <p>
-      Dédicalivres s’adresse aussi aux auteurs auto-édités, aux auteurs indépendants et aux maisons d’édition
-      indépendantes qui cherchent des salons du livre, festivals littéraires, dédicaces et rencontres pour présenter
-      leurs ouvrages au public.
-    </p>
-
-    <h2>Proposer un événement littéraire</h2>
-    <p>
-      Vous organisez un salon, une séance de dédicace, une rencontre d’auteurs ou un événement ouvert aux auteurs
-      indépendants ? Proposez gratuitement votre événement sur Dédicalivres.
-    </p>
+    <p>Dédicalivres aide les auteurs indépendants à repérer les rendez-vous littéraires où rencontrer le public, proposer des dédicaces et suivre l’actualité des salons.</p>
     <p><a class="btn-primary" href="index.html#soumettre">Proposer un événement</a></p>
   </section>
 </main>
@@ -80,6 +75,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="seo-pages.js"></script>
-
+<script src="tracking-v4.js"></script>
+<script src="ui-effects-v6.js"></script>
 </body>
 </html>
