@@ -1,100 +1,55 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dédicalivres — Supervision</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=supervision-v1" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dédicalivres</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
 </head>
-<body data-admin="true">
-<main class="admin-shell">
-  <section id="login-panel" class="admin-login-card">
-    <img src="logo.png" class="admin-logo" alt="Dédicalivres" />
-    <h1>Administration</h1>
-    <p>Connexion sécurisée à la supervision Dédicalivres.</p>
-    <input id="email" type="email" placeholder="Email administrateur" autocomplete="email" />
-    <input id="password" type="password" placeholder="Mot de passe" autocomplete="current-password" />
-    <button id="login-button" type="button">Connexion</button>
-    <p id="login-message" class="message"></p>
-  </section>
 
-  <section id="admin-panel" class="admin-panel hidden">
-    <header class="admin-header">
-      <div>
-        <p class="eyebrow">Dédicalivres</p>
-        <h1>Centre de supervision</h1>
-        <p id="admin-count">Chargement…</p>
-      </div>
-      <div class="header-actions">
-        <button id="refresh-button" class="secondary" type="button">Rafraîchir</button>
-        <button id="logout-button" class="danger" type="button">Déconnexion</button>
-      </div>
-    </header>
+<body>
 
-    <section class="stats-hero">
-      <article class="stat-card main-stat"><span>Visites aujourd’hui</span><strong id="visits-today-big">—</strong><small id="unique-today">Visiteurs estimés : —</small></article>
-      <article class="stat-card"><span>Total pages vues</span><strong id="visits-total-odo">—</strong><small>Depuis l’installation</small></article>
-      <article class="stat-card"><span>7 derniers jours</span><strong id="visits-week">—</strong><small id="pages-per-visit">Pages / visite : —</small></article>
-      <article class="stat-card"><span>Meilleure page</span><strong id="best-page">—</strong><small>Page la plus consultée</small></article>
-    </section>
+<!-- LOGIN -->
+<section id="login">
+  <h1>Admin</h1>
+  <input id="email" type="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Mot de passe">
+  <button id="loginBtn">Connexion</button>
+  <p id="loginMsg"></p>
+</section>
 
-    <section class="chart-panel">
-      <div class="panel-title-row"><div><h2>Activité 7 jours</h2><p>Visites enregistrées dans Supabase.</p></div></div>
-      <div id="visits-bars" class="visits-bars"></div>
-    </section>
+<!-- DASHBOARD -->
+<section id="admin" class="hidden">
 
-    <section class="quick-grid">
-      <article><span>À valider</span><strong id="quick-pending">—</strong></article>
-      <article><span>Publiés</span><strong id="quick-published">—</strong></article>
-      <article><span>Mis en avant</span><strong id="quick-featured">—</strong></article>
-      <article><span>Newsletter</span><strong id="newsletter-count">—</strong></article>
-      <article><span>Auteurs présents</span><strong id="author-presence-count">—</strong></article>
-    </section>
+<header>
+  <h1>Supervision</h1>
+  <button id="logoutBtn">Déconnexion</button>
+</header>
 
-    <section class="supervision-panel">
-      <div class="panel-title-row"><div><h2>Validation des événements</h2><p>Validation en un clic, refus, mise en avant, vérification et suppression.</p></div></div>
-      <div class="admin-toolbar">
-        <input id="admin-search" type="search" placeholder="Rechercher titre, ville, région, type…" />
-        <select id="admin-status-filter">
-          <option value="pending">À valider</option>
-          <option value="published">Publiés</option>
-          <option value="featured">Mis en avant</option>
-          <option value="rejected">Refusés</option>
-          <option value="all">Tous</option>
-        </select>
-        <select id="admin-type-filter">
-          <option value="">Tous les types</option><option>Salon</option><option>Festival</option><option>Dédicace</option><option>Autre</option>
-        </select>
-      </div>
-      <div id="events-list" class="admin-list"><p class="empty">Chargement…</p></div>
-    </section>
+<div class="stats">
+  <div><span>À valider</span><strong id="pending">0</strong></div>
+  <div><span>Publiés</span><strong id="published">0</strong></div>
+  <div><span>Total</span><strong id="total">0</strong></div>
+</div>
 
-    <section class="split-panels">
-      <article class="top-pages-panel"><h2>Pages les plus vues</h2><div id="top-pages" class="top-pages-list"><p class="empty">Chargement…</p></div></article>
-      <article class="authors-presence-admin-panel">
-        <div class="panel-title-row"><div><h2>Auteurs présents</h2><p>Déclarations publiques des auteurs.</p></div></div>
-        <input id="author-presence-search" type="search" placeholder="Rechercher auteur, événement, ville…" />
-        <div id="author-presence-list" class="authors-admin-list"><p class="empty">Chargement…</p></div>
-      </article>
-    </section>
+<div class="filters">
+  <input id="search" placeholder="Recherche...">
+  <select id="status">
+    <option value="pending">À valider</option>
+    <option value="published">Publiés</option>
+    <option value="all">Tous</option>
+  </select>
+</div>
 
-    <section class="instagram-panel">
-      <div class="panel-title-row"><div><h2>Assistant Instagram</h2><p>Revue rapide des événements validés à venir.</p></div><button id="generate-weekly-review" class="secondary" type="button">Revue hebdo</button></div>
-      <div class="instagram-grid">
-        <article><span>À poster bientôt</span><strong id="insta-soon-count">—</strong></article>
-        <article><span>À améliorer</span><strong id="insta-needs-work-count">—</strong></article>
-        <article><span>Premium potentiel</span><strong id="insta-featured-candidates-count">—</strong></article>
-      </div>
-      <textarea id="instagram-output" placeholder="La revue hebdo apparaîtra ici…"></textarea>
-      <div class="actions"><button id="copy-instagram-output" class="secondary" type="button">Copier</button><button id="clear-instagram-output" class="ghost" type="button">Effacer</button></div>
-    </section>
-  </section>
-</main>
+<div id="list"></div>
+
+</section>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=supervision-v1"></script>
-<script src="admin.js?v=supervision-v1"></script>
+<script src="config.js"></script>
+<script src="admin.js"></script>
+
 </body>
 </html>
