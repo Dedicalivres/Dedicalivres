@@ -3,63 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Salons du livre en France — Dates, villes et événements</title>
-  <meta name="description" content="Consultez l’agenda des salons du livre en France : dates, villes, auteurs, informations pratiques et événements à venir." />
-  <link rel="canonical" href="https://www.dédicalivres.fr/salons-du-livre" />
-  <meta property="og:title" content="Salons du livre en France — Dates, villes et événements" />
-  <meta property="og:description" content="Consultez l’agenda des salons du livre en France : dates, villes, auteurs, informations pratiques et événements à venir." />
+
+  <title>Salons et festivals littéraires — Dédicalivres</title>
+  <meta name="description" content="Agenda des salons du livre et festivals littéraires en France : dates, villes, auteurs et informations pratiques." />
+  <link rel="canonical" href="https://dedicalivres.fr/salons-du-livre.html" />
+
+  <meta property="og:title" content="Salons et festivals littéraires — Dédicalivres" />
+  <meta property="og:description" content="Agenda des salons du livre et festivals littéraires en France : dates, villes, auteurs et informations pratiques." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="banner.jpg" />
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Salons du livre en France — Dates, villes et événements",
-    "description": "Consultez l’agenda des salons du livre en France : dates, villes, auteurs, informations pratiques et événements à venir.",
+    "name": "Salons et festivals littéraires — Dédicalivres",
+    "description": "Agenda des salons du livre et festivals littéraires en France : dates, villes, auteurs et informations pratiques.",
     "isPartOf": {
       "@type": "WebSite",
       "name": "Dédicalivres",
-      "url": "https://www.dédicalivres.fr"
+      "url": "https://dedicalivres.fr"
     }
   }
   </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body data-region="" data-city="" data-event-type="Salon">
+
+<body class="category-page" data-event-types="Salon,Festival">
 <header class="header">
   <div class="container header-inner">
-    <a href="index.html"><img src="logo.png" class="logo" alt="Dédicalivres" /></a>
-    <nav>
+    <a href="index.html" aria-label="Accueil Dédicalivres">
+      <img src="logo.png" class="logo" alt="Dédicalivres" />
+    </a>
+
+    <nav aria-label="Navigation principale">
       <a href="index.html#agenda">Agenda</a>
-      <a href="salons-du-livre.html">Salons</a>
+      <a href="salons-du-livre.html">Salons & Festivals</a>
+      <a href="dedicaces.html">Dédicaces</a>
+      <a href="auteurs-independants.html">Auteurs</a>
       <a href="index.html#soumettre">Soumettre</a>
     </nav>
   </div>
 </header>
+
 <main class="container section seo-page">
-  <p><a class="card-link detail-back-link" href="index.html">← Retour à l’accueil</a></p>
+  <p><a class="card-link detail-back-link" href="index.html#agenda">← Retour à l’agenda</a></p>
+
   <section class="seo-hero">
-    <h1>Salons du livre en France</h1>
-    <p>Trouvez rapidement les prochains salons du livre en France et préparez vos rencontres avec les auteurs, éditeurs et lecteurs passionnés.</p>
+    <p class="category-kicker">Agenda Dédicalivres</p>
+    <h1>Salons & festivals littéraires</h1>
+    <p>Retrouvez les prochains salons du livre et festivals littéraires référencés sur Dédicalivres.</p>
   </section>
+
   <section class="seo-content">
     <h2>Événements à venir</h2>
     <p id="seo-count">Chargement…</p>
     <div id="seo-events" class="events-grid"></div>
   </section>
+
   <section class="seo-text-block">
-    <h2>Pourquoi suivre cet agenda ?</h2>
-    <p>Dédicalivres centralise les salons du livre, festivals littéraires, rencontres avec des auteurs et séances de dédicaces pour aider les lecteurs, auteurs, libraires et organisateurs à trouver les prochains rendez-vous littéraires.</p>
-    <h2>Proposer un événement</h2>
-    <p>Vous organisez un salon, une dédicace ou un festival littéraire ? Vous pouvez proposer gratuitement votre événement depuis le formulaire Dédicalivres.</p>
+    <h2>Pourquoi suivre les salons et festivals ?</h2>
+    <p>Ces rendez-vous sont des temps forts pour rencontrer des auteurs, découvrir des éditeurs, programmer des dédicaces et faire vivre la littérature localement.</p>
     <p><a class="btn-primary" href="index.html#soumettre">Proposer un événement</a></p>
   </section>
 </main>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="seo-pages.js"></script>
+<script src="tracking-v4.js"></script>
+<script src="ui-effects-v6.js"></script>
 </body>
 </html>
