@@ -1,53 +1,101 @@
 (function () {
-  const config = window.DEDICALIVRES_CONFIG;
-  if (!config || !window.supabase) return;
+  "use strict";
 
-  const client = window.supabase.createClient(
+  const config = window.DEDICALIVRES_CONFIG;
+
+  if (!config || !window.supabase) {
+    console.error("Config Supabase manquante");
+    return;
+  }
+
+  const supabaseClient = window.supabase.createClient(
     config.supabaseUrl,
     config.supabaseAnonKey
   );
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("login-form");
-    const email = document.getElementById("login-email");
-    const password = document.getElementById("login-password");
-    const message = document.getElementById("login-message");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const loginButton = document.getElementById("login-button");
+  const message = document.getElementById("login-message");
 
-    if (!form || !email || !password) {
-      console.error("Login admin introuvable : vérifie les IDs admin.html");
+  const loginPanel = document.getElementById("login-panel");
+  const adminPanel = document.getElementById("admin-panel");
+
+  // 🔐 Vérifie si déjà connecté
+  checkSession();
+
+  async function checkSession() {
+    const { data } = await supabaseClient.auth.getSession();
+
+    if (data?.session) {
+      showAdmin();
+    } else {
+      showLogin();
+    }
+  }
+
+  function showAdmin() {
+    loginPanel.classList.add("hidden");
+    adminPanel.classList.remove("hidden");
+  }
+
+  function showLogin() {
+    loginPanel.classList.remove("hidden");
+    adminPanel.classList.add("hidden");
+  }
+
+  // 🎯 LOGIN
+  if (loginButton) {
+    loginButton.addEventListener("click", handleLogin);
+  }
+
+  async function handleLogin() {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if (!email || !password) {
+      setMessage("Veuillez remplir tous les champs", "error");
       return;
     }
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    setMessage("Connexion en cours...", "");
 
-      if (message) {
-        message.textContent = "Connexion en cours…";
-        message.className = "message";
-      }
+    loginButton.disabled = true;
 
-      const { data, error } = await client.auth.signInWithPassword({
-        email: email.value.trim(),
-        password: password.value
+    try {
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      if (error) {
-        if (message) {
-          message.textContent = error.message;
-          message.className = "message error";
-        }
-        console.error("Erreur login admin :", error);
-        return;
-      }
+      if (error) throw error;
 
-      document.getElementById("login-view")?.classList.add("is-hidden");
-      document.getElementById("admin-view")?.classList.remove("is-hidden");
+      setMessage("Connexion réussie", "success");
 
-      if (message) {
-        message.textContent = "";
-      }
+      showAdmin();
 
-      console.log("Admin connecté :", data.user?.email);
+    } catch (err) {
+      console.error(err);
+      setMessage("Identifiants incorrects", "error");
+    } finally {
+      loginButton.disabled = false;
+    }
+  }
+
+  // 🔓 LOGOUT
+  const logoutButton = document.getElementById("logout-button");
+
+  if (logoutButton) {
+    logoutButton.addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      location.reload();
     });
-  });
+  }
+
+  function setMessage(text, type) {
+    if (!message) return;
+
+    message.textContent = text;
+    message.className = "message " + (type || "");
+  }
 })();
