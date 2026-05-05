@@ -1,6 +1,9 @@
 (function () {
+  "use strict";
+
   const config = window.DEDICALIVRES_CONFIG;
-  if (!config || !config.supabaseUrl || !config.supabaseAnonKey) {
+
+  if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
     console.error("Configuration Supabase manquante.");
     return;
   }
@@ -12,6 +15,17 @@
   const region = document.body.dataset.region || "";
   const city = document.body.dataset.city || "";
   const eventType = document.body.dataset.eventType || "";
+  const eventTypes = (document.body.dataset.eventTypes || eventType || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const TYPE_META = {
+    "Salon": { className: "type-salon" },
+    "Festival": { className: "type-festival" },
+    "Dédicace": { className: "type-dedicace" },
+    "Autre": { className: "type-autre" }
+  };
 
   loadSeoEvents();
 
@@ -33,7 +47,6 @@
 
     if (region) query = query.eq("region", region);
     if (city) query = query.ilike("city", city);
-    if (eventType) query = query.eq("type", eventType);
 
     const { data, error } = await query;
 
@@ -43,8 +56,13 @@
       return;
     }
 
-    const events = Array.isArray(data) ? data : [];
-    if (seoCount) seoCount.textContent = `${events.length} événement${events.length > 1 ? "s" : ""} trouvé${events.length > 1 ? "s" : ""}`;
+    const events = (Array.isArray(data) ? data : []).filter((event) => {
+      return !eventTypes.length || eventTypes.includes(event.type);
+    });
+
+    if (seoCount) {
+      seoCount.textContent = `${events.length} événement${events.length > 1 ? "s" : ""} trouvé${events.length > 1 ? "s" : ""}`;
+    }
 
     if (!events.length) {
       eventsContainer.innerHTML = '<article class="empty-state"><p>Aucun événement à venir pour le moment. Revenez bientôt ou proposez un événement.</p><p><a class="card-link" href="index.html#soumettre">Proposer un événement</a></p></article>';
@@ -52,27 +70,35 @@
     }
 
     eventsContainer.innerHTML = events.map(renderEventCard).join("");
+    window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered"));
   }
 
   function renderEventCard(event) {
     const imageUrl = resolveImageUrl(event.image_url);
+    const meta = TYPE_META[event.type] || TYPE_META.Autre;
 
     return `
-      <article class="event-card ${event.featured ? "event-card-featured" : ""}">
+      <article class="event-card ${event.featured ? "event-card-featured" : ""} ${meta.className}">
         ${event.featured ? '<div class="featured-ribbon">Mis en avant</div>' : ""}
         ${imageUrl ? `<img class="card-image" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(event.title || "Événement littéraire")}" />` : '<div class="card-image"></div>'}
+
         <div class="card-body">
           <div class="card-tags">
-            ${event.type ? `<span class="badge">${escapeHtml(event.type)}</span>` : ""}
+            ${event.type ? `<span class="badge badge-type ${meta.className}"><i></i>${escapeHtml(event.type)}</span>` : ""}
             ${event.price ? `<span class="badge badge-price">${escapeHtml(event.price)}</span>` : ""}
             ${event.featured ? '<span class="badge badge-featured">Sélection</span>' : ""}
+            ${event.verified ? '<span class="badge badge-verified">Vérifié</span>' : ""}
           </div>
+
           <h3 class="card-title">${escapeHtml(event.title || "Sans titre")}</h3>
+
           <div class="card-meta">
             ${event.start_date ? `<span>📅 ${formatDateRange(event.start_date, event.end_date)}</span>` : ""}
             <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", ")) || "Lieu non précisé"}</span>
           </div>
+
           <p class="card-description">${escapeHtml(event.description || "")}</p>
+
           <div class="card-footer">
             <a class="card-link" href="event.html?id=${encodeURIComponent(event.id)}">Voir le détail</a>
             ${event.website ? `<a class="card-link" href="${escapeAttribute(event.website)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
@@ -100,9 +126,12 @@
   }
 
   function escapeHtml(value) {
-    return (value || "").toString()
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   function escapeAttribute(value) {
