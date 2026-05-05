@@ -1306,7 +1306,136 @@ button:active,
     box-shadow: 0 15px 36px rgba(58,28,113,.12);
   }
 }
+/* ===== DÉDICALIVRES — CARTE INTELLIGENTE + FULL UX PREMIUM ===== */
 
+.agenda-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 480px);
+  gap: 34px;
+}
+
+.map-panel {
+  position: sticky;
+  top: 96px;
+  height: calc(100vh - 120px);
+  padding: 12px;
+  border-radius: 32px;
+  background: rgba(255,255,255,.88);
+  box-shadow:
+    0 28px 70px rgba(58,28,113,.20),
+    inset 0 0 0 1px rgba(255,255,255,.65);
+  transition: transform .28s ease, box-shadow .28s ease, opacity .28s ease;
+}
+
+.map-panel:hover {
+  transform: translateY(-3px) scale(1.006);
+  box-shadow: 0 34px 86px rgba(58,28,113,.26);
+}
+
+#map {
+  height: 100%;
+  min-height: 560px;
+  border-radius: 24px;
+}
+
+.map-premium-toolbar {
+  position: absolute;
+  z-index: 500;
+  top: 22px;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.map-premium-toolbar button {
+  pointer-events: auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 900;
+  cursor: pointer;
+  color: var(--purple);
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 10px 24px rgba(58,28,113,.16);
+}
+
+.map-panel.map-fullscreen {
+  position: fixed;
+  inset: 18px;
+  z-index: 999;
+  height: auto;
+  transform: none;
+}
+
+.map-panel.map-fullscreen #map {
+  height: 100%;
+  min-height: 0;
+}
+
+.event-card {
+  scroll-margin-top: 120px;
+}
+
+.event-card.is-map-focused {
+  outline: 4px solid rgba(255,107,53,.75);
+  box-shadow:
+    0 0 0 10px rgba(255,107,53,.10),
+    0 32px 70px rgba(58,28,113,.24);
+  transform: translateY(-8px) scale(1.01);
+}
+
+.event-card:hover .card-image {
+  filter: saturate(1.08) contrast(1.04);
+}
+
+.event-card .card-image {
+  transition: filter .25s ease, transform .25s ease;
+}
+
+.event-card:hover .card-image {
+  transform: scale(1.025);
+}
+
+.event-marker-v5.marker-active span,
+.marker-hover-v6 span {
+  animation: markerActivePremium .8s ease;
+}
+
+@keyframes markerActivePremium {
+  0% { transform: scale(1) rotate(-45deg); }
+  45% { transform: scale(1.55) rotate(-45deg); }
+  100% { transform: scale(1) rotate(-45deg); }
+}
+
+@media (max-width: 1080px) {
+  .agenda-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .map-panel {
+    position: fixed;
+    inset: auto 14px 14px 14px;
+    height: min(70vh, 560px);
+    z-index: 90;
+    transform: translateY(115%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .map-panel.is-open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #map {
+    min-height: 0;
+    height: 100%;
+  }
+}
+
+/* ===== FIN CARTE INTELLIGENTE ===== */
 /* =========================================================
    FIN V5/V6
 ========================================================= */
