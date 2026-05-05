@@ -8,16 +8,21 @@
     return;
   }
 
-  const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  const supabaseClient = window.supabase.createClient(
+    config.supabaseUrl,
+    config.supabaseAnonKey
+  );
 
   const eventsGrid = document.getElementById("events-grid");
   const resultsCount = document.getElementById("results-count");
   const form = document.getElementById("submission-form");
   const formFeedback = document.getElementById("form-feedback");
+
   const searchInput = document.getElementById("search-input");
   const regionFilter = document.getElementById("region-filter");
   const typeFilter = document.getElementById("type-filter");
   const dateFilter = document.getElementById("date-filter");
+
   const mobileMapToggle = document.getElementById("mobile-map-toggle");
   const locateMeButton = document.getElementById("locate-me");
   const mapPanel = document.querySelector(".map-panel");
@@ -49,15 +54,35 @@
   init();
 
   function init() {
-    document.body.classList.add("dedicalivres-v5-v6");
+    document.body.classList.add("dedicalivres-v5");
 
+    trackVisit();
     initMap();
     bindEvents();
+    initMobileMapState();
     bindCityAutocomplete();
     populateMonthFilter();
     applyPageModeToFilters();
     loadEvents();
     bindNewsletterForm();
+  }
+
+  async function trackVisit() {
+    try {
+      const sessionKey = `dedicalivres_visit_${location.pathname}`;
+      if (sessionStorage.getItem(sessionKey)) return;
+
+      sessionStorage.setItem(sessionKey, "1");
+
+      await supabaseClient.from("visits").insert([{
+        page: document.title || "Dédicalivres",
+        path: location.pathname || "/",
+        referrer: document.referrer || null,
+        user_agent: navigator.userAgent || null
+      }]);
+    } catch (error) {
+      console.warn("Compteur de visite non enregistré :", error);
+    }
   }
 
   function bindEvents() {
@@ -75,23 +100,45 @@
     form?.addEventListener("submit", handleFormSubmit);
 
     mobileMapToggle?.addEventListener("click", () => {
-      mapPanel?.classList.toggle("is-open");
+      if (!mapPanel) return;
 
-      const isOpen = mapPanel?.classList.contains("is-open");
+      mapPanel.classList.toggle("is-open");
+
+      const isOpen = mapPanel.classList.contains("is-open");
       mobileMapToggle.textContent = isOpen ? "Masquer la carte" : "Afficher la carte";
-      mobileMapToggle.setAttribute("aria-expanded", String(Boolean(isOpen)));
+      mobileMapToggle.setAttribute("aria-expanded", String(isOpen));
 
       setTimeout(() => map?.invalidateSize(), 260);
     });
 
     locateMeButton?.addEventListener("click", locateUser);
 
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && mapPanel?.classList.contains("is-open") && window.matchMedia("(max-width: 1080px)").matches) {
-        mapPanel.classList.remove("is-open");
-        if (mobileMapToggle) mobileMapToggle.textContent = "Afficher la carte";
-      }
-    });
+    window.addEventListener("resize", debounce(() => {
+      initMobileMapState(false);
+      setTimeout(() => map?.invalidateSize(), 120);
+    }, 160));
+  }
+
+  function initMobileMapState(force = true) {
+    if (!mapPanel || !mobileMapToggle) return;
+
+    const isMobile = window.matchMedia("(max-width: 780px)").matches;
+
+    if (isMobile) {
+      if (force) mapPanel.classList.remove("is-open");
+      mobileMapToggle.textContent = mapPanel.classList.contains("is-open")
+        ? "Masquer la carte"
+        : "Afficher la carte";
+      mobileMapToggle.setAttribute(
+        "aria-expanded",
+        String(mapPanel.classList.contains("is-open"))
+      );
+      return;
+    }
+
+    mapPanel.classList.add("is-open");
+    mobileMapToggle.textContent = "Masquer la carte";
+    mobileMapToggle.setAttribute("aria-expanded", "true");
   }
 
   function applyPageModeToFilters() {
@@ -151,12 +198,15 @@
 
   async function searchCities(query) {
     try {
-      const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=8&type=municipality`);
+      const response = await fetch(
+        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=8&type=municipality`
+      );
       const data = await response.json();
 
       cityResults = (data.features || []).map((feature) => {
         const properties = feature.properties || {};
         const coords = feature.geometry?.coordinates || [];
+
         const lng = Number(coords[0]);
         const lat = Number(coords[1]);
         const city = properties.city || properties.name || "";
@@ -165,7 +215,11 @@
         const region = guessRegionFromContext(context);
 
         return { city, postcode, context, region, lat, lng };
-      }).filter((item) => item.city && Number.isFinite(item.lat) && Number.isFinite(item.lng));
+      }).filter((item) =>
+        item.city &&
+        Number.isFinite(item.lat) &&
+        Number.isFinite(item.lng)
+      );
 
       citySuggestions.innerHTML = "";
 
@@ -177,7 +231,9 @@
       });
 
       setCityHelp(
-        cityResults.length ? "Choisissez une ville dans la liste pour verrouiller les coordonnées." : "Aucune ville trouvée.",
+        cityResults.length
+          ? "Choisissez une ville dans la liste pour verrouiller les coordonnées."
+          : "Aucune ville trouvée.",
         cityResults.length ? "success" : "error"
       );
     } catch (error) {
@@ -201,12 +257,18 @@
     if (!selected) return;
 
     cityInput.value = selected.city;
-    cityLatInput.value = selected.lat;
-    cityLngInput.value = selected.lng;
 
-    if (regionSubmit && selected.region && !regionSubmit.value) regionSubmit.value = selected.region;
+    if (cityLatInput) cityLatInput.value = selected.lat;
+    if (cityLngInput) cityLngInput.value = selected.lng;
 
-    setCityHelp(`Ville sélectionnée : ${selected.city}${selected.postcode ? " (" + selected.postcode + ")" : ""}. Coordonnées OK.`, "success");
+    if (regionSubmit && selected.region && !regionSubmit.value) {
+      regionSubmit.value = selected.region;
+    }
+
+    setCityHelp(
+      `Ville sélectionnée : ${selected.city}${selected.postcode ? " (" + selected.postcode + ")" : ""}. Coordonnées OK.`,
+      "success"
+    );
   }
 
   function clearCityCoordinates() {
@@ -241,7 +303,6 @@
     ];
 
     const found = matches.find(([key]) => value.includes(key));
-
     return found ? found[1] : "";
   }
 
@@ -250,29 +311,13 @@
 
     if (!mapElement || !window.L) return;
 
-    map = L.map("map", { scrollWheelZoom: true }).setView([46.603354, 1.888334], 6);
+    map = L.map("map", {
+      scrollWheelZoom: true
+    }).setView([46.603354, 1.888334], 6);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png", {
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap contributors"
     }).addTo(map);
-
-    /*
-      Fallback automatique : certains navigateurs ou proxies bloquent parfois le format inversé.
-      Si les tuiles ne chargent pas, on recharge avec l'URL standard.
-    */
-    setTimeout(() => {
-      try {
-        if (!map) return;
-        map.eachLayer((layer) => {
-          if (layer && layer._url && layer._url.includes("/{z}/{y}/{x}")) {
-            map.removeLayer(layer);
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-              attribution: "&copy; OpenStreetMap contributors"
-            }).addTo(map);
-          }
-        });
-      } catch {}
-    }, 150);
 
     markersLayer = L.layerGroup().addTo(map);
     addMapLegend();
@@ -320,7 +365,6 @@
       const option = document.createElement("option");
       option.value = value;
       option.textContent = formatter.format(date);
-
       dateFilter.appendChild(option);
     }
   }
@@ -377,16 +421,24 @@
     if (!event.start_date) return new Date("9999-12-31").getTime();
 
     const timestamp = new Date(event.start_date).getTime();
-
     return Number.isFinite(timestamp) ? timestamp : new Date("9999-12-31").getTime();
   }
 
   function getSortableDistance(event) {
-    if (!userPosition || !Number.isFinite(Number(event.lat)) || !Number.isFinite(Number(event.lng))) {
+    if (
+      !userPosition ||
+      !Number.isFinite(Number(event.lat)) ||
+      !Number.isFinite(Number(event.lng))
+    ) {
       return Number.POSITIVE_INFINITY;
     }
 
-    return haversine(userPosition.lat, userPosition.lng, Number(event.lat), Number(event.lng));
+    return haversine(
+      userPosition.lat,
+      userPosition.lng,
+      Number(event.lat),
+      Number(event.lng)
+    );
   }
 
   function filterEvents(events) {
@@ -435,10 +487,15 @@
   function renderEvents(events) {
     if (!eventsGrid || !resultsCount) return;
 
-    resultsCount.textContent = `${events.length} événement${events.length > 1 ? "s" : ""} affiché${events.length > 1 ? "s" : ""}`;
+    resultsCount.textContent =
+      `${events.length} événement${events.length > 1 ? "s" : ""} affiché${events.length > 1 ? "s" : ""}`;
 
     if (!events.length) {
-      eventsGrid.innerHTML = `<article class="empty-state"><p>Aucun événement ne correspond aux filtres sélectionnés.</p></article>`;
+      eventsGrid.innerHTML = `
+        <article class="empty-state">
+          <p>Aucun événement ne correspond aux filtres sélectionnés.</p>
+        </article>
+      `;
       return;
     }
 
@@ -449,9 +506,16 @@
       const typeMeta = getTypeMeta(event.type || "Autre");
 
       return `
-        <article class="event-card ${event.featured ? "event-card-featured" : ""} ${typeMeta.className}" id="event-${escapeAttribute(event.id)}" data-event-id="${escapeAttribute(event.id)}" onmouseenter="highlightMarker('${escapeAttribute(event.id)}')">
+        <article class="event-card ${event.featured ? "event-card-featured" : ""} ${typeMeta.className}"
+          id="event-${escapeAttribute(event.id)}"
+          data-event-id="${escapeAttribute(event.id)}"
+          onmouseenter="highlightMarker('${escapeAttribute(event.id)}')">
+
           ${event.featured ? `<div class="featured-ribbon">Mis en avant</div>` : ""}
-          ${imageUrl ? `<img class="card-image" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(event.title || "Événement")}" />` : `<div class="card-image"></div>`}
+
+          ${imageUrl
+            ? `<img class="card-image" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(event.title || "Événement")}" />`
+            : `<div class="card-image"></div>`}
 
           <div class="card-body">
             <div class="card-tags">
@@ -474,12 +538,15 @@
 
             <div class="card-footer">
               <a class="card-link" href="event.html?id=${encodeURIComponent(event.id)}">Voir le détail</a>
-              <button class="card-link favorite-btn ${isFavorite ? "is-favorite" : ""}" type="button" onclick="toggleFavorite('${escapeAttribute(event.id)}')">${isFavorite ? "❤️ Favori" : "♡ Favori"}</button>
+              <button class="card-link favorite-btn ${isFavorite ? "is-favorite" : ""}" type="button" onclick="toggleFavorite('${escapeAttribute(event.id)}')">
+                ${isFavorite ? "❤️ Favori" : "♡ Favori"}
+              </button>
               <button class="card-link" type="button" onclick="downloadCalendar('${escapeAttribute(event.id)}')">📅 Agenda</button>
               ${event.website ? `<a class="card-link" href="${escapeAttribute(event.website)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
             </div>
           </div>
-        </article>`;
+        </article>
+      `;
     }).join("");
 
     window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered"));
@@ -491,14 +558,29 @@
     markersLayer.clearLayers();
     markerByEventId = {};
 
-    const validCoords = events.filter((event) => Number.isFinite(Number(event.lat)) && Number.isFinite(Number(event.lng)));
+    const validCoords = events.filter((event) =>
+      Number.isFinite(Number(event.lat)) &&
+      Number.isFinite(Number(event.lng))
+    );
+
+    const groups = {};
 
     validCoords.forEach((event) => {
-      const lat = Number(event.lat);
-      const lng = Number(event.lng);
+      const key = getCoordKey(Number(event.lat), Number(event.lng));
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(event);
+    });
+
+    validCoords.forEach((event) => {
+      const baseLat = Number(event.lat);
+      const baseLng = Number(event.lng);
+      const key = getCoordKey(baseLat, baseLng);
+      const group = groups[key] || [event];
+      const index = group.findIndex((item) => String(item.id) === String(event.id));
+      const coords = getOffsetCoords(baseLat, baseLng, Math.max(index, 0), group.length);
       const typeMeta = getTypeMeta(event.type || "Autre");
 
-      const marker = L.marker([lat, lng], {
+      const marker = L.marker([coords.lat, coords.lng], {
         icon: createTypeIcon(typeMeta)
       });
 
@@ -530,6 +612,22 @@
     setTimeout(() => map.invalidateSize(), 100);
   }
 
+  function getCoordKey(lat, lng) {
+    return `${lat.toFixed(5)},${lng.toFixed(5)}`;
+  }
+
+  function getOffsetCoords(lat, lng, index, total) {
+    if (total <= 1) return { lat, lng };
+
+    const angle = (Math.PI * 2 * index) / total;
+    const radius = 0.0012;
+
+    return {
+      lat: lat + Math.sin(angle) * radius,
+      lng: lng + Math.cos(angle) * radius
+    };
+  }
+
   function createTypeIcon(typeMeta) {
     if (!window.L) return undefined;
 
@@ -544,11 +642,16 @@
 
   window.focusEventCard = function (id, shouldScroll = true) {
     const card = document.getElementById(`event-${id}`);
+
     if (!card) return;
 
-    document.querySelectorAll(".event-card-highlight").forEach((item) => item.classList.remove("event-card-highlight"));
+    document.querySelectorAll(".event-card-highlight").forEach((item) => {
+      item.classList.remove("event-card-highlight");
+    });
 
-    if (shouldScroll) card.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (shouldScroll) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
 
     card.classList.add("event-card-highlight");
     setTimeout(() => card.classList.remove("event-card-highlight"), 1800);
@@ -564,6 +667,7 @@
 
   window.highlightMarker = function (id) {
     const marker = markerByEventId[id];
+
     if (!marker || typeof marker.getElement !== "function") return;
 
     const el = marker.getElement();
@@ -576,6 +680,7 @@
   window.toggleFavorite = function (id) {
     const favorites = getFavorites();
     const stringId = String(id);
+
     const next = favorites.includes(stringId)
       ? favorites.filter((item) => item !== stringId)
       : [...favorites, stringId];
@@ -612,8 +717,11 @@
 
   function locateUser() {
     if (!navigator.geolocation || !map) {
-      return alert("La géolocalisation n’est pas disponible sur ce navigateur.");
+      alert("La géolocalisation n’est pas disponible sur ce navigateur.");
+      return;
     }
+
+    if (!locateMeButton) return;
 
     locateMeButton.disabled = true;
     locateMeButton.textContent = "Localisation…";
@@ -646,9 +754,20 @@
   }
 
   function getDistanceLabel(event) {
-    if (!userPosition || !Number.isFinite(Number(event.lat)) || !Number.isFinite(Number(event.lng))) return "";
+    if (
+      !userPosition ||
+      !Number.isFinite(Number(event.lat)) ||
+      !Number.isFinite(Number(event.lng))
+    ) {
+      return "";
+    }
 
-    const km = haversine(userPosition.lat, userPosition.lng, Number(event.lat), Number(event.lng));
+    const km = haversine(
+      userPosition.lat,
+      userPosition.lng,
+      Number(event.lat),
+      Number(event.lng)
+    );
 
     return `${Math.round(km)} km de vous`;
   }
@@ -660,7 +779,9 @@
 
     const a =
       Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
 
     return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
@@ -685,8 +806,13 @@
     const city = formData.get("city")?.toString().trim() || "";
 
     try {
-      if (!formData.get("title")?.toString().trim()) throw new Error("Le titre est obligatoire.");
-      if (!city) throw new Error("La ville est obligatoire.");
+      if (!formData.get("title")?.toString().trim()) {
+        throw new Error("Le titre est obligatoire.");
+      }
+
+      if (!city) {
+        throw new Error("La ville est obligatoire.");
+      }
 
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         const coords = await geocodeMunicipality(city);
@@ -745,7 +871,9 @@
 
   async function geocodeMunicipality(city) {
     try {
-      const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(city)}&limit=1&type=municipality`);
+      const response = await fetch(
+        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(city)}&limit=1&type=municipality`
+      );
       const data = await response.json();
       const coords = data?.features?.[0]?.geometry?.coordinates || [];
       const lng = Number(coords[0]);
@@ -766,11 +894,16 @@
 
     const { error } = await supabaseClient.storage
       .from("event-images")
-      .upload(fileName, file, { cacheControl: "3600", upsert: false });
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false
+      });
 
     if (error) throw error;
 
-    const { data } = supabaseClient.storage.from("event-images").getPublicUrl(fileName);
+    const { data } = supabaseClient.storage
+      .from("event-images")
+      .getPublicUrl(fileName);
 
     return data.publicUrl;
   }
@@ -901,15 +1034,24 @@
   }
 
   function setLoadingState() {
-    if (eventsGrid) {
-      eventsGrid.innerHTML = `<article class="empty-state"><div class="loader"></div><p>Chargement des événements...</p></article>`;
-    }
+    if (!eventsGrid) return;
+
+    eventsGrid.innerHTML = `
+      <article class="empty-state">
+        <div class="loader"></div>
+        <p>Chargement des événements...</p>
+      </article>
+    `;
   }
 
   function setErrorState(message) {
-    if (eventsGrid) {
-      eventsGrid.innerHTML = `<article class="empty-state"><p>${escapeHtml(message)}</p></article>`;
-    }
+    if (!eventsGrid) return;
+
+    eventsGrid.innerHTML = `
+      <article class="empty-state">
+        <p>${escapeHtml(message)}</p>
+      </article>
+    `;
   }
 
   function setFormFeedback(message, kind) {
@@ -950,7 +1092,8 @@
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[’']/g, " ")
-      .toLowerCase();
+      .toLowerCase()
+      .trim();
   }
 
   function slugify(value) {
@@ -960,8 +1103,7 @@
   }
 
   function escapeHtml(value) {
-    return (value || "")
-      .toString()
+    return String(value || "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -971,5 +1113,14 @@
 
   function escapeAttribute(value) {
     return escapeHtml(value).replace(/`/g, "&#096;");
+  }
+
+  function debounce(fn, delay) {
+    let timer;
+
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
   }
 })();
