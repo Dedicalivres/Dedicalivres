@@ -1,10 +1,8 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V10 FIX DESKTOP + MOBILE
+   DÉDICALIVRES — ADMIN V10 + ZONES PRIORITAIRES
 ========================================================= */
 
 "use strict";
-
-/* CONFIG */
 
 const config = window.DEDICALIVRES_CONFIG;
 
@@ -17,8 +15,6 @@ const supabaseClient = window.supabase.createClient(
   config.supabaseUrl,
   config.supabaseAnonKey
 );
-
-/* ELEMENTS */
 
 const loginScreen = document.getElementById("login-screen");
 const dashboard = document.getElementById("dashboard");
@@ -41,10 +37,11 @@ const statsPending = document.getElementById("stats-pending");
 const statsNewsletter = document.getElementById("stats-newsletter");
 const statsVisits = document.getElementById("stats-visits");
 
-/* MODAL */
+const priorityCities = document.getElementById("priority-cities");
+const priorityDevices = document.getElementById("priority-devices");
+const priorityTrend = document.getElementById("priority-trend");
 
 const editModal = document.getElementById("edit-modal");
-
 const editId = document.getElementById("edit-id");
 const editTitle = document.getElementById("edit-title");
 const editType = document.getElementById("edit-type");
@@ -54,24 +51,18 @@ const editStartDate = document.getElementById("edit-start-date");
 const editEndDate = document.getElementById("edit-end-date");
 const editWebsite = document.getElementById("edit-website");
 const editDescription = document.getElementById("edit-description");
-
 const editImagePreview = document.getElementById("edit-image-preview");
 const editImageFile = document.getElementById("edit-image-file");
 const editImageUrl = document.getElementById("edit-image-url");
-
 const removeEditImageBtn = document.getElementById("remove-edit-image");
-
 const saveEditBtn = document.getElementById("save-edit-btn");
 const closeEditModalBtn = document.getElementById("close-edit-modal");
 
-/* STATE */
-
 let allEvents = [];
+let locationRows = [];
 let map = null;
 let markersLayer = null;
 let selectedAdminImageFile = null;
-
-/* INIT */
 
 init();
 
@@ -79,8 +70,7 @@ async function init() {
   bindEvents();
   bindTabs();
 
-  const { data } =
-    await supabaseClient.auth.getSession();
+  const { data } = await supabaseClient.auth.getSession();
 
   if (data?.session) {
     showDashboard();
@@ -88,106 +78,49 @@ async function init() {
   }
 }
 
-/* EVENTS */
-
 function bindEvents() {
+  loginForm?.addEventListener("submit", handleLogin);
+  logoutBtn?.addEventListener("click", logout);
 
-  loginForm?.addEventListener(
-    "submit",
-    handleLogin
-  );
+  refreshBtn?.addEventListener("click", async () => {
+    await loadDashboard();
+    showToast("Dashboard actualisé");
+  });
 
-  logoutBtn?.addEventListener(
-    "click",
-    logout
-  );
+  searchInput?.addEventListener("input", renderEvents);
+  filterStatus?.addEventListener("change", renderEvents);
+  filterType?.addEventListener("change", renderEvents);
 
-  refreshBtn?.addEventListener(
-    "click",
-    async () => {
-      await loadDashboard();
-      showToast("Dashboard actualisé");
-    }
-  );
+  closeEditModalBtn?.addEventListener("click", closeEditModal);
+  saveEditBtn?.addEventListener("click", saveEdition);
+  removeEditImageBtn?.addEventListener("click", removeEditImage);
+  editImageFile?.addEventListener("change", handleAdminImagePreview);
 
-  searchInput?.addEventListener(
-    "input",
-    renderEvents
-  );
+  editModal?.addEventListener("click", (event) => {
+    if (event.target === editModal) closeEditModal();
+  });
 
-  filterStatus?.addEventListener(
-    "change",
-    renderEvents
-  );
-
-  filterType?.addEventListener(
-    "change",
-    renderEvents
-  );
-
-  closeEditModalBtn?.addEventListener(
-    "click",
-    closeEditModal
-  );
-
-  saveEditBtn?.addEventListener(
-    "click",
-    saveEdition
-  );
-
-  removeEditImageBtn?.addEventListener(
-    "click",
-    removeEditImage
-  );
-
-  editImageFile?.addEventListener(
-    "change",
-    handleAdminImagePreview
-  );
-
-  editModal?.addEventListener(
-    "click",
-    (event) => {
-      if (event.target === editModal) {
-        closeEditModal();
-      }
-    }
-  );
-
-  document.addEventListener(
-    "keydown",
-    (event) => {
-      if (event.key === "Escape") {
-        closeEditModal();
-      }
-    }
-  );
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeEditModal();
+  });
 }
 
 /* LOGIN */
 
 async function handleLogin(event) {
-
   event.preventDefault();
 
   loginFeedback.textContent = "";
 
-  const email =
-    document.getElementById("email")?.value.trim() || "";
-
-  const password =
-    document.getElementById("password")?.value.trim() || "";
+  const email = document.getElementById("email")?.value.trim() || "";
+  const password = document.getElementById("password")?.value.trim() || "";
 
   if (!email || !password) {
-    loginFeedback.textContent =
-      "Email et mot de passe obligatoires.";
+    loginFeedback.textContent = "Email et mot de passe obligatoires.";
     return;
   }
 
-  const submitButton =
-    loginForm.querySelector(
-      'button[type="submit"]'
-    );
+  const submitButton = loginForm.querySelector('button[type="submit"]');
 
   if (submitButton) {
     submitButton.disabled = true;
@@ -195,30 +128,20 @@ async function handleLogin(event) {
   }
 
   try {
-
-    const { error } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
 
     if (error) throw error;
 
     showDashboard();
-
     await loadDashboard();
-
     showToast("Connexion réussie");
-
   } catch (error) {
-
     console.error(error);
-
-    loginFeedback.textContent =
-      "Connexion impossible.";
-
+    loginFeedback.textContent = "Connexion impossible.";
   } finally {
-
     if (submitButton) {
       submitButton.disabled = false;
       submitButton.textContent = "CONNEXION";
@@ -227,7 +150,6 @@ async function handleLogin(event) {
 }
 
 async function logout() {
-
   await supabaseClient.auth.signOut();
 
   dashboard?.classList.add("hidden");
@@ -237,7 +159,6 @@ async function logout() {
 }
 
 function showDashboard() {
-
   loginScreen?.classList.add("hidden");
   dashboard?.classList.remove("hidden");
 
@@ -246,61 +167,42 @@ function showDashboard() {
   }, 300);
 }
 
-/* =========================================================
-   ONGLETS DESKTOP + MOBILE
-========================================================= */
+/* TABS */
 
 function bindTabs() {
+  document.addEventListener("click", (event) => {
+    const tab = event.target.closest(".admin-tab");
 
-  document.addEventListener(
-    "click",
-    (event) => {
+    if (!tab) return;
 
-      const tab =
-        event.target.closest(".admin-tab");
+    const target = tab.dataset.tab;
 
-      if (!tab) return;
+    document.querySelectorAll(".admin-tab").forEach((item) => {
+      item.classList.remove("active");
+    });
 
-      const target =
-        tab.dataset.tab;
+    document.querySelectorAll(".admin-tab-panel").forEach((panel) => {
+      panel.classList.remove("active");
+    });
 
-      document
-        .querySelectorAll(".admin-tab")
-        .forEach((item) => {
-          item.classList.remove("active");
-        });
+    tab.classList.add("active");
 
-      document
-        .querySelectorAll(".admin-tab-panel")
-        .forEach((panel) => {
-          panel.classList.remove("active");
-        });
+    document
+      .getElementById(`tab-${target}`)
+      ?.classList.add("active");
 
-      tab.classList.add("active");
-
-      document
-        .getElementById(`tab-${target}`)
-        ?.classList.add("active");
-
-      if (target === "overview") {
-
-        setTimeout(() => {
-          map?.invalidateSize();
-        }, 250);
-      }
+    if (target === "overview") {
+      setTimeout(() => {
+        map?.invalidateSize();
+      }, 250);
     }
-  );
+  });
 
   bindMobileSwipeTabs();
 }
 
-/* SWIPE */
-
 function bindMobileSwipeTabs() {
-
-  const wrapper =
-    document.querySelector(".tabs-wrapper");
-
+  const wrapper = document.querySelector(".tabs-wrapper");
   if (!wrapper) return;
 
   let startX = 0;
@@ -309,10 +211,7 @@ function bindMobileSwipeTabs() {
   wrapper.addEventListener(
     "touchstart",
     (event) => {
-
-      startX =
-        event.changedTouches[0].screenX;
-
+      startX = event.changedTouches[0].screenX;
     },
     { passive: true }
   );
@@ -320,57 +219,40 @@ function bindMobileSwipeTabs() {
   wrapper.addEventListener(
     "touchend",
     (event) => {
-
-      endX =
-        event.changedTouches[0].screenX;
-
+      endX = event.changedTouches[0].screenX;
       handleSwipeTabs();
-
     },
     { passive: true }
   );
 
   function handleSwipeTabs() {
-
-    const delta =
-      endX - startX;
-
+    const delta = endX - startX;
     if (Math.abs(delta) < 60) return;
 
-    const tabs =
-      [...document.querySelectorAll(".admin-tab")];
+    const tabs = [...document.querySelectorAll(".admin-tab")];
+    const activeIndex = tabs.findIndex((tab) =>
+      tab.classList.contains("active")
+    );
 
-    const activeIndex =
-      tabs.findIndex((tab) =>
-        tab.classList.contains("active")
-      );
-
-    if (delta < 0) {
-
-      tabs[activeIndex + 1]?.click();
-
-    } else {
-
-      tabs[activeIndex - 1]?.click();
-    }
+    if (delta < 0) tabs[activeIndex + 1]?.click();
+    else tabs[activeIndex - 1]?.click();
   }
 }
 
 /* DASHBOARD */
 
 async function loadDashboard() {
-
   await Promise.all([
     loadEvents(),
     loadNewsletterCount(),
-    loadVisitsCount()
+    loadVisitsCount(),
+    loadLocationTracking()
   ]);
 
   updateStats();
-
   renderEvents();
   renderSocialUpcoming();
-
+  renderPriorityZones();
   initMap();
 
   setTimeout(() => {
@@ -379,129 +261,237 @@ async function loadDashboard() {
 }
 
 async function loadEvents() {
-
-  const { data, error } =
-    await supabaseClient
-      .from("events")
-      .select("*")
-      .order("created_at", {
-        ascending: false
-      });
+  const { data, error } = await supabaseClient
+    .from("events")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (error) {
-
     console.error(error);
-
     allEvents = [];
-
-    showToast("Erreur chargement");
-
+    showToast("Erreur chargement événements");
     return;
   }
 
-  allEvents =
-    Array.isArray(data) ? data : [];
+  allEvents = Array.isArray(data) ? data : [];
 }
 
 async function loadNewsletterCount() {
-
   try {
+    const { count } = await supabaseClient
+      .from("newsletter_subscribers")
+      .select("*", {
+        count: "exact",
+        head: true
+      });
 
-    const { count } =
-      await supabaseClient
-        .from("newsletter_subscribers")
-        .select("*", {
-          count: "exact",
-          head: true
-        });
-
-    statsNewsletter.textContent =
-      count || 0;
-
+    if (statsNewsletter) statsNewsletter.textContent = count || 0;
   } catch {
-
-    statsNewsletter.textContent = "0";
+    if (statsNewsletter) statsNewsletter.textContent = "0";
   }
 }
 
 async function loadVisitsCount() {
+  if (statsVisits) {
+    statsVisits.textContent =
+      localStorage.getItem("dedicalivres_visits") || "0";
+  }
+}
 
-  statsVisits.textContent =
-    localStorage.getItem("dedicalivres_visits")
-    || "0";
+async function loadLocationTracking() {
+  try {
+    const { data, error } = await supabaseClient
+      .from("location_tracking")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (error) throw error;
+
+    locationRows = Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.warn("Tracking localisation indisponible :", error);
+    locationRows = [];
+  }
 }
 
 function updateStats() {
+  const pending = allEvents.filter(
+    (event) => !event.validated && !event.rejected
+  );
 
-  const pending =
-    allEvents.filter(
-      (event) =>
-        !event.validated &&
-        !event.rejected
-    );
+  if (statsEvents) statsEvents.textContent = allEvents.length;
+  if (statsPending) statsPending.textContent = pending.length;
 
-  statsEvents.textContent =
-    allEvents.length;
+  if (eventsCount) {
+    eventsCount.textContent = `${getFilteredEvents().length} éléments`;
+  }
+}
 
-  statsPending.textContent =
-    pending.length;
+/* PRIORITY ZONES */
 
-  eventsCount.textContent =
-    `${getFilteredEvents().length} éléments`;
+function renderPriorityZones() {
+  renderTopCities();
+  renderDevices();
+  renderTrend();
+}
+
+function renderTopCities() {
+  if (!priorityCities) return;
+
+  if (!locationRows.length) {
+    priorityCities.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant.</p>`;
+    return;
+  }
+
+  const cityCounts = countBy(
+    locationRows
+      .map((row) => cleanLabel(row.city || row.region || "Zone inconnue"))
+      .filter(Boolean)
+  );
+
+  priorityCities.innerHTML = renderRanking(cityCounts, "localisation");
+}
+
+function renderDevices() {
+  if (!priorityDevices) return;
+
+  if (!locationRows.length) {
+    priorityDevices.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant.</p>`;
+    return;
+  }
+
+  const deviceCounts = countBy(
+    locationRows.map((row) => cleanLabel(row.device || "inconnu"))
+  );
+
+  priorityDevices.innerHTML = renderRanking(deviceCounts, "appareil");
+}
+
+function renderTrend() {
+  if (!priorityTrend) return;
+
+  if (!locationRows.length) {
+    priorityTrend.innerHTML = `
+      <p class="priority-empty">
+        Les tendances apparaîtront après les premiers clics sur “Me localiser”.
+      </p>
+    `;
+    return;
+  }
+
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(now.getDate() - 7);
+
+  const recent = locationRows.filter((row) => {
+    if (!row.created_at) return false;
+    return new Date(row.created_at) >= sevenDaysAgo;
+  });
+
+  const topCityCounts = countBy(
+    recent
+      .map((row) => cleanLabel(row.city || row.region || "Zone inconnue"))
+      .filter(Boolean)
+  );
+
+  const topCity = Object.entries(topCityCounts)
+    .sort((a, b) => b[1] - a[1])[0];
+
+  priorityTrend.innerHTML = `
+    <div class="priority-trend-box">
+      <strong>${recent.length}</strong>
+      <span>localisation(s) sur 7 jours</span>
+    </div>
+
+    ${
+      topCity
+        ? `
+          <div class="priority-mini">
+            Zone la plus active :
+            <b>${escapeHtml(topCity[0])}</b>
+          </div>
+        `
+        : `
+          <div class="priority-mini">
+            Pas encore assez de données récentes.
+          </div>
+        `
+    }
+  `;
+}
+
+function renderRanking(counts, label) {
+  const entries = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 7);
+
+  if (!entries.length) {
+    return `<p class="priority-empty">Aucune donnée exploitable.</p>`;
+  }
+
+  const max = Math.max(...entries.map((entry) => entry[1]));
+
+  return entries
+    .map(([name, count]) => {
+      const percent = Math.max(8, Math.round((count / max) * 100));
+
+      return `
+        <div class="priority-row">
+          <div class="priority-row-head">
+            <strong>${escapeHtml(name)}</strong>
+            <span>${count}</span>
+          </div>
+
+          <div class="priority-bar">
+            <i style="width:${percent}%"></i>
+          </div>
+
+          <small>${escapeHtml(label)}</small>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function countBy(values) {
+  return values.reduce((acc, value) => {
+    const key = value || "Inconnu";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function cleanLabel(value) {
+  return (value || "")
+    .toString()
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 90);
 }
 
 /* FILTER */
 
 function getFilteredEvents() {
-
-  const search =
-    normalize(searchInput?.value || "");
-
-  const status =
-    filterStatus?.value || "";
-
-  const type =
-    filterType?.value || "";
+  const search = normalize(searchInput?.value || "");
+  const status = filterStatus?.value || "";
+  const type = filterType?.value || "";
 
   return allEvents.filter((event) => {
+    const haystack = normalize([
+      event.title,
+      event.city,
+      event.region,
+      event.description
+    ].join(" "));
 
-    const haystack =
-      normalize([
-        event.title,
-        event.city,
-        event.region,
-        event.description
-      ].join(" "));
+    if (search && !haystack.includes(search)) return false;
+    if (type && event.type !== type) return false;
 
-    if (
-      search &&
-      !haystack.includes(search)
-    ) {
-      return false;
-    }
-
-    if (
-      type &&
-      event.type !== type
-    ) {
-      return false;
-    }
-
-    if (status === "pending") {
-      return !event.validated;
-    }
-
-    if (status === "validated") {
-      return !!event.validated;
-    }
-
-    if (status === "featured") {
-      return !!event.featured;
-    }
-
-    if (status === "missing-image") {
-      return !event.image_url;
-    }
+    if (status === "pending") return !event.validated && !event.rejected;
+    if (status === "validated") return !!event.validated;
+    if (status === "featured") return !!event.featured;
+    if (status === "missing-image") return !event.image_url;
 
     return true;
   });
@@ -510,31 +500,24 @@ function getFilteredEvents() {
 /* RENDER EVENTS */
 
 function renderEvents() {
-
   if (!eventsContainer) return;
 
-  const events =
-    getFilteredEvents();
+  const events = getFilteredEvents();
 
   if (!events.length) {
-
     eventsContainer.innerHTML = `
       <article class="event-card">
         Aucun événement trouvé.
       </article>
     `;
-
     return;
   }
 
-  eventsContainer.innerHTML =
-    events.map(renderEventCard).join("");
-
+  eventsContainer.innerHTML = events.map(renderEventCard).join("");
   bindEventActions();
 }
 
 function renderEventCard(event) {
-
   return `
     <article class="event-card event-card-with-image">
 
@@ -555,7 +538,6 @@ function renderEventCard(event) {
       }
 
       <div>
-
         <div class="event-title">
           ${escapeHtml(event.title || "")}
         </div>
@@ -566,46 +548,40 @@ function renderEventCard(event) {
           <span>🏷️ ${escapeHtml(event.type || "")}</span>
         </div>
 
+        <div class="event-badges">
+          ${
+            !event.validated && !event.rejected
+              ? `<span class="badge pending">EN ATTENTE</span>`
+              : ""
+          }
+
+          ${event.validated ? `<span class="badge">VALIDÉ</span>` : ""}
+
+          ${
+            event.rejected
+              ? `<span class="badge rejected">REJETÉ</span>`
+              : ""
+          }
+
+          ${
+            event.featured
+              ? `<span class="badge featured">MISE EN AVANT</span>`
+              : ""
+          }
+
+          ${
+            !event.image_url
+              ? `<span class="badge missing-image">SANS IMAGE</span>`
+              : ""
+          }
+        </div>
       </div>
 
       <div class="event-actions">
-
-        <button
-          class="event-action validate"
-          data-action="validate"
-          data-id="${event.id}"
-          type="button"
-        >
-          ✔
-        </button>
-
-        <button
-          class="event-action reject"
-          data-action="reject"
-          data-id="${event.id}"
-          type="button"
-        >
-          ✖
-        </button>
-
-        <button
-          class="event-action featured"
-          data-action="featured"
-          data-id="${event.id}"
-          type="button"
-        >
-          ★
-        </button>
-
-        <button
-          class="event-action edit"
-          data-action="edit"
-          data-id="${event.id}"
-          type="button"
-        >
-          ✎
-        </button>
-
+        <button class="event-action validate" data-action="validate" data-id="${event.id}" type="button">✔</button>
+        <button class="event-action reject" data-action="reject" data-id="${event.id}" type="button">✖</button>
+        <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button">★</button>
+        <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button">✎</button>
       </div>
 
     </article>
@@ -613,48 +589,25 @@ function renderEventCard(event) {
 }
 
 function bindEventActions() {
+  document.querySelectorAll("[data-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const action = button.dataset.action;
+      const id = button.dataset.id;
 
-  document
-    .querySelectorAll("[data-action]")
-    .forEach((button) => {
+      if (!id) return;
 
-      button.addEventListener(
-        "click",
-        async () => {
-
-          const action =
-            button.dataset.action;
-
-          const id =
-            button.dataset.id;
-
-          if (!id) return;
-
-          if (action === "validate") {
-            await validateEvent(id);
-          }
-
-          if (action === "reject") {
-            await rejectEvent(id);
-          }
-
-          if (action === "featured") {
-            await toggleFeatured(id);
-          }
-
-          if (action === "edit") {
-            openEditModal(id);
-          }
-        }
-      );
+      if (action === "validate") await validateEvent(id);
+      if (action === "reject") await rejectEvent(id);
+      if (action === "featured") await toggleFeatured(id);
+      if (action === "edit") openEditModal(id);
     });
+  });
 }
 
-/* SIMPLE ACTIONS */
+/* ACTIONS */
 
 async function validateEvent(id) {
-
-  await supabaseClient
+  const { error } = await supabaseClient
     .from("events")
     .update({
       validated: true,
@@ -662,14 +615,17 @@ async function validateEvent(id) {
     })
     .eq("id", id);
 
-  await loadDashboard();
+  if (error) {
+    showToast("Erreur validation");
+    return;
+  }
 
+  await loadDashboard();
   showToast("Événement validé");
 }
 
 async function rejectEvent(id) {
-
-  await supabaseClient
+  const { error } = await supabaseClient
     .from("events")
     .update({
       rejected: true,
@@ -677,85 +633,89 @@ async function rejectEvent(id) {
     })
     .eq("id", id);
 
-  await loadDashboard();
+  if (error) {
+    showToast("Erreur rejet");
+    return;
+  }
 
+  await loadDashboard();
   showToast("Événement rejeté");
 }
 
 async function toggleFeatured(id) {
-
-  const event =
-    allEvents.find(
-      (item) =>
-        String(item.id) === String(id)
-    );
+  const event = allEvents.find((item) => String(item.id) === String(id));
 
   if (!event) return;
 
-  await supabaseClient
+  const { error } = await supabaseClient
     .from("events")
     .update({
       featured: !event.featured
     })
     .eq("id", id);
 
-  await loadDashboard();
+  if (error) {
+    showToast("Erreur mise en avant");
+    return;
+  }
 
+  await loadDashboard();
   showToast("Mise à jour");
 }
 
 /* MAP */
 
 function initMap() {
-
   if (!window.L) return;
 
-  const mapElement =
-    document.getElementById("admin-map");
-
+  const mapElement = document.getElementById("admin-map");
   if (!mapElement) return;
 
   if (!map) {
+    map = L.map("admin-map").setView([46.6, 1.88], 6);
 
-    map = L.map("admin-map")
-      .setView([46.6, 1.88], 6);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
 
-    L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        attribution:
-          "&copy; OpenStreetMap"
-      }
-    ).addTo(map);
-
-    markersLayer =
-      L.layerGroup().addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
   }
 
   markersLayer.clearLayers();
 
   allEvents.forEach((event) => {
+    if (!event.lat || !event.lng) return;
 
-    if (
-      !event.lat ||
-      !event.lng
-    ) return;
-
-    const marker =
-      L.circleMarker(
-        [event.lat, event.lng],
-        {
-          radius: 7,
-          color: "#19ff9c",
-          fillColor: "#19ff9c",
-          fillOpacity: .85
-        }
-      );
+    const marker = L.circleMarker([event.lat, event.lng], {
+      radius: 7,
+      color: "#19ff9c",
+      fillColor: "#19ff9c",
+      fillOpacity: 0.85
+    });
 
     marker.bindPopup(`
       <strong>${escapeHtml(event.title)}</strong>
       <br>
       ${escapeHtml(event.city || "")}
+    `);
+
+    marker.addTo(markersLayer);
+  });
+
+  locationRows.forEach((row) => {
+    if (!row.lat || !row.lng) return;
+
+    const marker = L.circleMarker([row.lat, row.lng], {
+      radius: 5,
+      color: "#ff9e44",
+      fillColor: "#ff9e44",
+      fillOpacity: 0.65
+    });
+
+    marker.bindPopup(`
+      <strong>Recherche utilisateur</strong>
+      <br>
+      ${escapeHtml(row.city || row.region || "Zone inconnue")}
     `);
 
     marker.addTo(markersLayer);
@@ -769,40 +729,33 @@ function initMap() {
 /* SOCIAL */
 
 function renderSocialUpcoming() {
-
-  const container =
-    document.getElementById("social-upcoming");
-
+  const container = document.getElementById("social-upcoming");
   if (!container) return;
 
-  const upcoming =
-    [...allEvents]
-      .filter(
-        (event) =>
-          event.validated &&
-          event.start_date
-      )
-      .slice(0, 6);
+  const upcoming = [...allEvents]
+    .filter((event) => event.validated && event.start_date)
+    .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+    .slice(0, 6);
 
-  container.innerHTML =
-    upcoming.map((event) => `
+  if (!upcoming.length) {
+    container.innerHTML = `<p class="priority-empty">Aucun événement à venir.</p>`;
+    return;
+  }
+
+  container.innerHTML = upcoming
+    .map((event) => `
       <div class="social-mini-item">
         <strong>${escapeHtml(event.title)}</strong>
         <span>${formatDate(event.start_date)}</span>
       </div>
-    `).join("");
+    `)
+    .join("");
 }
 
 /* MODAL */
 
 function openEditModal(id) {
-
-  const event =
-    allEvents.find(
-      (item) =>
-        String(item.id) === String(id)
-    );
-
+  const event = allEvents.find((item) => String(item.id) === String(id));
   if (!event) return;
 
   editId.value = event.id || "";
@@ -817,7 +770,6 @@ function openEditModal(id) {
   editImageUrl.value = event.image_url || "";
 
   renderEditImagePreview(event.image_url);
-
   editModal.classList.remove("hidden");
 }
 
@@ -826,12 +778,8 @@ function closeEditModal() {
 }
 
 function renderEditImagePreview(url) {
-
   if (!url) {
-
-    editImagePreview.innerHTML =
-      `<span>Aucune affiche</span>`;
-
+    editImagePreview.innerHTML = `<span>Aucune affiche</span>`;
     return;
   }
 
@@ -841,54 +789,64 @@ function renderEditImagePreview(url) {
 }
 
 function handleAdminImagePreview(event) {
-
-  const file =
-    event.target.files?.[0];
-
+  const file = event.target.files?.[0];
   if (!file) return;
 
   selectedAdminImageFile = file;
 
-  const reader =
-    new FileReader();
+  const reader = new FileReader();
 
   reader.onload = (e) => {
-
-    renderEditImagePreview(
-      e.target.result
-    );
-
+    renderEditImagePreview(e.target.result);
   };
 
   reader.readAsDataURL(file);
 }
 
 function removeEditImage() {
-
   editImageUrl.value = "";
-
+  selectedAdminImageFile = null;
   renderEditImagePreview("");
 }
 
 async function saveEdition() {
+  const id = editId.value;
+  if (!id) return;
 
-  showToast(
-    "Édition avancée à venir"
-  );
+  const payload = {
+    title: editTitle.value.trim(),
+    type: editType.value,
+    city: editCity.value.trim(),
+    region: editRegion.value.trim(),
+    start_date: editStartDate.value || null,
+    end_date: editEndDate.value || null,
+    website: editWebsite.value.trim(),
+    description: editDescription.value.trim(),
+    image_url: editImageUrl.value.trim() || null
+  };
+
+  const { error } = await supabaseClient
+    .from("events")
+    .update(payload)
+    .eq("id", id);
+
+  if (error) {
+    showToast("Erreur édition");
+    return;
+  }
+
+  closeEditModal();
+  await loadDashboard();
+  showToast("Événement modifié");
 }
 
 /* HELPERS */
 
 function showToast(message) {
-
-  const container =
-    document.getElementById("toast-container");
-
+  const container = document.getElementById("toast-container");
   if (!container) return;
 
-  const toast =
-    document.createElement("div");
-
+  const toast = document.createElement("div");
   toast.className = "toast";
   toast.textContent = message;
 
@@ -900,7 +858,6 @@ function showToast(message) {
 }
 
 function normalize(value) {
-
   return (value || "")
     .toString()
     .normalize("NFD")
@@ -909,7 +866,6 @@ function normalize(value) {
 }
 
 function escapeHtml(value) {
-
   return (value || "")
     .toString()
     .replace(/&/g, "&amp;")
@@ -918,24 +874,15 @@ function escapeHtml(value) {
 }
 
 function formatDate(value) {
-
   if (!value) return "";
 
   try {
-
-    return new Intl.DateTimeFormat(
-      "fr-FR",
-      {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      }
-    ).format(
-      new Date(value)
-    );
-
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    }).format(new Date(value));
   } catch {
-
     return value;
   }
 }
