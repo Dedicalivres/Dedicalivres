@@ -1448,3 +1448,94 @@ button:active,
 /* =========================================================
    FIN CORRECTIF MOBILE FINAL
 ========================================================= */
+/* =========================================================
+   DÉDICALIVRES — UPLOAD IMAGE ÉVÉNEMENT
+========================================================= */
+
+.upload-premium {
+  display: grid;
+  gap: 12px;
+}
+
+.upload-box {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 170px;
+  padding: 22px;
+  text-align: center;
+  border: 2px dashed rgba(255, 107, 53, .35);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top, rgba(255,107,53,.10), transparent 42%),
+    rgba(255,255,255,.72);
+  cursor: pointer;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.upload-box:hover {
+  transform: translateY(-2px);
+  border-color: var(--orange);
+  box-shadow: 0 18px 38px rgba(255,107,53,.14);
+}
+
+.upload-box input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.upload-icon {
+  font-size: 2rem;
+}
+
+.upload-box strong {
+  color: var(--purple);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.upload-box small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.image-preview {
+  display: none;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(58,28,113,.12);
+  background: white;
+  box-shadow: 0 14px 34px rgba(58,28,113,.12);
+}
+
+.image-preview.is-visible {
+  display: block;
+}
+
+.image-preview img {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+}
+
+.image-preview-caption {
+  padding: 12px 14px;
+  color: var(--muted);
+  font-size: .88rem;
+  font-weight: 800;
+}
+
+@media (max-width: 780px) {
+  .upload-box {
+    min-height: 145px;
+    padding: 18px;
+  }
+
+  .image-preview img {
+    max-height: 240px;
+  }
+}
