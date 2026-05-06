@@ -5,70 +5,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>Dédicalivres — Agenda des événements littéraires</title>
-  <meta name="description" content="Agenda des salons du livre, festivals, dédicaces et événements littéraires en France." />
+
+  <meta
+    name="description"
+    content="Agenda des salons du livre, festivals littéraires, dédicaces et rencontres littéraires partout en France."
+  />
+
   <link rel="canonical" href="https://dedicalivres.fr/" />
 
   <meta property="og:title" content="Dédicalivres — Agenda des événements littéraires" />
-  <meta property="og:description" content="Trouvez les salons, festivals et dédicaces en France." />
+  <meta
+    property="og:description"
+    content="Trouvez les salons du livre, festivals littéraires, dédicaces et auteurs indépendants."
+  />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="banner.jpg" />
 
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"WebSite",
+    "name":"Dédicalivres",
+    "url":"https://dedicalivres.fr"
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  />
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body>
+<body data-agenda-mode="global">
 
-<!-- HEADER -->
 <header class="header">
   <div class="container header-inner">
-    <a href="index.html">
+
+    <a href="index.html" aria-label="Accueil Dédicalivres">
       <img src="logo.png" class="logo" alt="Dédicalivres" />
     </a>
 
-    <nav>
-      <a href="#agenda">Agenda</a>
+    <nav aria-label="Navigation principale">
+      <a href="index.html#agenda">Agenda</a>
       <a href="salons-du-livre.html">Salons & Festivals</a>
       <a href="dedicaces.html">Dédicaces</a>
       <a href="auteurs-independants.html">Auteurs</a>
-      <a href="#soumettre">Soumettre</a>
+      <a href="index.html#soumettre">Soumettre</a>
     </nav>
+
   </div>
 </header>
 
-<!-- HERO -->
-<section class="hero"></section>
+<section class="hero" aria-label="Bannière Dédicalivres"></section>
 
 <main class="container">
 
-  <!-- INTRO -->
-  <section class="section">
-    <h1>Explorez les événements littéraires près de vous</h1>
-    <p class="section-intro">
-      Salons, festivals, dédicaces et rencontres d’auteurs partout en France.
-    </p>
-  </section>
-
   <!-- AGENDA -->
+
   <section id="agenda" class="section">
 
     <h2>Événements à venir</h2>
+
+    <p class="section-intro">
+      Explorez les salons, festivals, dédicaces et rencontres littéraires
+      référencés sur Dédicalivres.
+    </p>
+
     <p id="results-count">Chargement…</p>
 
     <!-- FILTRES -->
+
     <div class="filters">
 
-      <input id="search-input" type="search" placeholder="Rechercher un événement ou une ville…" />
+      <input
+        id="search-input"
+        type="search"
+        placeholder="Rechercher un événement, une ville…"
+      />
 
       <select id="region-filter">
         <option value="">Toutes les régions</option>
+        <option>Auvergne-Rhône-Alpes</option>
+        <option>Bourgogne-Franche-Comté</option>
+        <option>Bretagne</option>
+        <option>Centre-Val de Loire</option>
+        <option>Corse</option>
+        <option>Grand Est</option>
+        <option>Hauts-de-France</option>
         <option>Île-de-France</option>
-        <option>Occitanie</option>
+        <option>Normandie</option>
         <option>Nouvelle-Aquitaine</option>
+        <option>Occitanie</option>
+        <option>Pays de la Loire</option>
+        <option>Provence-Alpes-Côte d’Azur</option>
       </select>
 
       <select id="type-filter">
@@ -83,28 +123,68 @@
         <option value="">Tous les mois</option>
       </select>
 
-      <button id="apply-filters" class="btn-primary">Filtrer</button>
-      <button id="reset-filters" class="btn-secondary">Reset</button>
+      <button
+        id="apply-filters"
+        class="btn-primary"
+        type="button"
+      >
+        Filtrer
+      </button>
+
+      <button
+        id="reset-filters"
+        class="btn-secondary"
+        type="button"
+      >
+        Réinitialiser
+      </button>
 
     </div>
 
     <!-- ACTIONS UX -->
+
     <div class="ux-actions">
-      <button id="mobile-map-toggle" class="btn-secondary">Masquer la carte</button>
-      <button id="locate-me" class="btn-secondary">Me localiser</button>
+
+      <button
+        id="mobile-map-toggle"
+        class="btn-secondary mobile-map-toggle"
+        type="button"
+      >
+        Carte
+      </button>
+
+      <button
+        id="locate-me"
+        class="btn-secondary"
+        type="button"
+      >
+        Me localiser
+      </button>
+
     </div>
 
     <!-- LAYOUT -->
+
     <div class="agenda-layout">
 
-      <!-- LISTE -->
-      <div class="events-zone">
-        <section id="events-grid" class="events-grid"></section>
+      <div>
+
+        <section
+          id="events-grid"
+          class="events-grid"
+          aria-live="polite"
+        ></section>
+
       </div>
 
-      <!-- CARTE FLOTTANTE -->
-      <aside class="map-panel is-open">
+      <aside
+        class="map-panel"
+        id="map-panel"
+        aria-label="Carte des événements"
+      >
+
         <div id="map"></div>
+
       </aside>
 
     </div>
@@ -112,47 +192,112 @@
   </section>
 
   <!-- NEWSLETTER -->
+
   <section id="newsletter" class="section newsletter-section">
-    <h2>Recevoir les événements</h2>
+
+    <h2>Recevoir les prochains événements</h2>
+
+    <p>
+      Recevez les prochains salons, festivals et dédicaces
+      proches de chez vous.
+    </p>
 
     <form id="newsletter-form" class="newsletter-form">
-      <input name="email" type="email" placeholder="Votre email" required />
+
+      <input
+        name="email"
+        type="email"
+        placeholder="Votre email"
+        required
+      />
 
       <select name="region">
         <option value="">Toutes les régions</option>
+        <option>Auvergne-Rhône-Alpes</option>
+        <option>Bourgogne-Franche-Comté</option>
+        <option>Bretagne</option>
+        <option>Centre-Val de Loire</option>
+        <option>Corse</option>
+        <option>Grand Est</option>
+        <option>Hauts-de-France</option>
         <option>Île-de-France</option>
+        <option>Normandie</option>
+        <option>Nouvelle-Aquitaine</option>
         <option>Occitanie</option>
+        <option>Pays de la Loire</option>
+        <option>Provence-Alpes-Côte d’Azur</option>
       </select>
 
-      <button class="btn-primary">S’inscrire</button>
+      <button class="btn-primary" type="submit">
+        S’inscrire
+      </button>
+
     </form>
 
     <p id="newsletter-feedback"></p>
+
   </section>
 
   <!-- SOUMISSION -->
+
   <section id="soumettre" class="section">
+
     <h2>Proposer un événement</h2>
 
     <form id="submission-form">
 
-      <input name="title" placeholder="Titre" required />
+      <input
+        name="title"
+        placeholder="Titre de l’événement"
+        required
+      />
 
       <select name="type">
-        <option value="">Type</option>
+        <option value="">Type d’événement</option>
         <option>Salon</option>
         <option>Festival</option>
         <option>Dédicace</option>
+        <option>Autre</option>
       </select>
 
       <select name="region" id="region-submit">
         <option value="">Région</option>
+        <option>Auvergne-Rhône-Alpes</option>
+        <option>Bourgogne-Franche-Comté</option>
+        <option>Bretagne</option>
+        <option>Centre-Val de Loire</option>
+        <option>Corse</option>
+        <option>Grand Est</option>
+        <option>Hauts-de-France</option>
         <option>Île-de-France</option>
+        <option>Normandie</option>
+        <option>Nouvelle-Aquitaine</option>
         <option>Occitanie</option>
+        <option>Pays de la Loire</option>
+        <option>Provence-Alpes-Côte d’Azur</option>
       </select>
 
-      <input id="city-input" name="city" list="city-suggestions" placeholder="Ville" required />
-      <datalist id="city-suggestions"></datalist>
+      <!-- AUTOCOMPLETE -->
+
+      <div class="city-autocomplete-wrap">
+
+        <input
+          id="city-input"
+          name="city"
+          list="city-suggestions"
+          placeholder="Ville — commencez à taper puis choisissez"
+          autocomplete="off"
+          required
+        />
+
+        <datalist id="city-suggestions"></datalist>
+
+        <small id="city-help" class="field-help">
+          Sélectionnez une ville proposée pour placer correctement
+          l’événement sur la carte.
+        </small>
+
+      </div>
 
       <input type="hidden" name="lat" id="city-lat" />
       <input type="hidden" name="lng" id="city-lng" />
@@ -160,22 +305,78 @@
       <input name="start_date" type="date" />
       <input name="end_date" type="date" />
 
-      <textarea name="description" placeholder="Description"></textarea>
+      <select name="price">
+        <option value="">Entrée</option>
+        <option>Gratuit</option>
+        <option>Payant</option>
+      </select>
 
-      <button type="submit">Envoyer</button>
+      <input
+        name="website"
+        type="url"
+        placeholder="Site officiel"
+      />
+
+      <textarea
+        name="description"
+        rows="5"
+        placeholder="Description"
+      ></textarea>
+
+      <!-- UPLOAD IMAGE PREMIUM -->
+
+      <div class="upload-premium">
+
+        <label class="upload-box">
+
+          <input
+            id="event-image-input"
+            name="image"
+            type="file"
+            accept="image/*"
+          />
+
+          <span class="upload-icon">🖼️</span>
+
+          <strong>Ajouter une affiche ou photo</strong>
+
+          <small>
+            JPG, PNG ou WEBP — recommandé : moins de 5 Mo
+          </small>
+
+        </label>
+
+        <div
+          id="image-preview"
+          class="image-preview"
+        ></div>
+
+      </div>
+
+      <button type="submit">
+        Envoyer
+      </button>
+
       <p id="form-feedback"></p>
 
     </form>
+
   </section>
 
 </main>
 
 <!-- SCRIPTS -->
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  crossorigin=""
+></script>
 
 <script src="config.js"></script>
 <script src="app.js"></script>
+
 <script src="tracking-v4.js"></script>
 <script src="author-search-index.js"></script>
 <script src="ui-effects-v6.js"></script>
