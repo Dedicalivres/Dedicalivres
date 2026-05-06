@@ -1,10 +1,9 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V8 CYBER CONTROL
+   DÉDICALIVRES — ADMIN V9 CYBER CONTROL + IMAGE MANAGER
 ========================================================= */
 
 :root {
   --bg: #020806;
-  --bg-2: #06130e;
   --panel: rgba(7, 20, 15, .92);
   --panel-2: rgba(10, 30, 22, .92);
 
@@ -16,7 +15,6 @@
 
   --text: #ecfff8;
   --muted: #7fa99a;
-
   --border: rgba(25,255,156,.18);
 
   --shadow:
@@ -305,7 +303,7 @@ button:disabled {
   margin-bottom: 24px;
 }
 
-/* MAP */
+/* PANELS */
 
 .admin-map-section,
 .events-section {
@@ -414,6 +412,11 @@ button:disabled {
   color: #d8b5ff;
 }
 
+.badge.missing-image {
+  background: rgba(255,158,68,.14);
+  color: #ffc48c;
+}
+
 .event-actions {
   display: flex;
   align-items: center;
@@ -446,6 +449,35 @@ button:disabled {
 .event-action.edit {
   background: rgba(0,220,255,.13);
   color: #8cf0ff;
+}
+
+/* IMAGE BADGE / THUMB IN LIST */
+
+.event-card-with-image {
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+}
+
+.event-admin-thumb {
+  width: 112px;
+  height: 92px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid rgba(25,255,156,.16);
+  background: rgba(0,0,0,.28);
+}
+
+.event-admin-thumb-placeholder {
+  width: 112px;
+  height: 92px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 800;
+  text-align: center;
+  border: 1px dashed rgba(255,158,68,.30);
+  background: rgba(255,158,68,.06);
 }
 
 /* TOAST */
@@ -493,7 +525,7 @@ button:disabled {
 }
 
 .edit-panel {
-  width: min(860px, 100%);
+  width: min(920px, 100%);
   margin: 40px auto;
   background: var(--panel);
   border: 1px solid var(--border);
@@ -522,7 +554,7 @@ button:disabled {
 
 .edit-form {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .form-grid {
@@ -534,6 +566,95 @@ button:disabled {
 .edit-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+/* ADMIN IMAGE MANAGER */
+
+.admin-image-manager {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 16px;
+  border: 1px solid rgba(25,255,156,.14);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, rgba(25,255,156,.07), transparent 40%),
+    rgba(0,0,0,.22);
+}
+
+.admin-image-preview {
+  min-height: 220px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(25,255,156,.16);
+  background:
+    linear-gradient(135deg, rgba(25,255,156,.08), rgba(0,220,255,.05)),
+    rgba(0,0,0,.26);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-weight: 900;
+  text-align: center;
+}
+
+.admin-image-preview img {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-image-actions {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.admin-upload-box {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 132px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 2px dashed rgba(25,255,156,.28);
+  background:
+    radial-gradient(circle at top, rgba(25,255,156,.08), transparent 48%),
+    rgba(0,0,0,.24);
+  color: var(--text);
+  text-align: center;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.admin-upload-box:hover {
+  transform: translateY(-2px);
+  border-color: var(--green);
+  box-shadow: 0 0 24px rgba(25,255,156,.14);
+}
+
+.admin-upload-box input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.admin-upload-box span {
+  font-size: 2rem;
+}
+
+.admin-upload-box strong {
+  color: var(--green);
+  font-weight: 900;
+}
+
+.admin-upload-box small {
+  color: var(--muted);
+  font-weight: 700;
 }
 
 /* LEAFLET DARK TWEAK */
@@ -565,12 +686,23 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .event-card {
+  .event-card,
+  .event-card-with-image {
     grid-template-columns: 1fr;
+  }
+
+  .event-admin-thumb,
+  .event-admin-thumb-placeholder {
+    width: 100%;
+    height: 170px;
   }
 
   .event-actions {
     justify-content: flex-start;
+  }
+
+  .admin-image-manager {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -610,5 +742,15 @@ button:disabled {
 
   .login-panel {
     padding: 28px 22px;
+  }
+
+  .edit-panel {
+    padding: 18px;
+    margin: 18px auto;
+  }
+
+  .admin-image-preview,
+  .admin-image-preview img {
+    min-height: 180px;
   }
 }
