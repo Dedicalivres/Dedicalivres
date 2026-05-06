@@ -582,6 +582,60 @@
     }
   }
 
+  async function reverseGeocodePosition(lat, lng) {
+    try {
+      const response = await fetch(
+        `https://api-adresse.data.gouv.fr/reverse/?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`
+      );
+
+      const data = await response.json();
+      const properties = data.features?.[0]?.properties || {};
+
+      return {
+        city: properties.city || properties.name || "",
+        region: properties.context || ""
+      };
+    } catch {
+      return {
+        city: "",
+        region: ""
+      };
+    }
+  }
+
+  async function trackLocationUsage(position) {
+    if (!position || !Number.isFinite(position.lat) || !Number.isFinite(position.lng)) {
+      return;
+    }
+
+    const roundedLat = roundCoordinate(position.lat);
+    const roundedLng = roundCoordinate(position.lng);
+
+    const place = await reverseGeocodePosition(roundedLat, roundedLng);
+
+    const payload = {
+      lat: roundedLat,
+      lng: roundedLng,
+      city: place.city || null,
+      region: place.region || null,
+      page: window.location.pathname || "/",
+      device: getDeviceType(),
+      user_agent: (navigator.userAgent || "").slice(0, 180)
+    };
+
+    try {
+      const { error } = await supabaseClient
+        .from("location_tracking")
+        .insert([payload]);
+
+      if (error) {
+        console.warn("Tracking localisation non enregistré :", error.message);
+      }
+    } catch (error) {
+      console.warn("Tracking localisation indisponible :", error);
+    }
+  }
+
   function bindCityAutocomplete() {
     if (!cityInput) return;
 
@@ -630,16 +684,48 @@
   }
 
   function locateUser() {
-    if (!navigator.geolocation || !map) return;
+    if (!navigator.geolocation || !map) {
+      alert("La géolocalisation n’est pas disponible sur ce navigateur.");
+      return;
+    }
 
-    navigator.geolocation.getCurrentPosition((position) => {
-      userPosition = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
-      };
+    locateMeButton.disabled = true;
+    locateMeButton.textContent = "Localisation…";
 
-      map.setView([userPosition.lat, userPosition.lng], 9);
-    });
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        userPosition = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+
+        map.setView([userPosition.lat, userPosition.lng], 9);
+
+        L.circleMarker([userPosition.lat, userPosition.lng], {
+          radius: 8,
+          color: "#ff6b35",
+          fillColor: "#ff6b35",
+          fillOpacity: 0.85
+        })
+          .bindPopup("Vous êtes ici")
+          .addTo(map);
+
+        trackLocationUsage(userPosition);
+
+        locateMeButton.disabled = false;
+        locateMeButton.textContent = "Me localiser";
+      },
+      () => {
+        locateMeButton.disabled = false;
+        locateMeButton.textContent = "Me localiser";
+        alert("Impossible de vous localiser.");
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000
+      }
+    );
   }
 
   function resetFilters() {
@@ -704,6 +790,19 @@
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
+  }
+
+  function roundCoordinate(value) {
+    return Math.round(Number(value) * 100) / 100;
+  }
+
+  function getDeviceType() {
+    const width = window.innerWidth;
+
+    if (width <= 760) return "mobile";
+    if (width <= 1100) return "tablette";
+
+    return "desktop";
   }
 
   function escapeHtml(value) {
