@@ -30,7 +30,9 @@
     <img src="logo.png" alt="Dédicalivres" class="cyber-logo" />
 
     <h1>ADMIN V10</h1>
-    <p class="login-subtitle">Supervision • Validation • Réseaux</p>
+    <p class="login-subtitle">
+      Supervision • Validation • Réseaux
+    </p>
 
     <form id="login-form" class="login-form">
       <input id="email" type="email" placeholder="Email" required />
@@ -47,45 +49,94 @@
 
 <main id="dashboard" class="dashboard hidden">
 
+  <!-- ===================================================== -->
+  <!-- TOPBAR -->
+  <!-- ===================================================== -->
+
   <header class="topbar">
+
     <div class="topbar-left">
+
       <div class="status-dot"></div>
 
       <div>
         <h2>CYBER CONTROL</h2>
         <p>Dédicalivres supervision temps réel</p>
       </div>
+
     </div>
 
     <div class="topbar-right">
-      <button id="refresh-btn" class="cyber-btn-secondary" type="button">
+
+      <button
+        id="refresh-btn"
+        class="cyber-btn-secondary"
+        type="button"
+      >
         Actualiser
       </button>
 
-      <button id="logout-btn" class="cyber-btn-danger" type="button">
+      <button
+        id="logout-btn"
+        class="cyber-btn-danger"
+        type="button"
+      >
         Déconnexion
       </button>
+
     </div>
+
   </header>
 
-  <nav class="admin-tabs" aria-label="Navigation admin">
-    <button class="admin-tab active" data-tab="overview" type="button">
+  <!-- ===================================================== -->
+  <!-- ONGLET -->
+  <!-- ===================================================== -->
+
+  <nav class="admin-tabs">
+
+    <button
+      class="admin-tab active"
+      data-tab="overview"
+      type="button"
+    >
       ⚡ Actu
     </button>
 
-    <button class="admin-tab" data-tab="moderation" type="button">
+    <button
+      class="admin-tab"
+      data-tab="moderation"
+      type="button"
+    >
       🛡️ Administration
     </button>
 
-    <button class="admin-tab" data-tab="social" type="button">
+    <button
+      class="admin-tab"
+      data-tab="social"
+      type="button"
+    >
       🚀 Réseaux
     </button>
+
   </nav>
+
+  <!-- ===================================================== -->
+  <!-- CONTENU -->
+  <!-- ===================================================== -->
 
   <section class="tabs-wrapper">
 
-    <section id="tab-overview" class="admin-tab-panel active">
+    <!-- ================================================= -->
+    <!-- ACTU -->
+    <!-- ================================================= -->
+
+    <section
+      id="tab-overview"
+      class="admin-tab-panel active"
+    >
+
       <section class="stats-grid">
+
         <article class="stat-card glow-green">
           <span class="stat-label">ÉVÉNEMENTS</span>
           <strong id="stats-events">0</strong>
@@ -105,20 +156,86 @@
           <span class="stat-label">VISITES</span>
           <strong id="stats-visits">0</strong>
         </article>
+
       </section>
 
+      <!-- ============================================= -->
+      <!-- MAP -->
+      <!-- ============================================= -->
+
       <section class="admin-panel">
+
         <div class="section-head">
           <h3>CARTE LIVE</h3>
           <span>activité géographique</span>
         </div>
 
         <div id="admin-map"></div>
+
       </section>
+
+      <!-- ============================================= -->
+      <!-- GEO TRACKING -->
+      <!-- ============================================= -->
+
+      <section class="admin-panel">
+
+        <div class="section-head">
+          <h3>ZONES PRIORITAIRES</h3>
+          <span>
+            Où les visiteurs cherchent des événements
+          </span>
+        </div>
+
+        <div class="priority-grid">
+
+          <article class="priority-card">
+            <span class="priority-title">
+              TOP VILLES
+            </span>
+
+            <div id="priority-cities">
+              Chargement...
+            </div>
+          </article>
+
+          <article class="priority-card">
+            <span class="priority-title">
+              APPAREILS
+            </span>
+
+            <div id="priority-devices">
+              Chargement...
+            </div>
+          </article>
+
+          <article class="priority-card">
+            <span class="priority-title">
+              TENDANCE
+            </span>
+
+            <div id="priority-trend">
+              Analyse en cours...
+            </div>
+          </article>
+
+        </div>
+
+      </section>
+
     </section>
 
-    <section id="tab-moderation" class="admin-tab-panel">
+    <!-- ================================================= -->
+    <!-- ADMIN -->
+    <!-- ================================================= -->
+
+    <section
+      id="tab-moderation"
+      class="admin-tab-panel"
+    >
+
       <section class="toolbar">
+
         <input
           type="search"
           id="search-input"
@@ -140,25 +257,42 @@
           <option value="Dédicace">Dédicace</option>
           <option value="Autre">Autre</option>
         </select>
+
       </section>
 
       <section class="admin-panel">
+
         <div class="section-head">
           <h3>SUPERVISION</h3>
           <span id="events-count">0 éléments</span>
         </div>
 
-        <div id="events-container" class="events-container"></div>
+        <div
+          id="events-container"
+          class="events-container"
+        ></div>
+
       </section>
+
     </section>
 
-    <section id="tab-social" class="admin-tab-panel">
+    <!-- ================================================= -->
+    <!-- SOCIAL -->
+    <!-- ================================================= -->
+
+    <section
+      id="tab-social"
+      class="admin-tab-panel"
+    >
+
       <section class="social-grid">
+
         <article class="social-card">
+
           <h3>Instagram IA</h3>
 
           <p>
-            Générer des idées de publication pour les événements.
+            Générer des idées de publication.
           </p>
 
           <textarea
@@ -167,24 +301,34 @@
             placeholder="Texte IA futur..."
           ></textarea>
 
-          <button class="cyber-btn-primary" type="button">
+          <button
+            class="cyber-btn-primary"
+            type="button"
+          >
             Générer
           </button>
+
         </article>
 
         <article class="social-card">
+
           <h3>Scraper / Import</h3>
 
           <p>
-            Zone future pour import automatique d’événements.
+            Zone future pour import automatique.
           </p>
 
-          <button class="cyber-btn-secondary" type="button">
+          <button
+            class="cyber-btn-secondary"
+            type="button"
+          >
             Import CSV
           </button>
+
         </article>
 
         <article class="social-card">
+
           <h3>Planning Réseaux</h3>
 
           <p>
@@ -192,48 +336,86 @@
           </p>
 
           <div id="social-upcoming"></div>
+
         </article>
+
       </section>
+
     </section>
 
   </section>
+
 </main>
 
+<!-- ===================================================== -->
+<!-- MODAL -->
+<!-- ===================================================== -->
+
 <div id="edit-modal" class="edit-modal hidden">
+
   <div class="edit-panel">
+
     <div class="edit-header">
+
       <h3>ÉDITION ÉVÉNEMENT</h3>
 
-      <button id="close-edit-modal" class="close-modal" type="button">
+      <button
+        id="close-edit-modal"
+        class="close-modal"
+        type="button"
+      >
         ✕
       </button>
+
     </div>
 
     <form id="edit-form" class="edit-form">
+
       <input type="hidden" id="edit-id" />
 
       <div class="admin-image-manager">
-        <div id="edit-image-preview" class="admin-image-preview">
+
+        <div
+          id="edit-image-preview"
+          class="admin-image-preview"
+        >
           <span>Aucune affiche</span>
         </div>
 
         <div class="admin-image-actions">
+
           <label class="admin-upload-box">
-            <input id="edit-image-file" type="file" accept="image/*" />
+
+            <input
+              id="edit-image-file"
+              type="file"
+              accept="image/*"
+            />
 
             <span>🖼️</span>
             <strong>Remplacer l’affiche</strong>
+
           </label>
 
-          <input id="edit-image-url" placeholder="URL image" />
+          <input
+            id="edit-image-url"
+            placeholder="URL image"
+          />
 
-          <button id="remove-edit-image" class="cyber-btn-danger" type="button">
+          <button
+            id="remove-edit-image"
+            class="cyber-btn-danger"
+            type="button"
+          >
             Supprimer image
           </button>
+
         </div>
+
       </div>
 
       <div class="form-grid">
+
         <input id="edit-title" placeholder="Titre" />
 
         <select id="edit-type">
@@ -250,17 +432,31 @@
         <input id="edit-end-date" type="date" />
 
         <input id="edit-website" placeholder="Site officiel" />
+
       </div>
 
-      <textarea id="edit-description" rows="6" placeholder="Description"></textarea>
+      <textarea
+        id="edit-description"
+        rows="6"
+        placeholder="Description"
+      ></textarea>
 
       <div class="edit-actions">
-        <button type="button" id="save-edit-btn" class="cyber-btn-primary">
+
+        <button
+          type="button"
+          id="save-edit-btn"
+          class="cyber-btn-primary"
+        >
           ENREGISTRER
         </button>
+
       </div>
+
     </form>
+
   </div>
+
 </div>
 
 <div id="toast-container" class="toast-container"></div>
