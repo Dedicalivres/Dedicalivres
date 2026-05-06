@@ -1,6 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V9 CYBER CONTROL + IMAGE MANAGER
-   PARTIE 1/3
+   DÉDICALIVRES — ADMIN V10 CYBER CONTROL ONGLET + IMAGE MANAGER
 ========================================================= */
 
 "use strict";
@@ -9,12 +8,7 @@
 
 const config = window.DEDICALIVRES_CONFIG;
 
-if (
-  !config ||
-  !config.supabaseUrl ||
-  !config.supabaseAnonKey ||
-  !window.supabase
-) {
+if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
   alert("Configuration Supabase introuvable.");
   throw new Error("Supabase config missing");
 }
@@ -47,27 +41,24 @@ const statsPending = document.getElementById("stats-pending");
 const statsNewsletter = document.getElementById("stats-newsletter");
 const statsVisits = document.getElementById("stats-visits");
 
-/* EDIT MODAL */
-
 const editModal = document.getElementById("edit-modal");
-
-const editId = document.getElementById("edit-id");
-const editTitle = document.getElementById("edit-title");
-const editType = document.getElementById("edit-type");
-const editCity = document.getElementById("edit-city");
-const editRegion = document.getElementById("edit-region");
-const editStartDate = document.getElementById("edit-start-date");
-const editEndDate = document.getElementById("edit-end-date");
-const editWebsite = document.getElementById("edit-website");
-const editDescription = document.getElementById("edit-description");
-
-const editImagePreview = document.getElementById("edit-image-preview");
-const editImageFile = document.getElementById("edit-image-file");
-const editImageUrl = document.getElementById("edit-image-url");
-const removeEditImageBtn = document.getElementById("remove-edit-image");
-
-const saveEditBtn = document.getElementById("save-edit-btn");
+const editForm = document.getElementById("edit-form");
 const closeEditModalBtn = document.getElementById("close-edit-modal");
+
+let editId = document.getElementById("edit-id");
+let editTitle = document.getElementById("edit-title");
+let editType = document.getElementById("edit-type");
+let editCity = document.getElementById("edit-city");
+let editRegion = document.getElementById("edit-region");
+let editStartDate = document.getElementById("edit-start-date");
+let editEndDate = document.getElementById("edit-end-date");
+let editWebsite = document.getElementById("edit-website");
+let editDescription = document.getElementById("edit-description");
+let editImagePreview = document.getElementById("edit-image-preview");
+let editImageFile = document.getElementById("edit-image-file");
+let editImageUrl = document.getElementById("edit-image-url");
+let removeEditImageBtn = document.getElementById("remove-edit-image");
+let saveEditBtn = document.getElementById("save-edit-btn");
 
 /* STATE */
 
@@ -81,7 +72,9 @@ let selectedAdminImageFile = null;
 init();
 
 async function init() {
+  ensureEditFields();
   bindEvents();
+  bindTabs();
 
   const { data } = await supabaseClient.auth.getSession();
 
@@ -109,21 +102,15 @@ function bindEvents() {
 
   closeEditModalBtn?.addEventListener("click", closeEditModal);
   saveEditBtn?.addEventListener("click", saveEdition);
-
   removeEditImageBtn?.addEventListener("click", removeEditImage);
-
   editImageFile?.addEventListener("change", handleAdminImagePreview);
 
   editModal?.addEventListener("click", (event) => {
-    if (event.target === editModal) {
-      closeEditModal();
-    }
+    if (event.target === editModal) closeEditModal();
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeEditModal();
-    }
+    if (event.key === "Escape") closeEditModal();
   });
 }
 
@@ -131,8 +118,6 @@ function bindEvents() {
 
 async function handleLogin(event) {
   event.preventDefault();
-
-  if (!loginFeedback) return;
 
   loginFeedback.textContent = "";
 
@@ -176,10 +161,8 @@ async function handleLogin(event) {
 
 async function logout() {
   await supabaseClient.auth.signOut();
-
   dashboard?.classList.add("hidden");
   loginScreen?.classList.remove("hidden");
-
   showToast("Déconnecté");
 }
 
@@ -203,6 +186,7 @@ async function loadDashboard() {
 
   updateStats();
   renderEvents();
+  renderSocialUpcoming();
   initMap();
 
   setTimeout(() => {
@@ -230,22 +214,13 @@ async function loadNewsletterCount() {
   try {
     const { count, error } = await supabaseClient
       .from("newsletter_subscribers")
-      .select("*", {
-        count: "exact",
-        head: true
-      });
+      .select("*", { count: "exact", head: true });
 
     if (error) throw error;
-
-    if (statsNewsletter) {
-      statsNewsletter.textContent = count || 0;
-    }
+    if (statsNewsletter) statsNewsletter.textContent = count || 0;
   } catch (error) {
     console.warn("Newsletter indisponible :", error);
-
-    if (statsNewsletter) {
-      statsNewsletter.textContent = "0";
-    }
+    if (statsNewsletter) statsNewsletter.textContent = "0";
   }
 }
 
@@ -256,16 +231,10 @@ async function loadVisitsCount() {
     try {
       const { count, error } = await supabaseClient
         .from(table)
-        .select("*", {
-          count: "exact",
-          head: true
-        });
+        .select("*", { count: "exact", head: true });
 
       if (!error) {
-        if (statsVisits) {
-          statsVisits.textContent = count || 0;
-        }
-
+        if (statsVisits) statsVisits.textContent = count || 0;
         return;
       }
     } catch {
@@ -273,35 +242,86 @@ async function loadVisitsCount() {
     }
   }
 
-  if (statsVisits) {
-    statsVisits.textContent = "0";
-  }
+  if (statsVisits) statsVisits.textContent = "0";
 }
 
 function updateStats() {
-  const pending = allEvents.filter(
-    (event) => !event.validated && !event.rejected
-  );
+  const pending = allEvents.filter((event) => !event.validated && !event.rejected);
 
-  if (statsEvents) {
-    statsEvents.textContent = allEvents.length;
-  }
+  if (statsEvents) statsEvents.textContent = allEvents.length;
+  if (statsPending) statsPending.textContent = pending.length;
 
-  if (statsPending) {
-    statsPending.textContent = pending.length;
-  }
+  const filteredCount = getFilteredEvents().length;
 
   if (eventsCount) {
-    eventsCount.textContent =
-      `${getFilteredEvents().length} élément${getFilteredEvents().length > 1 ? "s" : ""}`;
+    eventsCount.textContent = `${filteredCount} élément${filteredCount > 1 ? "s" : ""}`;
   }
 }
-/* =========================================================
-   DÉDICALIVRES — ADMIN V9 CYBER CONTROL + IMAGE MANAGER
-   PARTIE 2/3
-========================================================= */
 
-/* RENDER EVENTS */
+/* ONGLETS ADMIN V10 */
+
+function bindTabs() {
+  const tabs = document.querySelectorAll(".admin-tab");
+  const panels = document.querySelectorAll(".admin-tab-panel");
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.tab;
+
+      tabs.forEach((item) => item.classList.remove("active"));
+      panels.forEach((panel) => panel.classList.remove("active"));
+
+      tab.classList.add("active");
+      document.getElementById(`tab-${target}`)?.classList.add("active");
+
+      if (target === "overview") {
+        setTimeout(() => {
+          map?.invalidateSize();
+        }, 250);
+      }
+    });
+  });
+
+  bindMobileSwipeTabs();
+}
+
+function bindMobileSwipeTabs() {
+  const wrapper = document.querySelector(".tabs-wrapper");
+  if (!wrapper) return;
+
+  let startX = 0;
+  let endX = 0;
+
+  wrapper.addEventListener(
+    "touchstart",
+    (event) => {
+      startX = event.changedTouches[0].screenX;
+    },
+    { passive: true }
+  );
+
+  wrapper.addEventListener(
+    "touchend",
+    (event) => {
+      endX = event.changedTouches[0].screenX;
+      handleSwipeTabs();
+    },
+    { passive: true }
+  );
+
+  function handleSwipeTabs() {
+    const delta = endX - startX;
+    if (Math.abs(delta) < 60) return;
+
+    const tabs = [...document.querySelectorAll(".admin-tab")];
+    const activeIndex = tabs.findIndex((tab) => tab.classList.contains("active"));
+
+    if (delta < 0) tabs[activeIndex + 1]?.click();
+    else tabs[activeIndex - 1]?.click();
+  }
+}
+
+/* FILTERS */
 
 function getFilteredEvents() {
   const search = normalize(searchInput?.value || "");
@@ -309,47 +329,32 @@ function getFilteredEvents() {
   const type = filterType?.value || "";
 
   return allEvents.filter((event) => {
-
     const haystack = normalize([
       event.title,
       event.city,
       event.region,
-      event.description
+      event.description,
+      event.type
     ].join(" "));
 
-    if (search && !haystack.includes(search)) {
-      return false;
-    }
+    if (search && !haystack.includes(search)) return false;
+    if (type && event.type !== type) return false;
 
-    if (type && event.type !== type) {
-      return false;
-    }
-
-    if (status === "pending") {
-      return !event.validated && !event.rejected;
-    }
-
-    if (status === "validated") {
-      return !!event.validated;
-    }
-
-    if (status === "featured") {
-      return !!event.featured;
-    }
-
-    if (status === "missing-image") {
-      return !event.image_url;
-    }
+    if (status === "pending") return !event.validated && !event.rejected;
+    if (status === "validated") return !!event.validated;
+    if (status === "featured") return !!event.featured;
+    if (status === "missing-image") return !event.image_url;
 
     return true;
   });
 }
 
+/* RENDER EVENTS */
+
 function renderEvents() {
   if (!eventsContainer) return;
 
   const events = getFilteredEvents();
-
   updateStats();
 
   if (!events.length) {
@@ -361,21 +366,17 @@ function renderEvents() {
     return;
   }
 
-  eventsContainer.innerHTML = events
-    .map(renderEventCard)
-    .join("");
-
+  eventsContainer.innerHTML = events.map(renderEventCard).join("");
   bindEventActions();
 }
 
 function renderEventCard(event) {
-
   const image = event.image_url
     ? `
       <img
         class="event-admin-thumb"
         src="${escapeHtml(event.image_url)}"
-        alt="${escapeHtml(event.title)}"
+        alt="${escapeHtml(event.title || "Événement")}"
       />
     `
     : `
@@ -390,38 +391,28 @@ function renderEventCard(event) {
       ${image}
 
       <div>
-
         <div class="event-title">
           ${escapeHtml(event.title || "Sans titre")}
         </div>
 
         <div class="event-meta">
-
-          <span>
-            📍 ${escapeHtml(event.city || "Ville inconnue")}
-          </span>
-
-          <span>
-            📅 ${formatDate(event.start_date)}
-          </span>
-
-          <span>
-            🏷️ ${escapeHtml(event.type || "Autre")}
-          </span>
-
+          <span>📍 ${escapeHtml(event.city || "Ville inconnue")}</span>
+          <span>📅 ${formatDate(event.start_date)}</span>
+          <span>🏷️ ${escapeHtml(event.type || "Autre")}</span>
         </div>
 
         <div class="event-badges">
-
           ${
             !event.validated && !event.rejected
               ? `<span class="badge pending">EN ATTENTE</span>`
               : ""
           }
 
+          ${event.validated ? `<span class="badge">VALIDÉ</span>` : ""}
+
           ${
-            event.validated
-              ? `<span class="badge">VALIDÉ</span>`
+            event.rejected
+              ? `<span class="badge rejected">REJETÉ</span>`
               : ""
           }
 
@@ -436,45 +427,25 @@ function renderEventCard(event) {
               ? `<span class="badge missing-image">SANS IMAGE</span>`
               : ""
           }
-
         </div>
-
       </div>
 
       <div class="event-actions">
-
-        <button
-          class="event-action validate"
-          data-action="validate"
-          data-id="${event.id}"
-        >
+        <button class="event-action validate" data-action="validate" data-id="${event.id}">
           ✔ Valider
         </button>
 
-        <button
-          class="event-action reject"
-          data-action="reject"
-          data-id="${event.id}"
-        >
+        <button class="event-action reject" data-action="reject" data-id="${event.id}">
           ✖ Rejeter
         </button>
 
-        <button
-          class="event-action featured"
-          data-action="featured"
-          data-id="${event.id}"
-        >
+        <button class="event-action featured" data-action="featured" data-id="${event.id}">
           ★ Feature
         </button>
 
-        <button
-          class="event-action edit"
-          data-action="edit"
-          data-id="${event.id}"
-        >
+        <button class="event-action edit" data-action="edit" data-id="${event.id}">
           ✎ Modifier
         </button>
-
       </div>
 
     </article>
@@ -482,43 +453,24 @@ function renderEventCard(event) {
 }
 
 function bindEventActions() {
+  document.querySelectorAll("[data-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const action = button.dataset.action;
+      const id = button.dataset.id;
 
-  document
-    .querySelectorAll("[data-action]")
-    .forEach((button) => {
+      if (!id) return;
 
-      button.addEventListener("click", async () => {
-
-        const action = button.dataset.action;
-        const id = button.dataset.id;
-
-        if (!id) return;
-
-        if (action === "validate") {
-          await validateEvent(id);
-        }
-
-        if (action === "reject") {
-          await rejectEvent(id);
-        }
-
-        if (action === "featured") {
-          await toggleFeatured(id);
-        }
-
-        if (action === "edit") {
-          openEditModal(id);
-        }
-
-      });
-
+      if (action === "validate") await validateEvent(id);
+      if (action === "reject") await rejectEvent(id);
+      if (action === "featured") await toggleFeatured(id);
+      if (action === "edit") openEditModal(id);
     });
+  });
 }
 
-/* VALIDATION */
+/* ACTIONS */
 
 async function validateEvent(id) {
-
   const { error } = await supabaseClient
     .from("events")
     .update({
@@ -534,15 +486,11 @@ async function validateEvent(id) {
   }
 
   await loadDashboard();
-
   showToast("Événement validé");
 }
 
 async function rejectEvent(id) {
-
-  const confirmed =
-    confirm("Rejeter cet événement ?");
-
+  const confirmed = confirm("Rejeter cet événement ?");
   if (!confirmed) return;
 
   const { error } = await supabaseClient
@@ -560,16 +508,11 @@ async function rejectEvent(id) {
   }
 
   await loadDashboard();
-
   showToast("Événement rejeté");
 }
 
 async function toggleFeatured(id) {
-
-  const event = allEvents.find(
-    (item) => String(item.id) === String(id)
-  );
-
+  const event = allEvents.find((item) => String(item.id) === String(id));
   if (!event) return;
 
   const { error } = await supabaseClient
@@ -586,39 +529,23 @@ async function toggleFeatured(id) {
   }
 
   await loadDashboard();
-
-  showToast(
-    !event.featured
-      ? "Événement mis en avant"
-      : "Mise en avant retirée"
-  );
+  showToast(!event.featured ? "Événement mis en avant" : "Mise en avant retirée");
 }
 
 /* MAP */
 
 function initMap() {
-
   if (!window.L) return;
 
-  const mapElement =
-    document.getElementById("admin-map");
-
+  const mapElement = document.getElementById("admin-map");
   if (!mapElement) return;
 
   if (!map) {
+    map = L.map("admin-map").setView([46.603354, 1.888334], 6);
 
-    map = L.map("admin-map").setView(
-      [46.603354, 1.888334],
-      6
-    );
-
-    L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        attribution:
-          "&copy; OpenStreetMap contributors"
-      }
-    ).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
 
     markersLayer = L.layerGroup().addTo(map);
   }
@@ -626,7 +553,6 @@ function initMap() {
   markersLayer.clearLayers();
 
   allEvents.forEach((event) => {
-
     if (
       !Number.isFinite(Number(event.lat)) ||
       !Number.isFinite(Number(event.lng))
@@ -634,24 +560,22 @@ function initMap() {
       return;
     }
 
-    const marker = L.circleMarker(
-      [Number(event.lat), Number(event.lng)],
-      {
-        radius: 7,
-        color: getMarkerColor(event),
-        fillColor: getMarkerColor(event),
-        fillOpacity: .85
-      }
-    );
+    const marker = L.circleMarker([Number(event.lat), Number(event.lng)], {
+      radius: 7,
+      color: getMarkerColor(event),
+      fillColor: getMarkerColor(event),
+      fillOpacity: 0.85
+    });
 
     marker.bindPopup(`
-      <strong>${escapeHtml(event.title)}</strong>
+      <strong>${escapeHtml(event.title || "Événement")}</strong>
       <br>
       ${escapeHtml(event.city || "")}
+      <br>
+      ${escapeHtml(event.type || "")}
     `);
 
     marker.addTo(markersLayer);
-
   });
 
   setTimeout(() => {
@@ -660,100 +584,59 @@ function initMap() {
 }
 
 function getMarkerColor(event) {
-
-  if (event.type === "Salon") {
-    return "#bc7dff";
-  }
-
-  if (event.type === "Festival") {
-    return "#ff9e44";
-  }
-
-  if (event.type === "Dédicace") {
-    return "#19ff9c";
-  }
-
+  if (event.type === "Salon") return "#bc7dff";
+  if (event.type === "Festival") return "#ff9e44";
+  if (event.type === "Dédicace") return "#19ff9c";
   return "#00dcff";
 }
-/* =========================================================
-   DÉDICALIVRES — ADMIN V9 CYBER CONTROL + IMAGE MANAGER
-   PARTIE 3/3
-========================================================= */
 
 /* EDITION */
 
 function openEditModal(id) {
+  ensureEditFields();
 
-  const event = allEvents.find(
-    (item) => String(item.id) === String(id)
-  );
-
+  const event = allEvents.find((item) => String(item.id) === String(id));
   if (!event) return;
 
   editId.value = event.id || "";
-
   editTitle.value = event.title || "";
   editType.value = event.type || "Autre";
   editCity.value = event.city || "";
   editRegion.value = event.region || "";
-
-  editStartDate.value =
-    event.start_date || "";
-
-  editEndDate.value =
-    event.end_date || "";
-
-  editWebsite.value =
-    event.website || "";
-
-  editDescription.value =
-    event.description || "";
-
-  editImageUrl.value =
-    event.image_url || "";
+  editStartDate.value = event.start_date || "";
+  editEndDate.value = event.end_date || "";
+  editWebsite.value = event.website || "";
+  editDescription.value = event.description || "";
+  editImageUrl.value = event.image_url || "";
 
   selectedAdminImageFile = null;
-
-  renderEditImagePreview(
-    event.image_url
-  );
+  renderEditImagePreview(event.image_url);
 
   editModal?.classList.remove("hidden");
 }
 
 function closeEditModal() {
   editModal?.classList.add("hidden");
-
   selectedAdminImageFile = null;
+
+  if (editImageFile) editImageFile.value = "";
 }
 
 function renderEditImagePreview(url) {
-
   if (!editImagePreview) return;
 
   if (!url) {
-
-    editImagePreview.innerHTML = `
-      <span>Aucune affiche</span>
-    `;
-
+    editImagePreview.innerHTML = `<span>Aucune affiche</span>`;
     return;
   }
 
   editImagePreview.innerHTML = `
-    <img
-      src="${escapeHtml(url)}"
-      alt="Affiche événement"
-    />
+    <img src="${escapeHtml(url)}" alt="Affiche événement" />
   `;
 }
 
-/* IMAGE ADMIN */
-
 function handleAdminImagePreview(event) {
-
-  const file =
-    event.target.files?.[0];
+  const file = event.target.files?.[0];
 
   if (!file) return;
 
@@ -772,33 +655,22 @@ function handleAdminImagePreview(event) {
   const reader = new FileReader();
 
   reader.onload = (e) => {
-
-    renderEditImagePreview(
-      e.target.result
-    );
-
+    renderEditImagePreview(e.target.result);
   };
 
   reader.readAsDataURL(file);
 }
 
 function removeEditImage() {
-
   editImageUrl.value = "";
-
   selectedAdminImageFile = null;
 
-  if (editImageFile) {
-    editImageFile.value = "";
-  }
+  if (editImageFile) editImageFile.value = "";
 
   renderEditImagePreview("");
 }
 
-/* SAVE EDITION */
-
 async function saveEdition() {
-
   const id = editId.value;
 
   if (!id) return;
@@ -807,16 +679,10 @@ async function saveEdition() {
   saveEditBtn.textContent = "Enregistrement...";
 
   try {
-
-    let imageUrl =
-      editImageUrl.value.trim();
+    let imageUrl = editImageUrl.value.trim();
 
     if (selectedAdminImageFile) {
-
-      imageUrl =
-        await uploadAdminImage(
-          selectedAdminImageFile
-        );
+      imageUrl = await uploadAdminImage(selectedAdminImageFile);
     }
 
     const payload = {
@@ -824,170 +690,189 @@ async function saveEdition() {
       type: editType.value,
       city: editCity.value.trim(),
       region: editRegion.value.trim(),
-
-      start_date:
-        editStartDate.value || null,
-
-      end_date:
-        editEndDate.value || null,
-
-      website:
-        editWebsite.value.trim(),
-
-      description:
-        editDescription.value.trim(),
-
-      image_url:
-        imageUrl || null
+      start_date: editStartDate.value || null,
+      end_date: editEndDate.value || null,
+      website: editWebsite.value.trim(),
+      description: editDescription.value.trim(),
+      image_url: imageUrl || null
     };
 
-    const { error } =
-      await supabaseClient
-        .from("events")
-        .update(payload)
-        .eq("id", id);
+    const { error } = await supabaseClient
+      .from("events")
+      .update(payload)
+      .eq("id", id);
 
     if (error) throw error;
 
     await loadDashboard();
-
     closeEditModal();
-
     showToast("Événement modifié");
-
   } catch (error) {
-
     console.error(error);
-
-    showToast(
-      "Erreur pendant l’enregistrement"
-    );
-
+    showToast("Erreur pendant l’enregistrement");
   } finally {
-
     saveEditBtn.disabled = false;
     saveEditBtn.textContent = "ENREGISTRER";
   }
 }
 
-/* UPLOAD IMAGE */
+/* IMAGE UPLOAD */
 
 async function uploadAdminImage(file) {
+  const compressed = await compressImage(file);
 
-  const compressed =
-    await compressImage(file);
+  const fileName = `${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}.jpg`;
 
-  const extension =
-    (
-      compressed.name
-        .split(".")
-        .pop() || "jpg"
-    )
-    .toLowerCase();
-
-  const fileName =
-    `${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}.${extension}`;
-
-  const { error } =
-    await supabaseClient
-      .storage
-      .from("event-images")
-      .upload(
-        fileName,
-        compressed
-      );
+  const { error } = await supabaseClient
+    .storage
+    .from("event-images")
+    .upload(fileName, compressed, {
+      cacheControl: "3600",
+      upsert: false
+    });
 
   if (error) throw error;
 
-  const { data } =
-    supabaseClient
-      .storage
-      .from("event-images")
-      .getPublicUrl(fileName);
+  const { data } = supabaseClient
+    .storage
+    .from("event-images")
+    .getPublicUrl(fileName);
 
   return data.publicUrl;
 }
 
 async function compressImage(file) {
-
   return new Promise((resolve) => {
-
     const image = new Image();
 
     image.onload = () => {
-
-      const canvas =
-        document.createElement("canvas");
+      const canvas = document.createElement("canvas");
 
       const maxWidth = 1600;
+      const ratio = Math.min(1, maxWidth / image.width);
 
-      const ratio =
-        Math.min(
-          1,
-          maxWidth / image.width
-        );
+      canvas.width = image.width * ratio;
+      canvas.height = image.height * ratio;
 
-      canvas.width =
-        image.width * ratio;
+      const ctx = canvas.getContext("2d");
 
-      canvas.height =
-        image.height * ratio;
-
-      const ctx =
-        canvas.getContext("2d");
-
-      ctx.drawImage(
-        image,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
       canvas.toBlob(
         (blob) => {
-
           if (!blob) {
             resolve(file);
             return;
           }
 
           resolve(
-            new File(
-              [blob],
-              file.name,
-              {
-                type: "image/jpeg"
-              }
-            )
+            new File([blob], "event-image.jpg", {
+              type: "image/jpeg"
+            })
           );
-
         },
         "image/jpeg",
         0.86
       );
-
     };
 
-    image.src =
-      URL.createObjectURL(file);
-
+    image.src = URL.createObjectURL(file);
   });
+}
+
+/* SOCIAL TAB */
+
+function renderSocialUpcoming() {
+  const container = document.getElementById("social-upcoming");
+  if (!container) return;
+
+  const upcoming = [...allEvents]
+    .filter((event) => event.validated && !event.rejected && event.start_date)
+    .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+    .slice(0, 6);
+
+  if (!upcoming.length) {
+    container.innerHTML = `<p class="muted">Aucun événement à venir.</p>`;
+    return;
+  }
+
+  container.innerHTML = upcoming
+    .map((event) => `
+      <div class="social-mini-item">
+        <strong>${escapeHtml(event.title || "Sans titre")}</strong>
+        <span>${formatDate(event.start_date)} — ${escapeHtml(event.city || "")}</span>
+      </div>
+    `)
+    .join("");
+}
+
+/* FALLBACK EDIT FIELDS */
+
+function ensureEditFields() {
+  if (!editForm) return;
+
+  if (!document.getElementById("edit-title")) {
+    editForm.insertAdjacentHTML(
+      "beforeend",
+      `
+      <div class="form-grid">
+        <input id="edit-title" placeholder="Titre" />
+
+        <select id="edit-type">
+          <option>Salon</option>
+          <option>Festival</option>
+          <option>Dédicace</option>
+          <option>Autre</option>
+        </select>
+
+        <input id="edit-city" placeholder="Ville" />
+        <input id="edit-region" placeholder="Région" />
+
+        <input id="edit-start-date" type="date" />
+        <input id="edit-end-date" type="date" />
+
+        <input id="edit-website" placeholder="Site officiel" />
+      </div>
+
+      <textarea id="edit-description" rows="6" placeholder="Description"></textarea>
+
+      <div class="edit-actions">
+        <button type="button" id="save-edit-btn" class="cyber-btn-primary">
+          ENREGISTRER
+        </button>
+      </div>
+      `
+    );
+  }
+
+  editId = document.getElementById("edit-id");
+  editTitle = document.getElementById("edit-title");
+  editType = document.getElementById("edit-type");
+  editCity = document.getElementById("edit-city");
+  editRegion = document.getElementById("edit-region");
+  editStartDate = document.getElementById("edit-start-date");
+  editEndDate = document.getElementById("edit-end-date");
+  editWebsite = document.getElementById("edit-website");
+  editDescription = document.getElementById("edit-description");
+  editImagePreview = document.getElementById("edit-image-preview");
+  editImageFile = document.getElementById("edit-image-file");
+  editImageUrl = document.getElementById("edit-image-url");
+  removeEditImageBtn = document.getElementById("remove-edit-image");
+  saveEditBtn = document.getElementById("save-edit-btn");
+
+  saveEditBtn?.removeEventListener("click", saveEdition);
+  saveEditBtn?.addEventListener("click", saveEdition);
 }
 
 /* TOAST */
 
 function showToast(message) {
-
-  const container =
-    document.getElementById("toast-container");
-
+  const container = document.getElementById("toast-container");
   if (!container) return;
 
-  const toast =
-    document.createElement("div");
+  const toast = document.createElement("div");
 
   toast.className = "toast";
   toast.textContent = message;
@@ -1002,29 +887,20 @@ function showToast(message) {
 /* HELPERS */
 
 function formatDate(value) {
-
   if (!value) return "";
 
   try {
-
-    return new Intl.DateTimeFormat(
-      "fr-FR",
-      {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      }
-    ).format(
-      new Date(value)
-    );
-
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    }).format(new Date(value));
   } catch {
     return value;
   }
 }
 
 function normalize(value) {
-
   return (value || "")
     .toString()
     .normalize("NFD")
@@ -1033,7 +909,6 @@ function normalize(value) {
 }
 
 function escapeHtml(value) {
-
   return (value || "")
     .toString()
     .replace(/&/g, "&amp;")
@@ -1041,7 +916,3 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
-
-/* =========================================================
-   FIN ADMIN V9
-========================================================= */
