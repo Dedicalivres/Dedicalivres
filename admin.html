@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-<title>Dédicalivres — Cyber Dashboard V5</title>
+<title>Dédicalivres — Cyber Dashboard V6</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,13 +13,15 @@
 
 <link rel="stylesheet" href="admin.css"/>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="config.js"></script>
 </head>
 
 <body>
 
-<div class="cyber-bg"></div>
+<div class="cyber-grid"></div>
 
 <section id="login-screen" class="login-screen">
 
@@ -27,15 +29,15 @@
 
     <div class="cyber-logo">
       <span>DÉDICALIVRES</span>
-      <small>CYBER DASHBOARD V5</small>
+      <small>CYBER DASHBOARD V6</small>
     </div>
 
-    <h1>Connexion Admin</h1>
+    <h1>Connexion administrateur</h1>
 
     <input
       type="email"
       id="admin-email"
-      placeholder="Email admin"
+      placeholder="Email"
       autocomplete="email"
     />
 
@@ -47,7 +49,7 @@
     />
 
     <button id="login-btn">
-      ACCÉDER AU DASHBOARD
+      ACCÉDER AU SYSTÈME
     </button>
 
     <p id="login-feedback"></p>
@@ -61,8 +63,13 @@
 <header class="topbar">
 
   <div class="topbar-left">
-    <h2>CYBER ADMIN</h2>
-    <p>Supervision temps réel Dédicalivres</p>
+
+    <h2>CYBER ADMIN V6</h2>
+
+    <p>
+      Supervision intelligente temps réel
+    </p>
+
   </div>
 
   <div class="topbar-right">
@@ -100,6 +107,30 @@
     <span class="stat-label">Newsletter</span>
     <strong id="stat-newsletter">0</strong>
   </article>
+
+</section>
+
+<section class="analytics-grid">
+
+  <div class="panel chart-panel">
+
+    <div class="panel-header">
+      <h3>Types d’événements</h3>
+    </div>
+
+    <canvas id="types-chart"></canvas>
+
+  </div>
+
+  <div class="panel chart-panel">
+
+    <div class="panel-header">
+      <h3>Activité plateforme</h3>
+    </div>
+
+    <canvas id="visits-chart"></canvas>
+
+  </div>
 
 </section>
 
