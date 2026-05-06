@@ -3,7 +3,12 @@
 
   const config = window.DEDICALIVRES_CONFIG;
 
-  if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
+  if (
+    !config ||
+    !config.supabaseUrl ||
+    !config.supabaseAnonKey ||
+    !window.supabase
+  ) {
     console.error("Configuration Supabase manquante.");
     return;
   }
@@ -15,6 +20,7 @@
 
   const eventsGrid = document.getElementById("events-grid");
   const resultsCount = document.getElementById("results-count");
+
   const form = document.getElementById("submission-form");
   const formFeedback = document.getElementById("form-feedback");
 
@@ -23,1011 +29,837 @@
   const typeFilter = document.getElementById("type-filter");
   const dateFilter = document.getElementById("date-filter");
 
-  const mobileMapToggle = document.getElementById("mobile-map-toggle");
-  const locateMeButton = document.getElementById("locate-me");
-  const mapPanel = document.querySelector(".map-panel");
+  const mobileMapToggle =
+    document.getElementById("mobile-map-toggle");
 
-  const cityInput = document.getElementById("city-input");
-  const citySuggestions = document.getElementById("city-suggestions");
-  const cityLatInput = document.getElementById("city-lat");
-  const cityLngInput = document.getElementById("city-lng");
-  const cityHelp = document.getElementById("city-help");
-  const regionSubmit = document.getElementById("region-submit");
+  const locateMeButton =
+    document.getElementById("locate-me");
 
-  const TYPE_META = {
-    "Salon": { className: "type-salon", color: "#3a1c71" },
-    "Festival": { className: "type-festival", color: "#ff6b35" },
-    "Dédicace": { className: "type-dedicace", color: "#16803c" },
-    "Autre": { className: "type-autre", color: "#2f6fed" }
-  };
+  const mapPanel =
+    document.getElementById("map-panel");
+
+  const cityInput =
+    document.getElementById("city-input");
+
+  const citySuggestions =
+    document.getElementById("city-suggestions");
+
+  const cityLatInput =
+    document.getElementById("city-lat");
+
+  const cityLngInput =
+    document.getElementById("city-lng");
+
+  const cityHelp =
+    document.getElementById("city-help");
 
   let map;
   let markersLayer;
-  let userMarker;
-  let userPosition = null;
-  let markerByEventId = {};
   let allEvents = [];
-  let cityResults = [];
-  let citySearchTimer;
-  let newsletterSubmitting = false;
+  let markerByEventId = {};
+  let userPosition = null;
+  let selectedPreviewImage = null;
+
+  const TYPE_META = {
+    Salon: {
+      className: "type-salon",
+      color: "#3a1c71"
+    },
+
+    Festival: {
+      className: "type-festival",
+      color: "#ff6b35"
+    },
+
+    Dédicace: {
+      className: "type-dedicace",
+      color: "#16803c"
+    },
+
+    Autre: {
+      className: "type-autre",
+      color: "#2f6fed"
+    }
+  };
 
   init();
 
   function init() {
-    document.body.classList.add("dedicalivres-v5");
-
-    trackVisit();
-    initMap();
     bindEvents();
-    initMobileMapState();
-    bindCityAutocomplete();
+    bindImagePreview();
     populateMonthFilter();
-    applyPageModeToFilters();
+    initMap();
     loadEvents();
-    bindNewsletterForm();
-  }
 
-  async function trackVisit() {
-    try {
-      const sessionKey = `dedicalivres_visit_${location.pathname}`;
-      if (sessionStorage.getItem(sessionKey)) return;
-
-      sessionStorage.setItem(sessionKey, "1");
-
-      await supabaseClient.from("visits").insert([{
-        page: document.title || "Dédicalivres",
-        path: location.pathname || "/",
-        referrer: document.referrer || null,
-        user_agent: navigator.userAgent || null
-      }]);
-    } catch (error) {
-      console.warn("Compteur de visite non enregistré :", error);
+    if (window.innerWidth <= 1080 && mapPanel) {
+      mapPanel.classList.remove("is-open");
     }
   }
 
   function bindEvents() {
-    document.getElementById("apply-filters")?.addEventListener("click", renderFilteredEvents);
-    document.getElementById("reset-filters")?.addEventListener("click", resetFilters);
+    document
+      .getElementById("apply-filters")
+      ?.addEventListener("click", renderFilteredEvents);
 
-    [regionFilter, typeFilter, dateFilter].forEach((input) => {
-      input?.addEventListener("change", renderFilteredEvents);
-    });
+    document
+      .getElementById("reset-filters")
+      ?.addEventListener("click", resetFilters);
 
-    searchInput?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") renderFilteredEvents();
-    });
+    form?.addEventListener(
+      "submit",
+      handleFormSubmit
+    );
 
-    form?.addEventListener("submit", handleFormSubmit);
+    mobileMapToggle?.addEventListener(
+      "click",
+      toggleMobileMap
+    );
 
-    mobileMapToggle?.addEventListener("click", () => {
-      if (!mapPanel) return;
+    locateMeButton?.addEventListener(
+      "click",
+      locateUser
+    );
 
-      mapPanel.classList.toggle("is-open");
+    [regionFilter, typeFilter, dateFilter]
+      .forEach((el) => {
+        el?.addEventListener(
+          "change",
+          renderFilteredEvents
+        );
+      });
 
-      const isOpen = mapPanel.classList.contains("is-open");
-      mobileMapToggle.textContent = isOpen ? "Masquer la carte" : "Afficher la carte";
-      mobileMapToggle.setAttribute("aria-expanded", String(isOpen));
+    searchInput?.addEventListener(
+      "input",
+      renderFilteredEvents
+    );
 
-      setTimeout(() => map?.invalidateSize(), 260);
-    });
-
-    locateMeButton?.addEventListener("click", locateUser);
-
-    window.addEventListener("resize", debounce(() => {
-      initMobileMapState(false);
-      setTimeout(() => map?.invalidateSize(), 120);
-    }, 160));
+    bindCityAutocomplete();
   }
 
-  function initMobileMapState(force = true) {
-    if (!mapPanel || !mobileMapToggle) return;
+  function toggleMobileMap() {
+    if (!mapPanel) return;
 
-    const isMobile = window.matchMedia("(max-width: 780px)").matches;
+    mapPanel.classList.toggle("is-open");
 
-    if (isMobile) {
-      if (force) mapPanel.classList.remove("is-open");
-      mobileMapToggle.textContent = mapPanel.classList.contains("is-open")
-        ? "Masquer la carte"
-        : "Afficher la carte";
-      mobileMapToggle.setAttribute(
-        "aria-expanded",
-        String(mapPanel.classList.contains("is-open"))
-      );
-      return;
-    }
+    if (mapPanel.classList.contains("is-open")) {
+      mobileMapToggle.textContent = "Fermer la carte";
 
-    mapPanel.classList.add("is-open");
-    mobileMapToggle.textContent = "Masquer la carte";
-    mobileMapToggle.setAttribute("aria-expanded", "true");
-  }
+      setTimeout(() => {
+        map?.invalidateSize();
+      }, 300);
 
-  function applyPageModeToFilters() {
-    const params = new URLSearchParams(location.search);
-    const mode = document.body.dataset.agendaMode || params.get("mode") || "global";
-    const forcedType = document.body.dataset.eventType || params.get("type") || "";
-
-    if (forcedType && typeFilter) {
-      typeFilter.value = forcedType;
-      typeFilter.disabled = true;
-      typeFilter.title = `Filtre automatique : ${forcedType}`;
-      return;
-    }
-
-    if (mode === "dedicaces" && typeFilter) {
-      typeFilter.value = "Dédicace";
-      typeFilter.disabled = true;
-      typeFilter.title = "Filtre automatique : Dédicaces";
+    } else {
+      mobileMapToggle.textContent = "Carte";
     }
   }
 
-  function getAllowedTypesFromPageMode() {
-    const params = new URLSearchParams(location.search);
-    const mode = document.body.dataset.agendaMode || params.get("mode") || "global";
-    const forcedType = document.body.dataset.eventType || params.get("type") || "";
+  function bindImagePreview() {
+    const input =
+      document.getElementById("event-image-input");
 
-    if (forcedType) return forcedType.split(",").map((item) => item.trim()).filter(Boolean);
-    if (mode === "salons") return ["Salon", "Festival"];
-    if (mode === "dedicaces") return ["Dédicace"];
+    const preview =
+      document.getElementById("image-preview");
 
-    return [];
-  }
+    if (!input || !preview) return;
 
-  function bindCityAutocomplete() {
-    if (!cityInput || !citySuggestions) return;
+    input.addEventListener("change", (event) => {
+      const file =
+        event.target.files?.[0];
 
-    cityInput.addEventListener("input", () => {
-      clearTimeout(citySearchTimer);
-      clearCityCoordinates();
-
-      const query = cityInput.value.trim();
-
-      if (query.length < 2) {
-        citySuggestions.innerHTML = "";
-        setCityHelp("Tapez au moins 2 caractères puis choisissez une ville proposée.", "");
+      if (!file) {
+        preview.innerHTML = "";
+        preview.classList.remove("is-visible");
+        selectedPreviewImage = null;
         return;
       }
 
-      cityInput.classList.add("loading");
-      setCityHelp("Recherche de villes…", "");
-      citySearchTimer = setTimeout(() => searchCities(query), 260);
+      if (!file.type.startsWith("image/")) {
+        alert("Veuillez sélectionner une image.");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image trop lourde (5 Mo max).");
+        return;
+      }
+
+      selectedPreviewImage = file;
+
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        preview.innerHTML = `
+          <img src="${e.target.result}" alt="Prévisualisation" />
+          <div class="image-preview-caption">
+            ${escapeHtml(file.name)}
+          </div>
+        `;
+
+        preview.classList.add("is-visible");
+      };
+
+      reader.readAsDataURL(file);
     });
-
-    cityInput.addEventListener("change", () => selectCityFromValue(cityInput.value));
-    cityInput.addEventListener("blur", () => setTimeout(() => selectCityFromValue(cityInput.value), 120));
-  }
-
-  async function searchCities(query) {
-    try {
-      const response = await fetch(
-        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=8&type=municipality`
-      );
-      const data = await response.json();
-
-      cityResults = (data.features || []).map((feature) => {
-        const properties = feature.properties || {};
-        const coords = feature.geometry?.coordinates || [];
-
-        const lng = Number(coords[0]);
-        const lat = Number(coords[1]);
-        const city = properties.city || properties.name || "";
-        const postcode = properties.postcode || "";
-        const context = properties.context || "";
-        const region = guessRegionFromContext(context);
-
-        return { city, postcode, context, region, lat, lng };
-      }).filter((item) =>
-        item.city &&
-        Number.isFinite(item.lat) &&
-        Number.isFinite(item.lng)
-      );
-
-      citySuggestions.innerHTML = "";
-
-      cityResults.forEach((item) => {
-        const option = document.createElement("option");
-        option.value = item.city;
-        option.label = [item.city, item.postcode, item.context].filter(Boolean).join(" — ");
-        citySuggestions.appendChild(option);
-      });
-
-      setCityHelp(
-        cityResults.length
-          ? "Choisissez une ville dans la liste pour verrouiller les coordonnées."
-          : "Aucune ville trouvée.",
-        cityResults.length ? "success" : "error"
-      );
-    } catch (error) {
-      console.error("Erreur recherche ville :", error);
-      setCityHelp("Impossible de rechercher les villes pour le moment.", "error");
-    } finally {
-      cityInput.classList.remove("loading");
-    }
-  }
-
-  function selectCityFromValue(value) {
-    if (!value || !cityResults.length) return;
-
-    const normalizedValue = normalize(value);
-
-    const selected =
-      cityResults.find((item) => normalize(item.city) === normalizedValue) ||
-      cityResults.find((item) => normalize(`${item.city} ${item.postcode}`) === normalizedValue) ||
-      cityResults[0];
-
-    if (!selected) return;
-
-    cityInput.value = selected.city;
-
-    if (cityLatInput) cityLatInput.value = selected.lat;
-    if (cityLngInput) cityLngInput.value = selected.lng;
-
-    if (regionSubmit && selected.region && !regionSubmit.value) {
-      regionSubmit.value = selected.region;
-    }
-
-    setCityHelp(
-      `Ville sélectionnée : ${selected.city}${selected.postcode ? " (" + selected.postcode + ")" : ""}. Coordonnées OK.`,
-      "success"
-    );
-  }
-
-  function clearCityCoordinates() {
-    if (cityLatInput) cityLatInput.value = "";
-    if (cityLngInput) cityLngInput.value = "";
-  }
-
-  function setCityHelp(message, type) {
-    if (!cityHelp) return;
-
-    cityHelp.textContent = message;
-    cityHelp.className = `field-help ${type || ""}`.trim();
-  }
-
-  function guessRegionFromContext(context) {
-    const value = normalize(context);
-
-    const matches = [
-      ["auvergne rhone alpes", "Auvergne-Rhône-Alpes"],
-      ["bourgogne franche comte", "Bourgogne-Franche-Comté"],
-      ["bretagne", "Bretagne"],
-      ["centre val de loire", "Centre-Val de Loire"],
-      ["corse", "Corse"],
-      ["grand est", "Grand Est"],
-      ["hauts de france", "Hauts-de-France"],
-      ["ile de france", "Île-de-France"],
-      ["normandie", "Normandie"],
-      ["nouvelle aquitaine", "Nouvelle-Aquitaine"],
-      ["occitanie", "Occitanie"],
-      ["pays de la loire", "Pays de la Loire"],
-      ["provence alpes cote d azur", "Provence-Alpes-Côte d’Azur"]
-    ];
-
-    const found = matches.find(([key]) => value.includes(key));
-    return found ? found[1] : "";
   }
 
   function initMap() {
-    const mapElement = document.getElementById("map");
+    const mapElement =
+      document.getElementById("map");
 
     if (!mapElement || !window.L) return;
 
-    map = L.map("map", {
-      scrollWheelZoom: true
-    }).setView([46.603354, 1.888334], 6);
+    map = L.map("map").setView(
+      [46.603354, 1.888334],
+      6
+    );
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(map);
+    L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        attribution:
+          "&copy; OpenStreetMap contributors"
+      }
+    ).addTo(map);
 
-    markersLayer = L.layerGroup().addTo(map);
-    addMapLegend();
-  }
-
-  function addMapLegend() {
-    if (!map || !window.L) return;
-
-    const legend = L.control({ position: "bottomright" });
-
-    legend.onAdd = function () {
-      const div = L.DomUtil.create("div", "map-legend-v5");
-
-      div.innerHTML = Object.entries(TYPE_META)
-        .map(([type, meta]) => `<span><i style="background:${meta.color}"></i>${escapeHtml(type)}</span>`)
-        .join("");
-
-      return div;
-    };
-
-    legend.addTo(map);
-  }
-
-  function getTypeMeta(type) {
-    return TYPE_META[type] || TYPE_META.Autre;
-  }
-
-  function populateMonthFilter() {
-    if (!dateFilter) return;
-
-    const alreadyFilled = dateFilter.options && dateFilter.options.length > 1;
-    if (alreadyFilled) return;
-
-    const formatter = new Intl.DateTimeFormat("fr-FR", {
-      month: "long",
-      year: "numeric"
-    });
-
-    const today = new Date();
-
-    for (let i = 0; i < 18; i++) {
-      const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-
-      const option = document.createElement("option");
-      option.value = value;
-      option.textContent = formatter.format(date);
-      dateFilter.appendChild(option);
-    }
+    markersLayer =
+      L.layerGroup().addTo(map);
   }
 
   async function loadEvents() {
     setLoadingState();
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today =
+      new Date().toISOString().slice(0, 10);
 
-    const { data, error } = await supabaseClient
-      .from("events")
-      .select("*")
-      .eq("validated", true)
-      .eq("rejected", false)
-      .or(`end_date.is.null,end_date.gte.${today}`)
-      .order("featured", { ascending: false })
-      .order("start_date", { ascending: true });
+    const { data, error } =
+      await supabaseClient
+        .from("events")
+        .select("*")
+        .eq("validated", true)
+        .eq("rejected", false)
+        .or(`end_date.is.null,end_date.gte.${today}`)
+        .order("featured", {
+          ascending: false
+        })
+        .order("start_date", {
+          ascending: true
+        });
 
     if (error) {
-      console.error("Erreur chargement événements :", error);
-      setErrorState("Impossible de charger les événements pour le moment.");
+      console.error(error);
+      setErrorState(
+        "Impossible de charger les événements."
+      );
       return;
     }
 
-    allEvents = Array.isArray(data) ? data : [];
+    allEvents = Array.isArray(data)
+      ? data
+      : [];
+
     renderFilteredEvents();
   }
 
   function renderFilteredEvents() {
-    const filtered = filterEvents(allEvents);
-    const sorted = sortEventsForDisplay(filtered);
+    const filtered =
+      filterEvents(allEvents);
 
-    renderEvents(sorted);
-    renderMapMarkers(sorted);
-  }
-
-  function sortEventsForDisplay(events) {
-    return [...events].sort((a, b) => {
-      if (userPosition) {
-        const distanceA = getSortableDistance(a);
-        const distanceB = getSortableDistance(b);
-
-        if (distanceA !== distanceB) return distanceA - distanceB;
-      }
-
-      const featuredCompare = Number(Boolean(b.featured)) - Number(Boolean(a.featured));
-      if (featuredCompare !== 0) return featuredCompare;
-
-      return getSortableDate(a) - getSortableDate(b);
-    });
-  }
-
-  function getSortableDate(event) {
-    if (!event.start_date) return new Date("9999-12-31").getTime();
-
-    const timestamp = new Date(event.start_date).getTime();
-    return Number.isFinite(timestamp) ? timestamp : new Date("9999-12-31").getTime();
-  }
-
-  function getSortableDistance(event) {
-    if (
-      !userPosition ||
-      !Number.isFinite(Number(event.lat)) ||
-      !Number.isFinite(Number(event.lng))
-    ) {
-      return Number.POSITIVE_INFINITY;
-    }
-
-    return haversine(
-      userPosition.lat,
-      userPosition.lng,
-      Number(event.lat),
-      Number(event.lng)
-    );
+    renderEvents(filtered);
+    renderMapMarkers(filtered);
   }
 
   function filterEvents(events) {
-    const search = normalize(searchInput?.value || "");
-    const region = regionFilter?.value || "";
-    const type = typeFilter?.value || "";
-    const selectedMonth = dateFilter?.value || "";
-    const allowedTypes = getAllowedTypesFromPageMode();
+    const search =
+      normalize(searchInput?.value || "");
+
+    const region =
+      regionFilter?.value || "";
+
+    const type =
+      typeFilter?.value || "";
+
+    const selectedMonth =
+      dateFilter?.value || "";
+
+    const pageMode =
+      document.body.dataset.agendaMode || "global";
 
     return events.filter((event) => {
+
+      if (
+        pageMode === "dedicaces" &&
+        event.type !== "Dédicace"
+      ) {
+        return false;
+      }
+
+      if (
+        pageMode === "salons" &&
+        !["Salon", "Festival"]
+          .includes(event.type)
+      ) {
+        return false;
+      }
+
       const haystack = normalize([
         event.title,
         event.city,
         event.region,
-        event.description,
-        event.source_label
-      ].filter(Boolean).join(" "));
+        event.description
+      ].join(" "));
 
-      return (!search || haystack.includes(search))
-        && (!region || event.region === region)
-        && (!type || event.type === type)
-        && (!allowedTypes.length || allowedTypes.includes(event.type))
-        && matchesMonth(event, selectedMonth);
+      if (
+        search &&
+        !haystack.includes(search)
+      ) {
+        return false;
+      }
+
+      if (
+        region &&
+        event.region !== region
+      ) {
+        return false;
+      }
+
+      if (
+        type &&
+        event.type !== type
+      ) {
+        return false;
+      }
+
+      if (
+        selectedMonth &&
+        !matchesMonth(event, selectedMonth)
+      ) {
+        return false;
+      }
+
+      return true;
     });
   }
 
   function matchesMonth(event, selectedMonth) {
-    if (!selectedMonth) return true;
+    const start =
+      event.start_date || "";
 
-    const eventStart = event.start_date || "";
-    const eventEnd = event.end_date || event.start_date || "";
-
-    const selectedStart = `${selectedMonth}-01`;
-    const selectedEnd = getLastDayOfMonth(selectedMonth);
-
-    return eventStart <= selectedEnd && eventEnd >= selectedStart;
-  }
-
-  function getLastDayOfMonth(monthValue) {
-    const [year, month] = monthValue.split("-").map(Number);
-    const lastDay = new Date(year, month, 0).getDate();
-
-    return `${monthValue}-${String(lastDay).padStart(2, "0")}`;
+    return start.startsWith(selectedMonth);
   }
 
   function renderEvents(events) {
     if (!eventsGrid || !resultsCount) return;
 
     resultsCount.textContent =
-      `${events.length} événement${events.length > 1 ? "s" : ""} affiché${events.length > 1 ? "s" : ""}`;
+      `${events.length} événement(s)`;
 
     if (!events.length) {
       eventsGrid.innerHTML = `
         <article class="empty-state">
-          <p>Aucun événement ne correspond aux filtres sélectionnés.</p>
+          Aucun événement trouvé.
         </article>
       `;
       return;
     }
 
-    eventsGrid.innerHTML = events.map((event) => {
-      const imageUrl = resolveImageUrl(event.image_url);
-      const isFavorite = getFavorites().includes(String(event.id));
-      const distance = getDistanceLabel(event);
-      const typeMeta = getTypeMeta(event.type || "Autre");
+    eventsGrid.innerHTML =
+      events.map(renderEventCard).join("");
+  }
 
-      return `
-        <article class="event-card ${event.featured ? "event-card-featured" : ""} ${typeMeta.className}"
-          id="event-${escapeAttribute(event.id)}"
-          data-event-id="${escapeAttribute(event.id)}"
-          onmouseenter="highlightMarker('${escapeAttribute(event.id)}')">
+  function renderEventCard(event) {
+    const typeMeta =
+      TYPE_META[event.type] ||
+      TYPE_META.Autre;
 
-          ${event.featured ? `<div class="featured-ribbon">Mis en avant</div>` : ""}
+    const image =
+      resolveImageUrl(event.image_url);
 
-          ${imageUrl
-            ? `<img class="card-image" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(event.title || "Événement")}" />`
-            : `<div class="card-image"></div>`}
+    return `
+      <article
+        class="event-card ${typeMeta.className}"
+        id="event-${escapeAttribute(event.id)}"
+      >
 
-          <div class="card-body">
-            <div class="card-tags">
-              ${event.type ? `<span class="badge badge-type ${typeMeta.className}"><i></i>${escapeHtml(event.type)}</span>` : ""}
-              ${event.price ? `<span class="badge badge-price">${escapeHtml(event.price)}</span>` : ""}
-              ${event.featured ? `<span class="badge badge-featured">Sélection</span>` : ""}
-              ${event.verified ? `<span class="badge badge-verified">Vérifié</span>` : ""}
-            </div>
+        ${
+          image
+            ? `
+              <img
+                class="card-image"
+                src="${escapeAttribute(image)}"
+                alt="${escapeAttribute(event.title)}"
+              />
+            `
+            : `
+              <div class="card-image"></div>
+            `
+        }
 
-            <h3 class="card-title">${escapeHtml(event.title || "Sans titre")}</h3>
+        <div class="card-body">
 
-            <div class="card-meta">
-              ${event.start_date ? `<span>📅 ${formatDateRange(event.start_date, event.end_date)}</span>` : ""}
-              <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", ")) || "Lieu non précisé"}</span>
-              ${distance ? `<span>🧭 ${distance}</span>` : ""}
-              ${event.source_label ? `<span>🔎 Source : ${escapeHtml(event.source_label)}</span>` : ""}
-            </div>
+          <div class="card-tags">
 
-            <p class="card-description">${escapeHtml(event.description || "")}</p>
+            ${
+              event.type
+                ? `
+                  <span class="badge badge-type ${typeMeta.className}">
+                    <i></i>
+                    ${escapeHtml(event.type)}
+                  </span>
+                `
+                : ""
+            }
 
-            <div class="card-footer">
-              <a class="card-link" href="event.html?id=${encodeURIComponent(event.id)}">Voir le détail</a>
-              <button class="card-link favorite-btn ${isFavorite ? "is-favorite" : ""}" type="button" onclick="toggleFavorite('${escapeAttribute(event.id)}')">
-                ${isFavorite ? "❤️ Favori" : "♡ Favori"}
-              </button>
-              <button class="card-link" type="button" onclick="downloadCalendar('${escapeAttribute(event.id)}')">📅 Agenda</button>
-              ${event.website ? `<a class="card-link" href="${escapeAttribute(event.website)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
-            </div>
           </div>
-        </article>
-      `;
-    }).join("");
 
-    window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered"));
+          <h3 class="card-title">
+            ${escapeHtml(event.title)}
+          </h3>
+
+          <div class="card-meta">
+
+            <span>
+              📍
+              ${escapeHtml(event.city || "")}
+            </span>
+
+            <span>
+              📅
+              ${formatDate(event.start_date)}
+            </span>
+
+          </div>
+
+          <p class="card-description">
+            ${escapeHtml(event.description || "")}
+          </p>
+
+          <div class="card-footer">
+
+            <a
+              class="card-link"
+              href="event.html?id=${encodeURIComponent(event.id)}"
+            >
+              Voir le détail
+            </a>
+
+          </div>
+
+        </div>
+
+      </article>
+    `;
   }
 
   function renderMapMarkers(events) {
-    if (!markersLayer || !map) return;
+    if (!map || !markersLayer) return;
 
     markersLayer.clearLayers();
-    markerByEventId = {};
 
-    const validCoords = events.filter((event) =>
-      Number.isFinite(Number(event.lat)) &&
-      Number.isFinite(Number(event.lng))
-    );
+    const grouped = {};
 
-    const groups = {};
+    events.forEach((event) => {
+      if (
+        !Number.isFinite(Number(event.lat)) ||
+        !Number.isFinite(Number(event.lng))
+      ) {
+        return;
+      }
 
-    validCoords.forEach((event) => {
-      const key = getCoordKey(Number(event.lat), Number(event.lng));
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(event);
+      const key =
+        `${event.lat},${event.lng}`;
+
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+
+      grouped[key].push(event);
     });
 
-    validCoords.forEach((event) => {
-      const baseLat = Number(event.lat);
-      const baseLng = Number(event.lng);
-      const key = getCoordKey(baseLat, baseLng);
-      const group = groups[key] || [event];
-      const index = group.findIndex((item) => String(item.id) === String(event.id));
-      const coords = getOffsetCoords(baseLat, baseLng, Math.max(index, 0), group.length);
-      const typeMeta = getTypeMeta(event.type || "Autre");
+    Object.values(grouped)
+      .forEach((group) => {
 
-      const marker = L.marker([coords.lat, coords.lng], {
-        icon: createTypeIcon(typeMeta)
+        const first = group[0];
+
+        const lat =
+          Number(first.lat);
+
+        const lng =
+          Number(first.lng);
+
+        const typeMeta =
+          TYPE_META[first.type] ||
+          TYPE_META.Autre;
+
+        const marker = L.marker(
+          [lat, lng],
+          {
+            icon: createTypeIcon(typeMeta)
+          }
+        );
+
+        marker.bindPopup(`
+          <strong>
+            ${group.length} événement(s)
+          </strong>
+          <br><br>
+
+          ${group.map((event) => `
+            • ${escapeHtml(event.title)}
+          `).join("<br>")}
+        `);
+
+        marker.addTo(markersLayer);
+
+        group.forEach((event) => {
+          markerByEventId[event.id] = marker;
+        });
       });
-
-      marker.bindPopup(`
-        <strong>${escapeHtml(event.title || "Événement")}</strong><br>
-        <span class="popup-type-dot" style="background:${typeMeta.color}"></span>${escapeHtml(event.type || "Autre")}<br>
-        ${escapeHtml(event.city || "")}<br>
-        ${event.featured ? "<em>Mis en avant</em><br>" : ""}
-        <button class="popup-focus-btn" onclick="focusEventCard('${escapeAttribute(event.id)}')">Voir la fiche</button>
-      `);
-
-      marker.on("click", () => window.focusEventCard(event.id, false));
-
-      markersLayer.addLayer(marker);
-      markerByEventId[event.id] = marker;
-    });
-
-    if (validCoords.length === 1) {
-      map.setView([Number(validCoords[0].lat), Number(validCoords[0].lng)], 9);
-    } else if (validCoords.length > 1) {
-      map.fitBounds(
-        L.latLngBounds(validCoords.map((event) => [Number(event.lat), Number(event.lng)])),
-        { padding: [25, 25] }
-      );
-    } else {
-      map.setView([46.603354, 1.888334], 6);
-    }
-
-    setTimeout(() => map.invalidateSize(), 100);
-  }
-
-  function getCoordKey(lat, lng) {
-    return `${lat.toFixed(5)},${lng.toFixed(5)}`;
-  }
-
-  function getOffsetCoords(lat, lng, index, total) {
-    if (total <= 1) return { lat, lng };
-
-    const angle = (Math.PI * 2 * index) / total;
-    const radius = 0.0012;
-
-    return {
-      lat: lat + Math.sin(angle) * radius,
-      lng: lng + Math.cos(angle) * radius
-    };
   }
 
   function createTypeIcon(typeMeta) {
-    if (!window.L) return undefined;
-
     return L.divIcon({
       className: "event-marker-v5",
-      html: `<span style="--marker-color:${typeMeta.color}"></span>`,
+
+      html: `
+        <span
+          style="--marker-color:${typeMeta.color}"
+        ></span>
+      `,
+
       iconSize: [28, 28],
-      iconAnchor: [14, 28],
-      popupAnchor: [0, -28]
+      iconAnchor: [14, 28]
     });
-  }
-
-  window.focusEventCard = function (id, shouldScroll = true) {
-    const card = document.getElementById(`event-${id}`);
-
-    if (!card) return;
-
-    document.querySelectorAll(".event-card-highlight").forEach((item) => {
-      item.classList.remove("event-card-highlight");
-    });
-
-    if (shouldScroll) {
-      card.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-
-    card.classList.add("event-card-highlight");
-    setTimeout(() => card.classList.remove("event-card-highlight"), 1800);
-
-    const marker = markerByEventId[id];
-
-    if (marker && map) {
-      marker.openPopup();
-      const latLng = marker.getLatLng();
-      map.setView(latLng, Math.max(map.getZoom(), 9), { animate: true });
-    }
-  };
-
-  window.highlightMarker = function (id) {
-    const marker = markerByEventId[id];
-
-    if (!marker || typeof marker.getElement !== "function") return;
-
-    const el = marker.getElement();
-    if (!el) return;
-
-    el.classList.add("marker-hover-v6");
-    setTimeout(() => el.classList.remove("marker-hover-v6"), 900);
-  };
-
-  window.toggleFavorite = function (id) {
-    const favorites = getFavorites();
-    const stringId = String(id);
-
-    const next = favorites.includes(stringId)
-      ? favorites.filter((item) => item !== stringId)
-      : [...favorites, stringId];
-
-    localStorage.setItem("dedicalivres_favorites", JSON.stringify(next));
-
-    renderFilteredEvents();
-  };
-
-  window.downloadCalendar = function (id) {
-    const event = allEvents.find((item) => String(item.id) === String(id));
-
-    if (!event) return;
-
-    const ics = createIcs(event);
-    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = `${slugify(event.title || "evenement")}.ics`;
-    link.click();
-
-    URL.revokeObjectURL(url);
-  };
-
-  function getFavorites() {
-    try {
-      return JSON.parse(localStorage.getItem("dedicalivres_favorites") || "[]");
-    } catch {
-      return [];
-    }
-  }
-
-  function locateUser() {
-    if (!navigator.geolocation || !map) {
-      alert("La géolocalisation n’est pas disponible sur ce navigateur.");
-      return;
-    }
-
-    if (!locateMeButton) return;
-
-    locateMeButton.disabled = true;
-    locateMeButton.textContent = "Localisation…";
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-
-        userPosition = { lat: latitude, lng: longitude };
-
-        if (userMarker) userMarker.remove();
-
-        userMarker = L.marker([latitude, longitude]).addTo(map);
-        userMarker.bindPopup("Vous êtes ici").openPopup();
-
-        map.setView([latitude, longitude], 9);
-
-        locateMeButton.disabled = false;
-        locateMeButton.textContent = "Tri par proximité actif";
-
-        renderFilteredEvents();
-      },
-      () => {
-        alert("Impossible de récupérer votre position.");
-        locateMeButton.disabled = false;
-        locateMeButton.textContent = "Me localiser";
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }
-
-  function getDistanceLabel(event) {
-    if (
-      !userPosition ||
-      !Number.isFinite(Number(event.lat)) ||
-      !Number.isFinite(Number(event.lng))
-    ) {
-      return "";
-    }
-
-    const km = haversine(
-      userPosition.lat,
-      userPosition.lng,
-      Number(event.lat),
-      Number(event.lng)
-    );
-
-    return `${Math.round(km)} km de vous`;
-  }
-
-  function haversine(lat1, lon1, lat2, lon2) {
-    const r = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
-
-    return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  function toRad(value) {
-    return value * Math.PI / 180;
   }
 
   async function handleFormSubmit(event) {
     event.preventDefault();
 
-    if (!form || !formFeedback) return;
+    if (!form) return;
 
-    setFormFeedback("Envoi en cours...", "");
+    setFormFeedback(
+      "Envoi en cours...",
+      ""
+    );
 
-    const submitButton = form.querySelector('button[type="submit"]');
-    if (submitButton) submitButton.disabled = true;
-
-    const formData = new FormData(form);
-    let lat = Number(formData.get("lat"));
-    let lng = Number(formData.get("lng"));
-    const city = formData.get("city")?.toString().trim() || "";
+    const formData =
+      new FormData(form);
 
     try {
-      if (!formData.get("title")?.toString().trim()) {
-        throw new Error("Le titre est obligatoire.");
-      }
 
-      if (!city) {
-        throw new Error("La ville est obligatoire.");
-      }
+      let lat =
+        Number(formData.get("lat"));
 
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-        const coords = await geocodeMunicipality(city);
+      let lng =
+        Number(formData.get("lng"));
+
+      if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng)
+      ) {
+        const coords =
+          await geocodeMunicipality(
+            formData.get("city")
+          );
 
         if (!coords) {
-          throw new Error("Merci de sélectionner une ville proposée dans la liste pour placer correctement l’événement sur la carte.");
+          throw new Error(
+            "Ville invalide."
+          );
         }
 
         lat = coords.lat;
         lng = coords.lng;
-
-        if (cityLatInput) cityLatInput.value = lat;
-        if (cityLngInput) cityLngInput.value = lng;
       }
 
       const payload = {
-        title: formData.get("title")?.toString().trim() || "",
-        type: formData.get("type")?.toString().trim() || null,
-        region: formData.get("region")?.toString().trim() || null,
-        city,
-        price: formData.get("price")?.toString().trim() || null,
-        start_date: formData.get("start_date") || null,
-        end_date: formData.get("end_date") || formData.get("start_date") || null,
-        website: formData.get("website")?.toString().trim() || null,
-        description: formData.get("description")?.toString().trim() || null,
+        title:
+          formData.get("title"),
+
+        type:
+          formData.get("type"),
+
+        region:
+          formData.get("region"),
+
+        city:
+          formData.get("city"),
+
+        price:
+          formData.get("price"),
+
+        start_date:
+          formData.get("start_date"),
+
+        end_date:
+          formData.get("end_date"),
+
+        website:
+          formData.get("website"),
+
+        description:
+          formData.get("description"),
+
         lat,
         lng,
+
         validated: false,
         featured: false,
         rejected: false,
-        verified: false,
-        source_label: "Soumission publique"
+        verified: false
       };
 
-      const imageFile = formData.get("image");
+      const imageFile =
+        selectedPreviewImage ||
+        formData.get("image");
 
-      if (imageFile instanceof File && imageFile.size > 0) {
-        payload.image_url = await uploadImage(imageFile);
+      if (
+        imageFile instanceof File &&
+        imageFile.size > 0
+      ) {
+        payload.image_url =
+          await uploadImage(imageFile);
       }
 
-      const { error } = await supabaseClient.from("events").insert([payload]);
+      const { error } =
+        await supabaseClient
+          .from("events")
+          .insert([payload]);
 
       if (error) throw error;
 
       form.reset();
-      clearCityCoordinates();
-      setCityHelp("Sélectionnez une ville proposée pour placer correctement l’événement sur la carte.", "");
-      setFormFeedback("Merci, votre événement a bien été transmis pour validation.", "success");
+
+      document
+        .getElementById("image-preview")
+        ?.classList.remove("is-visible");
+
+      setFormFeedback(
+        "Votre événement a bien été transmis.",
+        "success"
+      );
+
     } catch (error) {
-      console.error("Erreur soumission formulaire :", error);
-      setFormFeedback(`Une erreur est survenue pendant l’envoi : ${error.message}`, "error");
-    } finally {
-      if (submitButton) submitButton.disabled = false;
+
+      console.error(error);
+
+      setFormFeedback(
+        error.message ||
+        "Erreur pendant l’envoi.",
+        "error"
+      );
     }
+  }
+
+  async function uploadImage(file) {
+    const compressed =
+      await compressImage(file);
+
+    const extension =
+      (compressed.name.split(".").pop() || "jpg")
+      .toLowerCase();
+
+    const fileName =
+      `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${extension}`;
+
+    const { error } =
+      await supabaseClient.storage
+        .from("event-images")
+        .upload(fileName, compressed);
+
+    if (error) throw error;
+
+    const { data } =
+      supabaseClient.storage
+        .from("event-images")
+        .getPublicUrl(fileName);
+
+    return data.publicUrl;
+  }
+
+  async function compressImage(file) {
+    return new Promise((resolve) => {
+
+      const img = new Image();
+
+      img.onload = () => {
+
+        const canvas =
+          document.createElement("canvas");
+
+        const maxWidth = 1600;
+
+        const ratio =
+          Math.min(
+            1,
+            maxWidth / img.width
+          );
+
+        canvas.width =
+          img.width * ratio;
+
+        canvas.height =
+          img.height * ratio;
+
+        const ctx =
+          canvas.getContext("2d");
+
+        ctx.drawImage(
+          img,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+        canvas.toBlob(
+          (blob) => {
+
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+
+            resolve(
+              new File(
+                [blob],
+                file.name,
+                {
+                  type: "image/jpeg"
+                }
+              )
+            );
+
+          },
+          "image/jpeg",
+          0.86
+        );
+      };
+
+      img.src =
+        URL.createObjectURL(file);
+    });
   }
 
   async function geocodeMunicipality(city) {
     try {
-      const response = await fetch(
-        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(city)}&limit=1&type=municipality`
-      );
-      const data = await response.json();
-      const coords = data?.features?.[0]?.geometry?.coordinates || [];
-      const lng = Number(coords[0]);
-      const lat = Number(coords[1]);
 
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      const response =
+        await fetch(
+          `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(city)}&limit=1&type=municipality`
+        );
 
-      return { lat, lng };
+      const data =
+        await response.json();
+
+      const coords =
+        data.features?.[0]
+          ?.geometry?.coordinates;
+
+      if (!coords) return null;
+
+      return {
+        lng: Number(coords[0]),
+        lat: Number(coords[1])
+      };
+
     } catch {
       return null;
     }
   }
 
-  async function uploadImage(file) {
-    const rawExtension = ((file.name || "jpg").split(".").pop() || "jpg").toLowerCase();
-    const extension = rawExtension.replace(/[^a-z0-9]/g, "") || "jpg";
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${extension}`;
+  function bindCityAutocomplete() {
+    if (!cityInput) return;
 
-    const { error } = await supabaseClient.storage
-      .from("event-images")
-      .upload(fileName, file, {
-        cacheControl: "3600",
-        upsert: false
-      });
+    cityInput.addEventListener(
+      "change",
+      async () => {
 
-    if (error) throw error;
+        const coords =
+          await geocodeMunicipality(
+            cityInput.value
+          );
 
-    const { data } = supabaseClient.storage
-      .from("event-images")
-      .getPublicUrl(fileName);
+        if (!coords) return;
 
-    return data.publicUrl;
+        cityLatInput.value =
+          coords.lat;
+
+        cityLngInput.value =
+          coords.lng;
+
+        cityHelp.textContent =
+          "Ville validée ✔";
+      }
+    );
   }
 
-  function bindNewsletterForm() {
-    const newsletterForm = document.getElementById("newsletter-form");
+  function populateMonthFilter() {
+    if (!dateFilter) return;
 
-    if (!newsletterForm || newsletterForm.dataset.bound === "true") return;
+    const formatter =
+      new Intl.DateTimeFormat(
+        "fr-FR",
+        {
+          month: "long",
+          year: "numeric"
+        }
+      );
 
-    newsletterForm.dataset.bound = "true";
-    newsletterForm.addEventListener("submit", handleNewsletterSubmit);
-  }
+    const now = new Date();
 
-  async function handleNewsletterSubmit(event) {
-    event.preventDefault();
+    for (let i = 0; i < 18; i++) {
 
-    if (newsletterSubmitting) return;
-    newsletterSubmitting = true;
+      const date =
+        new Date(
+          now.getFullYear(),
+          now.getMonth() + i,
+          1
+        );
 
-    const newsletterForm = event.currentTarget;
-    const formData = new FormData(newsletterForm);
-    const feedback = document.getElementById("newsletter-feedback");
-    const submitButton = newsletterForm.querySelector('button[type="submit"]');
+      const value =
+        `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}`;
 
-    const email = formData.get("email")?.toString().trim().toLowerCase();
-    const region = formData.get("region")?.toString().trim() || null;
+      const option =
+        document.createElement("option");
 
-    if (!feedback) {
-      newsletterSubmitting = false;
-      return;
-    }
+      option.value = value;
+      option.textContent =
+        formatter.format(date);
 
-    if (!email || !email.includes("@")) {
-      feedback.textContent = "Merci d’indiquer une adresse email valide.";
-      feedback.className = "error";
-      newsletterSubmitting = false;
-      return;
-    }
-
-    try {
-      if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.textContent = "Inscription…";
-      }
-
-      feedback.textContent = "Inscription en cours…";
-      feedback.className = "";
-
-      const { error } = await supabaseClient
-        .from("newsletter_subscribers")
-        .upsert([{ email, region }], { onConflict: "email" });
-
-      if (error) throw error;
-
-      newsletterForm.reset();
-
-      feedback.textContent = "Merci, votre inscription est enregistrée 👍";
-      feedback.className = "success";
-    } catch (error) {
-      console.error("Erreur newsletter :", error);
-
-      if (
-        error.code === "23505" ||
-        error.message?.toLowerCase().includes("duplicate") ||
-        error.message?.toLowerCase().includes("unique")
-      ) {
-        feedback.textContent = "Vous êtes déjà inscrit à la newsletter 👍";
-        feedback.className = "success";
-      } else {
-        feedback.textContent = "Une erreur est survenue. Réessayez plus tard.";
-        feedback.className = "error";
-      }
-    } finally {
-      newsletterSubmitting = false;
-
-      if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = "S’inscrire";
-      }
+      dateFilter.appendChild(option);
     }
   }
 
-  function createIcs(event) {
-    const start = icsDate(event.start_date);
-    const end = icsDate(event.end_date || event.start_date);
+  function locateUser() {
+    if (!navigator.geolocation) return;
 
-    return [
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "PRODID:-//Dedicalivres//FR",
-      "BEGIN:VEVENT",
-      `UID:${event.id}@dedicalivres.fr`,
-      `DTSTAMP:${icsDateTime(new Date())}`,
-      start ? `DTSTART;VALUE=DATE:${start}` : "",
-      end ? `DTEND;VALUE=DATE:${end}` : "",
-      `SUMMARY:${escapeIcs(event.title || "Événement Dédicalivres")}`,
-      `DESCRIPTION:${escapeIcs(event.description || "")}`,
-      `LOCATION:${escapeIcs([event.city, event.region].filter(Boolean).join(", "))}`,
-      event.website ? `URL:${event.website}` : "",
-      "END:VEVENT",
-      "END:VCALENDAR"
-    ].filter(Boolean).join("\r\n");
-  }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
 
-  function icsDate(value) {
-    return value ? value.replaceAll("-", "") : "";
-  }
+        userPosition = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
 
-  function icsDateTime(date) {
-    return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-  }
-
-  function escapeIcs(value) {
-    return String(value || "")
-      .replace(/\\/g, "\\\\")
-      .replace(/,/g, "\\,")
-      .replace(/;/g, "\\;")
-      .replace(/\n/g, "\\n");
+        map.setView(
+          [
+            userPosition.lat,
+            userPosition.lng
+          ],
+          9
+        );
+      }
+    );
   }
 
   function resetFilters() {
     if (searchInput) searchInput.value = "";
     if (regionFilter) regionFilter.value = "";
-    if (typeFilter && !typeFilter.disabled) typeFilter.value = "";
+    if (typeFilter) typeFilter.value = "";
     if (dateFilter) dateFilter.value = "";
 
     renderFilteredEvents();
@@ -1038,8 +870,7 @@
 
     eventsGrid.innerHTML = `
       <article class="empty-state">
-        <div class="loader"></div>
-        <p>Chargement des événements...</p>
+        Chargement…
       </article>
     `;
   }
@@ -1049,41 +880,40 @@
 
     eventsGrid.innerHTML = `
       <article class="empty-state">
-        <p>${escapeHtml(message)}</p>
+        ${escapeHtml(message)}
       </article>
     `;
   }
 
-  function setFormFeedback(message, kind) {
+  function setFormFeedback(message, type) {
     if (!formFeedback) return;
 
     formFeedback.textContent = message;
-    formFeedback.className = `form-feedback ${kind}`.trim();
+    formFeedback.className =
+      `form-feedback ${type}`;
   }
 
   function resolveImageUrl(path) {
     if (!path) return "";
 
-    return /^https?:\/\//i.test(path)
-      ? path
-      : `${config.assetsBaseUrl || ""}${path}`;
-  }
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
 
-  function formatDateRange(startDate, endDate) {
-    const start = formatDate(startDate);
-    const end = endDate && endDate !== startDate ? formatDate(endDate) : "";
-
-    return end ? `${start} → ${end}` : start;
+    return `${config.assetsBaseUrl || ""}${path}`;
   }
 
   function formatDate(value) {
     if (!value) return "";
 
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric"
-    }).format(new Date(value));
+    return new Intl.DateTimeFormat(
+      "fr-FR",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }
+    ).format(new Date(value));
   }
 
   function normalize(value) {
@@ -1091,36 +921,21 @@
       .toString()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[’']/g, " ")
-      .toLowerCase()
-      .trim();
-  }
-
-  function slugify(value) {
-    return normalize(value)
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "evenement";
+      .toLowerCase();
   }
 
   function escapeHtml(value) {
-    return String(value || "")
+    return (value || "")
+      .toString()
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+      .replace(/"/g, "&quot;");
   }
 
   function escapeAttribute(value) {
-    return escapeHtml(value).replace(/`/g, "&#096;");
+    return escapeHtml(value)
+      .replace(/'/g, "&#039;");
   }
 
-  function debounce(fn, delay) {
-    let timer;
-
-    return function (...args) {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn.apply(this, args), delay);
-    };
-  }
 })();
