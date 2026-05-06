@@ -1673,3 +1673,64 @@ button:active,
     min-height: 190px;
   }
 }
+/* =========================================================
+   DÉDICALIVRES — MAP PREMIUM FOCUS FINAL
+========================================================= */
+
+.premium-popup {
+  display: grid;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.popup-focus-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--orange), #ff8a54);
+  color: white;
+  font-weight: 900;
+  cursor: pointer;
+  text-align: left;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.popup-focus-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(255,107,53,.28);
+}
+
+.event-card.is-map-focused {
+  outline: 4px solid rgba(255,107,53,.82);
+  box-shadow:
+    0 0 0 8px rgba(255,107,53,.12),
+    0 26px 64px rgba(58,28,113,.24);
+  transform: translateY(-8px) scale(1.012);
+  transition:
+    transform .24s ease,
+    box-shadow .24s ease,
+    outline .24s ease;
+}
+
+@media (max-width: 780px) {
+  .event-card.is-map-focused {
+    transform: scale(1.01);
+  }
+
+  .leaflet-popup-content {
+    margin: 14px;
+  }
+
+  .popup-focus-btn {
+    font-size: .9rem;
+    padding: 11px 13px;
+  }
+}
+
+/* =========================================================
+   FIN MAP PREMIUM FOCUS FINAL
+========================================================= */
