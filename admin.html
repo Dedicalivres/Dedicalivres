@@ -2,137 +2,93 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <title>Dédicalivres — Admin V7 Cyber Dashboard</title>
+  <title>Dédicalivres — Admin V8 Cyber Control</title>
 
-  <meta
-    name="robots"
-    content="noindex,nofollow"
-  />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <link
-    rel="preconnect"
-    href="https://fonts.googleapis.com"
-  />
-
-  <link
-    rel="preconnect"
-    href="https://fonts.gstatic.com"
-    crossorigin
-  />
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link
     rel="stylesheet"
-    href="admin.css"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
   />
+
+  <link rel="stylesheet" href="admin.css" />
 </head>
 
-<body>
+<body class="cyber-admin">
 
   <!-- LOGIN -->
+  <section id="login-screen" class="login-screen">
 
-  <section
-    id="login-screen"
-    class="login-screen"
-  >
+    <div class="login-panel">
 
-    <div class="login-card">
-
-      <div class="cyber-glow"></div>
-
-      <div class="login-top">
-        <div class="login-kicker">
-          DÉDICALIVRES
-        </div>
-
-        <h1>
-          CYBER ADMIN V7
-        </h1>
-
-        <p>
-          Supervision temps réel de la plateforme.
-        </p>
+      <div class="cyber-logo-wrap">
+        <img src="logo.png" alt="Dédicalivres" class="cyber-logo">
       </div>
 
-      <div class="login-form">
+      <h1>ADMIN CONTROL V8</h1>
+
+      <p class="login-subtitle">
+        Supervision temps réel • Validation • Analytics • Cartographie
+      </p>
+
+      <form id="login-form" class="login-form">
 
         <input
-          id="admin-email"
+          id="email"
           type="email"
           placeholder="Email administrateur"
-          autocomplete="email"
+          required
         />
 
         <input
-          id="admin-password"
+          id="password"
           type="password"
           placeholder="Mot de passe"
-          autocomplete="current-password"
+          required
         />
 
-        <button
-          id="login-btn"
-          class="cyber-btn primary"
-          type="button"
-        >
-          ACCÉDER AU SYSTÈME
+        <button type="submit" class="cyber-btn-primary">
+          CONNEXION
         </button>
 
-        <p id="login-feedback"></p>
+      </form>
 
-      </div>
+      <div id="login-feedback" class="login-feedback"></div>
 
     </div>
 
   </section>
 
   <!-- DASHBOARD -->
+  <main id="dashboard" class="dashboard hidden">
 
-  <main
-    id="dashboard"
-    class="dashboard hidden"
-  >
+    <!-- TOPBAR -->
+    <header class="topbar">
 
-    <!-- HEADER -->
+      <div class="topbar-left">
 
-    <header class="dashboard-header">
+        <div class="status-dot"></div>
 
-      <div class="dashboard-title-wrap">
-
-        <div class="dashboard-kicker">
-          DÉDICALIVRES
+        <div>
+          <h2>CYBER DASHBOARD</h2>
+          <p>Supervision temps réel Dédicalivres</p>
         </div>
-
-        <h1>
-          CYBER DASHBOARD V7
-        </h1>
 
       </div>
 
-      <div class="dashboard-actions">
+      <div class="topbar-right">
 
-        <button
-          id="refresh-btn"
-          class="cyber-btn"
-          type="button"
-        >
-          ⟳ Actualiser
+        <button id="refresh-btn" class="cyber-btn-secondary">
+          Actualiser
         </button>
 
-        <button
-          id="logout-btn"
-          class="cyber-btn danger"
-          type="button"
-        >
+        <button id="logout-btn" class="cyber-btn-danger">
           Déconnexion
         </button>
 
@@ -141,182 +97,154 @@
     </header>
 
     <!-- STATS -->
-
     <section class="stats-grid">
 
-      <article class="stat-card">
-        <div class="stat-label">
-          ÉVÉNEMENTS
-        </div>
-
-        <div
-          id="stat-events"
-          class="stat-value"
-        >
-          --
-        </div>
+      <article class="stat-card glow-green">
+        <span class="stat-label">ÉVÉNEMENTS</span>
+        <strong id="stats-events">0</strong>
       </article>
 
-      <article class="stat-card pending">
-        <div class="stat-label">
-          EN ATTENTE
-        </div>
-
-        <div
-          id="stat-pending"
-          class="stat-value"
-        >
-          --
-        </div>
+      <article class="stat-card glow-cyan">
+        <span class="stat-label">EN ATTENTE</span>
+        <strong id="stats-pending">0</strong>
       </article>
 
-      <article class="stat-card visits">
-        <div class="stat-label">
-          VISITES
-        </div>
-
-        <div
-          id="stat-visits"
-          class="stat-value"
-        >
-          --
-        </div>
+      <article class="stat-card glow-orange">
+        <span class="stat-label">NEWSLETTER</span>
+        <strong id="stats-newsletter">0</strong>
       </article>
 
-      <article class="stat-card newsletter">
-        <div class="stat-label">
-          NEWSLETTER
-        </div>
-
-        <div
-          id="stat-newsletter"
-          class="stat-value"
-        >
-          --
-        </div>
+      <article class="stat-card glow-purple">
+        <span class="stat-label">VISITES</span>
+        <strong id="stats-visits">0</strong>
       </article>
 
     </section>
 
-    <!-- FILTRES -->
+    <!-- FILTERS -->
+    <section class="toolbar">
 
-    <section class="filters-panel">
+      <input
+        type="search"
+        id="search-input"
+        placeholder="Recherche événement..."
+      />
 
-      <div class="filters-grid">
+      <select id="filter-status">
+        <option value="">Tous</option>
+        <option value="pending">En attente</option>
+        <option value="validated">Validés</option>
+        <option value="featured">Mis en avant</option>
+      </select>
 
-        <input
-          id="admin-search"
-          type="search"
-          placeholder="Recherche événement, ville, région..."
-        />
+      <select id="filter-type">
+        <option value="">Tous types</option>
+        <option value="Salon">Salon</option>
+        <option value="Festival">Festival</option>
+        <option value="Dédicace">Dédicace</option>
+        <option value="Autre">Autre</option>
+      </select>
 
-        <select id="admin-filter-type">
-          <option value="">
-            Tous les types
-          </option>
+    </section>
 
-          <option>
-            Salon
-          </option>
+    <!-- LIVE MAP -->
+    <section class="admin-map-section">
 
-          <option>
-            Festival
-          </option>
-
-          <option>
-            Dédicace
-          </option>
-
-          <option>
-            Autre
-          </option>
-        </select>
-
-        <select id="admin-filter-status">
-          <option value="">
-            Tous les statuts
-          </option>
-
-          <option value="pending">
-            En attente
-          </option>
-
-          <option value="validated">
-            Validés
-          </option>
-
-          <option value="featured">
-            Mis en avant
-          </option>
-        </select>
-
+      <div class="section-head">
+        <h3>CARTE LIVE</h3>
+        <span>Surveillance géographique</span>
       </div>
 
-    </section>
-
-    <!-- CHARTS -->
-
-    <section class="charts-grid">
-
-      <article class="chart-card">
-        <div class="chart-title">
-          Répartition des événements
-        </div>
-
-        <canvas id="types-chart"></canvas>
-      </article>
-
-      <article class="chart-card">
-        <div class="chart-title">
-          Évolution des visites
-        </div>
-
-        <canvas id="visits-chart"></canvas>
-      </article>
+      <div id="admin-map"></div>
 
     </section>
 
     <!-- EVENTS -->
+    <section class="events-section">
 
-    <section class="events-layout">
+      <div class="section-head">
+        <h3>SUPERVISION ÉVÉNEMENTS</h3>
+        <span id="events-count">0 éléments</span>
+      </div>
 
-      <!-- PENDING -->
-
-      <section class="events-column">
-
-        <div class="column-title pending">
-          VALIDATION
-        </div>
-
-        <div
-          id="pending-events"
-          class="events-list"
-        ></div>
-
-      </section>
-
-      <!-- VALIDATED -->
-
-      <section class="events-column">
-
-        <div class="column-title validated">
-          ÉVÉNEMENTS VALIDÉS
-        </div>
-
-        <div
-          id="validated-events"
-          class="events-list"
-        ></div>
-
-      </section>
+      <div id="events-container" class="events-container"></div>
 
     </section>
 
   </main>
 
-  <!-- LIBS -->
+  <!-- TOAST -->
+  <div id="toast-container" class="toast-container"></div>
 
+  <!-- MODAL EDIT -->
+  <div id="edit-modal" class="edit-modal hidden">
+
+    <div class="edit-panel">
+
+      <div class="edit-header">
+        <h3>ÉDITION ÉVÉNEMENT</h3>
+
+        <button id="close-edit-modal" class="close-modal">
+          ✕
+        </button>
+      </div>
+
+      <form id="edit-form" class="edit-form">
+
+        <input type="hidden" id="edit-id" />
+
+        <div class="form-grid">
+
+          <input id="edit-title" placeholder="Titre" />
+
+          <select id="edit-type">
+            <option>Salon</option>
+            <option>Festival</option>
+            <option>Dédicace</option>
+            <option>Autre</option>
+          </select>
+
+          <input id="edit-city" placeholder="Ville" />
+          <input id="edit-region" placeholder="Région" />
+
+          <input id="edit-start-date" type="date" />
+          <input id="edit-end-date" type="date" />
+
+          <input id="edit-website" placeholder="Site officiel" />
+
+        </div>
+
+        <textarea
+          id="edit-description"
+          rows="6"
+          placeholder="Description"
+        ></textarea>
+
+        <div class="edit-actions">
+
+          <button
+            type="button"
+            id="save-edit-btn"
+            class="cyber-btn-primary"
+          >
+            ENREGISTRER
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+  <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
