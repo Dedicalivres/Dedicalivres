@@ -1247,3 +1247,149 @@ body.cyber-admin {
     margin-bottom: 14px;
   }
 }
+/* =========================================================
+   FIX LOGIN LOGO + MOBILE
+========================================================= */
+
+.login-screen {
+
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  overflow: hidden;
+}
+
+.login-panel {
+
+  width: min(420px, 100%);
+
+  background:
+    rgba(8,18,14,.94);
+
+  border:
+    1px solid rgba(25,255,156,.08);
+
+  border-radius:
+    28px;
+
+  padding:
+    28px 24px;
+
+  box-shadow:
+    0 24px 60px rgba(0,0,0,.45);
+
+  text-align: center;
+}
+
+.cyber-logo {
+
+  width: 140px !important;
+  max-width: 42vw !important;
+
+  height: auto !important;
+
+  display: block;
+
+  margin:
+    0 auto 20px !important;
+
+  object-fit: contain;
+
+  border-radius: 18px;
+
+  background: white;
+
+  padding: 10px;
+
+  box-sizing: border-box;
+}
+
+.login-panel h1 {
+
+  margin-top: 8px;
+  margin-bottom: 10px;
+
+  font-size: 2rem;
+
+  font-family:
+    "Orbitron",
+    sans-serif;
+}
+
+.login-subtitle {
+
+  margin-bottom: 22px;
+
+  color:
+    var(--cyber-muted);
+}
+
+.login-form {
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-form input {
+
+  width: 100%;
+
+  padding:
+    14px 16px;
+
+  border: none;
+
+  border-radius:
+    16px;
+
+  background:
+    rgba(255,255,255,.06);
+
+  color:
+    white;
+
+  font-size:
+    1rem;
+}
+
+.login-form input::placeholder {
+
+  color:
+    rgba(255,255,255,.42);
+}
+
+.login-form button {
+
+  margin-top: 6px;
+}
+
+/* MOBILE */
+
+@media (max-width: 760px) {
+
+  .cyber-logo {
+
+    width: 110px !important;
+    max-width: 34vw !important;
+
+    padding: 8px;
+  }
+
+  .login-panel {
+
+    padding:
+      24px 18px;
+  }
+
+  .login-panel h1 {
+
+    font-size:
+      1.6rem;
+  }
+}
