@@ -1,379 +1,395 @@
-(() => {
-  "use strict";
+"use strict";
 
-  const config = window.DEDICALIVRES_CONFIG;
+const config = window.DEDICALIVRES_CONFIG;
 
-  if (!config?.supabaseUrl || !config?.supabaseAnonKey || !window.supabase) {
-    alert("Configuration Supabase manquante.");
+if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
+  alert("Configuration Supabase manquante.");
+  throw new Error("Configuration Supabase manquante.");
+}
+
+const supabaseClient = window.supabase.createClient(
+  config.supabaseUrl,
+  config.supabaseAnonKey
+);
+
+const loginScreen = document.getElementById("login-screen");
+const dashboard = document.getElementById("dashboard");
+
+const emailInput = document.getElementById("admin-email");
+const passwordInput = document.getElementById("admin-password");
+const loginBtn = document.getElementById("login-btn");
+const logoutBtn = document.getElementById("logout-btn");
+const refreshBtn = document.getElementById("refresh-btn");
+const loginFeedback = document.getElementById("login-feedback");
+
+const statEvents = document.getElementById("stat-events");
+const statPending = document.getElementById("stat-pending");
+const statVisits = document.getElementById("stat-visits");
+const statNewsletter = document.getElementById("stat-newsletter");
+
+const pendingContainer = document.getElementById("pending-events");
+const validatedContainer = document.getElementById("validated-events");
+
+let events = [];
+let typesChart = null;
+let visitsChart = null;
+
+init();
+
+async function init() {
+  bindEvents();
+
+  const { data } = await supabaseClient.auth.getSession();
+
+  if (data?.session) {
+    showDashboard();
+    await loadDashboard();
+  }
+}
+
+function bindEvents() {
+  loginBtn?.addEventListener("click", login);
+  logoutBtn?.addEventListener("click", logout);
+  refreshBtn?.addEventListener("click", loadDashboard);
+
+  passwordInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") login();
+  });
+}
+
+async function login() {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  loginFeedback.textContent = "";
+
+  if (!email || !password) {
+    loginFeedback.textContent = "Veuillez remplir les champs.";
     return;
   }
 
-  const supabaseClient = window.supabase.createClient(
-    config.supabaseUrl,
-    config.supabaseAnonKey
-  );
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Connexion...";
 
-  const ADMIN_EMAIL = "admin@dedicalivres.fr";
+  try {
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
 
-  // LOGIN
-  const loginScreen = document.getElementById("login-screen");
-  const dashboard = document.getElementById("dashboard");
-  const loginBtn = document.getElementById("login-btn");
-  const logoutBtn = document.getElementById("logout-btn");
-
-  const emailInput = document.getElementById("admin-email");
-  const passwordInput = document.getElementById("admin-password");
-  const feedback = document.getElementById("login-feedback");
-
-  // DASHBOARD
-  const pendingList = document.getElementById("pending-events");
-  const validatedList = document.getElementById("validated-events");
-
-  const statPending = document.getElementById("stat-pending");
-  const statValidated = document.getElementById("stat-validated");
-  const statViews = document.getElementById("stat-views");
-  const statSubscribers = document.getElementById("stat-subscribers");
-
-  let events = [];
-
-  init();
-
-  async function init() {
-    bindEvents();
-    await restoreSession();
-  }
-
-  function bindEvents() {
-    loginBtn?.addEventListener("click", login);
-    logoutBtn?.addEventListener("click", logout);
-  }
-
-  async function restoreSession() {
-    const { data } = await supabaseClient.auth.getSession();
-
-    if (data?.session) {
-      showDashboard();
-      await loadDashboard();
-    }
-  }
-
-  async function login() {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-
-    if (!email || !password) {
-      feedback.textContent = "Veuillez remplir tous les champs.";
-      return;
-    }
-
-    loginBtn.disabled = true;
-    loginBtn.textContent = "Connexion...";
-
-    const { data, error } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-
-    if (error) {
-      feedback.textContent = error.message;
-      loginBtn.disabled = false;
-      loginBtn.textContent = "Connexion";
-      return;
-    }
-
-    if (data?.user?.email !== ADMIN_EMAIL) {
-      await supabaseClient.auth.signOut();
-      feedback.textContent = "Accès refusé.";
-      loginBtn.disabled = false;
-      loginBtn.textContent = "Connexion";
-      return;
-    }
+    if (error) throw error;
 
     showDashboard();
-
     await loadDashboard();
-
+  } catch (error) {
+    console.error(error);
+    loginFeedback.textContent = "Connexion impossible. Vérifiez vos identifiants.";
+  } finally {
     loginBtn.disabled = false;
-    loginBtn.textContent = "Connexion";
+    loginBtn.textContent = "ACCÉDER AU SYSTÈME";
+  }
+}
+
+async function logout() {
+  await supabaseClient.auth.signOut();
+  dashboard.classList.add("hidden");
+  loginScreen.classList.remove("hidden");
+}
+
+function showDashboard() {
+  loginScreen.classList.add("hidden");
+  dashboard.classList.remove("hidden");
+}
+
+async function loadDashboard() {
+  await loadEvents();
+  await loadStats();
+  renderEvents();
+  renderCharts();
+}
+
+async function loadEvents() {
+  const { data, error } = await supabaseClient
+    .from("events")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    events = [];
+    return;
   }
 
-  async function logout() {
-    await supabaseClient.auth.signOut();
-    location.reload();
+  events = data || [];
+}
+
+async function loadStats() {
+  const pending = events.filter((event) => !event.validated && !event.rejected);
+
+  statEvents.textContent = events.length;
+  statPending.textContent = pending.length;
+
+  const newsletterCount = await countTable("newsletter_subscribers");
+  statNewsletter.textContent = newsletterCount;
+
+  const visits = await loadVisits();
+  statVisits.textContent = visits.length;
+}
+
+function renderEvents() {
+  const pending = events.filter((event) => !event.validated && !event.rejected);
+  const validated = events.filter((event) => event.validated && !event.rejected);
+
+  pendingContainer.innerHTML = pending.length
+    ? pending.map((event) => createEventCard(event, true)).join("")
+    : emptyHTML("Aucun événement à valider.");
+
+  validatedContainer.innerHTML = validated.length
+    ? validated.slice(0, 50).map((event) => createEventCard(event, false)).join("")
+    : emptyHTML("Aucun événement validé.");
+
+  bindActionButtons();
+}
+
+function createEventCard(event, pending = false) {
+  return `
+    <article class="event-item">
+      <div class="event-top">
+        <div class="event-title">${escapeHtml(event.title || "Sans titre")}</div>
+        <div class="event-type">${escapeHtml(event.type || "Autre")}</div>
+      </div>
+
+      <div class="event-meta">
+        <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}</span>
+        <span>📅 ${formatDate(event.start_date)}</span>
+      </div>
+
+      <div class="event-actions">
+        ${
+          pending
+            ? `
+              <button class="action-btn validate" data-action="validate" data-id="${event.id}">Valider</button>
+              <button class="action-btn reject" data-action="reject" data-id="${event.id}">Refuser</button>
+            `
+            : ""
+        }
+
+        <button class="action-btn feature" data-action="feature" data-id="${event.id}">
+          ${event.featured ? "Retirer mise en avant" : "Mettre en avant"}
+        </button>
+
+        <button class="action-btn delete" data-action="delete" data-id="${event.id}">
+          Supprimer
+        </button>
+      </div>
+    </article>
+  `;
+}
+
+function bindActionButtons() {
+  document.querySelectorAll("[data-action]").forEach((button) => {
+    button.addEventListener("click", handleAction);
+  });
+}
+
+async function handleAction(event) {
+  const button = event.currentTarget;
+  const action = button.dataset.action;
+  const id = button.dataset.id;
+
+  if (!action || !id) return;
+
+  button.disabled = true;
+
+  try {
+    if (action === "validate") await validateEvent(id);
+    if (action === "reject") await rejectEvent(id);
+    if (action === "feature") await toggleFeature(id);
+
+    if (action === "delete") {
+      const ok = confirm("Supprimer définitivement cet événement ?");
+      if (ok) await deleteEvent(id);
+    }
+
+    await loadDashboard();
+  } catch (error) {
+    console.error(error);
+    alert("Erreur pendant l’action.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function validateEvent(id) {
+  const { error } = await supabaseClient
+    .from("events")
+    .update({ validated: true, rejected: false })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+async function rejectEvent(id) {
+  const { error } = await supabaseClient
+    .from("events")
+    .update({ validated: false, rejected: true })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+async function toggleFeature(id) {
+  const event = events.find((item) => String(item.id) === String(id));
+  if (!event) return;
+
+  const { error } = await supabaseClient
+    .from("events")
+    .update({ featured: !event.featured })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+async function deleteEvent(id) {
+  const { error } = await supabaseClient
+    .from("events")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+async function countTable(tableName) {
+  const { count, error } = await supabaseClient
+    .from(tableName)
+    .select("*", { count: "exact", head: true });
+
+  if (error) {
+    console.warn(`Impossible de compter ${tableName}`, error);
+    return 0;
   }
 
-  function showDashboard() {
-    loginScreen.classList.add("hidden");
-    dashboard.classList.remove("hidden");
-  }
+  return count || 0;
+}
 
-  async function loadDashboard() {
-    await Promise.all([
-      loadEvents(),
-      loadStats(),
-      loadCharts()
-    ]);
-  }
+async function loadVisits() {
+  const tables = ["site_visits", "page_views"];
 
-  async function loadEvents() {
+  for (const table of tables) {
     const { data, error } = await supabaseClient
-      .from("events")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .from(table)
+      .select("created_at,path,page_title")
+      .order("created_at", { ascending: true })
+      .limit(5000);
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    events = data || [];
-
-    const pending = events.filter(e => !e.validated && !e.rejected);
-    const validated = events.filter(e => e.validated);
-
-    renderEvents(pendingList, pending, true);
-    renderEvents(validatedList, validated, false);
-
-    statPending.textContent = pending.length;
-    statValidated.textContent = validated.length;
+    if (!error && Array.isArray(data)) return data;
   }
 
-  function renderEvents(container, items, moderationMode) {
-    if (!container) return;
+  return [];
+}
 
-    if (!items.length) {
-      container.innerHTML = `
-        <div class="event-item">
-          Aucun événement.
-        </div>
-      `;
-      return;
-    }
+async function renderCharts() {
+  if (!window.Chart) return;
 
-    container.innerHTML = items.map(event => `
-      <article class="event-item">
+  renderTypesChart();
+  await renderVisitsChart();
+}
 
-        <div class="event-top">
-          <div>
-            <div class="event-title">
-              ${escapeHtml(event.title || "Sans titre")}
-            </div>
+function renderTypesChart() {
+  const canvas = document.getElementById("types-chart");
+  if (!canvas) return;
 
-            <div class="event-type">
-              ${escapeHtml(event.type || "Autre")}
-            </div>
-          </div>
+  const typeCounts = {};
 
-          ${event.featured ? `
-            <div class="event-type">
-              ★ FEATURED
-            </div>
-          ` : ""}
-        </div>
+  events.forEach((event) => {
+    const type = event.type || "Autre";
+    typeCounts[type] = (typeCounts[type] || 0) + 1;
+  });
 
-        <div class="event-meta">
-          <span>📍 ${escapeHtml(event.city || "")}</span>
-          <span>📅 ${formatDate(event.start_date)}</span>
-          <span>🧭 ${escapeHtml(event.region || "")}</span>
-        </div>
+  if (typesChart) typesChart.destroy();
 
-        <div class="event-actions">
-
-          ${
-            moderationMode
-              ? `
-                <button
-                  class="action-btn validate"
-                  onclick="window.validateEvent('${event.id}')"
-                >
-                  ✔ Valider
-                </button>
-
-                <button
-                  class="action-btn reject"
-                  onclick="window.rejectEvent('${event.id}')"
-                >
-                  ✖ Refuser
-                </button>
-              `
-              : ""
-          }
-
-          <button
-            class="action-btn feature"
-            onclick="window.toggleFeatured('${event.id}')"
-          >
-            ${event.featured ? "★ Retirer" : "★ Mettre en avant"}
-          </button>
-
-          <button
-            class="action-btn delete"
-            onclick="window.deleteEvent('${event.id}')"
-          >
-            🗑 Supprimer
-          </button>
-
-        </div>
-      </article>
-    `).join("");
-  }
-
-  async function loadStats() {
-
-    // VISITES
-    const { count: viewsCount } = await supabaseClient
-      .from("page_views")
-      .select("*", { count: "exact", head: true });
-
-    statViews.textContent = viewsCount || 0;
-
-    // NEWSLETTER
-    const { count: subscribersCount } = await supabaseClient
-      .from("newsletter_subscribers")
-      .select("*", { count: "exact", head: true });
-
-    statSubscribers.textContent = subscribersCount || 0;
-  }
-
-  async function loadCharts() {
-
-    if (!window.Chart) return;
-
-    const visitsCtx = document.getElementById("visits-chart");
-    const eventsCtx = document.getElementById("events-chart");
-
-    // VISITS
-    const { data: viewsData } = await supabaseClient
-      .from("page_views")
-      .select("created_at");
-
-    const viewsPerDay = {};
-
-    (viewsData || []).forEach(v => {
-      const day = v.created_at.slice(0,10);
-      viewsPerDay[day] = (viewsPerDay[day] || 0) + 1;
-    });
-
-    new Chart(visitsCtx, {
-      type: "line",
-      data: {
-        labels: Object.keys(viewsPerDay),
-        datasets: [{
-          label: "Visites",
-          data: Object.values(viewsPerDay),
-          borderColor: "#19ff9c",
-          backgroundColor: "rgba(25,255,156,.12)",
-          tension: .35,
-          fill: true
-        }]
+  typesChart = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: Object.keys(typeCounts),
+      datasets: [{
+        data: Object.values(typeCounts),
+        backgroundColor: ["#19ff9c", "#00d9ff", "#ff9e44", "#bc7dff"]
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          labels: { color: "#ebfff8" }
+        }
       }
-    });
+    }
+  });
+}
 
-    // EVENTS
-    const eventTypes = {};
+async function renderVisitsChart() {
+  const canvas = document.getElementById("visits-chart");
+  if (!canvas) return;
 
-    events.forEach(e => {
-      const type = e.type || "Autre";
-      eventTypes[type] = (eventTypes[type] || 0) + 1;
-    });
+  const visits = await loadVisits();
+  const counts = {};
 
-    new Chart(eventsCtx, {
-      type: "doughnut",
-      data: {
-        labels: Object.keys(eventTypes),
-        datasets: [{
-          data: Object.values(eventTypes),
-          backgroundColor: [
-            "#19ff9c",
-            "#00d9ff",
-            "#ff9e44",
-            "#bc7dff"
-          ]
-        }]
+  visits.forEach((visit) => {
+    if (!visit.created_at) return;
+    const day = visit.created_at.slice(0, 10);
+    counts[day] = (counts[day] || 0) + 1;
+  });
+
+  const labels = Object.keys(counts).slice(-14);
+  const values = labels.map((label) => counts[label]);
+
+  if (visitsChart) visitsChart.destroy();
+
+  visitsChart = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Visites",
+        data: values,
+        borderColor: "#19ff9c",
+        backgroundColor: "rgba(25,255,156,.12)",
+        tension: 0.35,
+        fill: true
+      }]
+    },
+    options: {
+      scales: {
+        x: { ticks: { color: "#ebfff8" } },
+        y: { ticks: { color: "#ebfff8" } }
+      },
+      plugins: {
+        legend: {
+          labels: { color: "#ebfff8" }
+        }
       }
-    });
-  }
+    }
+  });
+}
 
-  // ACTIONS
+function emptyHTML(message) {
+  return `<div class="event-item">${escapeHtml(message)}</div>`;
+}
 
-  window.validateEvent = async (id) => {
+function formatDate(value) {
+  if (!value) return "Date inconnue";
 
-    await supabaseClient
-      .from("events")
-      .update({
-        validated: true,
-        rejected: false
-      })
-      .eq("id", id);
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(new Date(value));
+}
 
-    await loadDashboard();
-  };
-
-  window.rejectEvent = async (id) => {
-
-    await supabaseClient
-      .from("events")
-      .update({
-        rejected: true
-      })
-      .eq("id", id);
-
-    await loadDashboard();
-  };
-
-  window.toggleFeatured = async (id) => {
-
-    const event = events.find(e => String(e.id) === String(id));
-
-    if (!event) return;
-
-    await supabaseClient
-      .from("events")
-      .update({
-        featured: !event.featured
-      })
-      .eq("id", id);
-
-    await loadDashboard();
-  };
-
-  window.deleteEvent = async (id) => {
-
-    const confirmed = confirm(
-      "Supprimer définitivement cet événement ?"
-    );
-
-    if (!confirmed) return;
-
-    await supabaseClient
-      .from("events")
-      .delete()
-      .eq("id", id);
-
-    await loadDashboard();
-  };
-
-  // HELPERS
-
-  function formatDate(value) {
-
-    if (!value) return "Date inconnue";
-
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric"
-    }).format(new Date(value));
-  }
-
-  function escapeHtml(value) {
-
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-})();
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
