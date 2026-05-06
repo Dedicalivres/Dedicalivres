@@ -1,5 +1,6 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V8 CYBER CONTROL
+   DÉDICALIVRES — ADMIN V9 CYBER CONTROL + IMAGE MANAGER
+   PARTIE 1/3
 ========================================================= */
 
 "use strict";
@@ -8,7 +9,12 @@
 
 const config = window.DEDICALIVRES_CONFIG;
 
-if (!config || !window.supabase) {
+if (
+  !config ||
+  !config.supabaseUrl ||
+  !config.supabaseAnonKey ||
+  !window.supabase
+) {
   alert("Configuration Supabase introuvable.");
   throw new Error("Supabase config missing");
 }
@@ -41,6 +47,8 @@ const statsPending = document.getElementById("stats-pending");
 const statsNewsletter = document.getElementById("stats-newsletter");
 const statsVisits = document.getElementById("stats-visits");
 
+/* EDIT MODAL */
+
 const editModal = document.getElementById("edit-modal");
 
 const editId = document.getElementById("edit-id");
@@ -53,14 +61,20 @@ const editEndDate = document.getElementById("edit-end-date");
 const editWebsite = document.getElementById("edit-website");
 const editDescription = document.getElementById("edit-description");
 
+const editImagePreview = document.getElementById("edit-image-preview");
+const editImageFile = document.getElementById("edit-image-file");
+const editImageUrl = document.getElementById("edit-image-url");
+const removeEditImageBtn = document.getElementById("remove-edit-image");
+
 const saveEditBtn = document.getElementById("save-edit-btn");
 const closeEditModalBtn = document.getElementById("close-edit-modal");
 
 /* STATE */
 
 let allEvents = [];
-let map;
-let markersLayer;
+let map = null;
+let markersLayer = null;
+let selectedAdminImageFile = null;
 
 /* INIT */
 
@@ -69,9 +83,9 @@ init();
 async function init() {
   bindEvents();
 
-  const session = await supabaseClient.auth.getSession();
+  const { data } = await supabaseClient.auth.getSession();
 
-  if (session?.data?.session) {
+  if (data?.session) {
     showDashboard();
     await loadDashboard();
   }
@@ -94,8 +108,23 @@ function bindEvents() {
   filterType?.addEventListener("change", renderEvents);
 
   closeEditModalBtn?.addEventListener("click", closeEditModal);
-
   saveEditBtn?.addEventListener("click", saveEdition);
+
+  removeEditImageBtn?.addEventListener("click", removeEditImage);
+
+  editImageFile?.addEventListener("change", handleAdminImagePreview);
+
+  editModal?.addEventListener("click", (event) => {
+    if (event.target === editModal) {
+      closeEditModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeEditModal();
+    }
+  });
 }
 
 /* LOGIN */
@@ -103,10 +132,24 @@ function bindEvents() {
 async function handleLogin(event) {
   event.preventDefault();
 
+  if (!loginFeedback) return;
+
   loginFeedback.textContent = "";
 
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
+  const email = document.getElementById("email")?.value.trim() || "";
+  const password = document.getElementById("password")?.value.trim() || "";
+
+  if (!email || !password) {
+    loginFeedback.textContent = "Email et mot de passe obligatoires.";
+    return;
+  }
+
+  const submitButton = loginForm.querySelector('button[type="submit"]');
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Connexion...";
+  }
 
   try {
     const { error } = await supabaseClient.auth.signInWithPassword({
@@ -117,31 +160,36 @@ async function handleLogin(event) {
     if (error) throw error;
 
     showDashboard();
-
     await loadDashboard();
 
     showToast("Connexion réussie");
-
   } catch (error) {
-    console.error(error);
-
-    loginFeedback.textContent =
-      "Connexion impossible.";
+    console.error("Erreur connexion admin :", error);
+    loginFeedback.textContent = "Connexion impossible. Vérifie tes identifiants.";
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = "CONNEXION";
+    }
   }
 }
 
 async function logout() {
   await supabaseClient.auth.signOut();
 
-  dashboard.classList.add("hidden");
-  loginScreen.classList.remove("hidden");
+  dashboard?.classList.add("hidden");
+  loginScreen?.classList.remove("hidden");
 
   showToast("Déconnecté");
 }
 
 function showDashboard() {
-  loginScreen.classList.add("hidden");
-  dashboard.classList.remove("hidden");
+  loginScreen?.classList.add("hidden");
+  dashboard?.classList.remove("hidden");
+
+  setTimeout(() => {
+    map?.invalidateSize();
+  }, 300);
 }
 
 /* DASHBOARD */
@@ -153,8 +201,13 @@ async function loadDashboard() {
     loadVisitsCount()
   ]);
 
+  updateStats();
   renderEvents();
   initMap();
+
+  setTimeout(() => {
+    map?.invalidateSize();
+  }, 250);
 }
 
 async function loadEvents() {
@@ -164,112 +217,177 @@ async function loadEvents() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error(error);
+    console.error("Erreur chargement événements :", error);
     showToast("Erreur chargement événements");
+    allEvents = [];
     return;
   }
 
-  allEvents = data || [];
-
-  updateStats();
+  allEvents = Array.isArray(data) ? data : [];
 }
 
 async function loadNewsletterCount() {
   try {
-    const { count } = await supabaseClient
+    const { count, error } = await supabaseClient
       .from("newsletter_subscribers")
-      .select("*", { count: "exact", head: true });
+      .select("*", {
+        count: "exact",
+        head: true
+      });
 
-    statsNewsletter.textContent = count || 0;
+    if (error) throw error;
 
+    if (statsNewsletter) {
+      statsNewsletter.textContent = count || 0;
+    }
   } catch (error) {
-    console.error(error);
+    console.warn("Newsletter indisponible :", error);
+
+    if (statsNewsletter) {
+      statsNewsletter.textContent = "0";
+    }
   }
 }
 
 async function loadVisitsCount() {
-  try {
-    const { count } = await supabaseClient
-      .from("visits")
-      .select("*", { count: "exact", head: true });
+  const tables = ["visits", "site_visits", "page_views"];
 
-    statsVisits.textContent = count || 0;
+  for (const table of tables) {
+    try {
+      const { count, error } = await supabaseClient
+        .from(table)
+        .select("*", {
+          count: "exact",
+          head: true
+        });
 
-  } catch (error) {
+      if (!error) {
+        if (statsVisits) {
+          statsVisits.textContent = count || 0;
+        }
+
+        return;
+      }
+    } catch {
+      // table suivante
+    }
+  }
+
+  if (statsVisits) {
     statsVisits.textContent = "0";
   }
 }
 
 function updateStats() {
-  statsEvents.textContent = allEvents.length;
+  const pending = allEvents.filter(
+    (event) => !event.validated && !event.rejected
+  );
 
-  statsPending.textContent =
-    allEvents.filter(event => !event.validated).length;
+  if (statsEvents) {
+    statsEvents.textContent = allEvents.length;
+  }
 
-  eventsCount.textContent =
-    `${allEvents.length} événements`;
+  if (statsPending) {
+    statsPending.textContent = pending.length;
+  }
+
+  if (eventsCount) {
+    eventsCount.textContent =
+      `${getFilteredEvents().length} élément${getFilteredEvents().length > 1 ? "s" : ""}`;
+  }
 }
+/* =========================================================
+   DÉDICALIVRES — ADMIN V9 CYBER CONTROL + IMAGE MANAGER
+   PARTIE 2/3
+========================================================= */
 
-/* FILTERS */
+/* RENDER EVENTS */
 
 function getFilteredEvents() {
-  const search =
-    (searchInput?.value || "").toLowerCase();
+  const search = normalize(searchInput?.value || "");
+  const status = filterStatus?.value || "";
+  const type = filterType?.value || "";
 
-  const status =
-    filterStatus?.value || "";
+  return allEvents.filter((event) => {
 
-  const type =
-    filterType?.value || "";
+    const haystack = normalize([
+      event.title,
+      event.city,
+      event.region,
+      event.description
+    ].join(" "));
 
-  return allEvents.filter(event => {
+    if (search && !haystack.includes(search)) {
+      return false;
+    }
 
-    const matchSearch =
-      !search ||
-      `${event.title} ${event.city} ${event.region}`
-        .toLowerCase()
-        .includes(search);
-
-    const matchType =
-      !type ||
-      event.type === type;
-
-    let matchStatus = true;
+    if (type && event.type !== type) {
+      return false;
+    }
 
     if (status === "pending") {
-      matchStatus = !event.validated;
+      return !event.validated && !event.rejected;
     }
 
     if (status === "validated") {
-      matchStatus = event.validated;
+      return !!event.validated;
     }
 
     if (status === "featured") {
-      matchStatus = event.featured;
+      return !!event.featured;
     }
 
-    return matchSearch &&
-      matchType &&
-      matchStatus;
+    if (status === "missing-image") {
+      return !event.image_url;
+    }
+
+    return true;
   });
 }
 
-/* RENDER */
-
 function renderEvents() {
+  if (!eventsContainer) return;
+
   const events = getFilteredEvents();
 
-  eventsContainer.innerHTML =
-    events.map(renderEventCard).join("");
+  updateStats();
+
+  if (!events.length) {
+    eventsContainer.innerHTML = `
+      <article class="event-card">
+        Aucun événement trouvé.
+      </article>
+    `;
+    return;
+  }
+
+  eventsContainer.innerHTML = events
+    .map(renderEventCard)
+    .join("");
 
   bindEventActions();
-
-  renderMapMarkers(events);
 }
 
 function renderEventCard(event) {
+
+  const image = event.image_url
+    ? `
+      <img
+        class="event-admin-thumb"
+        src="${escapeHtml(event.image_url)}"
+        alt="${escapeHtml(event.title)}"
+      />
+    `
+    : `
+      <div class="event-admin-thumb-placeholder">
+        PAS D’IMAGE
+      </div>
+    `;
+
   return `
-    <article class="event-card">
+    <article class="event-card event-card-with-image">
+
+      ${image}
 
       <div>
 
@@ -278,22 +396,44 @@ function renderEventCard(event) {
         </div>
 
         <div class="event-meta">
-          <span>${escapeHtml(event.city || "")}</span>
-          <span>${escapeHtml(event.region || "")}</span>
-          <span>${escapeHtml(event.type || "")}</span>
+
+          <span>
+            📍 ${escapeHtml(event.city || "Ville inconnue")}
+          </span>
+
+          <span>
+            📅 ${formatDate(event.start_date)}
+          </span>
+
+          <span>
+            🏷️ ${escapeHtml(event.type || "Autre")}
+          </span>
+
         </div>
 
         <div class="event-badges">
 
           ${
+            !event.validated && !event.rejected
+              ? `<span class="badge pending">EN ATTENTE</span>`
+              : ""
+          }
+
+          ${
             event.validated
               ? `<span class="badge">VALIDÉ</span>`
-              : `<span class="badge pending">EN ATTENTE</span>`
+              : ""
           }
 
           ${
             event.featured
-              ? `<span class="badge featured">FEATURED</span>`
+              ? `<span class="badge featured">MISE EN AVANT</span>`
+              : ""
+          }
+
+          ${
+            !event.image_url
+              ? `<span class="badge missing-image">SANS IMAGE</span>`
               : ""
           }
 
@@ -308,7 +448,7 @@ function renderEventCard(event) {
           data-action="validate"
           data-id="${event.id}"
         >
-          ✔
+          ✔ Valider
         </button>
 
         <button
@@ -316,7 +456,7 @@ function renderEventCard(event) {
           data-action="reject"
           data-id="${event.id}"
         >
-          ✖
+          ✖ Rejeter
         </button>
 
         <button
@@ -324,7 +464,7 @@ function renderEventCard(event) {
           data-action="featured"
           data-id="${event.id}"
         >
-          ★
+          ★ Feature
         </button>
 
         <button
@@ -332,7 +472,7 @@ function renderEventCard(event) {
           data-action="edit"
           data-id="${event.id}"
         >
-          ✎
+          ✎ Modifier
         </button>
 
       </div>
@@ -341,20 +481,18 @@ function renderEventCard(event) {
   `;
 }
 
-/* ACTIONS */
-
 function bindEventActions() {
+
   document
-    .querySelectorAll(".event-action")
-    .forEach(button => {
+    .querySelectorAll("[data-action]")
+    .forEach((button) => {
 
       button.addEventListener("click", async () => {
 
-        const action =
-          button.dataset.action;
+        const action = button.dataset.action;
+        const id = button.dataset.id;
 
-        const id =
-          button.dataset.id;
+        if (!id) return;
 
         if (action === "validate") {
           await validateEvent(id);
@@ -371,12 +509,17 @@ function bindEventActions() {
         if (action === "edit") {
           openEditModal(id);
         }
+
       });
+
     });
 }
 
+/* VALIDATION */
+
 async function validateEvent(id) {
-  await supabaseClient
+
+  const { error } = await supabaseClient
     .from("events")
     .update({
       validated: true,
@@ -384,158 +527,464 @@ async function validateEvent(id) {
     })
     .eq("id", id);
 
-  showToast("Événement validé");
+  if (error) {
+    console.error(error);
+    showToast("Erreur validation");
+    return;
+  }
 
   await loadDashboard();
+
+  showToast("Événement validé");
 }
 
 async function rejectEvent(id) {
-  await supabaseClient
+
+  const confirmed =
+    confirm("Rejeter cet événement ?");
+
+  if (!confirmed) return;
+
+  const { error } = await supabaseClient
     .from("events")
     .update({
-      rejected: true
+      rejected: true,
+      validated: false
     })
     .eq("id", id);
 
-  showToast("Événement rejeté");
+  if (error) {
+    console.error(error);
+    showToast("Erreur rejet");
+    return;
+  }
 
   await loadDashboard();
+
+  showToast("Événement rejeté");
 }
 
 async function toggleFeatured(id) {
-  const current =
-    allEvents.find(event =>
-      String(event.id) === String(id)
-    );
 
-  if (!current) return;
-
-  await supabaseClient
-    .from("events")
-    .update({
-      featured: !current.featured
-    })
-    .eq("id", id);
-
-  showToast("Featured mis à jour");
-
-  await loadDashboard();
-}
-
-/* EDITION */
-
-function openEditModal(id) {
-  const event =
-    allEvents.find(item =>
-      String(item.id) === String(id)
-    );
+  const event = allEvents.find(
+    (item) => String(item.id) === String(id)
+  );
 
   if (!event) return;
 
-  editId.value = event.id || "";
-  editTitle.value = event.title || "";
-  editType.value = event.type || "Autre";
-  editCity.value = event.city || "";
-  editRegion.value = event.region || "";
-  editStartDate.value = event.start_date || "";
-  editEndDate.value = event.end_date || "";
-  editWebsite.value = event.website || "";
-  editDescription.value = event.description || "";
+  const { error } = await supabaseClient
+    .from("events")
+    .update({
+      featured: !event.featured
+    })
+    .eq("id", id);
 
-  editModal.classList.remove("hidden");
-}
-
-function closeEditModal() {
-  editModal.classList.add("hidden");
-}
-
-async function saveEdition() {
-  const id = editId.value;
-
-  try {
-
-    await supabaseClient
-      .from("events")
-      .update({
-        title: editTitle.value,
-        type: editType.value,
-        city: editCity.value,
-        region: editRegion.value,
-        start_date: editStartDate.value,
-        end_date: editEndDate.value,
-        website: editWebsite.value,
-        description: editDescription.value
-      })
-      .eq("id", id);
-
-    showToast("Événement modifié");
-
-    closeEditModal();
-
-    await loadDashboard();
-
-  } catch (error) {
+  if (error) {
     console.error(error);
-
-    showToast("Erreur modification");
+    showToast("Erreur feature");
+    return;
   }
+
+  await loadDashboard();
+
+  showToast(
+    !event.featured
+      ? "Événement mis en avant"
+      : "Mise en avant retirée"
+  );
 }
 
 /* MAP */
 
 function initMap() {
-  if (!document.getElementById("admin-map")) return;
+
+  if (!window.L) return;
+
+  const mapElement =
+    document.getElementById("admin-map");
+
+  if (!mapElement) return;
 
   if (!map) {
 
-    map = L.map("admin-map")
-      .setView([46.603354, 1.888334], 6);
+    map = L.map("admin-map").setView(
+      [46.603354, 1.888334],
+      6
+    );
 
     L.tileLayer(
       "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       {
-        attribution: "&copy; OpenStreetMap"
+        attribution:
+          "&copy; OpenStreetMap contributors"
       }
     ).addTo(map);
 
     markersLayer = L.layerGroup().addTo(map);
   }
 
-  renderMapMarkers(getFilteredEvents());
-}
-
-function renderMapMarkers(events) {
-  if (!map || !markersLayer) return;
-
   markersLayer.clearLayers();
 
-  events.forEach(event => {
+  allEvents.forEach((event) => {
 
     if (
       !Number.isFinite(Number(event.lat)) ||
       !Number.isFinite(Number(event.lng))
-    ) return;
+    ) {
+      return;
+    }
 
-    const marker = L.marker([
-      Number(event.lat),
-      Number(event.lng)
-    ]);
+    const marker = L.circleMarker(
+      [Number(event.lat), Number(event.lng)],
+      {
+        radius: 7,
+        color: getMarkerColor(event),
+        fillColor: getMarkerColor(event),
+        fillOpacity: .85
+      }
+    );
 
     marker.bindPopup(`
-      <strong>${escapeHtml(event.title || "")}</strong>
+      <strong>${escapeHtml(event.title)}</strong>
       <br>
       ${escapeHtml(event.city || "")}
     `);
 
-    markersLayer.addLayer(marker);
+    marker.addTo(markersLayer);
+
+  });
+
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 250);
+}
+
+function getMarkerColor(event) {
+
+  if (event.type === "Salon") {
+    return "#bc7dff";
+  }
+
+  if (event.type === "Festival") {
+    return "#ff9e44";
+  }
+
+  if (event.type === "Dédicace") {
+    return "#19ff9c";
+  }
+
+  return "#00dcff";
+}
+/* =========================================================
+   DÉDICALIVRES — ADMIN V9 CYBER CONTROL + IMAGE MANAGER
+   PARTIE 3/3
+========================================================= */
+
+/* EDITION */
+
+function openEditModal(id) {
+
+  const event = allEvents.find(
+    (item) => String(item.id) === String(id)
+  );
+
+  if (!event) return;
+
+  editId.value = event.id || "";
+
+  editTitle.value = event.title || "";
+  editType.value = event.type || "Autre";
+  editCity.value = event.city || "";
+  editRegion.value = event.region || "";
+
+  editStartDate.value =
+    event.start_date || "";
+
+  editEndDate.value =
+    event.end_date || "";
+
+  editWebsite.value =
+    event.website || "";
+
+  editDescription.value =
+    event.description || "";
+
+  editImageUrl.value =
+    event.image_url || "";
+
+  selectedAdminImageFile = null;
+
+  renderEditImagePreview(
+    event.image_url
+  );
+
+  editModal?.classList.remove("hidden");
+}
+
+function closeEditModal() {
+  editModal?.classList.add("hidden");
+
+  selectedAdminImageFile = null;
+}
+
+function renderEditImagePreview(url) {
+
+  if (!editImagePreview) return;
+
+  if (!url) {
+
+    editImagePreview.innerHTML = `
+      <span>Aucune affiche</span>
+    `;
+
+    return;
+  }
+
+  editImagePreview.innerHTML = `
+    <img
+      src="${escapeHtml(url)}"
+      alt="Affiche événement"
+    />
+  `;
+}
+
+/* IMAGE ADMIN */
+
+function handleAdminImagePreview(event) {
+
+  const file =
+    event.target.files?.[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    showToast("Fichier image invalide");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast("Image trop lourde (5 Mo max)");
+    return;
+  }
+
+  selectedAdminImageFile = file;
+
+  const reader = new FileReader();
+
+  reader.onload = (e) => {
+
+    renderEditImagePreview(
+      e.target.result
+    );
+
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function removeEditImage() {
+
+  editImageUrl.value = "";
+
+  selectedAdminImageFile = null;
+
+  if (editImageFile) {
+    editImageFile.value = "";
+  }
+
+  renderEditImagePreview("");
+}
+
+/* SAVE EDITION */
+
+async function saveEdition() {
+
+  const id = editId.value;
+
+  if (!id) return;
+
+  saveEditBtn.disabled = true;
+  saveEditBtn.textContent = "Enregistrement...";
+
+  try {
+
+    let imageUrl =
+      editImageUrl.value.trim();
+
+    if (selectedAdminImageFile) {
+
+      imageUrl =
+        await uploadAdminImage(
+          selectedAdminImageFile
+        );
+    }
+
+    const payload = {
+      title: editTitle.value.trim(),
+      type: editType.value,
+      city: editCity.value.trim(),
+      region: editRegion.value.trim(),
+
+      start_date:
+        editStartDate.value || null,
+
+      end_date:
+        editEndDate.value || null,
+
+      website:
+        editWebsite.value.trim(),
+
+      description:
+        editDescription.value.trim(),
+
+      image_url:
+        imageUrl || null
+    };
+
+    const { error } =
+      await supabaseClient
+        .from("events")
+        .update(payload)
+        .eq("id", id);
+
+    if (error) throw error;
+
+    await loadDashboard();
+
+    closeEditModal();
+
+    showToast("Événement modifié");
+
+  } catch (error) {
+
+    console.error(error);
+
+    showToast(
+      "Erreur pendant l’enregistrement"
+    );
+
+  } finally {
+
+    saveEditBtn.disabled = false;
+    saveEditBtn.textContent = "ENREGISTRER";
+  }
+}
+
+/* UPLOAD IMAGE */
+
+async function uploadAdminImage(file) {
+
+  const compressed =
+    await compressImage(file);
+
+  const extension =
+    (
+      compressed.name
+        .split(".")
+        .pop() || "jpg"
+    )
+    .toLowerCase();
+
+  const fileName =
+    `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}.${extension}`;
+
+  const { error } =
+    await supabaseClient
+      .storage
+      .from("event-images")
+      .upload(
+        fileName,
+        compressed
+      );
+
+  if (error) throw error;
+
+  const { data } =
+    supabaseClient
+      .storage
+      .from("event-images")
+      .getPublicUrl(fileName);
+
+  return data.publicUrl;
+}
+
+async function compressImage(file) {
+
+  return new Promise((resolve) => {
+
+    const image = new Image();
+
+    image.onload = () => {
+
+      const canvas =
+        document.createElement("canvas");
+
+      const maxWidth = 1600;
+
+      const ratio =
+        Math.min(
+          1,
+          maxWidth / image.width
+        );
+
+      canvas.width =
+        image.width * ratio;
+
+      canvas.height =
+        image.height * ratio;
+
+      const ctx =
+        canvas.getContext("2d");
+
+      ctx.drawImage(
+        image,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      canvas.toBlob(
+        (blob) => {
+
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+
+          resolve(
+            new File(
+              [blob],
+              file.name,
+              {
+                type: "image/jpeg"
+              }
+            )
+          );
+
+        },
+        "image/jpeg",
+        0.86
+      );
+
+    };
+
+    image.src =
+      URL.createObjectURL(file);
+
   });
 }
 
 /* TOAST */
 
 function showToast(message) {
+
   const container =
     document.getElementById("toast-container");
+
+  if (!container) return;
 
   const toast =
     document.createElement("div");
@@ -547,14 +996,52 @@ function showToast(message) {
 
   setTimeout(() => {
     toast.remove();
-  }, 3000);
+  }, 3200);
 }
 
 /* HELPERS */
 
+function formatDate(value) {
+
+  if (!value) return "";
+
+  try {
+
+    return new Intl.DateTimeFormat(
+      "fr-FR",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }
+    ).format(
+      new Date(value)
+    );
+
+  } catch {
+    return value;
+  }
+}
+
+function normalize(value) {
+
+  return (value || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 function escapeHtml(value) {
-  return String(value || "")
+
+  return (value || "")
+    .toString()
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
+
+/* =========================================================
+   FIN ADMIN V9
+========================================================= */
