@@ -1,166 +1,328 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
 
-<title>Dédicalivres — Cyber Dashboard V6</title>
+  <title>Dédicalivres — Admin V7 Cyber Dashboard</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <meta
+    name="robots"
+    content="noindex,nofollow"
+  />
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  />
 
-<link rel="stylesheet" href="admin.css"/>
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  />
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  />
 
-<script src="config.js"></script>
+  <link
+    rel="stylesheet"
+    href="admin.css"
+  />
 </head>
 
 <body>
 
-<div class="cyber-grid"></div>
+  <!-- LOGIN -->
 
-<section id="login-screen" class="login-screen">
+  <section
+    id="login-screen"
+    class="login-screen"
+  >
 
-  <div class="login-card">
+    <div class="login-card">
 
-    <div class="cyber-logo">
-      <span>DÉDICALIVRES</span>
-      <small>CYBER DASHBOARD V6</small>
+      <div class="cyber-glow"></div>
+
+      <div class="login-top">
+        <div class="login-kicker">
+          DÉDICALIVRES
+        </div>
+
+        <h1>
+          CYBER ADMIN V7
+        </h1>
+
+        <p>
+          Supervision temps réel de la plateforme.
+        </p>
+      </div>
+
+      <div class="login-form">
+
+        <input
+          id="admin-email"
+          type="email"
+          placeholder="Email administrateur"
+          autocomplete="email"
+        />
+
+        <input
+          id="admin-password"
+          type="password"
+          placeholder="Mot de passe"
+          autocomplete="current-password"
+        />
+
+        <button
+          id="login-btn"
+          class="cyber-btn primary"
+          type="button"
+        >
+          ACCÉDER AU SYSTÈME
+        </button>
+
+        <p id="login-feedback"></p>
+
+      </div>
+
     </div>
 
-    <h1>Connexion administrateur</h1>
+  </section>
 
-    <input
-      type="email"
-      id="admin-email"
-      placeholder="Email"
-      autocomplete="email"
-    />
+  <!-- DASHBOARD -->
 
-    <input
-      type="password"
-      id="admin-password"
-      placeholder="Mot de passe"
-      autocomplete="current-password"
-    />
+  <main
+    id="dashboard"
+    class="dashboard hidden"
+  >
 
-    <button id="login-btn">
-      ACCÉDER AU SYSTÈME
-    </button>
+    <!-- HEADER -->
 
-    <p id="login-feedback"></p>
+    <header class="dashboard-header">
 
-  </div>
+      <div class="dashboard-title-wrap">
 
-</section>
+        <div class="dashboard-kicker">
+          DÉDICALIVRES
+        </div>
 
-<section id="dashboard" class="dashboard hidden">
+        <h1>
+          CYBER DASHBOARD V7
+        </h1>
 
-<header class="topbar">
+      </div>
 
-  <div class="topbar-left">
+      <div class="dashboard-actions">
 
-    <h2>CYBER ADMIN V6</h2>
+        <button
+          id="refresh-btn"
+          class="cyber-btn"
+          type="button"
+        >
+          ⟳ Actualiser
+        </button>
 
-    <p>
-      Supervision intelligente temps réel
-    </p>
+        <button
+          id="logout-btn"
+          class="cyber-btn danger"
+          type="button"
+        >
+          Déconnexion
+        </button>
 
-  </div>
+      </div>
 
-  <div class="topbar-right">
+    </header>
 
-    <button id="refresh-btn" class="cyber-btn">
-      Actualiser
-    </button>
+    <!-- STATS -->
 
-    <button id="logout-btn" class="cyber-btn danger">
-      Déconnexion
-    </button>
+    <section class="stats-grid">
 
-  </div>
+      <article class="stat-card">
+        <div class="stat-label">
+          ÉVÉNEMENTS
+        </div>
 
-</header>
+        <div
+          id="stat-events"
+          class="stat-value"
+        >
+          --
+        </div>
+      </article>
 
-<section class="stats-grid">
+      <article class="stat-card pending">
+        <div class="stat-label">
+          EN ATTENTE
+        </div>
 
-  <article class="stat-card green">
-    <span class="stat-label">Événements</span>
-    <strong id="stat-events">0</strong>
-  </article>
+        <div
+          id="stat-pending"
+          class="stat-value"
+        >
+          --
+        </div>
+      </article>
 
-  <article class="stat-card cyan">
-    <span class="stat-label">En attente</span>
-    <strong id="stat-pending">0</strong>
-  </article>
+      <article class="stat-card visits">
+        <div class="stat-label">
+          VISITES
+        </div>
 
-  <article class="stat-card orange">
-    <span class="stat-label">Visites</span>
-    <strong id="stat-visits">0</strong>
-  </article>
+        <div
+          id="stat-visits"
+          class="stat-value"
+        >
+          --
+        </div>
+      </article>
 
-  <article class="stat-card purple">
-    <span class="stat-label">Newsletter</span>
-    <strong id="stat-newsletter">0</strong>
-  </article>
+      <article class="stat-card newsletter">
+        <div class="stat-label">
+          NEWSLETTER
+        </div>
 
-</section>
+        <div
+          id="stat-newsletter"
+          class="stat-value"
+        >
+          --
+        </div>
+      </article>
 
-<section class="analytics-grid">
+    </section>
 
-  <div class="panel chart-panel">
+    <!-- FILTRES -->
 
-    <div class="panel-header">
-      <h3>Types d’événements</h3>
-    </div>
+    <section class="filters-panel">
 
-    <canvas id="types-chart"></canvas>
+      <div class="filters-grid">
 
-  </div>
+        <input
+          id="admin-search"
+          type="search"
+          placeholder="Recherche événement, ville, région..."
+        />
 
-  <div class="panel chart-panel">
+        <select id="admin-filter-type">
+          <option value="">
+            Tous les types
+          </option>
 
-    <div class="panel-header">
-      <h3>Activité plateforme</h3>
-    </div>
+          <option>
+            Salon
+          </option>
 
-    <canvas id="visits-chart"></canvas>
+          <option>
+            Festival
+          </option>
 
-  </div>
+          <option>
+            Dédicace
+          </option>
 
-</section>
+          <option>
+            Autre
+          </option>
+        </select>
 
-<section class="dashboard-grid">
+        <select id="admin-filter-status">
+          <option value="">
+            Tous les statuts
+          </option>
 
-  <div class="panel">
+          <option value="pending">
+            En attente
+          </option>
 
-    <div class="panel-header">
-      <h3>Validation rapide</h3>
-    </div>
+          <option value="validated">
+            Validés
+          </option>
 
-    <div id="pending-events" class="events-list"></div>
+          <option value="featured">
+            Mis en avant
+          </option>
+        </select>
 
-  </div>
+      </div>
 
-  <div class="panel">
+    </section>
 
-    <div class="panel-header">
-      <h3>Événements validés</h3>
-    </div>
+    <!-- CHARTS -->
 
-    <div id="validated-events" class="events-list"></div>
+    <section class="charts-grid">
 
-  </div>
+      <article class="chart-card">
+        <div class="chart-title">
+          Répartition des événements
+        </div>
 
-</section>
+        <canvas id="types-chart"></canvas>
+      </article>
 
-</section>
+      <article class="chart-card">
+        <div class="chart-title">
+          Évolution des visites
+        </div>
 
-<script src="admin.js"></script>
+        <canvas id="visits-chart"></canvas>
+      </article>
+
+    </section>
+
+    <!-- EVENTS -->
+
+    <section class="events-layout">
+
+      <!-- PENDING -->
+
+      <section class="events-column">
+
+        <div class="column-title pending">
+          VALIDATION
+        </div>
+
+        <div
+          id="pending-events"
+          class="events-list"
+        ></div>
+
+      </section>
+
+      <!-- VALIDATED -->
+
+      <section class="events-column">
+
+        <div class="column-title validated">
+          ÉVÉNEMENTS VALIDÉS
+        </div>
+
+        <div
+          id="validated-events"
+          class="events-list"
+        ></div>
+
+      </section>
+
+    </section>
+
+  </main>
+
+  <!-- LIBS -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script src="config.js"></script>
+
+  <script src="admin.js"></script>
 
 </body>
 </html>
