@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <title>Dédicalivres — Admin V8 Cyber Control</title>
+  <title>Dédicalivres — Admin V9 Cyber Control</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,83 +22,55 @@
 
 <body class="cyber-admin">
 
-  <!-- LOGIN -->
   <section id="login-screen" class="login-screen">
-
     <div class="login-panel">
-
       <div class="cyber-logo-wrap">
         <img src="logo.png" alt="Dédicalivres" class="cyber-logo">
       </div>
 
-      <h1>ADMIN CONTROL V8</h1>
+      <h1>ADMIN CONTROL V9</h1>
 
       <p class="login-subtitle">
-        Supervision temps réel • Validation • Analytics • Cartographie
+        Supervision temps réel • Validation • Images • Cartographie
       </p>
 
       <form id="login-form" class="login-form">
-
-        <input
-          id="email"
-          type="email"
-          placeholder="Email administrateur"
-          required
-        />
-
-        <input
-          id="password"
-          type="password"
-          placeholder="Mot de passe"
-          required
-        />
+        <input id="email" type="email" placeholder="Email administrateur" required />
+        <input id="password" type="password" placeholder="Mot de passe" required />
 
         <button type="submit" class="cyber-btn-primary">
           CONNEXION
         </button>
-
       </form>
 
       <div id="login-feedback" class="login-feedback"></div>
-
     </div>
-
   </section>
 
-  <!-- DASHBOARD -->
   <main id="dashboard" class="dashboard hidden">
 
-    <!-- TOPBAR -->
     <header class="topbar">
-
       <div class="topbar-left">
-
         <div class="status-dot"></div>
 
         <div>
           <h2>CYBER DASHBOARD</h2>
           <p>Supervision temps réel Dédicalivres</p>
         </div>
-
       </div>
 
       <div class="topbar-right">
-
-        <button id="refresh-btn" class="cyber-btn-secondary">
+        <button id="refresh-btn" class="cyber-btn-secondary" type="button">
           Actualiser
         </button>
 
-        <button id="logout-btn" class="cyber-btn-danger">
+        <button id="logout-btn" class="cyber-btn-danger" type="button">
           Déconnexion
         </button>
-
       </div>
-
     </header>
 
-    <!-- STATS -->
     <section class="stats-grid">
-
       <article class="stat-card glow-green">
         <span class="stat-label">ÉVÉNEMENTS</span>
         <strong id="stats-events">0</strong>
@@ -118,23 +90,17 @@
         <span class="stat-label">VISITES</span>
         <strong id="stats-visits">0</strong>
       </article>
-
     </section>
 
-    <!-- FILTERS -->
     <section class="toolbar">
-
-      <input
-        type="search"
-        id="search-input"
-        placeholder="Recherche événement..."
-      />
+      <input type="search" id="search-input" placeholder="Recherche événement..." />
 
       <select id="filter-status">
         <option value="">Tous</option>
         <option value="pending">En attente</option>
         <option value="validated">Validés</option>
         <option value="featured">Mis en avant</option>
+        <option value="missing-image">Sans image</option>
       </select>
 
       <select id="filter-type">
@@ -144,47 +110,37 @@
         <option value="Dédicace">Dédicace</option>
         <option value="Autre">Autre</option>
       </select>
-
     </section>
 
-    <!-- LIVE MAP -->
     <section class="admin-map-section">
-
       <div class="section-head">
         <h3>CARTE LIVE</h3>
         <span>Surveillance géographique</span>
       </div>
 
       <div id="admin-map"></div>
-
     </section>
 
-    <!-- EVENTS -->
     <section class="events-section">
-
       <div class="section-head">
         <h3>SUPERVISION ÉVÉNEMENTS</h3>
         <span id="events-count">0 éléments</span>
       </div>
 
       <div id="events-container" class="events-container"></div>
-
     </section>
 
   </main>
 
-  <!-- TOAST -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- MODAL EDIT -->
   <div id="edit-modal" class="edit-modal hidden">
-
     <div class="edit-panel">
 
       <div class="edit-header">
         <h3>ÉDITION ÉVÉNEMENT</h3>
 
-        <button id="close-edit-modal" class="close-modal">
+        <button id="close-edit-modal" class="close-modal" type="button">
           ✕
         </button>
       </div>
@@ -193,8 +149,42 @@
 
         <input type="hidden" id="edit-id" />
 
-        <div class="form-grid">
+        <div class="admin-image-manager">
 
+          <div id="edit-image-preview" class="admin-image-preview">
+            <span>Aucune affiche</span>
+          </div>
+
+          <div class="admin-image-actions">
+            <label class="admin-upload-box">
+              <input
+                id="edit-image-file"
+                type="file"
+                accept="image/*"
+              />
+
+              <span>🖼️</span>
+              <strong>Remplacer l’affiche</strong>
+              <small>JPG, PNG, WEBP — 5 Mo max</small>
+            </label>
+
+            <input
+              id="edit-image-url"
+              placeholder="URL image / affiche"
+            />
+
+            <button
+              id="remove-edit-image"
+              class="cyber-btn-danger"
+              type="button"
+            >
+              Supprimer l’image
+            </button>
+          </div>
+
+        </div>
+
+        <div class="form-grid">
           <input id="edit-title" placeholder="Titre" />
 
           <select id="edit-type">
@@ -211,7 +201,6 @@
           <input id="edit-end-date" type="date" />
 
           <input id="edit-website" placeholder="Site officiel" />
-
         </div>
 
         <textarea
@@ -221,7 +210,6 @@
         ></textarea>
 
         <div class="edit-actions">
-
           <button
             type="button"
             id="save-edit-btn"
@@ -229,16 +217,13 @@
           >
             ENREGISTRER
           </button>
-
         </div>
 
       </form>
 
     </div>
-
   </div>
 
-  <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script
@@ -246,10 +231,7 @@
     crossorigin=""
   ></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <script src="config.js"></script>
-
   <script src="admin.js"></script>
 
 </body>
