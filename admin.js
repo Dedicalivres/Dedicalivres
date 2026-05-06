@@ -261,24 +261,36 @@ function updateStats() {
 /* ONGLETS ADMIN V10 */
 
 function bindTabs() {
-  const tabs = document.querySelectorAll(".admin-tab");
-  const panels = document.querySelectorAll(".admin-tab-panel");
+  document.addEventListener("click", (event) => {
+    const tab = event.target.closest(".admin-tab");
 
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      const target = tab.dataset.tab;
+    if (!tab) return;
 
-      tabs.forEach((item) => item.classList.remove("active"));
-      panels.forEach((panel) => panel.classList.remove("active"));
+    const target = tab.dataset.tab;
 
-      tab.classList.add("active");
-      document.getElementById(`tab-${target}`)?.classList.add("active");
+    document.querySelectorAll(".admin-tab").forEach((item) => {
+      item.classList.remove("active");
+    });
 
-      if (target === "overview") {
-        setTimeout(() => {
-          map?.invalidateSize();
-        }, 250);
-      }
+    document.querySelectorAll(".admin-tab-panel").forEach((panel) => {
+      panel.classList.remove("active");
+    });
+
+    tab.classList.add("active");
+
+    document
+      .getElementById(`tab-${target}`)
+      ?.classList.add("active");
+
+    if (target === "overview") {
+      setTimeout(() => {
+        map?.invalidateSize();
+      }, 250);
+    }
+  });
+
+  bindMobileSwipeTabs();
+}
     });
   });
 
