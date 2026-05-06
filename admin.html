@@ -2,14 +2,21 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <title>Dédicalivres — Admin V9 Cyber Control</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <title>Dédicalivres — Admin V10</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
 
   <link
     rel="stylesheet"
@@ -22,127 +29,309 @@
 
 <body class="cyber-admin">
 
-  <section id="login-screen" class="login-screen">
-    <div class="login-panel">
-      <div class="cyber-logo-wrap">
-        <img src="logo.png" alt="Dédicalivres" class="cyber-logo">
-      </div>
+  <!-- LOGIN -->
 
-      <h1>ADMIN CONTROL V9</h1>
+  <section id="login-screen" class="login-screen">
+
+    <div class="login-panel">
+
+      <img
+        src="logo.png"
+        alt="Dédicalivres"
+        class="cyber-logo"
+      />
+
+      <h1>ADMIN V10</h1>
 
       <p class="login-subtitle">
-        Supervision temps réel • Validation • Images • Cartographie
+        Supervision • Validation • Réseaux
       </p>
 
       <form id="login-form" class="login-form">
-        <input id="email" type="email" placeholder="Email administrateur" required />
-        <input id="password" type="password" placeholder="Mot de passe" required />
 
-        <button type="submit" class="cyber-btn-primary">
+        <input
+          id="email"
+          type="email"
+          placeholder="Email"
+          required
+        />
+
+        <input
+          id="password"
+          type="password"
+          placeholder="Mot de passe"
+          required
+        />
+
+        <button
+          type="submit"
+          class="cyber-btn-primary"
+        >
           CONNEXION
         </button>
+
       </form>
 
-      <div id="login-feedback" class="login-feedback"></div>
+      <div id="login-feedback"></div>
+
     </div>
+
   </section>
+
+  <!-- DASHBOARD -->
 
   <main id="dashboard" class="dashboard hidden">
 
+    <!-- TOPBAR -->
+
     <header class="topbar">
+
       <div class="topbar-left">
+
         <div class="status-dot"></div>
 
         <div>
-          <h2>CYBER DASHBOARD</h2>
-          <p>Supervision temps réel Dédicalivres</p>
+          <h2>CYBER CONTROL</h2>
+          <p>Dédicalivres supervision temps réel</p>
         </div>
+
       </div>
 
       <div class="topbar-right">
-        <button id="refresh-btn" class="cyber-btn-secondary" type="button">
+
+        <button
+          id="refresh-btn"
+          class="cyber-btn-secondary"
+          type="button"
+        >
           Actualiser
         </button>
 
-        <button id="logout-btn" class="cyber-btn-danger" type="button">
+        <button
+          id="logout-btn"
+          class="cyber-btn-danger"
+          type="button"
+        >
           Déconnexion
         </button>
+
       </div>
+
     </header>
 
-    <section class="stats-grid">
-      <article class="stat-card glow-green">
-        <span class="stat-label">ÉVÉNEMENTS</span>
-        <strong id="stats-events">0</strong>
-      </article>
+    <!-- ONGLETS -->
 
-      <article class="stat-card glow-cyan">
-        <span class="stat-label">EN ATTENTE</span>
-        <strong id="stats-pending">0</strong>
-      </article>
+    <nav class="admin-tabs">
 
-      <article class="stat-card glow-orange">
-        <span class="stat-label">NEWSLETTER</span>
-        <strong id="stats-newsletter">0</strong>
-      </article>
+      <button
+        class="admin-tab active"
+        data-tab="overview"
+      >
+        ⚡ Actu
+      </button>
 
-      <article class="stat-card glow-purple">
-        <span class="stat-label">VISITES</span>
-        <strong id="stats-visits">0</strong>
-      </article>
-    </section>
+      <button
+        class="admin-tab"
+        data-tab="moderation"
+      >
+        🛡️ Administration
+      </button>
 
-    <section class="toolbar">
-      <input type="search" id="search-input" placeholder="Recherche événement..." />
+      <button
+        class="admin-tab"
+        data-tab="social"
+      >
+        🚀 Réseaux
+      </button>
 
-      <select id="filter-status">
-        <option value="">Tous</option>
-        <option value="pending">En attente</option>
-        <option value="validated">Validés</option>
-        <option value="featured">Mis en avant</option>
-        <option value="missing-image">Sans image</option>
-      </select>
+    </nav>
 
-      <select id="filter-type">
-        <option value="">Tous types</option>
-        <option value="Salon">Salon</option>
-        <option value="Festival">Festival</option>
-        <option value="Dédicace">Dédicace</option>
-        <option value="Autre">Autre</option>
-      </select>
-    </section>
+    <!-- WRAPPER -->
 
-    <section class="admin-map-section">
-      <div class="section-head">
-        <h3>CARTE LIVE</h3>
-        <span>Surveillance géographique</span>
-      </div>
+    <section class="tabs-wrapper">
 
-      <div id="admin-map"></div>
-    </section>
+      <!-- TAB 1 -->
 
-    <section class="events-section">
-      <div class="section-head">
-        <h3>SUPERVISION ÉVÉNEMENTS</h3>
-        <span id="events-count">0 éléments</span>
-      </div>
+      <section
+        id="tab-overview"
+        class="admin-tab-panel active"
+      >
 
-      <div id="events-container" class="events-container"></div>
+        <section class="stats-grid">
+
+          <article class="stat-card glow-green">
+            <span class="stat-label">ÉVÉNEMENTS</span>
+            <strong id="stats-events">0</strong>
+          </article>
+
+          <article class="stat-card glow-cyan">
+            <span class="stat-label">EN ATTENTE</span>
+            <strong id="stats-pending">0</strong>
+          </article>
+
+          <article class="stat-card glow-orange">
+            <span class="stat-label">NEWSLETTER</span>
+            <strong id="stats-newsletter">0</strong>
+          </article>
+
+          <article class="stat-card glow-purple">
+            <span class="stat-label">VISITES</span>
+            <strong id="stats-visits">0</strong>
+          </article>
+
+        </section>
+
+        <section class="admin-panel">
+
+          <div class="section-head">
+            <h3>CARTE LIVE</h3>
+            <span>activité géographique</span>
+          </div>
+
+          <div id="admin-map"></div>
+
+        </section>
+
+      </section>
+
+      <!-- TAB 2 -->
+
+      <section
+        id="tab-moderation"
+        class="admin-tab-panel"
+      >
+
+        <section class="toolbar">
+
+          <input
+            type="search"
+            id="search-input"
+            placeholder="Recherche événement..."
+          />
+
+          <select id="filter-status">
+            <option value="">Tous</option>
+            <option value="pending">En attente</option>
+            <option value="validated">Validés</option>
+            <option value="featured">Mis en avant</option>
+            <option value="missing-image">Sans image</option>
+          </select>
+
+          <select id="filter-type">
+            <option value="">Tous types</option>
+            <option value="Salon">Salon</option>
+            <option value="Festival">Festival</option>
+            <option value="Dédicace">Dédicace</option>
+            <option value="Autre">Autre</option>
+          </select>
+
+        </section>
+
+        <section class="admin-panel">
+
+          <div class="section-head">
+            <h3>SUPERVISION</h3>
+            <span id="events-count">0 éléments</span>
+          </div>
+
+          <div
+            id="events-container"
+            class="events-container"
+          ></div>
+
+        </section>
+
+      </section>
+
+      <!-- TAB 3 -->
+
+      <section
+        id="tab-social"
+        class="admin-tab-panel"
+      >
+
+        <section class="social-grid">
+
+          <article class="social-card">
+
+            <h3>Instagram IA</h3>
+
+            <p>
+              Générer des idées de publication
+              pour les événements.
+            </p>
+
+            <textarea
+              id="instagram-caption"
+              rows="6"
+              placeholder="Texte IA futur..."
+            ></textarea>
+
+            <button
+              class="cyber-btn-primary"
+              type="button"
+            >
+              Générer
+            </button>
+
+          </article>
+
+          <article class="social-card">
+
+            <h3>Scraper / Import</h3>
+
+            <p>
+              Zone future pour import automatique
+              d’événements.
+            </p>
+
+            <button
+              class="cyber-btn-secondary"
+              type="button"
+            >
+              Import CSV
+            </button>
+
+          </article>
+
+          <article class="social-card">
+
+            <h3>Planning Réseaux</h3>
+
+            <p>
+              Événements bientôt publiables.
+            </p>
+
+            <div id="social-upcoming"></div>
+
+          </article>
+
+        </section>
+
+      </section>
+
     </section>
 
   </main>
 
-  <div id="toast-container" class="toast-container"></div>
+  <!-- MODAL -->
 
   <div id="edit-modal" class="edit-modal hidden">
+
     <div class="edit-panel">
 
       <div class="edit-header">
+
         <h3>ÉDITION ÉVÉNEMENT</h3>
 
-        <button id="close-edit-modal" class="close-modal" type="button">
+        <button
+          id="close-edit-modal"
+          class="close-modal"
+          type="button"
+        >
           ✕
         </button>
+
       </div>
 
       <form id="edit-form" class="edit-form">
@@ -151,12 +340,17 @@
 
         <div class="admin-image-manager">
 
-          <div id="edit-image-preview" class="admin-image-preview">
+          <div
+            id="edit-image-preview"
+            class="admin-image-preview"
+          >
             <span>Aucune affiche</span>
           </div>
 
           <div class="admin-image-actions">
+
             <label class="admin-upload-box">
+
               <input
                 id="edit-image-file"
                 type="file"
@@ -164,13 +358,16 @@
               />
 
               <span>🖼️</span>
-              <strong>Remplacer l’affiche</strong>
-              <small>JPG, PNG, WEBP — 5 Mo max</small>
+
+              <strong>
+                Remplacer l’affiche
+              </strong>
+
             </label>
 
             <input
               id="edit-image-url"
-              placeholder="URL image / affiche"
+              placeholder="URL image"
             />
 
             <button
@@ -178,51 +375,27 @@
               class="cyber-btn-danger"
               type="button"
             >
-              Supprimer l’image
+              Supprimer image
             </button>
+
           </div>
 
-        </div>
-
-        <div class="form-grid">
-          <input id="edit-title" placeholder="Titre" />
-
-          <select id="edit-type">
-            <option>Salon</option>
-            <option>Festival</option>
-            <option>Dédicace</option>
-            <option>Autre</option>
-          </select>
-
-          <input id="edit-city" placeholder="Ville" />
-          <input id="edit-region" placeholder="Région" />
-
-          <input id="edit-start-date" type="date" />
-          <input id="edit-end-date" type="date" />
-
-          <input id="edit-website" placeholder="Site officiel" />
-        </div>
-
-        <textarea
-          id="edit-description"
-          rows="6"
-          placeholder="Description"
-        ></textarea>
-
-        <div class="edit-actions">
-          <button
-            type="button"
-            id="save-edit-btn"
-            class="cyber-btn-primary"
-          >
-            ENREGISTRER
-          </button>
         </div>
 
       </form>
 
     </div>
+
   </div>
+
+  <!-- TOAST -->
+
+  <div
+    id="toast-container"
+    class="toast-container"
+  ></div>
+
+  <!-- SCRIPTS -->
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
