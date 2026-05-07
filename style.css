@@ -36,4 +36,871 @@ body {
 body::before {
   content: "";
   position: fixed;
-  inset:
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .18;
+  background-image:
+    linear-gradient(rgba(255,255,255,.45) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.35) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255,255,255,.84);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(58,28,113,.08);
+  box-shadow: 0 8px 30px rgba(58,28,113,.08);
+}
+
+.container {
+  width: min(1180px, calc(100% - 40px));
+  margin: auto;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 76px;
+  gap: 24px;
+}
+
+.logo {
+  height: 52px;
+  width: auto;
+  display: block;
+}
+
+nav {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+nav a {
+  color: var(--purple);
+  text-decoration: none;
+  font-weight: 900;
+  position: relative;
+}
+
+nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -7px;
+  width: 0;
+  height: 3px;
+  background: var(--orange);
+  border-radius: 99px;
+  transition: width .22s ease;
+}
+
+nav a:hover::after {
+  width: 100%;
+}
+
+/* =========================================================
+   HERO / BANNIÈRE
+========================================================= */
+
+.hero {
+  height: clamp(320px, 34vw, 520px);
+  background:
+    linear-gradient(180deg, rgba(58,28,113,.04), rgba(58,28,113,.14)),
+    url("banner.jpg") center center / cover no-repeat;
+  margin-bottom: 56px;
+  box-shadow: 0 25px 60px rgba(58,28,113,.18);
+}
+
+.hero-overlay,
+.hero-content {
+  display: none;
+}
+
+/* =========================================================
+   SECTIONS
+========================================================= */
+
+.section {
+  padding: 54px 0;
+}
+
+.section h1,
+.section h2,
+.seo-hero h1,
+.seo-content h2,
+.seo-text-block h2 {
+  font-family: "Playfair Display", serif;
+  color: var(--text);
+  line-height: 1.05;
+}
+
+.section h2,
+.seo-content h2,
+.seo-text-block h2 {
+  font-size: clamp(2rem, 3vw, 2.65rem);
+  margin: 0 0 14px;
+}
+
+.section h2::after,
+.seo-content h2::after,
+.seo-text-block h2::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 4px;
+  background: linear-gradient(90deg, var(--orange), var(--purple));
+  margin-top: 12px;
+  border-radius: 99px;
+}
+
+.section-intro {
+  color: var(--muted);
+  font-weight: 700;
+  max-width: 860px;
+  line-height: 1.65;
+  margin: -4px 0 18px;
+}
+
+#results-count,
+#seo-count {
+  color: var(--purple);
+  font-weight: 900;
+  margin-bottom: 22px;
+}
+
+/* =========================================================
+   ACCROCHES
+========================================================= */
+
+.editorial-hook,
+.site-manifest,
+.footer-manifest {
+  max-width: 920px;
+  margin: 26px auto 34px;
+  padding: 26px;
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(255,240,231,.82));
+  border: 1px solid rgba(255,107,53,.14);
+  box-shadow: 0 18px 44px rgba(58,28,113,.11);
+}
+
+.editorial-hook {
+  text-align: center;
+}
+
+.editorial-hook strong {
+  display: block;
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+  line-height: 1.14;
+  color: var(--purple);
+  margin-bottom: 12px;
+}
+
+.editorial-hook p,
+.site-manifest p,
+.footer-manifest p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.site-manifest,
+.footer-manifest {
+  text-align: center;
+  margin-top: 50px;
+}
+
+.site-manifest strong,
+.footer-manifest strong {
+  color: var(--purple);
+}
+
+/* =========================================================
+   FILTRES
+========================================================= */
+
+.filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr auto auto;
+  gap: 12px;
+  background: var(--paper);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 22px;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.filters input,
+.filters select,
+.newsletter-form input,
+.newsletter-form select,
+#submission-form input,
+#submission-form select,
+#submission-form textarea {
+  width: 100%;
+  border: 1px solid #ded4e9;
+  border-radius: 14px;
+  background: white;
+  color: var(--text);
+  padding: 13px 15px;
+  min-height: 48px;
+  outline: none;
+}
+
+.filters input:focus,
+.filters select:focus,
+.newsletter-form input:focus,
+.newsletter-form select:focus,
+#submission-form input:focus,
+#submission-form select:focus,
+#submission-form textarea:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 4px rgba(255,107,53,.12);
+}
+
+.filters select,
+.filters input,
+.filters button {
+  height: 56px;
+}
+
+.filters select,
+.filters input {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+#date-filter {
+  width: 100%;
+  min-width: 0;
+  appearance: auto;
+  -webkit-appearance: menulist;
+  background-color: #fff;
+}
+
+/* =========================================================
+   AUTOCOMPLÉTION VILLE
+========================================================= */
+
+.city-autocomplete-wrap {
+  display: grid;
+  gap: 7px;
+}
+
+.field-help {
+  display: block;
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.field-help.success {
+  color: #16803c;
+}
+
+.field-help.error {
+  color: #b42318;
+}
+
+#city-input.loading {
+  background-image:
+    linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(255,240,231,.95) 45%, rgba(255,255,255,1) 90%);
+  background-size: 220% 100%;
+  animation: cityLoading 1.15s linear infinite;
+}
+
+@keyframes cityLoading {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+/* =========================================================
+   BOUTONS
+========================================================= */
+
+.btn-primary,
+.btn-secondary,
+#submission-form button,
+.card-link,
+.favorite-btn,
+.ux-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-weight: 900;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    background .18s ease;
+}
+
+.btn-primary,
+#submission-form button {
+  background: linear-gradient(135deg, var(--orange), #ff8a54);
+  color: white;
+  box-shadow: 0 12px 25px rgba(255,107,53,.28);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--purple);
+  border: 1px solid #ded4e9;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover,
+#submission-form button:hover,
+.card-link:hover {
+  transform: translateY(-2px);
+}
+
+.btn-primary:hover,
+#submission-form button:hover {
+  box-shadow:
+    0 0 0 2px rgba(255,107,53,.20),
+    0 14px 32px rgba(255,107,53,.30),
+    0 0 22px rgba(255,107,53,.22);
+}
+
+button:active,
+.card-link:active,
+.favorite-btn:active {
+  transform: scale(.97);
+}
+
+/* =========================================================
+   ACTIONS UX / CARTE EN DIRECT
+========================================================= */
+
+.ux-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.mobile-map-toggle {
+  display: inline-flex;
+  background: linear-gradient(135deg, var(--purple), #5b2aa0);
+  color: white;
+  border: none;
+  box-shadow:
+    0 12px 28px rgba(58,28,113,.24),
+    0 0 0 3px rgba(58,28,113,.05);
+}
+
+/* =========================================================
+   LAYOUT AGENDA + CARTE — SAFE FLOTTANTE
+========================================================= */
+
+.agenda-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
+  gap: 28px;
+  align-items: start;
+}
+
+.map-panel {
+  display: block;
+  position: sticky;
+  top: 96px;
+  height: calc(100vh - 135px);
+  max-height: 620px;
+  padding: 10px;
+  border-radius: 28px;
+  background: rgba(255,255,255,.88);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 18px 46px rgba(58,28,113,.14),
+    inset 0 1px 0 rgba(255,255,255,.6);
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  border-radius: 22px;
+  overflow: hidden;
+}
+/* =========================================================
+   RESPONSIVE CARTE
+========================================================= */
+
+@media (max-width: 1080px) {
+
+  .agenda-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .map-panel {
+    display: none;
+    position: static;
+    height: auto;
+    max-height: none;
+  }
+
+  .map-panel.is-open {
+    display: block;
+  }
+
+  #map {
+    height: 390px;
+    min-height: 390px;
+  }
+
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* =========================================================
+   MARQUEURS / POPUP CARTE
+========================================================= */
+
+.event-marker-v5 {
+  background: transparent;
+  border: none;
+}
+
+.event-marker-v5 span {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--marker-color, var(--orange));
+  border: 4px solid white;
+  box-shadow:
+    0 8px 20px rgba(58,28,113,.25),
+    0 0 0 4px rgba(255,255,255,.36);
+}
+
+.premium-popup {
+  display: grid;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.leaflet-popup-content button,
+.popup-focus-btn {
+  width: 100%;
+  background: var(--orange);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 13px;
+  font-weight: 900;
+  cursor: pointer;
+  text-align: left;
+}
+
+.event-card.is-map-focused {
+  outline: 4px solid rgba(255,107,53,.82);
+  box-shadow:
+    0 0 0 8px rgba(255,107,53,.12),
+    0 26px 64px rgba(58,28,113,.24);
+}
+
+/* =========================================================
+   CARTES ÉVÉNEMENTS
+========================================================= */
+
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.event-card {
+  position: relative;
+  background: var(--paper);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 485px;
+  box-shadow: 0 15px 36px rgba(58,28,113,.12);
+  transition:
+    transform .22s ease,
+    box-shadow .22s ease,
+    border-color .22s ease;
+}
+
+.event-card:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 28px 56px rgba(58,28,113,.20);
+  border-color: rgba(255,107,53,.38);
+}
+
+.card-image {
+  width: 100%;
+  height: 178px;
+  object-fit: cover;
+  background: linear-gradient(135deg, var(--orange), var(--purple));
+}
+
+.card-body {
+  padding: 19px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 13px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: #f1e8fb;
+  color: var(--purple);
+  font-size: .72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.badge-price {
+  background: #fff0e7;
+  color: var(--orange);
+}
+
+.badge-featured {
+  background: var(--purple);
+  color: white;
+}
+
+.badge-verified {
+  background: #e8fff0;
+  color: #16803c;
+}
+
+.badge-type.type-salon {
+  background: #f1e8fb;
+  color: var(--purple);
+}
+
+.badge-type.type-festival {
+  background: #fff0e7;
+  color: var(--orange);
+}
+
+.badge-type.type-dedicace {
+  background: #e8fff0;
+  color: #16803c;
+}
+
+.badge-type.type-autre {
+  background: #e9f1ff;
+  color: #2f6fed;
+}
+
+.card-title {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.16rem, 1.55vw, 1.32rem);
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+
+.card-meta {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: .9rem;
+  margin-bottom: 14px;
+}
+
+.card-description {
+  color: #4f465f;
+  font-size: .94rem;
+  line-height: 1.54;
+  margin: 0 0 18px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.card-footer {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.card-link {
+  border: 1px solid var(--purple);
+  color: var(--purple);
+  background: white;
+  flex: 1;
+  text-align: center;
+}
+
+.card-link:hover {
+  background: var(--purple);
+  color: white;
+}
+
+/* =========================================================
+   NEWSLETTER / FORMULAIRE
+========================================================= */
+
+#submission-form,
+.newsletter-section,
+.empty-state,
+.seo-hero,
+.seo-text-block,
+.event-detail {
+  background: var(--paper);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  box-shadow: var(--shadow);
+}
+
+#submission-form {
+  padding: 28px;
+  display: grid;
+  gap: 14px;
+}
+
+.newsletter-section {
+  padding: 30px;
+  margin: 28px 0 42px;
+  text-align: center;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.12), transparent 35%),
+    rgba(255,255,255,.90);
+}
+
+.newsletter-form {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr auto;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.success,
+#newsletter-feedback.success,
+#form-feedback.success {
+  color: #16803c;
+  font-weight: 900;
+}
+
+.error,
+#newsletter-feedback.error,
+#form-feedback.error {
+  color: #b42318;
+  font-weight: 900;
+}
+
+/* =========================================================
+   PAGE ÉVÉNEMENT
+========================================================= */
+
+.event-detail {
+  overflow: hidden;
+}
+
+.detail-image {
+  width: 100%;
+  height: min(420px, 46vw);
+  object-fit: cover;
+}
+
+.detail-body {
+  padding: 30px;
+}
+
+.detail-title {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(2.3rem, 5vw, 4.3rem);
+  line-height: 1.04;
+  margin: 10px 0 18px;
+}
+
+.detail-meta {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.detail-description {
+  margin-top: 24px;
+  color: #4f465f;
+  line-height: 1.72;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+#detail-map {
+  width: 100%;
+  height: 360px;
+  margin-top: 26px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* =========================================================
+   STATES
+========================================================= */
+
+.empty-state {
+  padding: 34px;
+  text-align: center;
+  color: var(--muted);
+  grid-column: 1 / -1;
+}
+
+/* =========================================================
+   RESPONSIVE GLOBAL
+========================================================= */
+
+@media (max-width: 900px) {
+
+  .hero {
+    height: auto;
+    min-height: 300px;
+    background-size: contain;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-color: #f7f1fb;
+    box-shadow: none;
+    margin-bottom: 32px;
+  }
+}
+
+@media (max-width: 780px) {
+
+  .container {
+    width: min(100% - 28px, 1180px);
+  }
+
+  .header-inner {
+    min-height: 68px;
+    gap: 14px;
+  }
+
+  .logo {
+    height: 44px;
+  }
+
+  nav {
+    gap: 12px;
+  }
+
+  nav a {
+    font-size: .92rem;
+  }
+
+  .section {
+    padding: 38px 0;
+  }
+
+  .filters,
+  .newsletter-form {
+    grid-template-columns: 1fr;
+  }
+
+  .events-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-image {
+    height: 170px;
+  }
+
+  .detail-image {
+    height: 260px;
+  }
+}
+
+@media (max-width: 600px) {
+
+  .hero {
+    min-height: 210px;
+    background-size: contain;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-color: #f7f1fb;
+    margin-bottom: 24px;
+  }
+
+  .header-inner {
+    flex-direction: column;
+    padding: 10px 0 12px;
+  }
+
+  nav {
+    justify-content: center;
+  }
+
+  .ux-actions {
+    justify-content: center;
+  }
+
+  .mobile-map-toggle,
+  #locate-me {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .hero {
+    min-height: 190px;
+  }
+
+  nav a {
+    font-size: .84rem;
+  }
+
+  .section h2,
+  .seo-content h2,
+  .seo-text-block h2 {
+    font-size: 1.9rem;
+  }
+}
