@@ -1,12 +1,11 @@
 /* =========================================================
-  DÉDICALIVRES — DEMANDES ASSOCIATION AUTEURS — V6.1
+  DÉDICALIVRES — AUTEURS PRÉSENTS
   Fichier : authors-presence.js
 
   Rôle :
   - Afficher le bloc "Auteurs présents" sur event.html.
-  - Afficher les auteurs validés présents sur event.html.
   - Permettre à un auteur de demander à être associé à un événement.
-  - Enregistrer la demande en attente de validation.
+  - Afficher publiquement uniquement les auteurs validés.
 
   Ce fichier est volontairement isolé : il ne modifie pas event.js.
 ========================================================= */
@@ -65,18 +64,19 @@
       <div id="authors-presence-list" class="author-presence-list"></div>
 
       <p id="authors-presence-empty" class="author-presence-empty" hidden>
-        Aucun auteur validé n’est encore associé à cet événement.
+        Aucun auteur ne s’est encore déclaré présent pour cet événement.
       </p>
 
       <p class="author-presence-note">
-        Les auteurs indiqués ici ont été associés à cet événement après validation.
-        Les nouvelles demandes sont vérifiées avant affichage public.
+        Les auteurs indiqués ici ont été associés à cet événement après validation par Dédicalivres.
+        Cette information concerne uniquement les auteurs dont la présence a été validée.
         Pour une information officielle à jour, notamment en cas d’annulation ou de modification,
         consultez toujours le site de l’événement.
       </p>
 
       <form id="author-presence-form" class="author-presence-form">
         <h3>Vous êtes auteur et vous participez à cet événement ?</h3>
+        <p class="author-presence-form-intro">Demandez à être associé à cette fiche. Votre demande sera vérifiée avant affichage public.</p>
 
         <div class="author-presence-grid">
           <input name="pseudo" type="text" placeholder="Pseudo / nom d’auteur" minlength="2" required />
@@ -109,8 +109,8 @@
         if (pseudo.length < 2) throw new Error("Merci d’indiquer un pseudo valide.");
         if (!isValidUrl(website)) throw new Error("Merci d’indiquer un lien valide.");
 
-        setButtonLoading(submitButton, true, "Enregistrement…");
-        setFeedback(feedback, "", "Enregistrement en cours…");
+        setButtonLoading(submitButton, true, "Envoi de la demande…");
+        setFeedback(feedback, "", "Envoi de votre demande…");
 
         const { error } = await supabaseClient
           .from("event_authors_presence")
@@ -162,7 +162,7 @@
         <article class="author-presence-card">
           <div>
             <strong>${escapeHtml(author.pseudo)}</strong>
-            <small>Auteur associé</small>
+            <small>Auteur associé à cet événement</small>
           </div>
           <a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">
             Voir le site
