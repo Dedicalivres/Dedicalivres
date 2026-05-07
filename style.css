@@ -445,14 +445,25 @@ button:active,
     inset 0 1px 0 rgba(255,255,255,.6);
 }
 
-.map-panel:not(.is-open) {
-  display: none;
-}
+/* ================================
+   CARTE FLOTTANTE DESKTOP SAFE
+================================ */
 
-.map-panel.is-open {
+.map-panel {
   display: block;
 }
 
+@media (max-width: 1080px) {
+
+  .map-panel {
+    display: none;
+  }
+
+  .map-panel.is-open {
+    display: block;
+  }
+
+}
 #map {
   width: 100%;
   height: 100%;
