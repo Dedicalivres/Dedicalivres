@@ -1664,7 +1664,7 @@ button:active,
   box-shadow: 0 16px 38px rgba(58,28,113,.10);
 }
 
-.submit-trust-panel strong strong {
+.submit-trust-panel strong {
   display: block;
   color: var(--purple);
   font-family: "Playfair Display", serif;
@@ -1673,7 +1673,7 @@ button:active,
   margin-bottom: 8px;
 }
 
-.submit-trust-panel p p {
+.submit-trust-panel p {
   margin: 0;
   color: var(--muted);
   font-weight: 750;
@@ -1710,9 +1710,13 @@ button:active,
     padding: 6px 11px;
   }
 
-  .submit-trust-panel,
+.submit-trust-panel {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .submit-trust-panel ul {
-    width: 100%;
-    flex-basis: auto;
-  }
+  width: 100%;
+  flex-basis: auto;
+}
 }
