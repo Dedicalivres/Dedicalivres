@@ -1324,3 +1324,141 @@ button:active,
     padding: 24px 18px;
   }
 }
+
+/* =========================================================
+   LOT 2 - CARTES EVENEMENTS PLUS LISIBLES SAFE
+   Aucun changement JS
+========================================================= */
+
+.event-card {
+  min-height: 440px;
+}
+
+.card-image {
+  height: 160px;
+}
+
+.card-body {
+  padding: 18px;
+}
+
+.card-tags {
+  gap: 7px;
+  margin-bottom: 11px;
+}
+
+.badge {
+  padding: 6px 10px;
+  font-size: .7rem;
+  line-height: 1;
+}
+
+.card-title {
+  font-size: clamp(1.08rem, 1.35vw, 1.24rem);
+  line-height: 1.18;
+  margin-bottom: 10px;
+}
+
+.card-meta {
+  gap: 7px;
+  margin-bottom: 12px;
+  font-size: .92rem;
+  color: var(--text);
+}
+
+.card-meta span {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 24px;
+  padding: 7px 10px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.74);
+  border: 1px solid rgba(58,28,113,.07);
+  font-weight: 800;
+}
+
+.card-meta span:first-child {
+  color: var(--purple);
+  background: rgba(241,232,251,.72);
+}
+
+.card-meta span:last-child {
+  color: #4f465f;
+}
+
+.card-description {
+  font-size: .91rem;
+  line-height: 1.5;
+  -webkit-line-clamp: 3;
+  margin-bottom: 16px;
+}
+
+.card-footer {
+  gap: 8px;
+}
+
+.card-link {
+  min-height: 42px;
+  padding: 10px 14px;
+}
+
+.event-card:hover {
+  transform: translateY(-4px);
+}
+
+.featured-ribbon {
+  top: 12px;
+  right: 12px;
+  padding: 7px 11px;
+  font-size: .72rem;
+}
+
+/* Type visuellement plus lisible sans changer le HTML */
+.badge-type {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
+}
+
+.badge-type.type-salon {
+  background: rgba(58,28,113,.12);
+}
+
+.badge-type.type-festival {
+  background: rgba(255,107,53,.13);
+}
+
+.badge-type.type-dedicace {
+  background: rgba(22,128,60,.12);
+}
+
+.badge-type.type-autre {
+  background: rgba(47,111,237,.12);
+}
+
+/* Cartes en pages SEO : plus respirantes quand elles sont seules */
+.seo-page .events-grid {
+  margin-top: 18px;
+}
+
+/* Mobile : cartes plus compactes mais lisibles */
+@media (max-width: 780px) {
+  .event-card {
+    min-height: auto;
+  }
+
+  .card-image {
+    height: 155px;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .card-meta span {
+    width: 100%;
+  }
+
+  .card-description {
+    -webkit-line-clamp: 4;
+  }
+}
