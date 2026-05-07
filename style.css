@@ -1202,3 +1202,125 @@ button:active,
     font-size: 1.9rem;
   }
 }
+
+/* =========================================================
+   LOT 1 - ACCUEIL PREMIUM SAFE
+   Carte en direct, newsletter et soumission
+========================================================= */
+
+.map-teaser {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 18px 0 14px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.14), transparent 38%),
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(241,232,251,.82));
+  border: 1px solid rgba(58,28,113,.10);
+  box-shadow: 0 14px 34px rgba(58,28,113,.10);
+}
+
+.map-teaser strong {
+  display: block;
+  color: var(--purple);
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.3rem, 2vw, 1.75rem);
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.map-teaser p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.map-teaser span {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,107,53,.12);
+  color: var(--orange);
+  font-weight: 950;
+  font-size: .82rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.mobile-map-toggle {
+  position: relative;
+  min-height: 52px;
+  padding-inline: 22px;
+  background:
+    linear-gradient(135deg, var(--purple), #5b2aa0) !important;
+  color: #fff !important;
+  border: 0 !important;
+  box-shadow:
+    0 14px 30px rgba(58,28,113,.26),
+    0 0 0 4px rgba(58,28,113,.06) !important;
+}
+
+.mobile-map-toggle::before {
+  content: "●";
+  margin-right: 8px;
+  color: #7CFF9B;
+  font-size: .8rem;
+  text-shadow: 0 0 10px rgba(124,255,155,.65);
+}
+
+.newsletter-section {
+  margin-top: 22px;
+  margin-bottom: 34px;
+}
+
+.newsletter-section h2 {
+  margin-bottom: 10px;
+}
+
+.newsletter-section h2::after {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.newsletter-section p {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.6;
+}
+
+.submit-intro {
+  max-width: 900px;
+  margin-bottom: 18px;
+}
+
+#soumettre {
+  margin-top: 22px;
+}
+
+#soumettre h2 {
+  margin-bottom: 10px;
+}
+
+@media (max-width: 780px) {
+  .map-teaser {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 17px;
+  }
+
+  .map-teaser span {
+    align-self: flex-start;
+  }
+
+  .newsletter-section {
+    padding: 24px 18px;
+  }
+}
