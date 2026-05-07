@@ -4,12 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Auteurs indépendants — Salons, dédicaces et événements littéraires</title>
-  <meta name="description" content="Agenda pour auteurs indépendants : salons du livre, dédicaces, festivals littéraires et rencontres avec les lecteurs en France." />
-  <link rel="canonical" href="https://www.dédicalivres.fr/auteurs-independants" />
+  <title>Auteurs autoédités et en maison d’édition — Dédicalivres</title>
 
-  <meta property="og:title" content="Auteurs indépendants — Salons, dédicaces et événements littéraires" />
-  <meta property="og:description" content="Agenda pour auteurs indépendants : salons du livre, dédicaces, festivals littéraires et rencontres avec les lecteurs en France." />
+  <meta
+    name="description"
+    content="Découvrez les auteurs autoédités et publiés en maison d’édition présents dans les salons, festivals et rencontres littéraires partout en France."
+  />
+
+  <link
+    rel="canonical"
+    href="https://dedicalivres.fr/auteurs-independants.html"
+  />
+
+  <meta
+    property="og:title"
+    content="Auteurs autoédités et en maison d’édition — Dédicalivres"
+  />
+
+  <meta
+    property="og:description"
+    content="Rencontrez des auteurs autoédités et publiés partout en France à travers les salons, festivals et dédicaces."
+  />
+
   <meta property="og:type" content="website" />
   <meta property="og:image" content="banner.jpg" />
 
@@ -17,69 +33,209 @@
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Auteurs indépendants — Salons, dédicaces et événements littéraires",
-    "description": "Agenda pour auteurs indépendants : salons du livre, dédicaces, festivals littéraires et rencontres avec les lecteurs en France.",
+    "name": "Auteurs autoédités et en maison d’édition — Dédicalivres",
+    "description": "Découvrez les auteurs présents dans les événements littéraires partout en France.",
     "isPartOf": {
       "@type": "WebSite",
       "name": "Dédicalivres",
-      "url": "https://www.dédicalivres.fr"
+      "url": "https://dedicalivres.fr"
     }
   }
   </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body data-city="" data-event-type="">
+<body class="category-page" data-event-types="Salon,Festival,Dédicace,Autre">
 
 <header class="header">
+
   <div class="container header-inner">
-    <a href="index.html"><img src="logo.png" class="logo" alt="Dédicalivres" /></a>
-    <nav>
-      <a href="index.html">Accueil</a>
-      <a href="salons-du-livre.html">Salons</a>
-      <a href="index.html#soumettre">Soumettre</a>
+
+    <a href="index.html" aria-label="Accueil Dédicalivres">
+      <img
+        src="logo.png"
+        class="logo"
+        alt="Dédicalivres"
+      />
+    </a>
+
+    <nav aria-label="Navigation principale">
+
+      <a href="index.html#agenda">
+        Agenda
+      </a>
+
+      <a href="salons-du-livre.html">
+        Salons & Festivals
+      </a>
+
+      <a href="dedicaces.html">
+        Dédicaces
+      </a>
+
+      <a href="auteurs-independants.html">
+        Auteurs
+      </a>
+
+      <a href="index.html#soumettre">
+        Soumettre
+      </a>
+
     </nav>
+
   </div>
+
 </header>
 
 <main class="container section seo-page">
-  <p><a class="card-link detail-back-link" href="index.html">← Retour à l’accueil</a></p>
+
+  <p>
+    <a
+      class="card-link detail-back-link"
+      href="index.html#agenda"
+    >
+      ← Retour à l’agenda
+    </a>
+  </p>
 
   <section class="seo-hero">
-    <h1>Agenda pour auteurs indépendants</h1>
-    <p>Dédicalivres aide les auteurs indépendants à trouver des salons du livre, festivals littéraires, séances de dédicaces et événements pour rencontrer leurs lecteurs.</p>
+
+    <p class="category-kicker">
+      Communauté littéraire
+    </p>
+
+    <h1>
+      Auteurs autoédités et en maison d’édition
+    </h1>
+
+    <p>
+      Découvrez les auteurs présents dans les salons,
+      festivals, dédicaces et rencontres littéraires
+      partout en France.
+    </p>
+
+  </section>
+
+  <section class="editorial-hook">
+
+    <strong>
+      Chaque auteur porte une histoire avant même d’écrire la première ligne.
+    </strong>
+
+    <p>
+      Certains publient en maison d’édition,
+      d’autres choisissent l’autoédition,
+      mais tous partagent la même envie :
+      transmettre des univers, des émotions et des souvenirs à leurs lecteurs.
+    </p>
+
   </section>
 
   <section class="seo-content">
-    <h2>Événements à venir</h2>
-    <p id="seo-count">Chargement…</p>
-    <div id="seo-events" class="events-grid"></div>
+
+    <h2>
+      Rencontres et événements à venir
+    </h2>
+
+    <p class="section-intro">
+      Retrouvez les prochains événements classés du plus proche au plus lointain
+      afin de découvrir facilement les auteurs présents près de chez vous.
+    </p>
+
+    <p id="seo-count">
+      Chargement…
+    </p>
+
+    <div
+      id="seo-events"
+      class="events-grid"
+    ></div>
+
   </section>
 
   <section class="seo-text-block">
-    <h2>Un agenda utile aux auteurs auto-édités et indépendants</h2>
+
+    <h2>
+      Une plateforme ouverte à tous les parcours
+    </h2>
+
     <p>
-      Dédicalivres s’adresse aussi aux auteurs auto-édités, aux auteurs indépendants et aux maisons d’édition
-      indépendantes qui cherchent des salons du livre, festivals littéraires, dédicaces et rencontres pour présenter
-      leurs ouvrages au public.
+      Dédicalivres souhaite valoriser équitablement
+      les auteurs autoédités, les auteurs publiés,
+      les librairies, les organisateurs d’événements
+      et les lieux culturels qui permettent aux livres
+      de rencontrer leurs lecteurs.
     </p>
 
-    <h2>Proposer un événement littéraire</h2>
     <p>
-      Vous organisez un salon, une séance de dédicace, une rencontre d’auteurs ou un événement ouvert aux auteurs
-      indépendants ? Proposez gratuitement votre événement sur Dédicalivres.
+      Chaque rencontre littéraire peut devenir
+      un moment marquant :
+      une discussion,
+      une découverte inattendue,
+      une dédicace conservée dans le temps
+      ou un livre qui accompagne durablement une vie.
     </p>
-    <p><a class="btn-primary" href="index.html#soumettre">Proposer un événement</a></p>
+
+    <p>
+      La littérature se construit autant
+      dans les librairies et festivals
+      que dans les échanges humains
+      qui naissent autour des livres.
+    </p>
+
+    <p>
+
+      <a
+        class="btn-primary"
+        href="index.html#soumettre"
+      >
+        Proposer un événement littéraire
+      </a>
+
+    </p>
+
   </section>
+
+  <section class="site-manifest">
+
+    <p>
+
+      <strong>
+        Dédicalivres rassemble les passionnés du livre sans opposer les parcours.
+      </strong>
+
+      Auteurs autoédités,
+      auteurs publiés,
+      librairies,
+      festivals,
+      maisons d’édition,
+      médiathèques et lecteurs :
+      chacun participe à faire vivre
+      les histoires au-delà des pages.
+
+    </p>
+
+  </section>
+
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="config.js"></script>
 <script src="seo-pages.js"></script>
+
+<script src="tracking-v4.js"></script>
+<script src="ui-effects-v6.js"></script>
+<script src="custom-cursor.js"></script>
 
 </body>
 </html>
