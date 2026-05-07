@@ -1,1449 +1,1216 @@
 /* =========================================================
-   DÉDICALIVRES — APP.JS V11
-   UX + IDENTITÉ ÉMOTIONNELLE
+   DÉDICALIVRES — STYLE.CSS RÉPARÉ + ADAPTÉ SAFE
 ========================================================= */
 
-(function () {
-  "use strict";
+:root {
+  --purple: #3a1c71;
+  --purple-dark: #261148;
+  --orange: #ff6b35;
+  --orange-dark: #e95825;
+  --text: #2a2438;
+  --muted: #6b6178;
+  --paper: rgba(255,255,255,0.92);
+  --border: rgba(58, 28, 113, 0.09);
+  --shadow: 0 18px 46px rgba(58, 28, 113, 0.14);
+}
 
-  const config = window.DEDICALIVRES_CONFIG;
+* {
+  box-sizing: border-box;
+}
 
-  if (
-    !config ||
-    !config.supabaseUrl ||
-    !config.supabaseAnonKey ||
-    !window.supabase
-  ) {
-    console.error("Configuration Supabase manquante.");
-    return;
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255,107,53,.12), transparent 28%),
+    radial-gradient(circle at 86% 12%, rgba(58,28,113,.12), transparent 30%),
+    linear-gradient(180deg, #f7f1fb 0%, #fffaf5 46%, #f8efe8 100%);
+  background-attachment: fixed;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .18;
+  background-image:
+    linear-gradient(rgba(255,255,255,.45) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.35) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255,255,255,.84);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(58,28,113,.08);
+  box-shadow: 0 8px 30px rgba(58,28,113,.08);
+}
+
+.container {
+  width: min(1180px, calc(100% - 40px));
+  margin: auto;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 76px;
+  gap: 24px;
+}
+
+.logo {
+  height: 52px;
+  width: auto;
+  display: block;
+}
+
+nav {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+nav a {
+  color: var(--purple);
+  text-decoration: none;
+  font-weight: 900;
+  position: relative;
+}
+
+nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -7px;
+  width: 0;
+  height: 3px;
+  background: var(--orange);
+  border-radius: 99px;
+  transition: width .22s ease;
+}
+
+nav a:hover::after {
+  width: 100%;
+}
+
+/* =========================================================
+   HERO / BANNIÈRE
+========================================================= */
+
+.hero {
+  height: clamp(320px, 34vw, 520px);
+  background:
+    linear-gradient(180deg, rgba(58,28,113,.04), rgba(58,28,113,.14)),
+    url("banner.jpg") center center / cover no-repeat;
+  margin-bottom: 56px;
+  box-shadow: 0 25px 60px rgba(58,28,113,.18);
+}
+
+.hero-overlay,
+.hero-content {
+  display: none;
+}
+
+/* =========================================================
+   SECTIONS
+========================================================= */
+
+.section {
+  padding: 54px 0;
+}
+
+.section h1,
+.section h2,
+.seo-hero h1,
+.seo-content h2,
+.seo-text-block h2 {
+  font-family: "Playfair Display", serif;
+  color: var(--text);
+  line-height: 1.05;
+}
+
+.section h2,
+.seo-content h2,
+.seo-text-block h2 {
+  font-size: clamp(2rem, 3vw, 2.65rem);
+  margin: 0 0 14px;
+}
+
+.section h2::after,
+.seo-content h2::after,
+.seo-text-block h2::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 4px;
+  background: linear-gradient(90deg, var(--orange), var(--purple));
+  margin-top: 12px;
+  border-radius: 99px;
+}
+
+.section-intro {
+  color: var(--muted);
+  font-weight: 700;
+  max-width: 860px;
+  line-height: 1.65;
+  margin: -4px 0 18px;
+}
+
+#results-count,
+#seo-count {
+  color: var(--purple);
+  font-weight: 900;
+  margin-bottom: 22px;
+}
+
+/* =========================================================
+   ACCROCHES SAFE
+========================================================= */
+
+.editorial-hook,
+.site-manifest,
+.footer-manifest {
+  max-width: 920px;
+  margin: 26px auto 34px;
+  padding: 26px;
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(255,240,231,.82));
+  border: 1px solid rgba(255,107,53,.14);
+  box-shadow: 0 18px 44px rgba(58,28,113,.11);
+}
+
+.editorial-hook {
+  text-align: center;
+}
+
+.editorial-hook strong {
+  display: block;
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+  line-height: 1.14;
+  color: var(--purple);
+  margin-bottom: 12px;
+}
+
+.editorial-hook p,
+.site-manifest p,
+.footer-manifest p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.site-manifest,
+.footer-manifest {
+  text-align: center;
+  margin-top: 50px;
+}
+
+.site-manifest strong,
+.footer-manifest strong {
+  color: var(--purple);
+}
+
+/* =========================================================
+   FILTRES
+========================================================= */
+
+.filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr auto auto;
+  gap: 12px;
+  background: var(--paper);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 22px;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.filters input,
+.filters select,
+.newsletter-form input,
+.newsletter-form select,
+#submission-form input,
+#submission-form select,
+#submission-form textarea {
+  width: 100%;
+  border: 1px solid #ded4e9;
+  border-radius: 14px;
+  background: white;
+  color: var(--text);
+  padding: 13px 15px;
+  min-height: 48px;
+  outline: none;
+}
+
+.filters input:focus,
+.filters select:focus,
+.newsletter-form input:focus,
+.newsletter-form select:focus,
+#submission-form input:focus,
+#submission-form select:focus,
+#submission-form textarea:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 4px rgba(255,107,53,.12);
+}
+
+.filters select,
+.filters input,
+.filters button {
+  height: 56px;
+}
+
+.filters select,
+.filters input {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+#date-filter {
+  width: 100%;
+  min-width: 0;
+  appearance: auto;
+  -webkit-appearance: menulist;
+  background-color: #fff;
+}
+
+/* =========================================================
+   AUTOCOMPLÉTION VILLE
+========================================================= */
+
+.city-autocomplete-wrap {
+  display: grid;
+  gap: 7px;
+}
+
+.field-help {
+  display: block;
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.field-help.success {
+  color: #16803c;
+}
+
+.field-help.error {
+  color: #b42318;
+}
+
+#city-input.loading {
+  background-image:
+    linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(255,240,231,.95) 45%, rgba(255,255,255,1) 90%);
+  background-size: 220% 100%;
+  animation: cityLoading 1.15s linear infinite;
+}
+
+@keyframes cityLoading {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+/* =========================================================
+   BOUTONS
+========================================================= */
+
+.btn-primary,
+.btn-secondary,
+#submission-form button,
+.card-link,
+.favorite-btn,
+.ux-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-weight: 900;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    background .18s ease;
+}
+
+.btn-primary,
+#submission-form button {
+  background: linear-gradient(135deg, var(--orange), #ff8a54);
+  color: white;
+  box-shadow: 0 12px 25px rgba(255,107,53,.28);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--purple);
+  border: 1px solid #ded4e9;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover,
+#submission-form button:hover,
+.card-link:hover {
+  transform: translateY(-2px);
+}
+
+.btn-primary:hover,
+#submission-form button:hover {
+  box-shadow:
+    0 0 0 2px rgba(255,107,53,.20),
+    0 14px 32px rgba(255,107,53,.30),
+    0 0 22px rgba(255,107,53,.22);
+}
+
+button:active,
+.card-link:active,
+.favorite-btn:active {
+  transform: scale(.97);
+}
+
+/* =========================================================
+   ACTIONS UX / CARTE EN DIRECT
+========================================================= */
+
+.ux-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.mobile-map-toggle {
+  display: inline-flex;
+  background: linear-gradient(135deg, var(--purple), #5b2aa0);
+  color: white;
+  border: none;
+  box-shadow:
+    0 12px 28px rgba(58,28,113,.24),
+    0 0 0 3px rgba(58,28,113,.05);
+}
+
+/* =========================================================
+   LAYOUT AGENDA + CARTE
+========================================================= */
+
+.agenda-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
+  gap: 28px;
+  align-items: start;
+}
+
+.map-panel {
+  position: sticky;
+  top: 96px;
+  height: calc(100vh - 135px);
+  max-height: 620px;
+  padding: 10px;
+  border-radius: 28px;
+  background: rgba(255,255,255,.88);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 18px 46px rgba(58,28,113,.14),
+    inset 0 1px 0 rgba(255,255,255,.6);
+}
+
+.map-panel:not(.is-open) {
+  display: none;
+}
+
+.map-panel.is-open {
+  display: block;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+/* =========================================================
+   MARQUEURS / POPUP CARTE
+========================================================= */
+
+.event-marker-v5 {
+  background: transparent;
+  border: none;
+}
+
+.event-marker-v5 span {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--marker-color, var(--orange));
+  border: 4px solid white;
+  box-shadow:
+    0 8px 20px rgba(58,28,113,.25),
+    0 0 0 4px rgba(255,255,255,.36);
+}
+
+.premium-popup {
+  display: grid;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.leaflet-popup-content button,
+.popup-focus-btn {
+  width: 100%;
+  background: var(--orange);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 13px;
+  font-weight: 900;
+  cursor: pointer;
+  text-align: left;
+}
+
+.event-card.is-map-focused {
+  outline: 4px solid rgba(255,107,53,.82);
+  box-shadow:
+    0 0 0 8px rgba(255,107,53,.12),
+    0 26px 64px rgba(58,28,113,.24);
+}
+
+/* =========================================================
+   CARTES ÉVÉNEMENTS
+========================================================= */
+
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.event-card {
+  position: relative;
+  background: var(--paper);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 485px;
+  box-shadow: 0 15px 36px rgba(58,28,113,.12);
+  transform: translateY(0);
+  transition:
+    transform .22s ease,
+    box-shadow .22s ease,
+    border-color .22s ease;
+  animation: fadeUp .5s ease both;
+}
+
+.event-card:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 28px 56px rgba(58,28,113,.20);
+  border-color: rgba(255,107,53,.38);
+}
+
+.event-card-featured {
+  border-color: rgba(255,107,53,.50);
+}
+
+.featured-ribbon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  background: linear-gradient(135deg, var(--orange), #ff9b62);
+  color: white;
+  font-size: .78rem;
+  font-weight: 900;
+  padding: 8px 13px;
+  border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(255,107,53,.32);
+}
+
+.card-image {
+  width: 100%;
+  height: 178px;
+  object-fit: cover;
+  background: linear-gradient(135deg, var(--orange), var(--purple));
+}
+
+.card-body {
+  padding: 19px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 13px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: #f1e8fb;
+  color: var(--purple);
+  font-size: .72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.badge-price {
+  background: #fff0e7;
+  color: var(--orange);
+}
+
+.badge-featured {
+  background: var(--purple);
+  color: white;
+}
+
+.badge-verified,
+.badge.verified {
+  background: #e8fff0;
+  color: #16803c;
+}
+
+.badge-type.type-salon {
+  background: #f1e8fb;
+  color: var(--purple);
+}
+
+.badge-type.type-festival {
+  background: #fff0e7;
+  color: var(--orange);
+}
+
+.badge-type.type-dedicace {
+  background: #e8fff0;
+  color: #16803c;
+}
+
+.badge-type.type-autre {
+  background: #e9f1ff;
+  color: #2f6fed;
+}
+
+.card-title {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.16rem, 1.55vw, 1.32rem);
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+
+.card-meta {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: .9rem;
+  margin-bottom: 14px;
+}
+
+.card-description {
+  color: #4f465f;
+  font-size: .94rem;
+  line-height: 1.54;
+  margin: 0 0 18px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.card-footer {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.card-link {
+  border: 1px solid var(--purple);
+  color: var(--purple);
+  background: white;
+  flex: 1;
+  text-align: center;
+}
+
+.card-link:hover {
+  background: var(--purple);
+  color: white;
+}
+
+.detail-back-link {
+  display: inline-flex;
+  flex: initial;
+  margin-bottom: 18px;
+}
+
+/* =========================================================
+   FORMULAIRE / NEWSLETTER
+========================================================= */
+
+#submission-form,
+.newsletter-section,
+.empty-state,
+.seo-hero,
+.seo-text-block,
+.event-detail {
+  background: var(--paper);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  box-shadow: var(--shadow);
+}
+
+#submission-form {
+  padding: 28px;
+  display: grid;
+  gap: 14px;
+}
+
+.newsletter-section {
+  padding: 30px;
+  margin: 44px 0;
+  text-align: center;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.12), transparent 35%),
+    rgba(255,255,255,.90);
+}
+
+.newsletter-section p {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.newsletter-form {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr auto;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.success,
+#newsletter-feedback.success,
+#form-feedback.success {
+  color: #16803c;
+  font-weight: 900;
+}
+
+.error,
+#newsletter-feedback.error,
+#form-feedback.error {
+  color: #b42318;
+  font-weight: 900;
+}
+
+/* =========================================================
+   UPLOAD IMAGE
+========================================================= */
+
+.upload-premium {
+  display: grid;
+  gap: 14px;
+}
+
+.upload-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 150px;
+  padding: 22px;
+  border-radius: 22px;
+  border: 2px dashed rgba(58,28,113,.18);
+  background: rgba(255,255,255,.62);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color .2s ease,
+    box-shadow .2s ease,
+    transform .2s ease;
+}
+
+.upload-box:hover {
+  border-color: rgba(255,107,53,.45);
+  box-shadow: 0 12px 28px rgba(58,28,113,.10);
+  transform: translateY(-2px);
+}
+
+.upload-box input {
+  display: none;
+}
+
+.upload-icon {
+  font-size: 2rem;
+}
+
+.upload-box strong {
+  color: var(--purple);
+}
+
+.upload-box small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.image-preview {
+  display: none;
+  overflow: hidden;
+  border-radius: 22px;
+  background: white;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 28px rgba(58,28,113,.10);
+}
+
+.image-preview.is-visible {
+  display: block;
+}
+
+.image-preview img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  display: block;
+}
+
+.image-preview-caption {
+  padding: 10px 14px;
+  color: var(--muted);
+  font-size: .9rem;
+  font-weight: 800;
+}
+
+/* =========================================================
+   PAGES SEO / CATÉGORIES
+========================================================= */
+
+.seo-page {
+  padding-top: 38px;
+}
+
+.seo-hero {
+  overflow: hidden;
+  padding: clamp(30px, 5vw, 58px);
+  margin-bottom: 34px;
+  text-align: center;
+}
+
+.seo-hero h1 {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(2.25rem, 5vw, 4.25rem);
+  line-height: 1.04;
+  margin: 10px auto 18px;
+  max-width: 960px;
+}
+
+.seo-hero p {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.65;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.category-kicker {
+  color: var(--orange);
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.seo-content {
+  margin-top: 24px;
+}
+
+.seo-text-block {
+  padding: 30px;
+  margin-top: 36px;
+}
+
+.seo-text-block p {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+/* =========================================================
+   DÉTAIL ÉVÉNEMENT
+========================================================= */
+
+.event-detail {
+  overflow: hidden;
+}
+
+.detail-image {
+  width: 100%;
+  height: min(420px, 46vw);
+  object-fit: cover;
+  background: linear-gradient(135deg, var(--orange), var(--purple));
+}
+
+.detail-image-placeholder {
+  min-height: 260px;
+}
+
+.detail-body {
+  padding: 30px;
+}
+
+.detail-title {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(2.3rem, 5vw, 4.3rem);
+  line-height: 1.04;
+  margin: 10px 0 18px;
+}
+
+.detail-meta {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.detail-description {
+  margin-top: 24px;
+  color: #4f465f;
+  line-height: 1.72;
+  font-weight: 600;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.detail-button {
+  flex: initial;
+}
+
+#detail-map {
+  width: 100%;
+  height: 360px;
+  margin-top: 26px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* =========================================================
+   STATES
+========================================================= */
+
+.empty-state {
+  padding: 34px;
+  text-align: center;
+  color: var(--muted);
+  grid-column: 1 / -1;
+}
+
+.loader {
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  border: 4px solid #eadff4;
+  border-top-color: var(--orange);
+  animation: spin .8s linear infinite;
+}
+
+/* =========================================================
+   CURSEUR PERSONNALISÉ
+========================================================= */
+
+@media (min-width: 769px) {
+  body.has-custom-cursor,
+  body.has-custom-cursor * {
+    cursor: none !important;
   }
 
-  const supabaseClient = window.supabase.createClient(
-    config.supabaseUrl,
-    config.supabaseAnonKey
-  );
-
-  /* =========================================================
-     DOM
-  ========================================================= */
-
-  const eventsGrid = document.getElementById("events-grid");
-  const resultsCount = document.getElementById("results-count");
-
-  const form = document.getElementById("submission-form");
-  const formFeedback = document.getElementById("form-feedback");
-
-  const newsletterForm = document.getElementById("newsletter-form");
-  const newsletterFeedback = document.getElementById("newsletter-feedback");
-
-  const searchInput = document.getElementById("search-input");
-  const regionFilter = document.getElementById("region-filter");
-  const typeFilter = document.getElementById("type-filter");
-  const dateFilter = document.getElementById("date-filter");
-
-  const mobileMapToggle = document.getElementById("mobile-map-toggle");
-  const locateMeButton = document.getElementById("locate-me");
-  const mapPanel = document.getElementById("map-panel");
-
-  const cityInput = document.getElementById("city-input");
-  const cityLatInput = document.getElementById("city-lat");
-  const cityLngInput = document.getElementById("city-lng");
-  const cityHelp = document.getElementById("city-help");
-
-  /* =========================================================
-     VARIABLES
-  ========================================================= */
-
-  let map;
-  let markersLayer;
-  let allEvents = [];
-  let selectedPreviewImage = null;
-
-  const TYPE_META = {
-    Salon: {
-      className: "type-salon",
-      color: "#3a1c71"
-    },
-
-    Festival: {
-      className: "type-festival",
-      color: "#ff6b35"
-    },
-
-    Dédicace: {
-      className: "type-dedicace",
-      color: "#16803c"
-    },
-
-    Autre: {
-      className: "type-autre",
-      color: "#2f6fed"
-    }
-  };
-
-  /* =========================================================
-     INIT
-  ========================================================= */
-
-  init();
-
-  function init() {
-
-    bindEvents();
-    bindImagePreview();
-    bindCityAutocomplete();
-    populateMonthFilter();
-    initMap();
-    loadEvents();
-
-    if (mobileMapToggle) {
-      mobileMapToggle.textContent = "🟢 Carte en direct";
-    }
-
-    if (window.innerWidth <= 1080 && mapPanel) {
-      mapPanel.classList.remove("is-open");
-    }
+  .custom-cursor {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 44px;
+    height: 44px;
+    background: url("cursor-book.png") center / contain no-repeat;
+    pointer-events: none;
+    z-index: 2147483647;
+    transform: translate(-6px, -6px);
+    filter:
+      drop-shadow(0 10px 16px rgba(58, 28, 113, 0.22))
+      drop-shadow(0 2px 5px rgba(255, 107, 53, 0.18));
+    transition: width .18s ease, height .18s ease, filter .18s ease;
+    will-change: left, top;
   }
 
-  /* =========================================================
-     EVENTS
-  ========================================================= */
-
-  function bindEvents() {
-
-    document
-      .getElementById("apply-filters")
-      ?.addEventListener("click", renderFilteredEvents);
-
-    document
-      .getElementById("reset-filters")
-      ?.addEventListener("click", resetFilters);
-
-    form?.addEventListener("submit", handleFormSubmit);
-
-    if (newsletterForm) {
-
-      newsletterForm.setAttribute(
-        "novalidate",
-        "novalidate"
-      );
-
-      newsletterForm.addEventListener(
-        "submit",
-        (event) => {
-
-          event.preventDefault();
-          event.stopPropagation();
-
-          handleNewsletterSubmit(event);
-
-          return false;
-        }
-      );
-    }
-
-    mobileMapToggle?.addEventListener(
-      "click",
-      toggleMobileMap
-    );
-
-    locateMeButton?.addEventListener(
-      "click",
-      locateUser
-    );
-
-    [regionFilter, typeFilter, dateFilter]
-      .forEach((element) => {
-
-        element?.addEventListener(
-          "change",
-          renderFilteredEvents
-        );
-      });
-
-    searchInput?.addEventListener(
-      "input",
-      renderFilteredEvents
-    );
+  body.cursor-hover .custom-cursor {
+    width: 56px;
+    height: 56px;
+    filter:
+      drop-shadow(0 13px 20px rgba(58, 28, 113, 0.26))
+      drop-shadow(0 3px 7px rgba(255, 107, 53, 0.22))
+      saturate(1.08);
   }
 
-  /* =========================================================
-     MAP PANEL
-  ========================================================= */
-
-  function toggleMobileMap() {
-
-    if (!mapPanel) return;
-
-    mapPanel.classList.toggle("is-open");
-
-    if (mapPanel.classList.contains("is-open")) {
-
-      mobileMapToggle.textContent =
-        "Fermer la carte en direct";
-
-      setTimeout(() => {
-        map?.invalidateSize();
-      }, 300);
-
-    } else {
-
-      mobileMapToggle.textContent =
-        "🟢 Carte en direct";
-    }
+  body.cursor-down .custom-cursor {
+    width: 38px;
+    height: 38px;
   }
 
-  /* =========================================================
-     IMAGE PREVIEW
-  ========================================================= */
+  .book-trail {
+    position: fixed;
+    width: 16px;
+    height: 16px;
+    background: url("book-mini.png") center / contain no-repeat;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(var(--scale)) rotate(var(--rotation));
+    animation: trailPremium .9s cubic-bezier(.22, 1, .36, 1) forwards;
+    filter: drop-shadow(0 6px 10px rgba(58, 28, 113, .2));
+  }
+}
 
-  function bindImagePreview() {
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+  .custom-cursor,
+  .book-trail {
+    display: none !important;
+  }
+}
 
-    const input =
-      document.getElementById("event-image-input");
+/* =========================================================
+   ANIMATIONS
+========================================================= */
 
-    const preview =
-      document.getElementById("image-preview");
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-    if (!input || !preview) return;
-
-    input.addEventListener("change", (event) => {
-
-      const file = event.target.files?.[0];
-
-      if (!file) {
-
-        preview.innerHTML = "";
-        preview.classList.remove("is-visible");
-
-        selectedPreviewImage = null;
-
-        return;
-      }
-
-      if (!file.type.startsWith("image/")) {
-
-        alert("Veuillez sélectionner une image.");
-
-        input.value = "";
-
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-
-        alert("Image trop lourde (5 Mo max).");
-
-        input.value = "";
-
-        return;
-      }
-
-      selectedPreviewImage = file;
-
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-
-        preview.innerHTML = `
-          <img
-            src="${e.target.result}"
-            alt="Prévisualisation"
-          />
-
-          <div class="image-preview-caption">
-            ${escapeHtml(file.name)}
-          </div>
-        `;
-
-        preview.classList.add("is-visible");
-      };
-
-      reader.readAsDataURL(file);
-    });
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
   }
 
-  /* =========================================================
-     MAP
-  ========================================================= */
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-  function initMap() {
-
-    const mapElement =
-      document.getElementById("map");
-
-    if (!mapElement || !window.L) return;
-
-    map = L.map("map")
-      .setView([46.603354, 1.888334], 6);
-
-    L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        attribution:
-          "&copy; OpenStreetMap contributors"
-      }
-    ).addTo(map);
-
-    markersLayer =
-      L.layerGroup().addTo(map);
+@keyframes trailPremium {
+  0% {
+    opacity: 0;
+    transform:
+      translate(-50%, -50%)
+      scale(calc(var(--scale) * .6))
+      rotate(var(--rotation));
   }
 
-  /* =========================================================
-     LOAD EVENTS
-  ========================================================= */
-
-  async function loadEvents() {
-
-    setLoadingState();
-
-    const today =
-      new Date()
-        .toISOString()
-        .slice(0, 10);
-
-    const { data, error } =
-      await supabaseClient
-        .from("events")
-        .select("*")
-        .eq("validated", true)
-        .eq("rejected", false)
-        .or(`end_date.is.null,end_date.gte.${today}`)
-        .order("featured", {
-          ascending: false
-        })
-        .order("start_date", {
-          ascending: true
-        });
-
-    if (error) {
-
-      console.error(error);
-
-      setErrorState(
-        "Impossible de charger les événements."
-      );
-
-      return;
-    }
-
-    allEvents =
-      Array.isArray(data)
-        ? data
-        : [];
-
-    renderFilteredEvents();
+  20% {
+    opacity: .85;
   }
 
-  /* =========================================================
-     FILTER EVENTS
-  ========================================================= */
-
-  function renderFilteredEvents() {
-
-    const filtered =
-      filterEvents(allEvents);
-
-    renderEvents(filtered);
-    renderMapMarkers(filtered);
-  }
-
-  function filterEvents(events) {
-
-    const search =
-      normalize(searchInput?.value || "");
-
-    const region =
-      regionFilter?.value || "";
-
-    const type =
-      typeFilter?.value || "";
-
-    const selectedMonth =
-      dateFilter?.value || "";
-
-    const pageMode =
-      document.body.dataset.agendaMode ||
-      "global";
-
-    const filtered = events.filter((event) => {
-
-      if (
-        pageMode === "dedicaces" &&
-        event.type !== "Dédicace"
-      ) {
-        return false;
-      }
-
-      if (
-        pageMode === "salons" &&
-        !["Salon", "Festival"].includes(event.type)
-      ) {
-        return false;
-      }
-
-      const haystack = normalize([
-        event.title,
-        event.city,
-        event.region,
-        event.description
-      ].join(" "));
-
-      if (
-        search &&
-        !haystack.includes(search)
-      ) {
-        return false;
-      }
-
-      if (
-        region &&
-        event.region !== region
-      ) {
-        return false;
-      }
-
-      if (
-        type &&
-        event.type !== type
-      ) {
-        return false;
-      }
-
-      if (
-        selectedMonth &&
-        !matchesMonth(event, selectedMonth)
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-
-    filtered.sort((a, b) => {
-
-      const dateA =
-        new Date(
-          a.start_date || "2999-12-31"
-        ).getTime();
-
-      const dateB =
-        new Date(
-          b.start_date || "2999-12-31"
-        ).getTime();
-
-      return dateA - dateB;
-    });
-
-    return filtered;
-  }
-
-  function matchesMonth(event, selectedMonth) {
-
-    const start =
-      event.start_date || "";
-
-    return start.startsWith(selectedMonth);
-  }
-
-  /* =========================================================
-     RENDER EVENTS
-  ========================================================= */
-
-  function renderEvents(events) {
-
-    if (!eventsGrid || !resultsCount) return;
-
-    resultsCount.textContent =
-      `${events.length} événement${
-        events.length > 1 ? "s" : ""
-      } à découvrir`;
-
-    if (!events.length) {
-
-      eventsGrid.innerHTML = `
-        <article class="empty-state">
-          Aucun événement trouvé.
-        </article>
-      `;
-
-      return;
-    }
-
-    eventsGrid.innerHTML =
-      events.map(renderEventCard).join("");
-  }
-
-  function renderEventCard(event) {
-
-    const typeMeta =
-      TYPE_META[event.type] ||
-      TYPE_META.Autre;
-
-    const image =
-      resolveImageUrl(event.image_url);
-
-    return `
-      <article
-        class="event-card ${typeMeta.className}"
-        id="event-${escapeAttribute(event.id)}"
-      >
-
-        ${
-          image
-            ? `
-              <img
-                class="card-image"
-                src="${escapeAttribute(image)}"
-                alt="${escapeAttribute(event.title || "Événement")}"
-              />
-            `
-            : `<div class="card-image"></div>`
-        }
-
-        <div class="card-body">
-
-          <div class="card-tags">
-
-            ${
-              event.type
-                ? `
-                  <span class="badge badge-type ${typeMeta.className}">
-                    <i></i>
-                    ${escapeHtml(event.type)}
-                  </span>
-                `
-                : ""
-            }
-
-          </div>
-
-          <h3 class="card-title">
-            ${escapeHtml(event.title || "Sans titre")}
-          </h3>
-
-          <div class="card-meta">
-            <span>
-              📍 ${escapeHtml(event.city || "")}
-            </span>
-
-            <span>
-              📅 ${formatDate(event.start_date)}
-            </span>
-          </div>
-
-          <p class="card-description">
-            ${escapeHtml(event.description || "")}
-          </p>
-
-          <div class="card-footer">
-
-            <a
-              class="card-link"
-              href="event.html?id=${encodeURIComponent(event.id)}"
-            >
-              Voir le détail
-            </a>
-
-          </div>
-
-        </div>
-      </article>
-    `;
-  }
-
-  /* =========================================================
-     MAP MARKERS
-  ========================================================= */
-
-  function renderMapMarkers(events) {
-
-    if (!map || !markersLayer) return;
-
-    markersLayer.clearLayers();
-
-    const grouped = {};
-
-    events.forEach((event) => {
-
-      if (
-        !Number.isFinite(Number(event.lat)) ||
-        !Number.isFinite(Number(event.lng))
-      ) {
-        return;
-      }
-
-      const key =
-        `${event.lat},${event.lng}`;
-
-      if (!grouped[key]) {
-        grouped[key] = [];
-      }
-
-      grouped[key].push(event);
-    });
-
-    Object.values(grouped)
-      .forEach((group) => {
-
-        const first = group[0];
-
-        const lat =
-          Number(first.lat);
-
-        const lng =
-          Number(first.lng);
-
-        const typeMeta =
-          TYPE_META[first.type] ||
-          TYPE_META.Autre;
-
-        const marker = L.marker(
-          [lat, lng],
-          {
-            icon: createTypeIcon(typeMeta)
-          }
-        );
-
-        marker.bindPopup(`
-          <div class="premium-popup">
-
-            <strong>
-              ${group.length} événement(s)
-            </strong>
-
-            <br><br>
-
-            ${group.map((event) => `
-              <button
-                class="popup-focus-btn"
-                type="button"
-                data-event-id="${escapeAttribute(event.id)}"
-                data-event-type="${escapeAttribute(event.type || "")}"
-              >
-                ${escapeHtml(event.title || "Sans titre")}
-              </button>
-            `).join("")}
-
-          </div>
-        `);
-
-        marker.on("popupopen", () => {
-
-          document
-            .querySelectorAll(".popup-focus-btn")
-            .forEach((button) => {
-
-              button.addEventListener(
-                "click",
-                () => {
-
-                  focusEventFromMap(
-                    button.dataset.eventId,
-                    button.dataset.eventType
-                  );
-                }
-              );
-            });
-        });
-
-        marker.addTo(markersLayer);
-      });
-  }
-
-  function createTypeIcon(typeMeta) {
-
-    return L.divIcon({
-      className: "event-marker-v5",
-
-      html: `
-        <span
-          style="--marker-color:${typeMeta.color}"
-        ></span>
-      `,
-
-      iconSize: [28, 28],
-      iconAnchor: [14, 28]
-    });
-  }
-
-  /* =========================================================
-     MAP → EVENT FOCUS
-  ========================================================= */
-
-  function focusEventFromMap(
-    eventId,
-    eventType
-  ) {
-
-    if (
-      typeFilter &&
-      eventType &&
-      typeFilter.value !== eventType
-    ) {
-
-      typeFilter.value = eventType;
-
-      renderFilteredEvents();
-    }
-
-    if (
-      window.innerWidth <= 1080 &&
-      mapPanel
-    ) {
-
-      mapPanel.classList.remove("is-open");
-
-      if (mobileMapToggle) {
-        mobileMapToggle.textContent =
-          "🟢 Carte en direct";
-      }
-    }
-
-    setTimeout(() => {
-
-      const target =
-        document.getElementById(
-          `event-${eventId}`
-        );
-
-      if (!target) return;
-
-      document
-        .querySelectorAll(
-          ".event-card.is-map-focused"
-        )
-        .forEach((card) => {
-
-          card.classList.remove(
-            "is-map-focused"
-          );
-        });
-
-      target.classList.add(
-        "is-map-focused"
-      );
-
-      target.animate(
-        [
-          {
-            transform: "scale(1)",
-            boxShadow:
-              "0 0 0 rgba(0,0,0,0)"
-          },
-          {
-            transform: "scale(1.015)",
-            boxShadow:
-              "0 24px 54px rgba(58,28,113,.18)"
-          },
-          {
-            transform: "scale(1)",
-            boxShadow:
-              "0 0 0 rgba(0,0,0,0)"
-          }
-        ],
-        {
-          duration: 1200,
-          easing: "ease"
-        }
-      );
-
-      target.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-
-      setTimeout(() => {
-
-        target.classList.remove(
-          "is-map-focused"
-        );
-
-      }, 2600);
-
-    }, 280);
-  }
-
-  /* =========================================================
-     NEWSLETTER
-  ========================================================= */
-
-  async function handleNewsletterSubmit(
-    event
-  ) {
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (
-      !newsletterForm ||
-      !newsletterFeedback
-    ) {
-      return;
-    }
-
-    const formData =
-      new FormData(newsletterForm);
-
-    const email =
-      (
-        formData.get("email") || ""
+  100% {
+    opacity: 0;
+    transform:
+      translate(
+        calc(-50% + var(--drift-x)),
+        calc(-50% + var(--drift-y))
       )
-        .toString()
-        .trim()
-        .toLowerCase();
+      scale(.2)
+      rotate(calc(var(--rotation) + 60deg));
+  }
+}
 
-    const region =
-      (
-        formData.get("region") || ""
-      )
-        .toString()
-        .trim();
+/* =========================================================
+   RESPONSIVE
+========================================================= */
 
-    if (!isValidEmail(email)) {
-
-      setNewsletterFeedback(
-        "Veuillez saisir une adresse email valide.",
-        "error"
-      );
-
-      return;
-    }
-
-    const submitButton =
-      newsletterForm.querySelector(
-        'button[type="submit"]'
-      );
-
-    if (submitButton) {
-
-      submitButton.disabled = true;
-
-      submitButton.textContent =
-        "Inscription…";
-    }
-
-    setNewsletterFeedback(
-      "Inscription en cours…",
-      ""
-    );
-
-    try {
-
-      const payload = {
-        email,
-        region: region || null
-      };
-
-      const { error } =
-        await supabaseClient
-          .from("newsletter_subscribers")
-          .insert([payload]);
-
-      if (error) {
-
-        if (
-          error.code === "23505" ||
-          /duplicate|unique/i.test(
-            error.message || ""
-          )
-        ) {
-
-          setNewsletterFeedback(
-            "Vous êtes déjà inscrit à la newsletter.",
-            "success"
-          );
-
-          newsletterForm.reset();
-
-          return;
-        }
-
-        throw error;
-      }
-
-      setNewsletterFeedback(
-        "Inscription confirmée. Vous recevrez bientôt les prochains événements littéraires proches de vous.",
-        "success"
-      );
-
-      newsletterForm.reset();
-
-      newsletterFeedback.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-
-    } catch (error) {
-
-      console.error(
-        "Erreur newsletter :",
-        error
-      );
-
-      setNewsletterFeedback(
-        "Impossible de finaliser l’inscription pour le moment.",
-        "error"
-      );
-
-    } finally {
-
-      if (submitButton) {
-
-        submitButton.disabled = false;
-
-        submitButton.textContent =
-          "S’inscrire";
-      }
-    }
+@media (max-width: 1080px) {
+  .agenda-layout {
+    grid-template-columns: 1fr;
   }
 
-  /* =========================================================
-     SUBMISSION EVENT
-  ========================================================= */
-
-  async function handleFormSubmit(
-    event
-  ) {
-
-    event.preventDefault();
-
-    if (!form) return;
-
-    setFormFeedback(
-      "Envoi en cours...",
-      ""
-    );
-
-    const formData =
-      new FormData(form);
-
-    try {
-
-      let lat =
-        Number(formData.get("lat"));
-
-      let lng =
-        Number(formData.get("lng"));
-
-      if (
-        !Number.isFinite(lat) ||
-        !Number.isFinite(lng)
-      ) {
-
-        const coords =
-          await geocodeMunicipality(
-            formData.get("city")
-          );
-
-        if (!coords) {
-          throw new Error(
-            "Ville invalide."
-          );
-        }
-
-        lat = coords.lat;
-        lng = coords.lng;
-      }
-
-      const payload = {
-        title: formData.get("title"),
-        type: formData.get("type"),
-        region: formData.get("region"),
-        city: formData.get("city"),
-        price: formData.get("price"),
-        start_date:
-          formData.get("start_date"),
-        end_date:
-          formData.get("end_date"),
-        website:
-          formData.get("website"),
-        description:
-          formData.get("description"),
-        lat,
-        lng,
-        validated: false,
-        featured: false,
-        rejected: false,
-        verified: false
-      };
-
-      const imageFile =
-        selectedPreviewImage ||
-        formData.get("image");
-
-      if (
-        imageFile instanceof File &&
-        imageFile.size > 0
-      ) {
-
-        payload.image_url =
-          await uploadImage(imageFile);
-      }
-
-      const { error } =
-        await supabaseClient
-          .from("events")
-          .insert([payload]);
-
-      if (error) throw error;
-
-      form.reset();
-
-      selectedPreviewImage = null;
-
-      const preview =
-        document.getElementById(
-          "image-preview"
-        );
-
-      if (preview) {
-
-        preview.innerHTML = "";
-
-        preview.classList.remove(
-          "is-visible"
-        );
-      }
-
-      setFormFeedback(
-        "Votre événement a bien été transmis.",
-        "success"
-      );
-
-    } catch (error) {
-
-      console.error(error);
-
-      setFormFeedback(
-        error.message ||
-          "Erreur pendant l’envoi.",
-        "error"
-      );
-    }
+  .map-panel {
+    position: static;
+    height: auto;
+    max-height: none;
   }
 
-  /* =========================================================
-     IMAGE UPLOAD
-  ========================================================= */
-
-  async function uploadImage(file) {
-
-    const compressed =
-      await compressImage(file);
-
-    const extension =
-      (
-        compressed.name
-          .split(".")
-          .pop() || "jpg"
-      ).toLowerCase();
-
-    const fileName =
-      `${Date.now()}-${
-        Math.random()
-          .toString(36)
-          .slice(2)
-      }.${extension}`;
-
-    const { error } =
-      await supabaseClient.storage
-        .from("event-images")
-        .upload(fileName, compressed);
-
-    if (error) throw error;
-
-    const { data } =
-      supabaseClient.storage
-        .from("event-images")
-        .getPublicUrl(fileName);
-
-    return data.publicUrl;
+  #map {
+    height: 390px;
+    min-height: 390px;
   }
 
-  async function compressImage(file) {
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 
-    return new Promise((resolve) => {
+@media (max-width: 900px) {
+  .hero {
+    height: auto;
+    min-height: 300px;
+    background-size: contain;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-color: #f7f1fb;
+    box-shadow: none;
+    margin-bottom: 32px;
+  }
+}
 
-      const img = new Image();
-
-      img.onload = () => {
-
-        const canvas =
-          document.createElement("canvas");
-
-        const maxWidth = 1600;
-
-        const ratio =
-          Math.min(
-            1,
-            maxWidth / img.width
-          );
-
-        canvas.width =
-          img.width * ratio;
-
-        canvas.height =
-          img.height * ratio;
-
-        const ctx =
-          canvas.getContext("2d");
-
-        ctx.drawImage(
-          img,
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
-
-        canvas.toBlob(
-          (blob) => {
-
-            if (!blob) {
-
-              resolve(file);
-
-              return;
-            }
-
-            resolve(
-              new File(
-                [blob],
-                file.name,
-                {
-                  type:
-                    "image/jpeg"
-                }
-              )
-            );
-
-          },
-          "image/jpeg",
-          0.86
-        );
-      };
-
-      img.src =
-        URL.createObjectURL(file);
-    });
+@media (max-width: 780px) {
+  .container {
+    width: min(100% - 28px, 1180px);
   }
 
-  /* =========================================================
-     GEO
-  ========================================================= */
-
-  async function geocodeMunicipality(city) {
-
-    try {
-
-      const response =
-        await fetch(
-          `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(city)}&limit=1&type=municipality`
-        );
-
-      const data =
-        await response.json();
-
-      const coords =
-        data.features?.[0]
-          ?.geometry
-          ?.coordinates;
-
-      if (!coords) return null;
-
-      return {
-        lng: Number(coords[0]),
-        lat: Number(coords[1])
-      };
-
-    } catch {
-
-      return null;
-    }
+  .header-inner {
+    min-height: 68px;
+    align-items: center;
+    gap: 14px;
   }
 
-  function bindCityAutocomplete() {
-
-    if (!cityInput) return;
-
-    cityInput.addEventListener(
-      "change",
-      async () => {
-
-        const coords =
-          await geocodeMunicipality(
-            cityInput.value
-          );
-
-        if (!coords) return;
-
-        cityLatInput.value =
-          coords.lat;
-
-        cityLngInput.value =
-          coords.lng;
-
-        if (cityHelp) {
-          cityHelp.textContent =
-            "Ville validée ✔";
-        }
-      }
-    );
+  .logo {
+    height: 44px;
   }
 
-  /* =========================================================
-     FILTERS
-  ========================================================= */
-
-  function populateMonthFilter() {
-
-    if (!dateFilter) return;
-
-    const formatter =
-      new Intl.DateTimeFormat(
-        "fr-FR",
-        {
-          month: "long",
-          year: "numeric"
-        }
-      );
-
-    const now = new Date();
-
-    for (let i = 0; i < 18; i++) {
-
-      const date =
-        new Date(
-          now.getFullYear(),
-          now.getMonth() + i,
-          1
-        );
-
-      const value =
-        `${date.getFullYear()}-${
-          String(
-            date.getMonth() + 1
-          ).padStart(2, "0")
-        }`;
-
-      const option =
-        document.createElement("option");
-
-      option.value = value;
-
-      option.textContent =
-        formatter.format(date);
-
-      dateFilter.appendChild(option);
-    }
+  nav {
+    gap: 12px;
   }
 
-  function resetFilters() {
-
-    if (searchInput) {
-      searchInput.value = "";
-    }
-
-    if (regionFilter) {
-      regionFilter.value = "";
-    }
-
-    if (typeFilter) {
-      typeFilter.value = "";
-    }
-
-    if (dateFilter) {
-      dateFilter.value = "";
-    }
-
-    renderFilteredEvents();
+  nav a {
+    font-size: .92rem;
   }
 
-  /* =========================================================
-     GEOLOCATE
-  ========================================================= */
-
-  function locateUser() {
-
-    if (
-      !navigator.geolocation ||
-      !map
-    ) {
-
-      alert(
-        "La géolocalisation n’est pas disponible."
-      );
-
-      return;
-    }
-
-    if (locateMeButton) {
-
-      locateMeButton.disabled = true;
-
-      locateMeButton.textContent =
-        "Localisation…";
-    }
-
-    navigator.geolocation.getCurrentPosition(
-
-      (position) => {
-
-        map.setView(
-          [
-            position.coords.latitude,
-            position.coords.longitude
-          ],
-          9
-        );
-
-        if (locateMeButton) {
-
-          locateMeButton.disabled = false;
-
-          locateMeButton.textContent =
-            "Me localiser";
-        }
-      },
-
-      () => {
-
-        if (locateMeButton) {
-
-          locateMeButton.disabled = false;
-
-          locateMeButton.textContent =
-            "Me localiser";
-        }
-
-        alert(
-          "Impossible de récupérer votre position."
-        );
-      },
-
-      {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 600000
-      }
-    );
+  .section {
+    padding: 38px 0;
   }
 
-  /* =========================================================
-     STATES
-  ========================================================= */
-
-  function setLoadingState() {
-
-    if (!eventsGrid) return;
-
-    eventsGrid.innerHTML = `
-      <article class="empty-state">
-        Chargement…
-      </article>
-    `;
+  .filters,
+  .newsletter-form {
+    grid-template-columns: 1fr;
   }
 
-  function setErrorState(message) {
-
-    if (!eventsGrid) return;
-
-    eventsGrid.innerHTML = `
-      <article class="empty-state">
-        ${escapeHtml(message)}
-      </article>
-    `;
+  .events-grid {
+    grid-template-columns: 1fr;
   }
 
-  function setFormFeedback(
-    message,
-    type
-  ) {
-
-    if (!formFeedback) return;
-
-    formFeedback.textContent =
-      message;
-
-    formFeedback.className =
-      `form-feedback ${type}`;
+  .event-card {
+    min-height: auto;
   }
 
-  function setNewsletterFeedback(
-    message,
-    type
-  ) {
-
-    if (!newsletterFeedback) return;
-
-    newsletterFeedback.textContent =
-      message;
-
-    newsletterFeedback.className =
-      type || "";
+  .card-image {
+    height: 170px;
   }
 
-  /* =========================================================
-     HELPERS
-  ========================================================= */
-
-  function resolveImageUrl(path) {
-
-    if (!path) return "";
-
-    if (/^https?:\/\//i.test(path)) {
-      return path;
-    }
-
-    return `${
-      config.assetsBaseUrl || ""
-    }${path}`;
+  .card-footer {
+    flex-direction: column;
   }
 
-  function formatDate(value) {
-
-    if (!value) return "";
-
-    return new Intl.DateTimeFormat(
-      "fr-FR",
-      {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      }
-    ).format(new Date(value));
+  #map {
+    height: 340px;
+    min-height: 340px;
   }
 
-  function normalize(value) {
-
-    return (value || "")
-      .toString()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
+  .detail-image {
+    height: 260px;
   }
 
-  function isValidEmail(email) {
+  .editorial-hook,
+  .site-manifest,
+  .footer-manifest {
+    padding: 22px 18px;
+  }
+}
 
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      .test(email);
+@media (max-width: 600px) {
+  .hero {
+    min-height: 210px;
+    background-size: contain;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-color: #f7f1fb;
+    margin-bottom: 24px;
   }
 
-  function escapeHtml(value) {
-
-    return (value || "")
-      .toString()
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+  .header-inner {
+    flex-direction: column;
+    padding: 10px 0 12px;
   }
 
-  function escapeAttribute(value) {
-
-    return escapeHtml(value)
-      .replace(/'/g, "&#039;");
+  nav {
+    justify-content: center;
   }
 
-})();
+  .ux-actions {
+    justify-content: center;
+  }
+
+  .mobile-map-toggle,
+  #locate-me {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    min-height: 190px;
+  }
+
+  nav a {
+    font-size: .84rem;
+  }
+
+  .section h2,
+  .seo-content h2,
+  .seo-text-block h2 {
+    font-size: 1.9rem;
+  }
+}
