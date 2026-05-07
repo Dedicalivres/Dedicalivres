@@ -74,8 +74,19 @@
     document.getElementById("reset-filters")?.addEventListener("click", resetFilters);
 
     form?.addEventListener("submit", handleFormSubmit);
-    newsletterForm?.addEventListener("submit", handleNewsletterSubmit);
+    if (newsletterForm) {
 
+  newsletterForm.setAttribute("novalidate", "novalidate");
+
+  newsletterForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    handleNewsletterSubmit(event);
+
+    return false;
+  });
+}
     mobileMapToggle?.addEventListener("click", toggleMobileMap);
     locateMeButton?.addEventListener("click", locateUser);
 
