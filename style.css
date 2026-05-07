@@ -1649,8 +1649,7 @@ button:active,
   color: #fff !important;
 }
 
-.submit-trust-panel,
-.category-submit-cta {
+.submit-trust-panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1665,8 +1664,7 @@ button:active,
   box-shadow: 0 16px 38px rgba(58,28,113,.10);
 }
 
-.submit-trust-panel strong,
-.category-submit-cta strong {
+.submit-trust-panel strong strong {
   display: block;
   color: var(--purple);
   font-family: "Playfair Display", serif;
@@ -1675,8 +1673,7 @@ button:active,
   margin-bottom: 8px;
 }
 
-.submit-trust-panel p,
-.category-submit-cta p {
+.submit-trust-panel p p {
   margin: 0;
   color: var(--muted);
   font-weight: 750;
@@ -1708,33 +1705,14 @@ button:active,
   font-weight: 950;
 }
 
-.category-submit-cta {
-  margin-top: 38px;
-}
-
-.category-submit-cta .btn-primary {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
 @media (max-width: 780px) {
   .nav-submit-link {
     padding: 6px 11px;
   }
 
   .submit-trust-panel,
-  .category-submit-cta {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 20px;
-  }
-
-  .submit-trust-panel ul {
+.submit-trust-panel ul {
     width: 100%;
     flex-basis: auto;
-  }
-
-  .category-submit-cta .btn-primary {
-    width: 100%;
   }
 }
