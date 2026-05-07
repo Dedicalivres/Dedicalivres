@@ -1066,14 +1066,20 @@ button:active,
 ========================================================= */
 
 @media (max-width: 1080px) {
+
   .agenda-layout {
     grid-template-columns: 1fr;
   }
 
   .map-panel {
+    display: none;
     position: static;
     height: auto;
     max-height: none;
+  }
+
+  .map-panel.is-open {
+    display: block;
   }
 
   #map {
