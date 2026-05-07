@@ -444,7 +444,7 @@
 
   async function handleNewsletterSubmit(event) {
     event.preventDefault();
-
+event.stopPropagation();
     if (!newsletterForm || !newsletterFeedback) return;
 
     const formData = new FormData(newsletterForm);
