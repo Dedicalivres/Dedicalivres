@@ -303,12 +303,22 @@ textarea {
   box-shadow: var(--shadow);
 }
 
-.map-panel:not(.is-open) {
-  display: none;
+/* Desktop : carte visible */
+.map-panel {
+  display: block;
 }
 
-.map-panel.is-open {
-  display: block;
+/* Mobile : carte repliée par défaut */
+@media (max-width: 1080px) {
+
+  .map-panel {
+    display: none;
+  }
+
+  .map-panel.is-open {
+    display: block;
+  }
+
 }
 
 #map {
