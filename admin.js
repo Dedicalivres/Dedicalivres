@@ -886,3 +886,275 @@ function formatDate(value) {
     return value;
   }
 }
+
+
+/* =========================================================
+   V6.2.2 — DEMANDES AUTEURS ADMIN
+   Injection directe dans admin.js pour éviter tout souci de script non chargé.
+========================================================= */
+(function initAuthorRequestsAdminV622() {
+  "use strict";
+
+  const STATE = {
+    rows: []
+  };
+
+  function boot() {
+    const moderationTab = document.getElementById("tab-moderation");
+
+    if (!moderationTab) {
+      console.warn("V6.2.2 demandes auteurs : #tab-moderation introuvable");
+      return;
+    }
+
+    ensureAuthorRequestsPanel();
+    bindAuthorRequestsRefresh();
+    loadAuthorRequestsV622();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+
+  function ensureAuthorRequestsPanel() {
+    if (document.getElementById("author-requests-panel-v622")) return;
+
+    const moderationTab = document.getElementById("tab-moderation");
+    if (!moderationTab) return;
+
+    const panel = document.createElement("section");
+    panel.id = "author-requests-panel-v622";
+    panel.className = "admin-panel author-requests-panel-v622";
+
+    panel.innerHTML = `
+      <div class="section-head">
+        <h3>DEMANDES AUTEURS</h3>
+        <span id="author-requests-count-v622">Chargement…</span>
+      </div>
+
+      <div id="author-requests-list-v622" class="author-requests-list-v622">
+        <p class="author-requests-empty-v622">Chargement des demandes auteurs…</p>
+      </div>
+    `;
+
+    const firstAdminPanel = moderationTab.querySelector(".admin-panel");
+
+    if (firstAdminPanel) {
+      moderationTab.insertBefore(panel, firstAdminPanel);
+    } else {
+      moderationTab.appendChild(panel);
+    }
+  }
+
+  function bindAuthorRequestsRefresh() {
+    const refreshBtnV622 = document.getElementById("refresh-btn");
+
+    refreshBtnV622?.addEventListener("click", () => {
+      setTimeout(loadAuthorRequestsV622, 350);
+    });
+
+    document.addEventListener("click", (event) => {
+      const tab = event.target.closest(".admin-tab");
+      if (tab?.dataset?.tab === "moderation") {
+        setTimeout(loadAuthorRequestsV622, 250);
+      }
+    });
+  }
+
+  async function loadAuthorRequestsV622() {
+    ensureAuthorRequestsPanel();
+
+    const list = document.getElementById("author-requests-list-v622");
+    const count = document.getElementById("author-requests-count-v622");
+
+    if (!list || !count) return;
+
+    list.innerHTML = `<p class="author-requests-empty-v622">Chargement des demandes auteurs…</p>`;
+    count.textContent = "Chargement…";
+
+    try {
+      if (typeof supabaseClient === "undefined") {
+        throw new Error("Client Supabase admin indisponible dans admin.js.");
+      }
+
+      const { data, error } = await supabaseClient
+        .from("event_authors_presence")
+        .select(`
+          id,
+          event_id,
+          pseudo,
+          website,
+          author_slug,
+          validated,
+          created_at,
+          events (
+            id,
+            title,
+            city,
+            region,
+            start_date
+          )
+        `)
+        .eq("validated", false)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      STATE.rows = Array.isArray(data) ? data : [];
+      renderAuthorRequestsV622();
+    } catch (error) {
+      console.error("V6.2.2 demandes auteurs — erreur chargement :", error);
+      count.textContent = "Erreur";
+      list.innerHTML = `
+        <p class="author-requests-error-v622">
+          Impossible de charger les demandes auteurs. Vérifie les droits Supabase SELECT sur event_authors_presence.
+        </p>
+      `;
+    }
+  }
+
+  function renderAuthorRequestsV622() {
+    const list = document.getElementById("author-requests-list-v622");
+    const count = document.getElementById("author-requests-count-v622");
+
+    if (!list || !count) return;
+
+    count.textContent = `${STATE.rows.length} demande${STATE.rows.length > 1 ? "s" : ""} en attente`;
+
+    if (!STATE.rows.length) {
+      list.innerHTML = `<p class="author-requests-empty-v622">Aucune demande auteur en attente.</p>`;
+      return;
+    }
+
+    list.innerHTML = STATE.rows.map((row) => {
+      const event = row.events || {};
+      const eventTitle = event.title || "Événement inconnu";
+      const eventPlace = [event.city, event.region].filter(Boolean).join(", ");
+
+      return `
+        <article class="author-request-card-v622">
+          <div>
+            <div class="author-request-title-v622">
+              <strong>${escapeHtmlV622(row.pseudo || "Auteur")}</strong>
+              <span class="badge pending">EN ATTENTE</span>
+            </div>
+
+            <div class="author-request-meta-v622">
+              <span>📚 ${escapeHtmlV622(eventTitle)}</span>
+              ${eventPlace ? `<span>📍 ${escapeHtmlV622(eventPlace)}</span>` : ""}
+              ${event.start_date ? `<span>📅 ${formatDateV622(event.start_date)}</span>` : ""}
+              ${row.website ? `<span>🔗 ${escapeHtmlV622(row.website)}</span>` : ""}
+            </div>
+
+            <div class="author-request-date-v622">
+              Demande reçue ${row.created_at ? `le ${formatDateV622(row.created_at)}` : "récemment"}
+            </div>
+          </div>
+
+          <div class="author-request-actions-v622">
+            <a class="author-request-open-v622" href="event.html?id=${encodeURIComponent(row.event_id)}" target="_blank" rel="noopener noreferrer">Voir événement</a>
+            <button class="author-request-validate-v622" type="button" data-author-request-validate-v622="${escapeAttributeV622(row.id)}">Valider</button>
+            <button class="author-request-delete-v622" type="button" data-author-request-delete-v622="${escapeAttributeV622(row.id)}">Refuser</button>
+          </div>
+        </article>
+      `;
+    }).join("");
+
+    list.querySelectorAll("[data-author-request-validate-v622]").forEach((button) => {
+      button.addEventListener("click", () => validateAuthorRequestV622(button.dataset.authorRequestValidateV622));
+    });
+
+    list.querySelectorAll("[data-author-request-delete-v622]").forEach((button) => {
+      button.addEventListener("click", () => deleteAuthorRequestV622(button.dataset.authorRequestDeleteV622));
+    });
+  }
+
+  async function validateAuthorRequestV622(id) {
+    if (!id) return;
+
+    const ok = confirm("Valider cette association auteur / événement ?");
+    if (!ok) return;
+
+    try {
+      const { error } = await supabaseClient
+        .from("event_authors_presence")
+        .update({ validated: true })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      STATE.rows = STATE.rows.filter((row) => String(row.id) !== String(id));
+      renderAuthorRequestsV622();
+      showToastV622("Demande auteur validée");
+    } catch (error) {
+      console.error("V6.2.2 validation auteur impossible :", error);
+      alert("Validation impossible. Vérifie les droits Supabase UPDATE sur event_authors_presence.");
+    }
+  }
+
+  async function deleteAuthorRequestV622(id) {
+    if (!id) return;
+
+    const ok = confirm("Refuser et supprimer cette demande auteur ?");
+    if (!ok) return;
+
+    try {
+      const { error } = await supabaseClient
+        .from("event_authors_presence")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      STATE.rows = STATE.rows.filter((row) => String(row.id) !== String(id));
+      renderAuthorRequestsV622();
+      showToastV622("Demande auteur refusée");
+    } catch (error) {
+      console.error("V6.2.2 refus auteur impossible :", error);
+      alert("Suppression impossible. Vérifie les droits Supabase DELETE sur event_authors_presence.");
+    }
+  }
+
+  function showToastV622(message) {
+    if (typeof showToast === "function") {
+      showToast(message);
+      return;
+    }
+
+    const container = document.getElementById("toast-container") || document.body;
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = message;
+    container.appendChild(toast);
+    window.setTimeout(() => toast.remove(), 2600);
+  }
+
+  function formatDateV622(value) {
+    if (!value) return "";
+
+    try {
+      return new Intl.DateTimeFormat("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }).format(new Date(value));
+    } catch {
+      return value;
+    }
+  }
+
+  function escapeHtmlV622(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeAttributeV622(value) {
+    return escapeHtmlV622(value).replace(/`/g, "&#096;");
+  }
+})();
