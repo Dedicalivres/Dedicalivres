@@ -69,7 +69,7 @@
       mobileMapToggle.textContent = "Carte en direct";
     }
 
-    if (window.innerWidth <= 1080 && mapPanel) {
+    if (mapPanel) {
       mapPanel.classList.remove("is-open");
     }
   }
@@ -469,7 +469,7 @@
       renderFilteredEvents();
     }
 
-    if (window.innerWidth <= 1080 && mapPanel) {
+    if (mapPanel) {
       mapPanel.classList.remove("is-open");
 
       if (mobileMapToggle) {
