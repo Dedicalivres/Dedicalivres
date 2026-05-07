@@ -20,7 +20,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=6.2.2" />
+  <link rel="stylesheet" href="admin.css?v=6.2.3" />
 </head>
 
 <body class="cyber-admin">
@@ -108,6 +108,7 @@
       type="button"
     >
       🛡️ Administration
+      <span id="author-requests-tab-badge" class="admin-tab-badge" hidden>0</span>
     </button>
 
     <button
@@ -147,13 +148,18 @@
           <strong id="stats-pending">0</strong>
         </article>
 
+        <article class="stat-card glow-red stat-card-author-requests" id="stat-card-author-requests">
+          <span class="stat-label">DEMANDES AUTEURS</span>
+          <strong id="stats-author-requests">0</strong>
+        </article>
+
         <article class="stat-card glow-orange">
           <span class="stat-label">NEWSLETTER</span>
           <strong id="stats-newsletter">0</strong>
         </article>
 
         <article class="stat-card glow-purple">
-          <span class="stat-label">VISITES</span>
+          <span class="stat-label" id="stats-visits-label">VISITES</span>
           <strong id="stats-visits">0</strong>
         </article>
 
@@ -257,6 +263,26 @@
           <option value="Dédicace">Dédicace</option>
           <option value="Autre">Autre</option>
         </select>
+
+      </section>
+
+
+      <!-- ================================================= -->
+      <!-- DEMANDES AUTEURS — V6.2.3 -->
+      <!-- ================================================= -->
+
+      <section id="author-requests-panel" class="admin-panel author-requests-panel">
+
+        <div class="section-head">
+          <h3>DEMANDES AUTEURS</h3>
+          <span id="author-requests-count">Chargement…</span>
+        </div>
+
+        <div id="author-requests-container" class="author-requests-container">
+          <article class="author-request-card">
+            Chargement des demandes auteurs…
+          </article>
+        </div>
 
       </section>
 
@@ -468,8 +494,9 @@
   crossorigin=""
 ></script>
 
-<script src="config.js?v=6.2.2"></script>
-<script src="admin.js?v=6.2.2"></script>
+<script src="config.js?v=6.3"></script>
+<script src="admin.js?v=6.3"></script>
+<script src="admin-author-requests.js?v=6.3"></script>
 
 </body>
 </html>

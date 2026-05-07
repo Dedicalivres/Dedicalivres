@@ -1396,19 +1396,22 @@ body.cyber-admin {
 
 
 /* =========================================================
-   V6.2.2 — DEMANDES AUTEURS ADMIN, INJECTION DIRECTE
+   V6.2.3 — DEMANDES AUTEURS ADMIN
 ========================================================= */
-.author-requests-panel-v622 {
-  border-color: rgba(255,158,68,.20) !important;
-  box-shadow: 0 24px 60px rgba(0,0,0,.32), 0 0 46px rgba(255,158,68,.06) !important;
+
+.author-requests-panel {
+  border-color: rgba(255,158,68,.20);
+  box-shadow:
+    0 0 0 1px rgba(255,158,68,.08),
+    0 24px 60px rgba(0,0,0,.32);
 }
 
-.author-requests-list-v622 {
+.author-requests-container {
   display: grid;
   gap: 14px;
 }
 
-.author-request-card-v622 {
+.author-request-card {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 18px;
@@ -1416,90 +1419,132 @@ body.cyber-admin {
   padding: 18px;
   border-radius: 22px;
   background: rgba(8,18,14,.92);
-  border: 1px solid rgba(255,255,255,.06);
+  border: 1px solid rgba(255,158,68,.14);
+  color: var(--cyber-text, #eafff7);
 }
 
-.author-request-title-v622 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
+.author-request-card strong {
+  display: block;
   margin-bottom: 8px;
+  color: var(--cyber-orange, #ff9e44);
+  font-size: 1.02rem;
 }
 
-.author-request-title-v622 strong {
-  color: var(--cyber-text);
-  font-size: 1.05rem;
+.author-request-card small,
+.author-request-card p {
+  display: block;
+  margin: 4px 0;
+  color: var(--cyber-muted, rgba(220,255,245,.58));
+  line-height: 1.45;
 }
 
-.author-request-meta-v622,
-.author-request-date-v622 {
+.author-request-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  color: var(--cyber-muted);
-  font-size: .9rem;
-  line-height: 1.5;
-}
-
-.author-request-actions-v622 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   justify-content: flex-end;
+  gap: 10px;
 }
 
-.author-request-actions-v622 a,
-.author-request-actions-v622 button {
+.author-request-actions a,
+.author-request-actions button {
   border: none;
   border-radius: 14px;
   padding: 11px 14px;
   font-weight: 900;
-  cursor: pointer;
   text-decoration: none;
+  cursor: pointer;
 }
 
-.author-request-open-v622 {
+.author-request-actions a {
   background: rgba(25,215,255,.14);
-  color: var(--cyber-cyan);
+  color: var(--cyber-cyan, #19d7ff);
 }
 
-.author-request-validate-v622 {
+.author-request-actions .validate-author-request {
   background: rgba(25,255,156,.14);
-  color: var(--cyber-green);
+  color: var(--cyber-green, #19ff9c);
 }
 
-.author-request-delete-v622 {
+.author-request-actions .reject-author-request {
   background: rgba(255,95,115,.14);
-  color: var(--cyber-red);
+  color: var(--cyber-red, #ff5f73);
 }
 
-.author-requests-empty-v622,
-.author-requests-error-v622 {
-  margin: 0;
+.author-request-empty,
+.author-request-error {
   padding: 18px;
   border-radius: 18px;
   background: rgba(255,255,255,.04);
-  color: var(--cyber-muted);
-  font-weight: 700;
+  color: var(--cyber-muted, rgba(220,255,245,.58));
 }
 
-.author-requests-error-v622 {
-  color: var(--cyber-red);
+.author-request-error {
+  color: var(--cyber-red, #ff5f73);
 }
 
-@media (max-width: 820px) {
-  .author-request-card-v622 {
+@media (max-width: 780px) {
+  .author-request-card {
     grid-template-columns: 1fr;
   }
 
-  .author-request-actions-v622 {
-    justify-content: stretch;
+  .author-request-actions {
+    justify-content: flex-start;
   }
+}
 
-  .author-request-actions-v622 a,
-  .author-request-actions-v622 button {
-    flex: 1;
-    text-align: center;
-  }
+
+/* =========================================================
+   V6.3 — NOTIFICATIONS ADMIN + COMPTEURS
+========================================================= */
+
+.glow-red {
+  box-shadow:
+    0 0 0 1px rgba(255,95,115,.12),
+    0 0 42px rgba(255,95,115,.08);
+}
+
+.stat-card-author-requests strong {
+  color: var(--cyber-muted);
+}
+
+.stat-card-author-requests.has-alert {
+  border-color: rgba(255,95,115,.32);
+  box-shadow:
+    0 0 0 1px rgba(255,95,115,.22),
+    0 0 48px rgba(255,95,115,.14);
+}
+
+.stat-card-author-requests.has-alert strong {
+  color: var(--cyber-red);
+}
+
+.admin-tab {
+  position: relative;
+}
+
+.admin-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  min-height: 22px;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--cyber-red);
+  color: #fff;
+  font-size: .76rem;
+  line-height: 1;
+  box-shadow: 0 0 18px rgba(255,95,115,.38);
+}
+
+.admin-tab-badge[hidden] {
+  display: none !important;
+}
+
+.admin-tab.has-author-requests {
+  color: #fff;
+  box-shadow:
+    0 0 0 1px rgba(255,95,115,.22),
+    0 16px 34px rgba(255,95,115,.08);
 }
