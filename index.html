@@ -16,7 +16,7 @@
   <meta property="og:title" content="Dédicalivres — Agenda des événements littéraires" />
   <meta
     property="og:description"
-    content="Trouvez les salons du livre, festivals littéraires, dédicaces et auteurs indépendants."
+    content="Trouvez les salons du livre, festivals littéraires, dédicaces et auteurs, qu’ils soient autoédités ou en maison d’édition."
   />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="banner.jpg" />
@@ -71,20 +71,25 @@
 
 <main class="container">
 
-  <!-- AGENDA -->
-
   <section id="agenda" class="section">
 
-    <h2>Événements à venir</h2>
+    <h2>Agenda Dédicalivres</h2>
 
     <p class="section-intro">
-      Explorez les salons, festivals, dédicaces et rencontres littéraires
-      référencés sur Dédicalivres.
+      Découvrez les prochains salons, festivals, dédicaces et rencontres littéraires.
+      Dédicalivres crée un relais entre les lecteurs, les auteurs, les librairies
+      et les lieux qui font vivre le livre.
     </p>
 
-    <p id="results-count">Chargement…</p>
+    <div class="editorial-hook">
+      <strong>Une rencontre littéraire laisse souvent plus qu’un souvenir.</strong>
+      <p>
+        Une signature, quelques mots échangés, une page datée : parfois,
+        un livre devient le témoin d’un instant que l’on garde.
+      </p>
+    </div>
 
-    <!-- FILTRES -->
+    <p id="results-count">Chargement…</p>
 
     <div class="filters">
 
@@ -123,25 +128,15 @@
         <option value="">Tous les mois</option>
       </select>
 
-      <button
-        id="apply-filters"
-        class="btn-primary"
-        type="button"
-      >
+      <button id="apply-filters" class="btn-primary" type="button">
         Filtrer
       </button>
 
-      <button
-        id="reset-filters"
-        class="btn-secondary"
-        type="button"
-      >
+      <button id="reset-filters" class="btn-secondary" type="button">
         Réinitialiser
       </button>
 
     </div>
-
-    <!-- ACTIONS UX -->
 
     <div class="ux-actions">
 
@@ -150,56 +145,44 @@
         class="btn-secondary mobile-map-toggle"
         type="button"
       >
-        Carte
+        🟢 Carte en direct
       </button>
 
-      <button
-        id="locate-me"
-        class="btn-secondary"
-        type="button"
-      >
+      <button id="locate-me" class="btn-secondary" type="button">
         Me localiser
       </button>
 
     </div>
 
-    <!-- LAYOUT -->
-
     <div class="agenda-layout">
 
       <div>
-
         <section
           id="events-grid"
           class="events-grid"
           aria-live="polite"
         ></section>
-
       </div>
 
       <aside
         class="map-panel"
         id="map-panel"
-        aria-label="Carte des événements"
+        aria-label="Carte en direct des événements littéraires"
       >
-
         <div id="map"></div>
-
       </aside>
 
     </div>
 
   </section>
 
-  <!-- NEWSLETTER -->
-
   <section id="newsletter" class="section newsletter-section">
 
     <h2>Recevoir les prochains événements</h2>
 
     <p>
-      Recevez les prochains salons, festivals et dédicaces
-      proches de chez vous.
+      Recevez les salons, festivals, dédicaces et rencontres proches de chez vous.
+      Une manière simple de ne pas manquer les moments où les livres deviennent des rencontres.
     </p>
 
     <form id="newsletter-form" class="newsletter-form">
@@ -238,11 +221,14 @@
 
   </section>
 
-  <!-- SOUMISSION -->
-
   <section id="soumettre" class="section">
 
     <h2>Proposer un événement</h2>
+
+    <p class="section-intro">
+      Vous organisez un salon, une rencontre, une séance de dédicace ou un rendez-vous autour du livre ?
+      Proposez-le gratuitement pour le rendre visible auprès des lecteurs.
+    </p>
 
     <form id="submission-form">
 
@@ -277,8 +263,6 @@
         <option>Provence-Alpes-Côte d’Azur</option>
       </select>
 
-      <!-- AUTOCOMPLETE -->
-
       <div class="city-autocomplete-wrap">
 
         <input
@@ -293,8 +277,7 @@
         <datalist id="city-suggestions"></datalist>
 
         <small id="city-help" class="field-help">
-          Sélectionnez une ville proposée pour placer correctement
-          l’événement sur la carte.
+          Sélectionnez une ville proposée pour placer correctement l’événement sur la carte.
         </small>
 
       </div>
@@ -323,8 +306,6 @@
         placeholder="Description"
       ></textarea>
 
-      <!-- UPLOAD IMAGE PREMIUM -->
-
       <div class="upload-premium">
 
         <label class="upload-box">
@@ -346,10 +327,7 @@
 
         </label>
 
-        <div
-          id="image-preview"
-          class="image-preview"
-        ></div>
+        <div id="image-preview" class="image-preview"></div>
 
       </div>
 
@@ -363,9 +341,16 @@
 
   </section>
 
-</main>
+  <section class="site-manifest">
+    <p>
+      <strong>Dédicalivres valorise chaque acteur du livre.</strong>
+      Auteurs autoédités, auteurs publiés en maison d’édition, librairies,
+      organisateurs, festivals et lecteurs : chacun participe à faire circuler
+      les histoires, les rencontres et les souvenirs qui donnent vie aux livres.
+    </p>
+  </section>
 
-<!-- SCRIPTS -->
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
