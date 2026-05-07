@@ -1,11 +1,12 @@
 /* =========================================================
-  DÉDICALIVRES — AUTEURS PRÉSENTS
+  DÉDICALIVRES — DEMANDES ASSOCIATION AUTEURS — V6.1
   Fichier : authors-presence.js
 
   Rôle :
   - Afficher le bloc "Auteurs présents" sur event.html.
-  - Permettre à un auteur de déclarer sa présence.
-  - Afficher publiquement les auteurs déclarés.
+  - Afficher les auteurs validés présents sur event.html.
+  - Permettre à un auteur de demander à être associé à un événement.
+  - Enregistrer la demande en attente de validation.
 
   Ce fichier est volontairement isolé : il ne modifie pas event.js.
 ========================================================= */
@@ -64,12 +65,12 @@
       <div id="authors-presence-list" class="author-presence-list"></div>
 
       <p id="authors-presence-empty" class="author-presence-empty" hidden>
-        Aucun auteur ne s’est encore déclaré présent pour cet événement.
+        Aucun auteur validé n’est encore associé à cet événement.
       </p>
 
       <p class="author-presence-note">
-        Les auteurs indiqués ici se sont déclarés présents via Dédicalivres.
-        Cette information est participative et concerne uniquement les auteurs s’étant enregistrés sur Dédicalivres.
+        Les auteurs indiqués ici ont été associés à cet événement après validation.
+        Les nouvelles demandes sont vérifiées avant affichage public.
         Pour une information officielle à jour, notamment en cas d’annulation ou de modification,
         consultez toujours le site de l’événement.
       </p>
@@ -82,7 +83,7 @@
           <input name="website" type="url" placeholder="Lien vers votre site ou page officielle" required />
         </div>
 
-        <button class="btn-primary" type="submit">Indiquer ma présence</button>
+        <button class="btn-primary" type="submit">Demander à être associé</button>
         <p id="author-presence-feedback" aria-live="polite"></p>
       </form>
     `;
@@ -113,18 +114,17 @@
 
         const { error } = await supabaseClient
           .from("event_authors_presence")
-          .insert([{ event_id: eventId, pseudo, website, validated: true }]);
+          .insert([{ event_id: eventId, pseudo, website, validated: false }]);
 
         if (error) throw error;
 
         form.reset();
-        setFeedback(feedback, "success", "Merci, votre présence a bien été ajoutée 👍");
-        loadAuthorsPresence();
+        setFeedback(feedback, "success", "Votre demande a bien été envoyée. Elle sera vérifiée avant affichage public.");
       } catch (error) {
         console.error("Erreur auteur présent :", error);
         setFeedback(feedback, "error", error.message || "Une erreur est survenue.");
       } finally {
-        setButtonLoading(submitButton, false, "Indiquer ma présence");
+        setButtonLoading(submitButton, false, "Demander à être associé");
       }
     });
   }
@@ -162,7 +162,7 @@
         <article class="author-presence-card">
           <div>
             <strong>${escapeHtml(author.pseudo)}</strong>
-            <small>Auteur déclaré présent</small>
+            <small>Auteur associé</small>
           </div>
           <a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">
             Voir le site
