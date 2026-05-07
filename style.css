@@ -431,6 +431,7 @@ button:active,
 }
 
 .map-panel {
+  display: block;
   position: sticky;
   top: 96px;
   height: calc(100vh - 135px);
@@ -443,14 +444,6 @@ button:active,
   box-shadow:
     0 18px 46px rgba(58,28,113,.14),
     inset 0 1px 0 rgba(255,255,255,.6);
-}
-
-.map-panel:not(.is-open) {
-  display: none;
-}
-
-.map-panel.is-open {
-  display: block;
 }
 
 #map {
