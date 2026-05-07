@@ -31,21 +31,10 @@
     .filter(Boolean);
 
   const TYPE_META = {
-    Salon: {
-      className: "type-salon"
-    },
-
-    Festival: {
-      className: "type-festival"
-    },
-
-    Dédicace: {
-      className: "type-dedicace"
-    },
-
-    Autre: {
-      className: "type-autre"
-    }
+    Salon: { className: "type-salon" },
+    Festival: { className: "type-festival" },
+    Dédicace: { className: "type-dedicace" },
+    Autre: { className: "type-autre" }
   };
 
   loadSeoEvents();
@@ -68,6 +57,7 @@
       .eq("validated", true)
       .eq("rejected", false)
       .or(`end_date.is.null,end_date.gte.${today}`)
+      .order("featured", { ascending: false })
       .order("start_date", { ascending: true });
 
     if (region) {
@@ -98,7 +88,10 @@
       })
       .sort(sortByUpcomingDate);
 
-    updateCount(events);
+    if (seoCount) {
+      seoCount.textContent =
+        `${events.length} événement${events.length > 1 ? "s" : ""} trouvé${events.length > 1 ? "s" : ""}`;
+    }
 
     if (!events.length) {
       eventsContainer.innerHTML = `
@@ -126,22 +119,11 @@
     );
   }
 
-  function updateCount(events) {
-    if (!seoCount) return;
-
-    const count = events.length;
-
-    seoCount.textContent =
-      `${count} événement${count > 1 ? "s" : ""} à venir`;
-  }
-
   function sortByUpcomingDate(a, b) {
     const dateA = new Date(a.start_date || "2999-12-31").getTime();
     const dateB = new Date(b.start_date || "2999-12-31").getTime();
 
-    if (dateA !== dateB) {
-      return dateA - dateB;
-    }
+    if (dateA !== dateB) return dateA - dateB;
 
     if (a.featured && !b.featured) return -1;
     if (!a.featured && b.featured) return 1;
@@ -161,7 +143,6 @@
         class="event-card ${event.featured ? "event-card-featured" : ""} ${meta.className}"
         id="event-${escapeAttribute(event.id)}"
       >
-
         ${
           event.featured
             ? `<div class="featured-ribbon">Mis en avant</div>`
@@ -181,9 +162,7 @@
         }
 
         <div class="card-body">
-
           <div class="card-tags">
-
             ${
               event.type
                 ? `
@@ -216,7 +195,6 @@
                 ? `<span class="badge badge-verified">Vérifié</span>`
                 : ""
             }
-
           </div>
 
           <h3 class="card-title">
@@ -224,7 +202,6 @@
           </h3>
 
           <div class="card-meta">
-
             ${
               event.start_date
                 ? `
@@ -238,7 +215,6 @@
             <span>
               📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", ")) || "Lieu non précisé"}
             </span>
-
           </div>
 
           <p class="card-description">
@@ -246,7 +222,6 @@
           </p>
 
           <div class="card-footer">
-
             <a
               class="card-link"
               href="event.html?id=${encodeURIComponent(event.id)}"
@@ -268,11 +243,8 @@
                 `
                 : ""
             }
-
           </div>
-
         </div>
-
       </article>
     `;
   }
@@ -300,11 +272,15 @@
   function formatDate(value) {
     if (!value) return "";
 
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric"
-    }).format(new Date(value));
+    try {
+      return new Intl.DateTimeFormat("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }).format(new Date(value));
+    } catch {
+      return value;
+    }
   }
 
   function escapeHtml(value) {
