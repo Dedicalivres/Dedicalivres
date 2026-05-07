@@ -1213,3 +1213,35 @@ button:active,
     font-size: 1.9rem;
   }
 }
+/* =========================================================
+   CARTE LIVE FIXE DESKTOP
+========================================================= */
+
+@media (min-width: 1081px) {
+
+  .agenda-layout {
+    display: block;
+  }
+
+  .agenda-layout > div {
+    width: calc(100% - 470px);
+  }
+
+  .map-panel {
+    position: fixed;
+    top: 105px;
+    right: 28px;
+    z-index: 40;
+
+    width: 430px;
+    height: calc(100vh - 135px);
+    max-height: 680px;
+
+    display: block;
+  }
+
+  #map {
+    height: 100%;
+    min-height: 420px;
+  }
+}
