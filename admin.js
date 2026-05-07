@@ -63,6 +63,8 @@ let allEvents = [];
 let locationRows = [];
 let map = null;
 let markersLayer = null;
+let userSearchMap = null;
+let userSearchMarkersLayer = null;
 let selectedAdminImageFile = null;
 
 init();
@@ -195,6 +197,7 @@ function bindTabs() {
     if (target === "overview") {
       setTimeout(() => {
         map?.invalidateSize();
+        userSearchMap?.invalidateSize();
       }, 250);
     }
   });
@@ -254,10 +257,13 @@ async function loadDashboard() {
   renderEvents();
   renderSocialUpcoming();
   renderPriorityZones();
+  renderUserSearchSummary();
   initMap();
+  initUserSearchMap();
 
   setTimeout(() => {
     map?.invalidateSize();
+    userSearchMap?.invalidateSize();
   }, 250);
 }
 
@@ -766,6 +772,120 @@ function initMap() {
   setTimeout(() => {
     map.invalidateSize();
   }, 250);
+}
+
+/* CARTE DÉDIÉE — RECHERCHES UTILISATEURS */
+
+function initUserSearchMap() {
+  if (!window.L) return;
+
+  const mapElement = document.getElementById("user-search-map");
+  if (!mapElement) return;
+
+  if (!userSearchMap) {
+    userSearchMap = L.map("user-search-map").setView([46.6, 1.88], 6);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(userSearchMap);
+
+    userSearchMarkersLayer = L.layerGroup().addTo(userSearchMap);
+  }
+
+  userSearchMarkersLayer.clearLayers();
+
+  const rowsWithCoords = locationRows.filter((row) => row.lat && row.lng);
+
+  rowsWithCoords.forEach((row) => {
+    const marker = L.circleMarker([Number(row.lat), Number(row.lng)], {
+      radius: 7,
+      color: "#ff9e44",
+      fillColor: "#ff9e44",
+      fillOpacity: 0.72
+    });
+
+    marker.bindPopup(`
+      <strong>Recherche utilisateur</strong>
+      <br>
+      Zone : ${escapeHtml(row.city || row.region || "Zone inconnue")}
+      <br>
+      Appareil : ${escapeHtml(row.device || "non précisé")}
+      <br>
+      Page : ${escapeHtml(row.page || "-")}
+      <br>
+      Date : ${escapeHtml(formatDateTime(row.created_at))}
+    `);
+
+    marker.addTo(userSearchMarkersLayer);
+  });
+
+  if (rowsWithCoords.length) {
+    const bounds = L.latLngBounds(
+      rowsWithCoords.map((row) => [Number(row.lat), Number(row.lng)])
+    );
+
+    userSearchMap.fitBounds(bounds.pad(0.2), { maxZoom: 9 });
+  }
+
+  setTimeout(() => {
+    userSearchMap.invalidateSize();
+  }, 250);
+}
+
+function renderUserSearchSummary() {
+  const count = document.getElementById("user-search-map-count");
+  const total = document.getElementById("user-search-total");
+  const week = document.getElementById("user-search-week");
+  const topCity = document.getElementById("user-search-top-city");
+
+  const totalCount = locationRows.length;
+  const recentRows = getRecentLocationRows(7);
+  const top = getTopLocationLabel(locationRows);
+
+  if (count) {
+    count.textContent = `${totalCount} localisation${totalCount > 1 ? "s" : ""}`;
+  }
+
+  if (total) total.textContent = totalCount;
+  if (week) week.textContent = recentRows.length;
+  if (topCity) topCity.textContent = top || "—";
+}
+
+function getRecentLocationRows(days) {
+  const limit = new Date();
+  limit.setDate(limit.getDate() - days);
+
+  return locationRows.filter((row) => {
+    if (!row.created_at) return false;
+    return new Date(row.created_at) >= limit;
+  });
+}
+
+function getTopLocationLabel(rows) {
+  const counts = countBy(
+    rows
+      .map((row) => cleanLabel(row.city || row.region || "Zone inconnue"))
+      .filter(Boolean)
+  );
+
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return top ? top[0] : "";
+}
+
+function formatDateTime(value) {
+  if (!value) return "Non précisée";
+
+  try {
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
 }
 
 /* SOCIAL */
