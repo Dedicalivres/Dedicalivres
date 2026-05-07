@@ -1462,3 +1462,167 @@ button:active,
     -webkit-line-clamp: 4;
   }
 }
+
+/* =========================================================
+   LOT 3 - FICHE EVENEMENT PREMIUM SAFE
+   event.html + event.js + style.css
+========================================================= */
+
+.event-detail {
+  position: relative;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.detail-image {
+  min-height: 280px;
+  max-height: 430px;
+}
+
+.detail-body {
+  padding: clamp(22px, 4vw, 38px);
+}
+
+.detail-title {
+  max-width: 900px;
+}
+
+.detail-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0 22px;
+}
+
+.detail-info-grid p {
+  margin: 0;
+  padding: 14px 15px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.78);
+  border: 1px solid rgba(58,28,113,.08);
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.detail-info-grid a {
+  color: var(--purple);
+  font-weight: 950;
+}
+
+.detail-description {
+  padding: 22px;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.82), rgba(255,240,231,.48));
+  border: 1px solid rgba(255,107,53,.12);
+}
+
+.detail-description p:first-child {
+  margin-top: 0;
+}
+
+.detail-description p:last-child {
+  margin-bottom: 0;
+}
+
+.detail-actions {
+  align-items: center;
+}
+
+.detail-actions .btn-primary,
+.detail-actions .btn-secondary,
+.detail-actions .favorite-btn {
+  min-height: 48px;
+  padding-inline: 20px;
+}
+
+.favorite-btn.is-active {
+  background: #e8fff0;
+  color: #16803c;
+  border-color: rgba(22,128,60,.28);
+}
+
+.detail-map-block {
+  margin-top: 30px;
+  padding: 22px;
+  border-radius: 26px;
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(58,28,113,.09);
+  box-shadow: 0 14px 34px rgba(58,28,113,.09);
+}
+
+.detail-map-block h2 {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.55rem, 2.5vw, 2.1rem);
+  margin: 0 0 8px;
+  color: var(--purple);
+}
+
+.detail-map-block p {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+#detail-map {
+  height: 380px;
+  margin-top: 0;
+  border: 1px solid rgba(58,28,113,.08);
+}
+
+.event-trust-panel {
+  max-width: 980px;
+  margin: 26px auto 0;
+  padding: 22px 24px;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top left, rgba(58,28,113,.10), transparent 38%),
+    rgba(255,255,255,.86);
+  border: 1px solid rgba(58,28,113,.08);
+  box-shadow: 0 14px 34px rgba(58,28,113,.09);
+}
+
+.event-trust-panel strong {
+  display: block;
+  color: var(--purple);
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  margin-bottom: 7px;
+}
+
+.event-trust-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .detail-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-description {
+    padding: 18px;
+  }
+
+  .detail-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .detail-actions .btn-primary,
+  .detail-actions .btn-secondary,
+  .detail-actions .favorite-btn {
+    width: 100%;
+  }
+
+  .detail-map-block {
+    padding: 18px;
+  }
+
+  #detail-map {
+    height: 320px;
+  }
+}
