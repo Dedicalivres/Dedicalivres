@@ -1734,3 +1734,10 @@ button:active,
 /* =========================================================
    FIN MAP PREMIUM FOCUS FINAL
 ========================================================= */
+#newsletter-feedback.success {
+  color: #19ff9c;
+}
+
+#newsletter-feedback.error {
+  color: #ff6b6b;
+}
