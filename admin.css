@@ -1393,3 +1393,113 @@ body.cyber-admin {
       1.6rem;
   }
 }
+
+
+/* =========================================================
+   V6.2.2 — DEMANDES AUTEURS ADMIN, INJECTION DIRECTE
+========================================================= */
+.author-requests-panel-v622 {
+  border-color: rgba(255,158,68,.20) !important;
+  box-shadow: 0 24px 60px rgba(0,0,0,.32), 0 0 46px rgba(255,158,68,.06) !important;
+}
+
+.author-requests-list-v622 {
+  display: grid;
+  gap: 14px;
+}
+
+.author-request-card-v622 {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(8,18,14,.92);
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+.author-request-title-v622 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.author-request-title-v622 strong {
+  color: var(--cyber-text);
+  font-size: 1.05rem;
+}
+
+.author-request-meta-v622,
+.author-request-date-v622 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--cyber-muted);
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.author-request-actions-v622 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.author-request-actions-v622 a,
+.author-request-actions-v622 button {
+  border: none;
+  border-radius: 14px;
+  padding: 11px 14px;
+  font-weight: 900;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.author-request-open-v622 {
+  background: rgba(25,215,255,.14);
+  color: var(--cyber-cyan);
+}
+
+.author-request-validate-v622 {
+  background: rgba(25,255,156,.14);
+  color: var(--cyber-green);
+}
+
+.author-request-delete-v622 {
+  background: rgba(255,95,115,.14);
+  color: var(--cyber-red);
+}
+
+.author-requests-empty-v622,
+.author-requests-error-v622 {
+  margin: 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.04);
+  color: var(--cyber-muted);
+  font-weight: 700;
+}
+
+.author-requests-error-v622 {
+  color: var(--cyber-red);
+}
+
+@media (max-width: 820px) {
+  .author-request-card-v622 {
+    grid-template-columns: 1fr;
+  }
+
+  .author-request-actions-v622 {
+    justify-content: stretch;
+  }
+
+  .author-request-actions-v622 a,
+  .author-request-actions-v622 button {
+    flex: 1;
+    text-align: center;
+  }
+}
