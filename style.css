@@ -1626,3 +1626,115 @@ button:active,
     height: 320px;
   }
 }
+
+/* =========================================================
+   LOT 5 - CENTRALISATION SOUMISSION SAFE
+   Formulaire complet uniquement dans #soumettre
+========================================================= */
+
+.nav-submit-link {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,107,53,.12);
+  color: var(--orange) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,107,53,.18);
+}
+
+.nav-submit-link::after {
+  display: none;
+}
+
+.nav-submit-link:hover {
+  background: var(--orange);
+  color: #fff !important;
+}
+
+.submit-trust-panel,
+.category-submit-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  margin: 22px 0 24px;
+  padding: 24px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.13), transparent 36%),
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(241,232,251,.72));
+  border: 1px solid rgba(58,28,113,.10);
+  box-shadow: 0 16px 38px rgba(58,28,113,.10);
+}
+
+.submit-trust-panel strong,
+.category-submit-cta strong {
+  display: block;
+  color: var(--purple);
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.28rem, 2.2vw, 1.85rem);
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.submit-trust-panel p,
+.category-submit-cta p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.6;
+}
+
+.submit-trust-panel ul {
+  flex: 0 0 270px;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.submit-trust-panel li {
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.78);
+  color: var(--purple);
+  font-weight: 900;
+  border: 1px solid rgba(58,28,113,.08);
+}
+
+.submit-trust-panel li::before {
+  content: "✓";
+  margin-right: 7px;
+  color: #16803c;
+  font-weight: 950;
+}
+
+.category-submit-cta {
+  margin-top: 38px;
+}
+
+.category-submit-cta .btn-primary {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 780px) {
+  .nav-submit-link {
+    padding: 6px 11px;
+  }
+
+  .submit-trust-panel,
+  .category-submit-cta {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+  }
+
+  .submit-trust-panel ul {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .category-submit-cta .btn-primary {
+    width: 100%;
+  }
+}
