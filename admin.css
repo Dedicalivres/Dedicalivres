@@ -1394,296 +1394,140 @@ body.cyber-admin {
   }
 }
 
+
 /* =========================================================
-   V7.6.2 — GÉNÉRATEUR INSTAGRAM ROBUSTE
+   V7.6.4 — Modération auteurs robuste
+   Module isolé : admin-author-requests-robust.js
 ========================================================= */
-.social-generator-shell {
+.author-requests-robust-panel {
+  border-color: rgba(255,158,68,.18);
+}
+
+.author-requests-tools {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr);
-  gap: 18px;
-  padding: 18px;
-}
-
-.instagram-generator-card {
-  min-width: 0;
-}
-
-.social-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  grid-template-columns: minmax(180px, 1fr) auto auto auto;
+  gap: 12px;
+  align-items: center;
   margin-bottom: 18px;
 }
 
-.social-card-head p {
-  color: var(--cyber-muted);
-  line-height: 1.55;
-  margin: 8px 0 0;
-}
-
-.social-pill {
-  flex: 0 0 auto;
-  border-radius: 999px;
-  padding: 8px 12px;
-  color: var(--cyber-green);
-  background: rgba(25,255,156,.10);
-  border: 1px solid rgba(25,255,156,.14);
-  font-weight: 900;
-  font-size: .8rem;
-}
-
-.social-generator-controls {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.social-generator-controls label,
-.instagram-caption-wrap {
-  display: grid;
-  gap: 7px;
-}
-
-.social-generator-controls span,
-.instagram-caption-wrap span {
-  color: var(--cyber-muted);
-  font-weight: 800;
-  font-size: .82rem;
-}
-
-.social-generator-controls select,
-.social-search-input,
-.instagram-caption-wrap textarea {
+.author-requests-tools input,
+.author-requests-tools select {
   width: 100%;
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: 16px;
-  padding: 13px 14px;
-  background: rgba(255,255,255,.05);
-  color: white;
-  outline: none;
-}
-
-.social-search-input {
-  margin-bottom: 12px;
-}
-
-.social-generator-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.social-selection-summary {
-  margin: 12px 0;
+  min-height: 44px;
+  border: none;
+  border-radius: 14px;
   padding: 12px 14px;
-  border-radius: 16px;
-  color: var(--cyber-cyan);
-  background: rgba(25,215,255,.06);
-  border: 1px solid rgba(25,215,255,.10);
-  font-weight: 800;
+  background: rgba(255,255,255,.06);
+  color: var(--cyber-text);
+  outline: 1px solid rgba(255,255,255,.05);
 }
 
-.social-events-selector {
-  display: grid;
-  gap: 10px;
-  max-height: 380px;
-  overflow: auto;
-  padding-right: 4px;
-  margin-bottom: 16px;
+.author-requests-tools option {
+  color: #111;
 }
 
-.social-event-choice {
+.author-requests-list {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 13px;
-  border-radius: 18px;
-  background: rgba(255,255,255,.04);
+  gap: 14px;
+}
+
+.author-request-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(8,18,14,.9);
   border: 1px solid rgba(255,255,255,.05);
-  cursor: pointer;
 }
 
-.social-event-choice input {
-  margin-top: 4px;
-  transform: scale(1.15);
+.author-request-row.is-pending {
+  border-color: rgba(255,158,68,.22);
+  box-shadow: inset 4px 0 0 rgba(255,158,68,.55);
 }
 
-.social-event-choice strong {
+.author-request-row.is-validated {
+  border-color: rgba(25,255,156,.18);
+  box-shadow: inset 4px 0 0 rgba(25,255,156,.45);
+}
+
+.author-request-main strong {
   display: block;
-  color: white;
-  line-height: 1.35;
+  font-size: 1.02rem;
+  color: var(--cyber-text);
+  margin-bottom: 6px;
 }
 
-.social-event-choice small {
+.author-request-main small {
   display: block;
-  margin-top: 5px;
   color: var(--cyber-muted);
-  line-height: 1.35;
-}
-
-.instagram-caption-wrap textarea {
-  min-height: 260px;
-  resize: vertical;
   line-height: 1.5;
 }
 
-.social-help-card {
-  align-self: start;
+.author-request-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
 }
 
-.social-tips-list {
-  display: grid;
-  gap: 12px;
-  padding-left: 18px;
+.author-request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.author-request-actions a,
+.author-request-actions button {
+  min-height: 38px;
+  border: none;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.author-request-actions a {
+  background: rgba(25,215,255,.12);
+  color: var(--cyber-cyan);
+}
+
+.author-request-actions .approve {
+  background: rgba(25,255,156,.14);
+  color: var(--cyber-green);
+}
+
+.author-request-actions .pending {
+  background: rgba(255,158,68,.14);
+  color: var(--cyber-orange);
+}
+
+.author-request-actions .delete {
+  background: rgba(255,95,115,.14);
+  color: var(--cyber-red);
+}
+
+.author-requests-debug {
+  margin-top: 14px;
   color: var(--cyber-muted);
+  font-size: .86rem;
   line-height: 1.55;
 }
 
-@media (max-width: 980px) {
-  .social-generator-shell {
-    grid-template-columns: 1fr;
-    padding: 14px;
-  }
-
-  .social-generator-controls {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .social-generator-controls {
+@media (max-width: 820px) {
+  .author-requests-tools {
     grid-template-columns: 1fr;
   }
 
-  .social-card-head {
-    flex-direction: column;
+  .author-request-row {
+    grid-template-columns: 1fr;
   }
 
-  .mobile-sticky-actions {
-    position: sticky;
-    top: 8px;
-    z-index: 20;
-    padding: 10px;
-    border-radius: 18px;
-    background: rgba(4,8,6,.86);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(25,255,156,.08);
+  .author-request-actions {
+    justify-content: flex-start;
   }
-
-  .mobile-sticky-actions button {
-    flex: 1;
-  }
-}
-
-
-/* =========================================================
-   V7.6.3 — CARTE ADMIN : PASTILLES COMME CÔTÉ PUBLIC
-========================================================= */
-
-.admin-event-marker-v5,
-.admin-user-search-marker-v5 {
-  background: transparent;
-  border: none;
-}
-
-.admin-event-marker-v5 span {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  background: var(--marker-color, var(--cyber-green));
-  border: 4px solid rgba(255,255,255,.96);
-  box-shadow:
-    0 8px 20px rgba(0,0,0,.38),
-    0 0 0 4px rgba(255,255,255,.13),
-    0 0 24px color-mix(in srgb, var(--marker-color, var(--cyber-green)) 46%, transparent);
-}
-
-.admin-event-marker-v5 span em {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: #05110d;
-  color: #fff;
-  font-size: .68rem;
-  font-style: normal;
-  font-weight: 950;
-  line-height: 1;
-  box-shadow: 0 0 0 2px rgba(255,255,255,.86);
-}
-
-.admin-user-search-marker-v5 span {
-  display: block;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  background: var(--cyber-orange);
-  border: 4px solid rgba(255,255,255,.94);
-  box-shadow:
-    0 7px 18px rgba(0,0,0,.34),
-    0 0 0 4px rgba(255,158,68,.18),
-    0 0 20px rgba(255,158,68,.28);
-}
-
-.admin-map-popup {
-  display: grid;
-  gap: 8px;
-  min-width: 220px;
-  color: #102018;
-}
-
-.admin-map-popup strong {
-  color: #102018;
-  font-weight: 950;
-}
-
-.admin-map-popup span,
-.admin-map-popup small {
-  color: #46584f;
-  font-weight: 750;
-}
-
-.admin-map-popup-events {
-  min-width: 260px;
-  max-width: 320px;
-}
-
-.admin-map-popup-event {
-  display: grid;
-  gap: 4px;
-  padding: 9px 0;
-  border-top: 1px solid rgba(58,28,113,.10);
-}
-
-.admin-map-popup-event:first-of-type {
-  border-top: none;
-}
-
-.admin-map-popup-event b {
-  color: #102018;
-  font-weight: 950;
-  line-height: 1.25;
-}
-
-.admin-map-popup-event a {
-  justify-self: start;
-  margin-top: 4px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--cyber-green);
-  color: #06110d;
-  font-size: .78rem;
-  font-weight: 950;
-  text-decoration: none;
 }
