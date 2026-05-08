@@ -1784,3 +1784,142 @@ body.cyber-admin {
     justify-content: flex-start;
   }
 }
+
+
+/* =========================================================
+   V6.6 — MODÉRATION AUTEURS
+========================================================= */
+
+.author-moderation-head {
+  align-items: flex-start;
+}
+
+.author-moderation-subtitle {
+  margin: 8px 0 0;
+  color: var(--cyber-muted);
+  font-size: .92rem;
+  line-height: 1.5;
+}
+
+.author-moderation-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 190px auto;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.author-moderation-toolbar input,
+.author-moderation-toolbar select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(25,255,156,.12);
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+  color: var(--cyber-text);
+  padding: 12px 14px;
+  outline: none;
+}
+
+.author-moderation-toolbar input:focus,
+.author-moderation-toolbar select:focus {
+  border-color: rgba(25,255,156,.36);
+  box-shadow: 0 0 0 3px rgba(25,255,156,.08);
+}
+
+.author-moderation-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.author-moderation-summary article {
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(8,18,14,.86);
+  border: 1px solid rgba(255,255,255,.05);
+}
+
+.author-moderation-summary span {
+  display: block;
+  color: var(--cyber-muted);
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 800;
+}
+
+.author-moderation-summary strong {
+  display: block;
+  margin-top: 8px;
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.55rem;
+  color: var(--cyber-green);
+}
+
+.author-request-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.author-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.author-status-pill.is-pending {
+  background: rgba(255,158,68,.12);
+  color: var(--cyber-orange);
+}
+
+.author-status-pill.is-validated {
+  background: rgba(25,255,156,.12);
+  color: var(--cyber-green);
+}
+
+.author-request-card-validated {
+  border-color: rgba(25,255,156,.10);
+}
+
+.author-request-card-pending {
+  border-color: rgba(255,158,68,.16);
+}
+
+.author-request-main small {
+  display: block;
+  margin-top: 5px;
+  color: var(--cyber-muted);
+  line-height: 1.45;
+}
+
+.author-request-actions .pending-author-request {
+  background: rgba(255,158,68,.14);
+  color: var(--cyber-orange);
+}
+
+.author-request-actions .reject-author-request,
+.author-request-actions [data-author-request-delete] {
+  background: rgba(255,95,115,.14);
+  color: var(--cyber-red);
+}
+
+@media (max-width: 780px) {
+  .author-moderation-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .author-moderation-summary {
+    grid-template-columns: 1fr;
+  }
+}
