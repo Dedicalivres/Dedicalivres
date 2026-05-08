@@ -69,12 +69,12 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 76px;
+  min-height: 94px;
   gap: 24px;
 }
 
 .logo {
-  height: 52px;
+  height: 76px;
   width: auto;
   display: block;
 }
@@ -1106,7 +1106,7 @@ button:active,
   }
 
   .logo {
-    height: 44px;
+    height: 58px;
   }
 
   nav {
@@ -2384,4 +2384,56 @@ body.seo-page[data-region="Provence-Alpes-Côte d’Azur"] .seo-hero::before {
 .popup-detail-link:hover {
   background: #ff6b35;
   color: white;
+}
+
+
+/* V7.6.5b — Carte publique robuste avec compteur de regroupement */
+.event-marker-v5 span {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 950;
+  font-size: .72rem;
+}
+
+.event-marker-v5 span em {
+  font-style: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(42,36,56,.92);
+  box-shadow: 0 4px 10px rgba(42,36,56,.24);
+}
+
+/* =========================================================
+   V7.6.5c — LOGO PUBLIC RENFORCÉ
+   Repère de marque plus visible, sans toucher au HTML.
+========================================================= */
+
+.logo {
+  height: 76px;
+  width: auto;
+  display: block;
+}
+
+.header-inner {
+  min-height: 94px;
+}
+
+@media (max-width: 780px) {
+  .logo {
+    height: 58px;
+  }
+}
+
+@media (max-width: 600px) {
+  .logo {
+    height: 54px;
+  }
 }

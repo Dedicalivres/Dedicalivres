@@ -536,45 +536,50 @@
   }
 
   function renderMapMarkers(events) {
-    if (!map || !markersLayer) return;
+    if (!map) return;
+
+    if (!markersLayer) {
+      markersLayer = L.layerGroup().addTo(map);
+    }
 
     markersLayer.clearLayers();
     markerByEventId = {};
 
     const grouped = {};
 
-    events.forEach((event) => {
-      if (
-        !Number.isFinite(Number(event.lat)) ||
-        !Number.isFinite(Number(event.lng))
-      ) {
+    (events || []).forEach((event) => {
+      const lat = Number(event.lat);
+      const lng = Number(event.lng);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         return;
       }
 
-      const key = `${event.lat},${event.lng}`;
+      const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
 
       if (!grouped[key]) {
         grouped[key] = [];
       }
 
-      grouped[key].push(event);
+      grouped[key].push({
+        ...event,
+        lat,
+        lng
+      });
     });
 
     Object.values(grouped).forEach((group) => {
       const first = group[0];
-      const lat = Number(first.lat);
-      const lng = Number(first.lng);
       const typeMeta = TYPE_META[first.type] || TYPE_META.Autre;
 
-      const marker = L.marker([lat, lng], {
-        icon: createTypeIcon(typeMeta)
+      const marker = L.marker([first.lat, first.lng], {
+        icon: createTypeIcon(typeMeta, group.length)
       });
 
       marker.bindPopup(`
         <div class="premium-popup">
-          <strong>${group.length} événement(s)</strong>
+          <strong>${group.length} événement${group.length > 1 ? "s" : ""} à ce lieu</strong>
           <br><br>
-
           ${group.map(renderPopupEventItem).join("")}
         </div>
       `);
@@ -596,14 +601,21 @@
         markerByEventId[event.id] = marker;
       });
     });
+
+    setTimeout(() => {
+      map?.invalidateSize();
+    }, 150);
   }
 
-  function createTypeIcon(typeMeta) {
+  function createTypeIcon(typeMeta, count) {
+    const countBadge = count > 1 ? `<em>${count}</em>` : "";
+
     return L.divIcon({
       className: "event-marker-v5",
-      html: `<span style="--marker-color:${typeMeta.color}"></span>`,
-      iconSize: [28, 28],
-      iconAnchor: [14, 28]
+      html: `<span style="--marker-color:${typeMeta.color}">${countBadge}</span>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+      popupAnchor: [0, -26]
     });
   }
 

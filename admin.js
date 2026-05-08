@@ -677,13 +677,19 @@ function initMap() {
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap"
     }).addTo(map);
+  }
 
+  if (!markersLayer) {
     markersLayer = L.layerGroup().addTo(map);
   }
 
   markersLayer.clearLayers();
 
-  const groupedEvents = groupEventsByCoordinates(allEvents);
+  const eventsWithCoordinates = (allEvents || []).filter((event) => {
+    return Number.isFinite(Number(event.lat)) && Number.isFinite(Number(event.lng));
+  });
+
+  const groupedEvents = groupEventsByCoordinates(eventsWithCoordinates);
 
   Object.values(groupedEvents).forEach((group) => {
     const first = group[0];
@@ -699,10 +705,13 @@ function initMap() {
     marker.addTo(markersLayer);
   });
 
-  locationRows.forEach((row) => {
-    if (!Number.isFinite(Number(row.lat)) || !Number.isFinite(Number(row.lng))) return;
+  (locationRows || []).forEach((row) => {
+    const lat = Number(row.lat);
+    const lng = Number(row.lng);
 
-    const marker = L.marker([Number(row.lat), Number(row.lng)], {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    const marker = L.marker([lat, lng], {
       icon: createAdminUserSearchIcon()
     });
 
