@@ -264,7 +264,7 @@ async function loadEvents() {
   const { data, error } = await supabaseClient
     .from("events")
     .select("*")
-    .order("start_date", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error(error);
@@ -273,51 +273,7 @@ async function loadEvents() {
     return;
   }
 
-  allEvents = sortEventsByUpcomingDate(
-    await attachAuthorsToEvents(Array.isArray(data) ? data : [])
-  );
-}
-
-async function attachAuthorsToEvents(events) {
-  if (!events.length) return [];
-
-  const eventIds = events.map((event) => event.id).filter(Boolean);
-
-  if (!eventIds.length) {
-    return events.map((event) => ({ ...event, _authors: [] }));
-  }
-
-  try {
-    const { data, error } = await supabaseClient
-      .from("event_authors_presence")
-      .select("event_id, pseudo, website, author_slug, validated")
-      .in("event_id", eventIds)
-      .eq("validated", true)
-      .order("created_at", { ascending: true });
-
-    if (error) throw error;
-
-    const authorsByEvent = new Map();
-
-    (data || []).forEach((row) => {
-      if (!row.event_id) return;
-      const key = String(row.event_id);
-      if (!authorsByEvent.has(key)) authorsByEvent.set(key, []);
-      authorsByEvent.get(key).push({
-        pseudo: row.pseudo || "Auteur",
-        website: row.website || "",
-        author_slug: row.author_slug || ""
-      });
-    });
-
-    return events.map((event) => ({
-      ...event,
-      _authors: authorsByEvent.get(String(event.id)) || []
-    }));
-  } catch (error) {
-    console.warn("Auteurs présents indisponibles côté admin :", error);
-    return events.map((event) => ({ ...event, _authors: [] }));
-  }
+  allEvents = Array.isArray(data) ? data : [];
 }
 
 async function loadNewsletterCount() {
@@ -522,17 +478,11 @@ function getFilteredEvents() {
   const type = filterType?.value || "";
 
   return allEvents.filter((event) => {
-    const authorSearchText = (event._authors || [])
-      .map((author) => [author.pseudo, author.author_slug, author.website].filter(Boolean).join(" "))
-      .join(" ");
-
     const haystack = normalize([
       event.title,
       event.city,
       event.region,
-      event.description,
-      event.type,
-      authorSearchText
+      event.description
     ].join(" "));
 
     if (search && !haystack.includes(search)) return false;
@@ -547,61 +497,12 @@ function getFilteredEvents() {
   });
 }
 
-
-function renderAdminEventAuthors(event) {
-  const authors = event._authors || [];
-  if (!authors.length) return "";
-
-  return `
-    <div class="admin-event-authors">
-      <span>✍️ Auteur${authors.length > 1 ? "s" : ""} présent${authors.length > 1 ? "s" : ""}</span>
-      ${authors.map((author) => escapeHtml(author.pseudo || "Auteur")).join(" · ")}
-    </div>
-  `;
-}
-
-function sortEventsByUpcomingDate(events) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  return [...events].sort((a, b) => {
-    const dateA = getEventDate(a);
-    const dateB = getEventDate(b);
-
-    const groupA = getUpcomingSortGroup(dateA, today);
-    const groupB = getUpcomingSortGroup(dateB, today);
-
-    if (groupA !== groupB) return groupA - groupB;
-
-    if (dateA && dateB) {
-      const diff = dateA.getTime() - dateB.getTime();
-      if (diff !== 0) return diff;
-    }
-
-    if (a.featured && !b.featured) return -1;
-    if (!a.featured && b.featured) return 1;
-
-    return String(a.title || "").localeCompare(String(b.title || ""), "fr");
-  });
-}
-
-function getEventDate(event) {
-  if (!event || !event.start_date) return null;
-  const date = new Date(event.start_date);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function getUpcomingSortGroup(date, today) {
-  if (!date) return 1;
-  return date >= today ? 0 : 2;
-}
-
 /* RENDER EVENTS */
 
 function renderEvents() {
   if (!eventsContainer) return;
 
-  const events = sortEventsByUpcomingDate(getFilteredEvents());
+  const events = getFilteredEvents();
 
   if (!events.length) {
     eventsContainer.innerHTML = `
@@ -646,8 +547,6 @@ function renderEventCard(event) {
           <span>📅 ${formatDate(event.start_date)}</span>
           <span>🏷️ ${escapeHtml(event.type || "")}</span>
         </div>
-
-        ${renderAdminEventAuthors(event)}
 
         <div class="event-badges">
           ${
@@ -833,8 +732,9 @@ function renderSocialUpcoming() {
   const container = document.getElementById("social-upcoming");
   if (!container) return;
 
-  const upcoming = sortEventsByUpcomingDate(allEvents)
-    .filter((event) => event.validated && event.start_date && getUpcomingSortGroup(getEventDate(event), new Date(new Date().setHours(0, 0, 0, 0))) === 0)
+  const upcoming = [...allEvents]
+    .filter((event) => event.validated && event.start_date)
+    .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
     .slice(0, 6);
 
   if (!upcoming.length) {

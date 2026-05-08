@@ -20,7 +20,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=7.5.5" />
+  <link rel="stylesheet" href="admin.css" />
 </head>
 
 <body class="cyber-admin">
@@ -285,46 +285,104 @@
       class="admin-tab-panel"
     >
 
-      <section class="social-grid">
+      <section class="social-grid social-grid-instagram">
 
-        <article class="social-card">
+        <article class="social-card instagram-generator-card">
 
-          <h3>Instagram IA</h3>
+          <div class="social-card-head">
+            <div>
+              <h3>Générateur Instagram</h3>
+              <p>
+                Sélectionne des événements, choisis un angle, puis copie une publication prête à adapter sur mobile ou PC.
+              </p>
+            </div>
+            <span class="social-pill">Dédicalivres au centre</span>
+          </div>
 
-          <p>
-            Générer des idées de publication.
-          </p>
+          <div class="social-generator-controls">
+            <label>
+              <span>Mode</span>
+              <select id="social-post-mode">
+                <option value="central">Dédicalivres au centre</option>
+                <option value="regional">Focus régional</option>
+                <option value="multi">Multi-régions</option>
+                <option value="story">Story courte</option>
+                <option value="carousel">Carousel Instagram</option>
+              </select>
+            </label>
 
-          <textarea
-            id="instagram-caption"
-            rows="6"
-            placeholder="Texte IA futur..."
-          ></textarea>
+            <label>
+              <span>Région</span>
+              <select id="social-region-filter">
+                <option value="">Toutes les régions</option>
+              </select>
+            </label>
 
-          <button
-            class="cyber-btn-primary"
-            type="button"
-          >
-            Générer
-          </button>
+            <label>
+              <span>Type</span>
+              <select id="social-type-filter">
+                <option value="">Tous les types</option>
+                <option value="Salon">Salon</option>
+                <option value="Festival">Festival</option>
+                <option value="Dédicace">Dédicace</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Nombre</span>
+              <select id="social-max-events">
+                <option value="3">3 événements</option>
+                <option value="5" selected>5 événements</option>
+                <option value="8">8 événements</option>
+                <option value="12">12 événements</option>
+              </select>
+            </label>
+          </div>
+
+          <input
+            id="social-event-search"
+            class="social-search-input"
+            type="search"
+            placeholder="Rechercher un événement, une ville, une région…"
+          />
+
+          <div class="social-generator-actions mobile-sticky-actions">
+            <button id="social-generate-post" class="cyber-btn-primary" type="button">Générer</button>
+            <button id="social-copy-post" class="cyber-btn-secondary" type="button">Copier</button>
+            <button id="social-clear-selection" class="cyber-btn-danger" type="button">Effacer</button>
+          </div>
+
+          <div class="social-selection-summary" id="social-selection-summary">
+            Aucun événement sélectionné. Le générateur utilisera les prochains événements visibles.
+          </div>
+
+          <div id="social-events-selector" class="social-events-selector">
+            <p class="priority-empty">Chargement des événements à venir…</p>
+          </div>
+
+          <label class="instagram-caption-wrap">
+            <span>Texte généré</span>
+            <textarea
+              id="instagram-caption"
+              rows="12"
+              placeholder="Choisis un mode, sélectionne quelques événements, puis clique sur Générer."
+            ></textarea>
+          </label>
 
         </article>
 
-        <article class="social-card">
-
-          <h3>Scraper / Import</h3>
-
+        <article class="social-card social-help-card">
+          <h3>Conseil publication</h3>
           <p>
-            Zone future pour import automatique.
+            Le mode prioritaire place Dédicalivres au centre du partage. Les modes régionaux servent à parler localement, avec des hashtags adaptés aux territoires sélectionnés.
           </p>
-
-          <button
-            class="cyber-btn-secondary"
-            type="button"
-          >
-            Import CSV
-          </button>
-
+          <ul class="social-tips-list">
+            <li>3 à 5 événements pour un post lisible.</li>
+            <li>1 région pour toucher un public local.</li>
+            <li>Multi-régions pour montrer le rayonnement national.</li>
+            <li>Carousel pour préparer plusieurs slides.</li>
+          </ul>
         </article>
 
         <article class="social-card">
@@ -468,8 +526,9 @@
   crossorigin=""
 ></script>
 
-<script src="config.js"></script>
-<script src="admin.js?v=7.5.5"></script>
+<script src="config.js?v=7.6.1b"></script>
+<script src="admin.js?v=7.6.1b"></script>
+<script src="admin-social-generator.js?v=7.6.1b"></script>
 
 </body>
 </html>
