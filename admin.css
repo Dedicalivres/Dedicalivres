@@ -1531,3 +1531,47 @@ body.cyber-admin {
     justify-content: flex-start;
   }
 }
+
+
+/* =========================================================
+   V7.6.4b — Compteurs demandes auteurs
+========================================================= */
+
+.admin-tab {
+  position: relative;
+}
+
+.admin-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: 8px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--cyber-red);
+  color: #fff;
+  font-size: .76rem;
+  font-weight: 950;
+  box-shadow: 0 0 18px rgba(255,95,115,.35);
+}
+
+.admin-tab-badge[hidden] {
+  display: none !important;
+}
+
+.glow-red,
+.stat-card-author-requests {
+  box-shadow:
+    0 0 0 1px rgba(255,95,115,.14),
+    0 0 42px rgba(255,95,115,.10);
+}
+
+.stat-card-author-requests strong {
+  color: #ff8f9f;
+}
+
+.stat-card-author-requests.has-pending {
+  border-color: rgba(255,95,115,.32);
+}

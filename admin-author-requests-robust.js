@@ -9,7 +9,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "7.6.4";
+  const VERSION = "7.6.4b";
   const config = window.DEDICALIVRES_CONFIG;
 
   if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
@@ -45,7 +45,12 @@
   }
 
   function initPanel(moderationPanel) {
-    if (document.getElementById("author-requests-robust-panel")) return;
+    ensureCounterElements();
+
+    if (document.getElementById("author-requests-robust-panel")) {
+      loadAuthorRequests();
+      return;
+    }
 
     const panel = document.createElement("section");
     panel.id = "author-requests-robust-panel";
@@ -112,6 +117,39 @@
       });
 
     loadAuthorRequests();
+  }
+
+  function ensureCounterElements() {
+    const adminTab = document.querySelector('.admin-tab[data-tab="moderation"]');
+
+    if (adminTab && !document.getElementById("author-requests-tab-badge")) {
+      const badge = document.createElement("span");
+      badge.id = "author-requests-tab-badge";
+      badge.className = "admin-tab-badge";
+      badge.hidden = true;
+      badge.textContent = "0";
+      adminTab.appendChild(badge);
+    }
+
+    const statsGrid = document.querySelector("#tab-overview .stats-grid");
+
+    if (statsGrid && !document.getElementById("stats-author-requests")) {
+      const card = document.createElement("article");
+      card.id = "stat-card-author-requests";
+      card.className = "stat-card glow-red stat-card-author-requests";
+      card.innerHTML = `
+        <span class="stat-label">DEMANDES AUTEURS</span>
+        <strong id="stats-author-requests">0</strong>
+      `;
+
+      const pendingCard = document.getElementById("stats-pending")?.closest(".stat-card");
+
+      if (pendingCard?.nextSibling) {
+        statsGrid.insertBefore(card, pendingCard.nextSibling);
+      } else {
+        statsGrid.appendChild(card);
+      }
+    }
   }
 
   async function loadAuthorRequests() {
@@ -329,16 +367,42 @@
   }
 
   function updateAuthorCounters() {
+    ensureCounterElements();
+
     const pendingCount = rows.filter((row) => row.validated !== true).length;
     const stat = document.getElementById("stats-author-requests");
     const badge = document.getElementById("author-requests-tab-badge");
+    const card = document.getElementById("stat-card-author-requests") || stat?.closest(".stat-card");
 
-    if (stat) stat.textContent = pendingCount;
+    if (stat) stat.textContent = String(pendingCount);
 
     if (badge) {
-      badge.textContent = pendingCount;
+      badge.textContent = String(pendingCount);
       badge.hidden = pendingCount < 1;
+      badge.setAttribute("aria-label", `${pendingCount} demande(s) auteur en attente`);
     }
+
+    if (card) {
+      card.classList.toggle("has-pending", pendingCount > 0);
+      card.setAttribute("title", `${pendingCount} demande(s) auteur en attente de validation.`);
+    }
+
+    window.dispatchEvent(new CustomEvent("dedicalivres:author-requests-count", {
+      detail: { pendingCount, total: rows.length }
+    }));
+
+    // Protection contre les mises à jour tardives d'admin.js : on réapplique le compteur
+    // brièvement après le chargement ou après une action.
+    clearTimeout(updateAuthorCounters._retryTimer);
+    updateAuthorCounters._retryTimer = setTimeout(() => {
+      const retryStat = document.getElementById("stats-author-requests");
+      const retryBadge = document.getElementById("author-requests-tab-badge");
+      if (retryStat) retryStat.textContent = String(pendingCount);
+      if (retryBadge) {
+        retryBadge.textContent = String(pendingCount);
+        retryBadge.hidden = pendingCount < 1;
+      }
+    }, 500);
   }
 
   function safeToast(message) {

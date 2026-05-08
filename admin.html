@@ -108,6 +108,7 @@
       type="button"
     >
       🛡️ Administration
+      <span id="author-requests-tab-badge" class="admin-tab-badge" hidden>0</span>
     </button>
 
     <button
@@ -145,6 +146,11 @@
         <article class="stat-card glow-cyan">
           <span class="stat-label">EN ATTENTE</span>
           <strong id="stats-pending">0</strong>
+        </article>
+
+        <article class="stat-card glow-red stat-card-author-requests" id="stat-card-author-requests">
+          <span class="stat-label">DEMANDES AUTEURS</span>
+          <strong id="stats-author-requests">0</strong>
         </article>
 
         <article class="stat-card glow-orange">
@@ -469,8 +475,8 @@
 ></script>
 
 <script src="config.js"></script>
-<script src="admin.js?v=7.6.4"></script>
-<script src="admin-author-requests-robust.js?v=7.6.4"></script>
+<script src="admin.js?v=7.6.4b"></script>
+<script src="admin-author-requests-robust.js?v=7.6.4b"></script>
 
 </body>
 </html>
