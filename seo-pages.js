@@ -24,11 +24,20 @@
   const region = document.body.dataset.region || "";
   const city = document.body.dataset.city || "";
   const eventType = document.body.dataset.eventType || "";
+  const pageMode = document.body.dataset.agendaMode || "";
 
-  const eventTypes = (document.body.dataset.eventTypes || eventType || "")
+  let eventTypes = (document.body.dataset.eventTypes || eventType || "")
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+
+  if (!eventTypes.length && pageMode === "salons") {
+    eventTypes = ["Salon", "Festival"];
+  }
+
+  if (!eventTypes.length && pageMode === "dedicaces") {
+    eventTypes = ["Dédicace"];
+  }
 
   const TYPE_META = {
     Salon: { className: "type-salon" },
@@ -60,13 +69,9 @@
       .order("featured", { ascending: false })
       .order("start_date", { ascending: true });
 
-    if (region) {
-      query = query.eq("region", region);
-    }
-
-    if (city) {
-      query = query.ilike("city", city);
-    }
+    if (region) query = query.eq("region", region);
+    if (city) query = query.ilike("city", city);
+    if (eventTypes.length) query = query.in("type", eventTypes);
 
     const { data, error } = await query;
 
@@ -78,13 +83,14 @@
           <p>Impossible de charger les événements pour le moment.</p>
         </article>
       `;
-
       return;
     }
 
+    const allowedTypes = eventTypes.map(normalizeType);
+
     const events = (Array.isArray(data) ? data : [])
       .filter((event) => {
-        return !eventTypes.length || eventTypes.includes(event.type);
+        return !allowedTypes.length || allowedTypes.includes(normalizeType(event.type));
       })
       .sort(sortByUpcomingDate);
 
@@ -94,44 +100,57 @@
     }
 
     if (!events.length) {
-      eventsContainer.innerHTML = `
-        <article class="empty-state">
-          <p>
-            Aucun événement à venir pour le moment.
-            Revenez bientôt ou proposez un événement.
-          </p>
-
-          <p>
-            <a class="card-link" href="index.html#soumettre">
-              Proposer un événement
-            </a>
-          </p>
-        </article>
-      `;
-
+      eventsContainer.innerHTML = renderEmptyRegionalState();
+      window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered"));
       return;
     }
 
     eventsContainer.innerHTML = events.map(renderEventCard).join("");
+    window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered"));
+  }
 
-    window.dispatchEvent(
-      new CustomEvent("dedicalivres:cards-rendered")
-    );
+  function renderEmptyRegionalState() {
+    const regionName = region || "cette région";
+    const isRegionalPage = Boolean(region);
+
+    if (!isRegionalPage) {
+      return `
+        <article class="empty-state seo-empty-state">
+          <p>Aucun événement à venir pour le moment. Revenez bientôt ou proposez un événement.</p>
+          <p><a class="card-link" href="index.html#soumettre">Proposer un événement</a></p>
+        </article>
+      `;
+    }
+
+    return `
+      <article class="empty-state seo-empty-state regional-empty-state">
+        <span class="regional-empty-kicker">Agenda participatif</span>
+        <h2>${escapeHtml(regionName)} attend ses prochaines rencontres littéraires</h2>
+        <p>
+          Aucun salon du livre, festival littéraire, rencontre d’auteur ou séance de dédicace
+          n’est encore référencé pour ${escapeHtml(regionName)}.
+        </p>
+        <p>
+          Dédicalivres avance grâce aux lecteurs, auteurs, librairies, médiathèques,
+          associations et organisateurs qui partagent les rendez-vous autour du livre.
+          Si vous connaissez un événement littéraire dans cette région, votre contribution
+          peut aider à faire vivre l’agenda local et à équilibrer la visibilité entre les territoires.
+        </p>
+        <div class="regional-empty-actions">
+          <a class="btn-primary" href="index.html#soumettre">Proposer un événement en ${escapeHtml(regionName)}</a>
+          <a class="btn-secondary" href="index.html#agenda">Voir l’agenda national</a>
+        </div>
+      </article>
+    `;
   }
 
   function sortByUpcomingDate(a, b) {
     const dateA = new Date(a.start_date || "2999-12-31").getTime();
     const dateB = new Date(b.start_date || "2999-12-31").getTime();
-
     if (dateA !== dateB) return dateA - dateB;
-
     if (a.featured && !b.featured) return -1;
     if (!a.featured && b.featured) return 1;
-
-    return String(a.title || "").localeCompare(
-      String(b.title || ""),
-      "fr"
-    );
+    return String(a.title || "").localeCompare(String(b.title || ""), "fr");
   }
 
   function renderEventCard(event) {
@@ -139,110 +158,25 @@
     const meta = TYPE_META[event.type] || TYPE_META.Autre;
 
     return `
-      <article
-        class="event-card ${event.featured ? "event-card-featured" : ""} ${meta.className}"
-        id="event-${escapeAttribute(event.id)}"
-      >
-        ${
-          event.featured
-            ? `<div class="featured-ribbon">Mis en avant</div>`
-            : ""
-        }
-
-        ${
-          imageUrl
-            ? `
-              <img
-                class="card-image"
-                src="${escapeAttribute(imageUrl)}"
-                alt="${escapeAttribute(event.title || "Événement littéraire")}"
-              />
-            `
-            : `<div class="card-image"></div>`
-        }
-
+      <article class="event-card ${event.featured ? "event-card-featured" : ""} ${meta.className}" id="event-${escapeAttribute(event.id)}">
+        ${event.featured ? `<div class="featured-ribbon">Mis en avant</div>` : ""}
+        ${imageUrl ? `<img class="card-image" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(event.title || "Événement littéraire")}" />` : `<div class="card-image"></div>`}
         <div class="card-body">
           <div class="card-tags">
-            ${
-              event.type
-                ? `
-                  <span class="badge badge-type ${meta.className}">
-                    <i></i>
-                    ${escapeHtml(event.type)}
-                  </span>
-                `
-                : ""
-            }
-
-            ${
-              event.price
-                ? `
-                  <span class="badge badge-price">
-                    ${escapeHtml(event.price)}
-                  </span>
-                `
-                : ""
-            }
-
-            ${
-              event.featured
-                ? `<span class="badge badge-featured">Sélection</span>`
-                : ""
-            }
-
-            ${
-              event.verified
-                ? `<span class="badge badge-verified">Vérifié</span>`
-                : ""
-            }
+            ${event.type ? `<span class="badge badge-type ${meta.className}"><i></i>${escapeHtml(event.type)}</span>` : ""}
+            ${event.price ? `<span class="badge badge-price">${escapeHtml(event.price)}</span>` : ""}
+            ${event.featured ? `<span class="badge badge-featured">Sélection</span>` : ""}
+            ${event.verified ? `<span class="badge badge-verified">Vérifié</span>` : ""}
           </div>
-
-          <h3 class="card-title">
-            ${escapeHtml(event.title || "Sans titre")}
-          </h3>
-
+          <h3 class="card-title">${escapeHtml(event.title || "Sans titre")}</h3>
           <div class="card-meta">
-            ${
-              event.start_date
-                ? `
-                  <span>
-                    📅 ${formatDateRange(event.start_date, event.end_date)}
-                  </span>
-                `
-                : ""
-            }
-
-            <span>
-              📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", ")) || "Lieu non précisé"}
-            </span>
+            ${event.start_date ? `<span>📅 ${formatDateRange(event.start_date, event.end_date)}</span>` : ""}
+            <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", ")) || "Lieu non précisé"}</span>
           </div>
-
-          <p class="card-description">
-            ${escapeHtml(event.description || "")}
-          </p>
-
+          <p class="card-description">${escapeHtml(event.description || "")}</p>
           <div class="card-footer">
-            <a
-              class="card-link"
-              href="event.html?id=${encodeURIComponent(event.id)}"
-            >
-              Voir le détail
-            </a>
-
-            ${
-              event.website
-                ? `
-                  <a
-                    class="card-link"
-                    href="${escapeAttribute(event.website)}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Site officiel
-                  </a>
-                `
-                : ""
-            }
+            <a class="card-link" href="event.html?id=${encodeURIComponent(event.id)}">Voir le détail</a>
+            ${event.website ? `<a class="card-link" href="${escapeAttribute(event.website)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
           </div>
         </div>
       </article>
@@ -251,36 +185,30 @@
 
   function resolveImageUrl(path) {
     if (!path) return "";
-
-    if (/^https?:\/\//i.test(path)) {
-      return path;
-    }
-
-    return `${config.assetsBaseUrl || ""}${path}`;
+    return /^https?:\/\//i.test(path) ? path : `${config.assetsBaseUrl || ""}${path}`;
   }
 
   function formatDateRange(startDate, endDate) {
     const start = formatDate(startDate);
-    const end =
-      endDate && endDate !== startDate
-        ? formatDate(endDate)
-        : "";
-
+    const end = endDate && endDate !== startDate ? formatDate(endDate) : "";
     return end ? `${start} → ${end}` : start;
   }
 
   function formatDate(value) {
     if (!value) return "";
-
     try {
-      return new Intl.DateTimeFormat("fr-FR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      }).format(new Date(value));
+      return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
     } catch {
       return value;
     }
+  }
+
+  function normalizeType(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
   }
 
   function escapeHtml(value) {

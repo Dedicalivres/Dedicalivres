@@ -4,8 +4,8 @@
 
   Rôle :
   - Afficher le bloc "Auteurs présents" sur event.html.
-  - Permettre à un auteur de demander à être associé à un événement.
-  - Afficher publiquement uniquement les auteurs validés.
+  - Permettre à un auteur de déclarer sa présence.
+  - Afficher publiquement les auteurs déclarés.
 
   Ce fichier est volontairement isolé : il ne modifie pas event.js.
 ========================================================= */
@@ -68,22 +68,21 @@
       </p>
 
       <p class="author-presence-note">
-        Les auteurs indiqués ici ont été associés à cet événement après validation par Dédicalivres.
-        Cette information concerne uniquement les auteurs dont la présence a été validée.
+        Les auteurs indiqués ici se sont déclarés présents via Dédicalivres.
+        Cette information est participative et concerne uniquement les auteurs s’étant enregistrés sur Dédicalivres.
         Pour une information officielle à jour, notamment en cas d’annulation ou de modification,
         consultez toujours le site de l’événement.
       </p>
 
       <form id="author-presence-form" class="author-presence-form">
         <h3>Vous êtes auteur et vous participez à cet événement ?</h3>
-        <p class="author-presence-form-intro">Demandez à être associé à cette fiche. Votre demande sera vérifiée avant affichage public.</p>
 
         <div class="author-presence-grid">
           <input name="pseudo" type="text" placeholder="Pseudo / nom d’auteur" minlength="2" required />
           <input name="website" type="url" placeholder="Lien vers votre site ou page officielle" required />
         </div>
 
-        <button class="btn-primary" type="submit">Demander à être associé</button>
+        <button class="btn-primary" type="submit">Indiquer ma présence</button>
         <p id="author-presence-feedback" aria-live="polite"></p>
       </form>
     `;
@@ -109,22 +108,23 @@
         if (pseudo.length < 2) throw new Error("Merci d’indiquer un pseudo valide.");
         if (!isValidUrl(website)) throw new Error("Merci d’indiquer un lien valide.");
 
-        setButtonLoading(submitButton, true, "Envoi de la demande…");
-        setFeedback(feedback, "", "Envoi de votre demande…");
+        setButtonLoading(submitButton, true, "Enregistrement…");
+        setFeedback(feedback, "", "Enregistrement en cours…");
 
         const { error } = await supabaseClient
           .from("event_authors_presence")
-          .insert([{ event_id: eventId, pseudo, website, validated: false }]);
+          .insert([{ event_id: eventId, pseudo, website, validated: true }]);
 
         if (error) throw error;
 
         form.reset();
-        setFeedback(feedback, "success", "Votre demande a bien été envoyée. Elle sera vérifiée avant affichage public.");
+        setFeedback(feedback, "success", "Merci, votre présence a bien été ajoutée 👍");
+        loadAuthorsPresence();
       } catch (error) {
         console.error("Erreur auteur présent :", error);
         setFeedback(feedback, "error", error.message || "Une erreur est survenue.");
       } finally {
-        setButtonLoading(submitButton, false, "Demander à être associé");
+        setButtonLoading(submitButton, false, "Indiquer ma présence");
       }
     });
   }
@@ -162,7 +162,7 @@
         <article class="author-presence-card">
           <div>
             <strong>${escapeHtml(author.pseudo)}</strong>
-            <small>Auteur associé à cet événement</small>
+            <small>Auteur déclaré présent</small>
           </div>
           <a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">
             Voir le site
