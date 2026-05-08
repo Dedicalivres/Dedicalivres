@@ -1824,7 +1824,11 @@ body.seo-page[data-region] .seo-hero {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  border-width: 1px;
+  border-width: 2px;
+  border-style: solid;
+  box-shadow:
+    0 20px 58px rgba(58,28,113,.14),
+    inset 0 0 0 1px rgba(255,255,255,.62);
 }
 
 body.seo-page[data-region] .seo-hero::before,
@@ -1837,15 +1841,15 @@ body.seo-page[data-region] .seo-hero::after {
 }
 
 body.seo-page[data-region] .seo-hero::before {
-  opacity: .30;
+  opacity: .68;
   mix-blend-mode: multiply;
 }
 
 body.seo-page[data-region] .seo-hero::after {
-  opacity: .46;
+  opacity: .82;
   background:
-    radial-gradient(circle at 16% 18%, rgba(255,255,255,.72), transparent 30%),
-    linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.92));
+    radial-gradient(circle at 50% 42%, rgba(255,255,255,.88), rgba(255,255,255,.70) 42%, rgba(255,255,255,.54) 68%, rgba(255,255,255,.36)),
+    linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,255,255,.82));
 }
 
 body.seo-page[data-region] .seo-hero > * {
@@ -1853,147 +1857,157 @@ body.seo-page[data-region] .seo-hero > * {
   z-index: 1;
 }
 
+body.seo-page[data-region] .seo-hero h1,
+body.seo-page[data-region] .seo-hero p,
+body.seo-page[data-region] .category-kicker {
+  text-shadow: 0 2px 18px rgba(255,255,255,.74);
+}
+
+body.seo-page[data-region] .seo-hero::selection {
+  background: rgba(255,107,53,.22);
+}
+
 /* Île-de-France — bleu royal et or, sobre et lumineux */
 body.seo-page[data-region="Île-de-France"] .seo-hero {
-  border-color: rgba(36, 78, 156, .16);
+  border-color: rgba(36, 78, 156, .38);
 }
 body.seo-page[data-region="Île-de-France"] .seo-hero::before {
   background:
     radial-gradient(circle at 18% 22%, rgba(255,210,82,.55), transparent 14%),
-    linear-gradient(135deg, rgba(34,83,168,.26), transparent 42%),
-    linear-gradient(45deg, transparent 44%, rgba(255,210,82,.22) 45%, rgba(255,210,82,.22) 55%, transparent 56%);
+    linear-gradient(135deg, rgba(34,83,168,.62), transparent 42%),
+    linear-gradient(45deg, transparent 44%, rgba(255,210,82,.62) 45%, rgba(255,210,82,.62) 55%, transparent 56%);
 }
 
 /* Auvergne-Rhône-Alpes — montagne, bleu et vert */
 body.seo-page[data-region="Auvergne-Rhône-Alpes"] .seo-hero {
-  border-color: rgba(28, 112, 82, .16);
+  border-color: rgba(28, 112, 82, .38);
 }
 body.seo-page[data-region="Auvergne-Rhône-Alpes"] .seo-hero::before {
   background:
-    linear-gradient(135deg, transparent 58%, rgba(31,130,93,.24) 59%, rgba(31,130,93,.24) 70%, transparent 71%),
-    linear-gradient(45deg, transparent 50%, rgba(50,112,190,.22) 51%, rgba(50,112,190,.22) 64%, transparent 65%),
+    linear-gradient(135deg, transparent 58%, rgba(31,130,93,.46) 59%, rgba(31,130,93,.46) 70%, transparent 71%),
+    linear-gradient(45deg, transparent 50%, rgba(50,112,190,.62) 51%, rgba(50,112,190,.62) 64%, transparent 65%),
     radial-gradient(circle at 84% 18%, rgba(255,255,255,.85), transparent 18%);
 }
 
 /* Nouvelle-Aquitaine — océan, vignobles, littoral */
 body.seo-page[data-region="Nouvelle-Aquitaine"] .seo-hero {
-  border-color: rgba(31, 112, 165, .16);
+  border-color: rgba(31, 112, 165, .38);
 }
 body.seo-page[data-region="Nouvelle-Aquitaine"] .seo-hero::before {
   background:
-    repeating-linear-gradient(165deg, rgba(30,116,181,.18) 0 14px, transparent 14px 32px),
-    radial-gradient(circle at 82% 26%, rgba(119,151,67,.30), transparent 24%),
-    linear-gradient(135deg, rgba(180,55,66,.16), transparent 42%);
+    repeating-linear-gradient(165deg, rgba(30,116,181,.36) 0 14px, transparent 14px 32px),
+    radial-gradient(circle at 82% 26%, rgba(119,151,67,.50), transparent 24%),
+    linear-gradient(135deg, rgba(180,55,66,.38), transparent 42%);
 }
 
 /* Occitanie — rouge et or, croix occitane suggérée */
 body.seo-page[data-region="Occitanie"] .seo-hero {
-  border-color: rgba(194, 35, 35, .16);
+  border-color: rgba(194, 35, 35, .38);
 }
 body.seo-page[data-region="Occitanie"] .seo-hero::before {
   background:
-    radial-gradient(circle at 82% 22%, rgba(255,207,75,.42) 0 8%, transparent 9%),
-    linear-gradient(90deg, transparent 74%, rgba(196,38,38,.18) 75%, rgba(196,38,38,.18) 78%, transparent 79%),
-    linear-gradient(0deg, transparent 28%, rgba(255,207,75,.18) 29%, rgba(255,207,75,.18) 32%, transparent 33%),
-    linear-gradient(135deg, rgba(196,38,38,.24), transparent 48%);
+    radial-gradient(circle at 82% 22%, rgba(255,207,75,.62) 0 8%, transparent 9%),
+    linear-gradient(90deg, transparent 74%, rgba(196,38,38,.36) 75%, rgba(196,38,38,.36) 78%, transparent 79%),
+    linear-gradient(0deg, transparent 28%, rgba(255,207,75,.36) 29%, rgba(255,207,75,.36) 32%, transparent 33%),
+    linear-gradient(135deg, rgba(196,38,38,.46), transparent 48%);
 }
 
 /* Bretagne — Gwenn ha Du discret */
 body.seo-page[data-region="Bretagne"] .seo-hero {
-  border-color: rgba(28, 24, 35, .14);
+  border-color: rgba(28, 24, 35, .56);
 }
 body.seo-page[data-region="Bretagne"] .seo-hero::before {
   background:
-    repeating-linear-gradient(0deg, rgba(18,18,24,.22) 0 14px, rgba(18,18,24,.22) 14px 28px, transparent 28px 42px, transparent 42px 56px),
+    repeating-linear-gradient(0deg, rgba(18,18,24,.62) 0 14px, rgba(18,18,24,.62) 14px 28px, transparent 28px 42px, transparent 42px 56px),
     radial-gradient(circle at 16% 22%, rgba(255,255,255,.85), transparent 18%);
 }
 
 /* Bourgogne-Franche-Comté — vin, or et bleu profond */
 body.seo-page[data-region="Bourgogne-Franche-Comté"] .seo-hero {
-  border-color: rgba(121, 34, 58, .16);
+  border-color: rgba(121, 34, 58, .38);
 }
 body.seo-page[data-region="Bourgogne-Franche-Comté"] .seo-hero::before {
   background:
-    linear-gradient(135deg, rgba(116,35,62,.24), transparent 40%),
-    radial-gradient(circle at 82% 18%, rgba(223,176,80,.34), transparent 20%),
-    repeating-linear-gradient(45deg, rgba(43,76,143,.13) 0 12px, transparent 12px 28px);
+    linear-gradient(135deg, rgba(116,35,62,.46), transparent 40%),
+    radial-gradient(circle at 82% 18%, rgba(223,176,80,.56), transparent 20%),
+    repeating-linear-gradient(45deg, rgba(43,76,143,.28) 0 12px, transparent 12px 28px);
 }
 
 /* Centre-Val de Loire — Loire, bleu doux et or */
 body.seo-page[data-region="Centre-Val de Loire"] .seo-hero {
-  border-color: rgba(60, 117, 177, .16);
+  border-color: rgba(60, 117, 177, .38);
 }
 body.seo-page[data-region="Centre-Val de Loire"] .seo-hero::before {
   background:
-    radial-gradient(ellipse at 28% 74%, rgba(69,139,194,.24), transparent 34%),
-    linear-gradient(90deg, transparent 12%, rgba(221,179,68,.22) 13%, transparent 24%),
-    repeating-linear-gradient(160deg, rgba(69,139,194,.12) 0 10px, transparent 10px 26px);
+    radial-gradient(ellipse at 28% 74%, rgba(69,139,194,.46), transparent 34%),
+    linear-gradient(90deg, transparent 12%, rgba(221,179,68,.62) 13%, transparent 24%),
+    repeating-linear-gradient(160deg, rgba(69,139,194,.26) 0 10px, transparent 10px 26px);
 }
 
 /* Corse — blanc, noir et rouge en rappel très léger */
 body.seo-page[data-region="Corse"] .seo-hero {
-  border-color: rgba(36, 28, 28, .14);
+  border-color: rgba(36, 28, 28, .56);
 }
 body.seo-page[data-region="Corse"] .seo-hero::before {
   background:
-    radial-gradient(ellipse at 78% 36%, rgba(33,28,28,.20), transparent 18%),
-    linear-gradient(90deg, transparent 0 70%, rgba(172,32,45,.20) 71%, rgba(172,32,45,.20) 76%, transparent 77%),
+    radial-gradient(ellipse at 78% 36%, rgba(33,28,28,.40), transparent 18%),
+    linear-gradient(90deg, transparent 0 70%, rgba(172,32,45,.40) 71%, rgba(172,32,45,.40) 76%, transparent 77%),
     radial-gradient(circle at 18% 16%, rgba(255,255,255,.95), transparent 20%);
 }
 
 /* Grand Est — bleu, rouge et blanc, esprit carrefour européen */
 body.seo-page[data-region="Grand Est"] .seo-hero {
-  border-color: rgba(42, 91, 170, .16);
+  border-color: rgba(42, 91, 170, .38);
 }
 body.seo-page[data-region="Grand Est"] .seo-hero::before {
   background:
-    linear-gradient(135deg, rgba(36,87,172,.22), transparent 46%),
-    linear-gradient(45deg, transparent 58%, rgba(198,45,60,.20) 59%, rgba(198,45,60,.20) 66%, transparent 67%),
+    linear-gradient(135deg, rgba(36,87,172,.62), transparent 46%),
+    linear-gradient(45deg, transparent 58%, rgba(198,45,60,.40) 59%, rgba(198,45,60,.40) 66%, transparent 67%),
     radial-gradient(circle at 82% 18%, rgba(255,255,255,.88), transparent 18%);
 }
 
 /* Hauts-de-France — bleu et vert, horizon littoral */
 body.seo-page[data-region="Hauts-de-France"] .seo-hero {
-  border-color: rgba(36, 99, 160, .16);
+  border-color: rgba(36, 99, 160, .38);
 }
 body.seo-page[data-region="Hauts-de-France"] .seo-hero::before {
   background:
-    linear-gradient(180deg, rgba(55,123,190,.22), transparent 45%),
+    linear-gradient(180deg, rgba(55,123,190,.62), transparent 45%),
     radial-gradient(ellipse at 30% 80%, rgba(66,148,91,.25), transparent 32%),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.42) 0 16px, transparent 16px 36px);
+    repeating-linear-gradient(90deg, rgba(255,255,255,.62) 0 16px, transparent 16px 36px);
 }
 
 /* Normandie — rouge et or, motif sobre */
 body.seo-page[data-region="Normandie"] .seo-hero {
-  border-color: rgba(190, 44, 44, .16);
+  border-color: rgba(190, 44, 44, .38);
 }
 body.seo-page[data-region="Normandie"] .seo-hero::before {
   background:
-    radial-gradient(circle at 18% 20%, rgba(238,188,62,.34), transparent 18%),
-    linear-gradient(135deg, rgba(190,44,44,.24), transparent 46%),
-    repeating-linear-gradient(45deg, rgba(238,188,62,.14) 0 10px, transparent 10px 26px);
+    radial-gradient(circle at 18% 20%, rgba(238,188,62,.56), transparent 18%),
+    linear-gradient(135deg, rgba(190,44,44,.46), transparent 46%),
+    repeating-linear-gradient(45deg, rgba(238,188,62,.56) 0 10px, transparent 10px 26px);
 }
 
 /* Pays de la Loire — fleuve, bleu et vert */
 body.seo-page[data-region="Pays de la Loire"] .seo-hero {
-  border-color: rgba(39, 132, 120, .16);
+  border-color: rgba(39, 132, 120, .38);
 }
 body.seo-page[data-region="Pays de la Loire"] .seo-hero::before {
   background:
-    radial-gradient(ellipse at 24% 75%, rgba(38,140,128,.26), transparent 32%),
-    repeating-linear-gradient(165deg, rgba(58,126,196,.16) 0 12px, transparent 12px 30px),
-    linear-gradient(135deg, rgba(103,158,74,.16), transparent 42%);
+    radial-gradient(ellipse at 24% 75%, rgba(38,140,128,.62), transparent 32%),
+    repeating-linear-gradient(165deg, rgba(58,126,196,.38) 0 12px, transparent 12px 30px),
+    linear-gradient(135deg, rgba(103,158,74,.38), transparent 42%);
 }
 
 /* Provence-Alpes-Côte d’Azur — azur, soleil et Méditerranée */
 body.seo-page[data-region="Provence-Alpes-Côte d’Azur"] .seo-hero {
-  border-color: rgba(32, 116, 181, .16);
+  border-color: rgba(32, 116, 181, .38);
 }
 body.seo-page[data-region="Provence-Alpes-Côte d’Azur"] .seo-hero::before {
   background:
-    radial-gradient(circle at 82% 18%, rgba(255,190,64,.42), transparent 17%),
-    repeating-linear-gradient(0deg, rgba(47,131,197,.16) 0 12px, transparent 12px 30px),
-    linear-gradient(135deg, rgba(233,91,51,.18), transparent 42%);
+    radial-gradient(circle at 82% 18%, rgba(255,190,64,.62), transparent 17%),
+    repeating-linear-gradient(0deg, rgba(47,131,197,.38) 0 12px, transparent 12px 30px),
+    linear-gradient(135deg, rgba(233,91,51,.36), transparent 42%);
 }
 
 @media (max-width: 780px) {
