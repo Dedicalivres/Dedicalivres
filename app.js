@@ -205,8 +205,51 @@
       return;
     }
 
-    allEvents = Array.isArray(data) ? data : [];
+    allEvents = await attachAuthorsToEvents(Array.isArray(data) ? data : []);
     renderFilteredEvents();
+  }
+
+  async function attachAuthorsToEvents(events) {
+    if (!events.length) return events;
+
+    const ids = events
+      .map((event) => event.id)
+      .filter(Boolean);
+
+    if (!ids.length) return events;
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("event_authors_presence")
+        .select("event_id, pseudo, website, author_slug, validated")
+        .eq("validated", true)
+        .in("event_id", ids);
+
+      if (error) throw error;
+
+      const authorsByEvent = new Map();
+
+      (data || []).forEach((row) => {
+        if (!row.event_id || !row.pseudo) return;
+
+        const key = String(row.event_id);
+        if (!authorsByEvent.has(key)) authorsByEvent.set(key, []);
+
+        authorsByEvent.get(key).push({
+          pseudo: row.pseudo,
+          website: row.website || "",
+          author_slug: row.author_slug || ""
+        });
+      });
+
+      return events.map((event) => ({
+        ...event,
+        _authors: authorsByEvent.get(String(event.id)) || []
+      }));
+    } catch (error) {
+      console.warn("Auteurs présents non chargés pour l’agenda :", error);
+      return events.map((event) => ({ ...event, _authors: [] }));
+    }
   }
 
   function renderFilteredEvents() {
@@ -235,12 +278,17 @@
         return false;
       }
 
+      const authorSearchText = (event._authors || [])
+        .map((author) => [author.pseudo, author.author_slug, author.website].filter(Boolean).join(" "))
+        .join(" ");
+
       const haystack = normalize([
         event.title,
         event.city,
         event.region,
         event.description,
-        event.type
+        event.type,
+        authorSearchText
       ].join(" "));
 
       if (search && !haystack.includes(search)) return false;
@@ -350,6 +398,8 @@
             </span>
           </div>
 
+          ${renderEventAuthors(event)}
+
           <p class="card-description">
             ${escapeHtml(event.description || "")}
           </p>
@@ -379,6 +429,72 @@
           </div>
         </div>
       </article>
+    `;
+  }
+
+  function renderEventAuthors(event) {
+    const authors = event._authors || [];
+
+    if (!authors.length) return "";
+
+    const visibleAuthors = authors.slice(0, 3);
+    const remaining = authors.length - visibleAuthors.length;
+
+    return `
+      <div class="card-authors" aria-label="Auteurs présents">
+        <span class="card-authors-label">✍️ Auteur${authors.length > 1 ? "s" : ""} présent${authors.length > 1 ? "s" : ""}</span>
+        <div class="card-authors-list">
+          ${visibleAuthors.map((author) => {
+            const name = escapeHtml(author.pseudo || "Auteur");
+            return author.website
+              ? `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${name}</a>`
+              : `<span>${name}</span>`;
+          }).join("")}
+          ${remaining > 0 ? `<span>+${remaining}</span>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPopupEventItem(event) {
+    const authors = event._authors || [];
+
+    return `
+      <div class="popup-event-item">
+        <button
+          class="popup-focus-btn"
+          type="button"
+          data-event-id="${escapeAttribute(event.id)}"
+          data-event-type="${escapeAttribute(event.type || "")}"
+        >
+          ${escapeHtml(event.title || "Sans titre")}
+        </button>
+
+        <div class="popup-event-meta">
+          ${event.start_date ? `📅 ${formatDateRange(event.start_date, event.end_date)}` : ""}
+          ${event.city ? ` · 📍 ${escapeHtml(event.city)}` : ""}
+        </div>
+
+        ${authors.length ? `
+          <div class="popup-authors">
+            <strong>Auteur${authors.length > 1 ? "s" : ""} présent${authors.length > 1 ? "s" : ""}</strong>
+            ${authors.map((author) => {
+              const name = escapeHtml(author.pseudo || "Auteur");
+              return author.website
+                ? `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${name}</a>`
+                : `<span>${name}</span>`;
+            }).join("")}
+          </div>
+        ` : `
+          <div class="popup-authors popup-authors-empty">
+            Aucun auteur déclaré pour le moment.
+          </div>
+        `}
+
+        <a class="popup-detail-link" href="event.html?id=${encodeURIComponent(event.id)}">
+          Voir la fiche
+        </a>
+      </div>
     `;
   }
 
@@ -422,16 +538,7 @@
           <strong>${group.length} événement(s)</strong>
           <br><br>
 
-          ${group.map((event) => `
-            <button
-              class="popup-focus-btn"
-              type="button"
-              data-event-id="${escapeAttribute(event.id)}"
-              data-event-type="${escapeAttribute(event.type || "")}"
-            >
-              ${escapeHtml(event.title || "Sans titre")}
-            </button>
-          `).join("")}
+          ${group.map(renderPopupEventItem).join("")}
         </div>
       `);
 

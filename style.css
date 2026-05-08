@@ -2252,3 +2252,136 @@ body.seo-page[data-region="Provence-Alpes-Côte d’Azur"] .seo-hero::before {
     height: 210px;
   }
 }
+
+/* =========================================================
+   V7.5.1 — CORRECTIF RECHERCHE AUTEURS + POPUP CARTE
+========================================================= */
+
+.card-authors {
+  display: grid;
+  gap: 8px;
+  margin: 2px 0 14px;
+  padding: 12px 13px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(58,28,113,.08), rgba(255,107,53,.08));
+  border: 1px solid rgba(58,28,113,.08);
+}
+
+.card-authors-label {
+  color: var(--purple);
+  font-size: .78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.card-authors-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.card-authors-list a,
+.card-authors-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.86);
+  color: var(--purple);
+  border: 1px solid rgba(58,28,113,.10);
+  font-size: .86rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.card-authors-list a:hover {
+  background: var(--purple);
+  color: #fff;
+}
+
+.premium-popup {
+  gap: 12px;
+  min-width: min(300px, 72vw);
+}
+
+.popup-event-item {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.95);
+  border: 1px solid rgba(58,28,113,.08);
+}
+
+.leaflet-popup-content .popup-event-item + .popup-event-item {
+  margin-top: 10px;
+}
+
+.popup-focus-btn {
+  text-align: left;
+  line-height: 1.25;
+}
+
+.popup-event-meta {
+  color: #6b6178;
+  font-size: .82rem;
+  font-weight: 750;
+}
+
+.popup-authors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  color: #3a1c71;
+  font-size: .82rem;
+}
+
+.popup-authors strong {
+  width: 100%;
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.popup-authors a,
+.popup-authors span {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(241,232,251,.9);
+  color: #3a1c71;
+  text-decoration: none;
+  font-weight: 850;
+}
+
+.popup-authors a:hover {
+  background: #3a1c71;
+  color: white;
+}
+
+.popup-authors-empty {
+  color: #6b6178;
+  font-weight: 750;
+}
+
+.popup-detail-link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #fff0e7;
+  color: #ff6b35;
+  border: 1px solid rgba(255,107,53,.18);
+  text-decoration: none;
+  font-weight: 900;
+}
+
+.popup-detail-link:hover {
+  background: #ff6b35;
+  color: white;
+}
