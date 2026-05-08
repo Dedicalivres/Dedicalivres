@@ -2019,3 +2019,86 @@ body.seo-page[data-region="Provence-Alpes-Côte d’Azur"] .seo-hero::before {
     opacity: .60;
   }
 }
+
+
+/* =========================================================
+   V7.4.3 - ÉTATS RÉGIONAUX INTELLIGENTS
+   Message participatif quand une région n'a pas encore
+   d'événement référencé.
+========================================================= */
+
+.seo-empty-state {
+  text-align: left;
+  padding: clamp(24px, 4vw, 42px);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.16), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,.96), rgba(241,232,251,.82));
+  border: 1px solid rgba(58,28,113,.10);
+  box-shadow: 0 18px 44px rgba(58,28,113,.10);
+}
+
+.regional-empty-state {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+
+.regional-empty-kicker {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: rgba(255,107,53,.14);
+  color: var(--orange);
+  font-size: .78rem;
+  font-weight: 950;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.regional-empty-state h2 {
+  margin: 0;
+  font-family: "Playfair Display", serif;
+  color: var(--purple);
+  font-size: clamp(1.55rem, 3vw, 2.35rem);
+  line-height: 1.08;
+}
+
+.regional-empty-state h2::after {
+  display: none;
+}
+
+.regional-empty-state p {
+  margin: 0;
+  max-width: 880px;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.7;
+}
+
+.regional-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.regional-empty-actions .btn-primary,
+.regional-empty-actions .btn-secondary {
+  flex: initial;
+}
+
+@media (max-width: 680px) {
+  .regional-empty-actions {
+    flex-direction: column;
+  }
+
+  .regional-empty-actions .btn-primary,
+  .regional-empty-actions .btn-secondary {
+    width: 100%;
+  }
+}

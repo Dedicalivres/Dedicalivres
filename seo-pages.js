@@ -94,8 +94,30 @@
     }
 
     if (!events.length) {
-      eventsContainer.innerHTML = `
-        <article class="empty-state">
+      eventsContainer.innerHTML = renderEmptyRegionalState();
+
+      window.dispatchEvent(
+        new CustomEvent("dedicalivres:cards-rendered")
+      );
+
+      return;
+    }
+
+    eventsContainer.innerHTML = events.map(renderEventCard).join("");
+
+    window.dispatchEvent(
+      new CustomEvent("dedicalivres:cards-rendered")
+    );
+  }
+
+
+  function renderEmptyRegionalState() {
+    const regionName = region || "cette région";
+    const isRegionalPage = Boolean(region);
+
+    if (!isRegionalPage) {
+      return `
+        <article class="empty-state seo-empty-state">
           <p>
             Aucun événement à venir pour le moment.
             Revenez bientôt ou proposez un événement.
@@ -108,15 +130,37 @@
           </p>
         </article>
       `;
-
-      return;
     }
 
-    eventsContainer.innerHTML = events.map(renderEventCard).join("");
+    return `
+      <article class="empty-state seo-empty-state regional-empty-state">
+        <span class="regional-empty-kicker">Agenda participatif</span>
 
-    window.dispatchEvent(
-      new CustomEvent("dedicalivres:cards-rendered")
-    );
+        <h2>${escapeHtml(regionName)} attend ses prochaines rencontres littéraires</h2>
+
+        <p>
+          Aucun salon du livre, festival littéraire, rencontre d’auteur ou séance de dédicace
+          n’est encore référencé pour ${escapeHtml(regionName)}.
+        </p>
+
+        <p>
+          Dédicalivres avance grâce aux lecteurs, auteurs, librairies, médiathèques,
+          associations et organisateurs qui partagent les rendez-vous autour du livre.
+          Si vous connaissez un événement littéraire dans cette région, votre contribution
+          peut aider à faire vivre l’agenda local et à équilibrer la visibilité entre les territoires.
+        </p>
+
+        <div class="regional-empty-actions">
+          <a class="btn-primary" href="index.html#soumettre">
+            Proposer un événement en ${escapeHtml(regionName)}
+          </a>
+
+          <a class="btn-secondary" href="index.html#agenda">
+            Voir l’agenda national
+          </a>
+        </div>
+      </article>
+    `;
   }
 
   function sortByUpcomingDate(a, b) {
