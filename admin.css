@@ -1395,21 +1395,24 @@ body.cyber-admin {
 }
 
 /* =========================================================
-   V7.6.1b — Générateur Instagram multi-modes
+   V7.6.2 — GÉNÉRATEUR INSTAGRAM ROBUSTE
 ========================================================= */
-.social-grid-instagram {
-  align-items: start;
+.social-generator-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr);
+  gap: 18px;
+  padding: 18px;
 }
 
 .instagram-generator-card {
-  grid-column: span 2;
+  min-width: 0;
 }
 
 .social-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   margin-bottom: 18px;
 }
 
@@ -1421,29 +1424,30 @@ body.cyber-admin {
 
 .social-pill {
   flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(25,255,156,.10);
+  padding: 8px 12px;
   color: var(--cyber-green);
-  border: 1px solid rgba(25,255,156,.16);
-  font-size: .78rem;
+  background: rgba(25,255,156,.10);
+  border: 1px solid rgba(25,255,156,.14);
   font-weight: 900;
+  font-size: .8rem;
 }
 
 .social-generator-controls {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin: 16px 0;
+  margin-bottom: 12px;
 }
 
 .social-generator-controls label,
 .instagram-caption-wrap {
   display: grid;
   gap: 7px;
+}
+
+.social-generator-controls span,
+.instagram-caption-wrap span {
   color: var(--cyber-muted);
   font-weight: 800;
   font-size: .82rem;
@@ -1455,80 +1459,69 @@ body.cyber-admin {
   width: 100%;
   border: 1px solid rgba(255,255,255,.06);
   border-radius: 16px;
+  padding: 13px 14px;
   background: rgba(255,255,255,.05);
   color: white;
-  padding: 12px 14px;
   outline: none;
 }
 
-.social-generator-controls select:focus,
-.social-search-input:focus,
-.instagram-caption-wrap textarea:focus {
-  border-color: rgba(25,255,156,.34);
-  box-shadow: 0 0 0 3px rgba(25,255,156,.08);
+.social-search-input {
+  margin-bottom: 12px;
 }
 
 .social-generator-actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin: 14px 0;
+  margin-bottom: 12px;
 }
 
 .social-selection-summary {
   margin: 12px 0;
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(25,255,156,.06);
-  color: var(--cyber-muted);
+  color: var(--cyber-cyan);
+  background: rgba(25,215,255,.06);
+  border: 1px solid rgba(25,215,255,.10);
   font-weight: 800;
-  border: 1px solid rgba(25,255,156,.08);
 }
 
 .social-events-selector {
   display: grid;
   gap: 10px;
-  max-height: 360px;
+  max-height: 380px;
   overflow: auto;
   padding-right: 4px;
-  margin: 14px 0 18px;
+  margin-bottom: 16px;
 }
 
 .social-event-choice {
   display: grid;
   grid-template-columns: auto 1fr;
-  align-items: start;
   gap: 12px;
+  align-items: flex-start;
   padding: 13px;
   border-radius: 18px;
-  background: rgba(8,18,14,.92);
+  background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.05);
   cursor: pointer;
 }
 
-.social-event-choice:hover {
-  border-color: rgba(25,255,156,.18);
-  background: rgba(13,28,22,.95);
-}
-
 .social-event-choice input {
-  margin-top: 3px;
-  width: 18px;
-  height: 18px;
-  accent-color: var(--cyber-green);
+  margin-top: 4px;
+  transform: scale(1.15);
 }
 
 .social-event-choice strong {
   display: block;
   color: white;
-  font-weight: 900;
-  line-height: 1.25;
+  line-height: 1.35;
 }
 
 .social-event-choice small {
   display: block;
-  color: var(--cyber-muted);
   margin-top: 5px;
+  color: var(--cyber-muted);
   line-height: 1.35;
 }
 
@@ -1538,18 +1531,22 @@ body.cyber-admin {
   line-height: 1.5;
 }
 
-.social-tips-list {
-  display: grid;
-  gap: 10px;
-  margin: 16px 0 0;
-  padding-left: 18px;
-  color: var(--cyber-muted);
-  line-height: 1.5;
+.social-help-card {
+  align-self: start;
 }
 
-@media (max-width: 960px) {
-  .instagram-generator-card {
-    grid-column: span 1;
+.social-tips-list {
+  display: grid;
+  gap: 12px;
+  padding-left: 18px;
+  color: var(--cyber-muted);
+  line-height: 1.55;
+}
+
+@media (max-width: 980px) {
+  .social-generator-shell {
+    grid-template-columns: 1fr;
+    padding: 14px;
   }
 
   .social-generator-controls {
@@ -1558,21 +1555,21 @@ body.cyber-admin {
 }
 
 @media (max-width: 640px) {
-  .social-card-head {
-    display: grid;
-  }
-
   .social-generator-controls {
     grid-template-columns: 1fr;
   }
 
+  .social-card-head {
+    flex-direction: column;
+  }
+
   .mobile-sticky-actions {
     position: sticky;
-    bottom: 8px;
+    top: 8px;
     z-index: 20;
-    padding: 8px;
+    padding: 10px;
     border-radius: 18px;
-    background: rgba(3,10,7,.82);
+    background: rgba(4,8,6,.86);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(25,255,156,.08);
   }
@@ -1580,8 +1577,113 @@ body.cyber-admin {
   .mobile-sticky-actions button {
     flex: 1;
   }
+}
 
-  .social-events-selector {
-    max-height: 320px;
-  }
+
+/* =========================================================
+   V7.6.3 — CARTE ADMIN : PASTILLES COMME CÔTÉ PUBLIC
+========================================================= */
+
+.admin-event-marker-v5,
+.admin-user-search-marker-v5 {
+  background: transparent;
+  border: none;
+}
+
+.admin-event-marker-v5 span {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--marker-color, var(--cyber-green));
+  border: 4px solid rgba(255,255,255,.96);
+  box-shadow:
+    0 8px 20px rgba(0,0,0,.38),
+    0 0 0 4px rgba(255,255,255,.13),
+    0 0 24px color-mix(in srgb, var(--marker-color, var(--cyber-green)) 46%, transparent);
+}
+
+.admin-event-marker-v5 span em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #05110d;
+  color: #fff;
+  font-size: .68rem;
+  font-style: normal;
+  font-weight: 950;
+  line-height: 1;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.86);
+}
+
+.admin-user-search-marker-v5 span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--cyber-orange);
+  border: 4px solid rgba(255,255,255,.94);
+  box-shadow:
+    0 7px 18px rgba(0,0,0,.34),
+    0 0 0 4px rgba(255,158,68,.18),
+    0 0 20px rgba(255,158,68,.28);
+}
+
+.admin-map-popup {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+  color: #102018;
+}
+
+.admin-map-popup strong {
+  color: #102018;
+  font-weight: 950;
+}
+
+.admin-map-popup span,
+.admin-map-popup small {
+  color: #46584f;
+  font-weight: 750;
+}
+
+.admin-map-popup-events {
+  min-width: 260px;
+  max-width: 320px;
+}
+
+.admin-map-popup-event {
+  display: grid;
+  gap: 4px;
+  padding: 9px 0;
+  border-top: 1px solid rgba(58,28,113,.10);
+}
+
+.admin-map-popup-event:first-of-type {
+  border-top: none;
+}
+
+.admin-map-popup-event b {
+  color: #102018;
+  font-weight: 950;
+  line-height: 1.25;
+}
+
+.admin-map-popup-event a {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--cyber-green);
+  color: #06110d;
+  font-size: .78rem;
+  font-weight: 950;
+  text-decoration: none;
 }

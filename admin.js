@@ -683,39 +683,35 @@ function initMap() {
 
   markersLayer.clearLayers();
 
-  allEvents.forEach((event) => {
-    if (!event.lat || !event.lng) return;
+  const groupedEvents = groupEventsByCoordinates(allEvents);
 
-    const marker = L.circleMarker([event.lat, event.lng], {
-      radius: 7,
-      color: "#19ff9c",
-      fillColor: "#19ff9c",
-      fillOpacity: 0.85
+  Object.values(groupedEvents).forEach((group) => {
+    const first = group[0];
+    const lat = Number(first.lat);
+    const lng = Number(first.lng);
+    const typeMeta = getAdminTypeMeta(first.type);
+
+    const marker = L.marker([lat, lng], {
+      icon: createAdminEventIcon(typeMeta, group.length)
     });
 
-    marker.bindPopup(`
-      <strong>${escapeHtml(event.title)}</strong>
-      <br>
-      ${escapeHtml(event.city || "")}
-    `);
-
+    marker.bindPopup(renderAdminMapEventPopup(group));
     marker.addTo(markersLayer);
   });
 
   locationRows.forEach((row) => {
-    if (!row.lat || !row.lng) return;
+    if (!Number.isFinite(Number(row.lat)) || !Number.isFinite(Number(row.lng))) return;
 
-    const marker = L.circleMarker([row.lat, row.lng], {
-      radius: 5,
-      color: "#ff9e44",
-      fillColor: "#ff9e44",
-      fillOpacity: 0.65
+    const marker = L.marker([Number(row.lat), Number(row.lng)], {
+      icon: createAdminUserSearchIcon()
     });
 
     marker.bindPopup(`
-      <strong>Recherche utilisateur</strong>
-      <br>
-      ${escapeHtml(row.city || row.region || "Zone inconnue")}
+      <div class="admin-map-popup">
+        <strong>Recherche utilisateur</strong>
+        <span>${escapeHtml(row.city || row.region || "Zone inconnue")}</span>
+        ${row.device ? `<small>${escapeHtml(row.device)}</small>` : ""}
+      </div>
     `);
 
     marker.addTo(markersLayer);
@@ -724,6 +720,77 @@ function initMap() {
   setTimeout(() => {
     map.invalidateSize();
   }, 250);
+}
+
+function groupEventsByCoordinates(events) {
+  return (events || []).reduce((acc, event) => {
+    if (!Number.isFinite(Number(event.lat)) || !Number.isFinite(Number(event.lng))) {
+      return acc;
+    }
+
+    const key = `${Number(event.lat).toFixed(5)},${Number(event.lng).toFixed(5)}`;
+
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+
+    acc[key].push(event);
+    return acc;
+  }, {});
+}
+
+function getAdminTypeMeta(type) {
+  const map = {
+    Salon: { className: "type-salon", color: "#3a1c71", label: "Salon" },
+    Festival: { className: "type-festival", color: "#ff6b35", label: "Festival" },
+    Dédicace: { className: "type-dedicace", color: "#16803c", label: "Dédicace" },
+    Autre: { className: "type-autre", color: "#2f6fed", label: "Autre" }
+  };
+
+  return map[type] || map.Autre;
+}
+
+function createAdminEventIcon(typeMeta, count) {
+  const countBadge = count > 1 ? `<em>${count}</em>` : "";
+
+  return L.divIcon({
+    className: `admin-event-marker-v5 ${typeMeta.className}`,
+    html: `<span style="--marker-color:${typeMeta.color}">${countBadge}</span>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+    popupAnchor: [0, -28]
+  });
+}
+
+function createAdminUserSearchIcon() {
+  return L.divIcon({
+    className: "admin-user-search-marker-v5",
+    html: `<span></span>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 24],
+    popupAnchor: [0, -20]
+  });
+}
+
+function renderAdminMapEventPopup(group) {
+  const title = group.length > 1
+    ? `${group.length} événements à ce lieu`
+    : "Événement";
+
+  return `
+    <div class="admin-map-popup admin-map-popup-events">
+      <strong>${escapeHtml(title)}</strong>
+
+      ${group.map((event) => `
+        <article class="admin-map-popup-event">
+          <b>${escapeHtml(event.title || "Sans titre")}</b>
+          <span>${escapeHtml([event.city, event.region].filter(Boolean).join(", ") || "Lieu non précisé")}</span>
+          <small>${escapeHtml(formatDate(event.start_date) || "Date non précisée")} · ${escapeHtml(event.type || "Type non précisé")}</small>
+          <a href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer">Voir la fiche</a>
+        </article>
+      `).join("")}
+    </div>
+  `;
 }
 
 /* SOCIAL */

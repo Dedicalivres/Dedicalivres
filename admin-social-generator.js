@@ -1,19 +1,12 @@
 /* =========================================================
-   DÉDICALIVRES — Générateur Instagram multi-modes V7.6.1b
-   Fichier isolé : ne modifie pas admin.js
+   DÉDICALIVRES — Générateur Instagram robuste V7.6.2
+   - Injecte l'interface dans l'onglet Réseaux même si admin.html
+     contient encore l'ancienne carte "Instagram IA".
 ========================================================= */
 (function () {
   "use strict";
 
-  const config = window.DEDICALIVRES_CONFIG;
-
-  if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
-    console.warn("Générateur Instagram désactivé : configuration Supabase manquante.");
-    return;
-  }
-
-  const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-
+  const VERSION = "7.6.2";
   const REGIONS = [
     "Auvergne-Rhône-Alpes",
     "Bourgogne-Franche-Comté",
@@ -57,31 +50,149 @@
     "#Auteurs"
   ];
 
+  let client = null;
   let events = [];
   let filteredEvents = [];
   const selectedIds = new Set();
 
-  document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(initSocialGenerator, 250);
-  });
+  ready(initWhenReady);
 
-  function initSocialGenerator() {
-    const selector = document.getElementById("social-events-selector");
-    const caption = document.getElementById("instagram-caption");
-
-    if (!selector || !caption) {
-      return;
+  function ready(callback) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", callback);
+    } else {
+      callback();
     }
+  }
 
-    populateRegionFilter();
-    bindControls();
-    loadEvents();
+  function initWhenReady() {
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts += 1;
+      const config = window.DEDICALIVRES_CONFIG;
+      const tab = document.getElementById("tab-social");
+      if (config && window.supabase && tab) {
+        clearInterval(timer);
+        client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+        injectInterface(tab);
+        bindControls();
+        loadEvents();
+        window.DEDICALIVRES_SOCIAL_GENERATOR_VERSION = VERSION;
+      }
+      if (attempts > 40) {
+        clearInterval(timer);
+        console.warn("Générateur Instagram non initialisé : config Supabase ou onglet Réseaux introuvable.");
+      }
+    }, 150);
+  }
+
+  function injectInterface(tab) {
+    tab.innerHTML = `
+      <section class="social-generator-shell" data-social-generator-version="${VERSION}">
+        <article class="social-card instagram-generator-card">
+          <div class="social-card-head">
+            <div>
+              <h3>Générateur Instagram</h3>
+              <p>
+                Sélectionne des événements à venir, choisis un angle, puis copie une publication prête à adapter sur mobile ou PC.
+              </p>
+            </div>
+            <span class="social-pill">V${VERSION}</span>
+          </div>
+
+          <div class="social-generator-controls">
+            <label>
+              <span>Mode</span>
+              <select id="social-post-mode">
+                <option value="central">Dédicalivres au centre</option>
+                <option value="regional">Focus régional</option>
+                <option value="multi">Multi-régions</option>
+                <option value="story">Story courte</option>
+                <option value="carousel">Carousel Instagram</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Région</span>
+              <select id="social-region-filter">
+                <option value="">Toutes les régions</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Type</span>
+              <select id="social-type-filter">
+                <option value="">Tous les types</option>
+                <option value="Salon">Salon</option>
+                <option value="Festival">Festival</option>
+                <option value="Dédicace">Dédicace</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Nombre</span>
+              <select id="social-max-events">
+                <option value="3">3 événements</option>
+                <option value="5" selected>5 événements</option>
+                <option value="8">8 événements</option>
+                <option value="12">12 événements</option>
+              </select>
+            </label>
+          </div>
+
+          <input
+            id="social-event-search"
+            class="social-search-input"
+            type="search"
+            placeholder="Rechercher un événement, une ville, une région…"
+          />
+
+          <div class="social-generator-actions mobile-sticky-actions">
+            <button id="social-generate-post" class="cyber-btn-primary" type="button">Générer</button>
+            <button id="social-copy-post" class="cyber-btn-secondary" type="button">Copier</button>
+            <button id="social-clear-selection" class="cyber-btn-danger" type="button">Effacer</button>
+          </div>
+
+          <div class="social-selection-summary" id="social-selection-summary">
+            Chargement des événements…
+          </div>
+
+          <div id="social-events-selector" class="social-events-selector">
+            <p class="priority-empty">Chargement des événements à venir…</p>
+          </div>
+
+          <label class="instagram-caption-wrap">
+            <span>Texte généré</span>
+            <textarea
+              id="instagram-caption"
+              rows="12"
+              placeholder="Choisis un mode, sélectionne quelques événements, puis clique sur Générer."
+            ></textarea>
+          </label>
+        </article>
+
+        <article class="social-card social-help-card">
+          <h3>Comment choisir le bon mode ?</h3>
+          <ul class="social-tips-list">
+            <li><strong>Dédicalivres au centre</strong> : publication générale pour faire rayonner le site.</li>
+            <li><strong>Focus régional</strong> : publication locale pour une région précise.</li>
+            <li><strong>Multi-régions</strong> : sélection nationale regroupée par territoire.</li>
+            <li><strong>Story courte</strong> : texte rapide à utiliser en story ou post bref.</li>
+            <li><strong>Carousel</strong> : plan de slides + légende associée.</li>
+          </ul>
+        </article>
+      </section>
+    `;
   }
 
   function bindControls() {
+    populateRegionFilter();
+
     ["social-region-filter", "social-type-filter", "social-event-search", "social-max-events"].forEach((id) => {
-      document.getElementById(id)?.addEventListener("input", applyFiltersAndRender);
-      document.getElementById(id)?.addEventListener("change", applyFiltersAndRender);
+      const el = document.getElementById(id);
+      el?.addEventListener("input", applyFiltersAndRender);
+      el?.addEventListener("change", applyFiltersAndRender);
     });
 
     document.getElementById("social-post-mode")?.addEventListener("change", generatePost);
@@ -92,7 +203,7 @@
 
   function populateRegionFilter() {
     const select = document.getElementById("social-region-filter");
-    if (!select || select.options.length > 1) return;
+    if (!select) return;
 
     REGIONS.forEach((region) => {
       const option = document.createElement("option");
@@ -104,28 +215,25 @@
 
   async function loadEvents() {
     const selector = document.getElementById("social-events-selector");
-    if (selector) {
-      selector.innerHTML = `<p class="priority-empty">Chargement des événements à venir…</p>`;
-    }
 
-    const today = new Date().toISOString().slice(0, 10);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data, error } = await client
+        .from("events")
+        .select("id,title,type,city,region,start_date,end_date,featured,validated,rejected")
+        .eq("validated", true)
+        .eq("rejected", false)
+        .or(`end_date.is.null,end_date.gte.${today}`)
+        .order("start_date", { ascending: true });
 
-    const { data, error } = await client
-      .from("events")
-      .select("id,title,type,city,region,start_date,end_date,featured,validated,rejected")
-      .eq("validated", true)
-      .eq("rejected", false)
-      .or(`end_date.is.null,end_date.gte.${today}`)
-      .order("start_date", { ascending: true });
-
-    if (error) {
+      if (error) throw error;
+      events = (Array.isArray(data) ? data : []).sort(sortByDate);
+      applyFiltersAndRender();
+    } catch (error) {
       console.error("Erreur chargement événements réseaux :", error);
       if (selector) selector.innerHTML = `<p class="priority-empty">Impossible de charger les événements.</p>`;
-      return;
+      updateSummary("Erreur de chargement des événements.");
     }
-
-    events = (Array.isArray(data) ? data : []).sort(sortByDate);
-    applyFiltersAndRender();
   }
 
   function applyFiltersAndRender() {
@@ -134,13 +242,15 @@
     const search = normalize(document.getElementById("social-event-search")?.value || "");
     const max = Number(document.getElementById("social-max-events")?.value || 5);
 
-    filteredEvents = events.filter((event) => {
-      const haystack = normalize([event.title, event.city, event.region, event.type].join(" "));
-      if (region && event.region !== region) return false;
-      if (type && event.type !== type) return false;
-      if (search && !haystack.includes(search)) return false;
-      return true;
-    }).slice(0, Math.max(1, max));
+    filteredEvents = events
+      .filter((event) => {
+        const haystack = normalize([event.title, event.city, event.region, event.type].join(" "));
+        if (region && event.region !== region) return false;
+        if (type && event.type !== type) return false;
+        if (search && !haystack.includes(search)) return false;
+        return true;
+      })
+      .slice(0, Math.max(1, max));
 
     renderSelector();
     updateSummary();
@@ -157,7 +267,6 @@
 
     selector.innerHTML = filteredEvents.map((event) => {
       const checked = selectedIds.has(String(event.id)) ? "checked" : "";
-
       return `
         <label class="social-event-choice">
           <input type="checkbox" value="${escapeAttribute(event.id)}" ${checked} />
@@ -183,9 +292,14 @@
     return selected.length ? selected : filteredEvents;
   }
 
-  function updateSummary() {
+  function updateSummary(customText) {
     const summary = document.getElementById("social-selection-summary");
     if (!summary) return;
+
+    if (customText) {
+      summary.textContent = customText;
+      return;
+    }
 
     const chosen = getChosenEvents();
     const selectedCount = selectedIds.size;
@@ -207,15 +321,15 @@
       return;
     }
 
-    const text = {
+    const renderers = {
       central: renderCentralPost,
       regional: renderRegionalPost,
       multi: renderMultiRegionPost,
       story: renderStoryPost,
       carousel: renderCarouselPost
-    }[mode](chosen);
+    };
 
-    caption.value = text;
+    caption.value = (renderers[mode] || renderers.central)(chosen);
     caption.focus();
   }
 
@@ -242,7 +356,7 @@
     return [
       `📍 Cette semaine en ${region}`,
       "",
-      "Les rencontres autour du livre vivent aussi près de chez vous : salons, dédicaces, festivals et moments d’échange entre auteurs et lecteurs.",
+      "Les livres créent des rendez-vous près de chez vous : salons, dédicaces, festivals et rencontres entre auteurs et lecteurs.",
       "",
       "À découvrir :",
       renderBullets(list),
@@ -254,94 +368,90 @@
   }
 
   function renderMultiRegionPost(chosen) {
-    const grouped = groupByRegion(chosen);
-    const parts = [
+    const groups = groupByRegion(chosen);
+    const lines = [
       "📚 Les prochaines rencontres littéraires à suivre avec Dédicalivres",
       "",
       "Cette sélection traverse plusieurs régions, parce que les livres créent des rendez-vous partout en France.",
       ""
     ];
 
-    Object.entries(grouped).forEach(([region, list]) => {
-      parts.push(`📍 ${region}`);
-      parts.push(renderBullets(list));
-      parts.push("");
+    Object.entries(groups).forEach(([region, items]) => {
+      lines.push(`📍 ${region}`);
+      lines.push(renderBullets(items));
+      lines.push("");
     });
 
-    parts.push("Retrouvez tous les événements sur dedicalivres.fr");
-    parts.push("");
-    parts.push(renderHashtags(chosen, true));
-
-    return parts.join("\n").trim();
+    lines.push("Retrouvez tous les événements sur dedicalivres.fr");
+    lines.push("");
+    lines.push(renderHashtags(chosen, true));
+    return lines.join("\n");
   }
 
   function renderStoryPost(chosen) {
     return [
       "📚 Des rencontres littéraires à ne pas manquer !",
       "",
-      renderBullets(chosen.slice(0, 5)),
+      "Salons, dédicaces et festivals : retrouvez les prochains événements sur Dédicalivres.fr",
       "",
-      "Agenda complet sur dedicalivres.fr",
+      renderBullets(chosen.slice(0, 4)),
       "",
       renderHashtags(chosen, false)
     ].join("\n");
   }
 
   function renderCarouselPost(chosen) {
-    const slides = [
-      "🎠 Structure carousel Instagram",
-      "",
-      "Slide 1 — Les rendez-vous littéraires à venir avec Dédicalivres"
-    ];
-
+    const slides = ["Slide 1 — Les rendez-vous littéraires de la semaine"];
     chosen.slice(0, 8).forEach((event, index) => {
-      slides.push(`Slide ${index + 2} — ${event.title || "Événement littéraire"}`);
-      slides.push(`${formatDateRange(event.start_date, event.end_date)} · ${[event.city, event.region].filter(Boolean).join(" — ")}`);
+      slides.push(`Slide ${index + 2} — ${event.title || "Événement littéraire"} · ${formatDateRange(event.start_date, event.end_date)} · ${[event.city, event.region].filter(Boolean).join(" — ")}`);
     });
+    slides.push(`Slide ${slides.length + 1} — Retrouvez l’agenda complet sur Dédicalivres.fr`);
 
-    slides.push(`Slide ${Math.min(chosen.length, 8) + 2} — Retrouvez l’agenda complet sur dedicalivres.fr`);
-    slides.push("");
-    slides.push("Légende proposée :");
-    slides.push(renderCentralPost(chosen));
-
-    return slides.join("\n");
+    return [
+      "📲 Structure carousel Instagram",
+      "",
+      slides.join("\n"),
+      "",
+      "Légende proposée :",
+      "Dédicalivres rassemble les salons du livre, dédicaces, festivals et rencontres littéraires partout en France.",
+      "",
+      renderHashtags(chosen, true)
+    ].join("\n");
   }
 
-  function renderBullets(list) {
-    return list.map((event) => {
-      const date = formatDateRange(event.start_date, event.end_date);
+  function renderBullets(items) {
+    return items.map((event) => {
       const place = [event.city, event.region].filter(Boolean).join(" — ");
+      const date = formatDateRange(event.start_date, event.end_date);
       return `• ${event.title || "Événement littéraire"}${date ? ` — ${date}` : ""}${place ? ` — ${place}` : ""}`;
     }).join("\n");
   }
 
-  function renderHashtags(list, includeRegions) {
+  function renderHashtags(items, includeRegions) {
     const tags = [...BASE_HASHTAGS];
 
     if (includeRegions) {
-      const regions = [...new Set(list.map((event) => event.region).filter(Boolean))];
-      regions.forEach((region) => {
-        const regionalTags = REGION_HASHTAGS[region] || [`#${slugTag(region)}`];
-        regionalTags.forEach((tag) => tags.push(tag));
+      unique(items.map((event) => event.region).filter(Boolean)).forEach((region) => {
+        tags.push(...(REGION_HASHTAGS[region] || [`#${slugifyHashtag(region)}`]));
       });
     }
 
-    return [...new Set(tags)].slice(0, 28).join(" ");
+    return unique(tags).slice(0, 28).join(" ");
   }
 
   async function copyPost() {
     const caption = document.getElementById("instagram-caption");
-    if (!caption || !caption.value.trim()) {
-      generatePost();
-    }
+    if (!caption) return;
+
+    if (!caption.value.trim()) generatePost();
 
     try {
       await navigator.clipboard.writeText(caption.value);
-      flashSummary("Texte copié. Tu peux le coller dans Instagram.");
+      showLocalNotice("Texte copié ✔");
     } catch {
       caption.select();
       document.execCommand("copy");
-      flashSummary("Texte sélectionné et copié si le navigateur l’autorise.");
+      showLocalNotice("Texte sélectionné / copié ✔");
     }
   }
 
@@ -352,25 +462,16 @@
     updateSummary();
   }
 
-  function flashSummary(message) {
+  function showLocalNotice(message) {
     const summary = document.getElementById("social-selection-summary");
     if (!summary) return;
     const previous = summary.textContent;
     summary.textContent = message;
-    setTimeout(() => {
-      updateSummary();
-      if (!summary.textContent) summary.textContent = previous;
-    }, 2200);
+    setTimeout(() => updateSummary(previous && previous !== message ? previous : undefined), 1600);
   }
 
-  function sortByDate(a, b) {
-    const dateA = new Date(a.start_date || "2999-12-31").getTime();
-    const dateB = new Date(b.start_date || "2999-12-31").getTime();
-    return dateA - dateB;
-  }
-
-  function groupByRegion(list) {
-    return list.reduce((acc, event) => {
+  function groupByRegion(items) {
+    return items.reduce((acc, event) => {
       const key = event.region || "France";
       if (!acc[key]) acc[key] = [];
       acc[key].push(event);
@@ -378,32 +479,33 @@
     }, {});
   }
 
-  function mostCommonRegion(list) {
-    const counts = list.reduce((acc, event) => {
-      if (!event.region) return acc;
-      acc[event.region] = (acc[event.region] || 0) + 1;
-      return acc;
-    }, {});
-
+  function mostCommonRegion(items) {
+    const counts = {};
+    items.forEach((event) => {
+      if (!event.region) return;
+      counts[event.region] = (counts[event.region] || 0) + 1;
+    });
     return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
   }
 
-  function formatDateRange(startDate, endDate) {
-    const start = formatDate(startDate);
-    const end = endDate && endDate !== startDate ? formatDate(endDate) : "";
-    return end ? `${start} → ${end}` : start;
+  function sortByDate(a, b) {
+    const aTime = a.start_date ? new Date(a.start_date).getTime() : Number.MAX_SAFE_INTEGER;
+    const bTime = b.start_date ? new Date(b.start_date).getTime() : Number.MAX_SAFE_INTEGER;
+    return aTime - bTime;
+  }
+
+  function formatDateRange(start, end) {
+    if (!start) return "Date à préciser";
+    const s = formatDate(start);
+    const e = end && end !== start ? formatDate(end) : "";
+    return e ? `${s} → ${e}` : s;
   }
 
   function formatDate(value) {
-    if (!value) return "";
     try {
-      return new Intl.DateTimeFormat("fr-FR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      }).format(new Date(value));
+      return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
     } catch {
-      return value;
+      return value || "";
     }
   }
 
@@ -416,8 +518,15 @@
       .trim();
   }
 
-  function slugTag(value) {
-    return normalize(value).replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, "").replace(/^./, (c) => c.toUpperCase());
+  function slugifyHashtag(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]/g, "");
+  }
+
+  function unique(values) {
+    return Array.from(new Set(values.filter(Boolean)));
   }
 
   function escapeHtml(value) {
@@ -425,7 +534,7 @@
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
+      .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
 
