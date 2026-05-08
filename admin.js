@@ -36,19 +36,10 @@ const statsEvents = document.getElementById("stats-events");
 const statsPending = document.getElementById("stats-pending");
 const statsNewsletter = document.getElementById("stats-newsletter");
 const statsVisits = document.getElementById("stats-visits");
-const statsVisitsLabel = document.getElementById("stats-visits-label");
 
 const priorityCities = document.getElementById("priority-cities");
 const priorityDevices = document.getElementById("priority-devices");
 const priorityTrend = document.getElementById("priority-trend");
-
-const trafficStatsStatus = document.getElementById("traffic-stats-status");
-const trafficToday = document.getElementById("traffic-today");
-const trafficWeek = document.getElementById("traffic-week");
-const trafficEventViews = document.getElementById("traffic-event-views");
-const trafficTopEvent = document.getElementById("traffic-top-event");
-const topEventVisitsList = document.getElementById("top-event-visits-list");
-const topSitePagesList = document.getElementById("top-site-pages-list");
 
 const editModal = document.getElementById("edit-modal");
 const editId = document.getElementById("edit-id");
@@ -69,12 +60,8 @@ const closeEditModalBtn = document.getElementById("close-edit-modal");
 
 let allEvents = [];
 let locationRows = [];
-let siteVisitRows = [];
-let eventVisitRows = [];
 let map = null;
 let markersLayer = null;
-let userSearchMap = null;
-let userSearchMarkersLayer = null;
 let selectedAdminImageFile = null;
 
 init();
@@ -207,7 +194,6 @@ function bindTabs() {
     if (target === "overview") {
       setTimeout(() => {
         map?.invalidateSize();
-        userSearchMap?.invalidateSize();
       }, 250);
     }
   });
@@ -260,23 +246,17 @@ async function loadDashboard() {
     loadEvents(),
     loadNewsletterCount(),
     loadVisitsCount(),
-    loadLocationTracking(),
-    loadSiteVisitRows(),
-    loadEventVisitRows()
+    loadLocationTracking()
   ]);
 
   updateStats();
   renderEvents();
   renderSocialUpcoming();
   renderPriorityZones();
-  renderUserSearchSummary();
-  renderTrafficStats();
   initMap();
-  initUserSearchMap();
 
   setTimeout(() => {
     map?.invalidateSize();
-    userSearchMap?.invalidateSize();
   }, 250);
 }
 
@@ -312,51 +292,10 @@ async function loadNewsletterCount() {
 }
 
 async function loadVisitsCount() {
-  if (!statsVisits) return;
-
-  /*
-    V6.3 — correction du compteur de visites.
-    Ancien fonctionnement : lecture de localStorage dans le navigateur admin,
-    donc compteur local et non représentatif des visiteurs réels.
-
-    Nouveau fonctionnement : on essaie d'abord des tables Supabase possibles.
-    Si aucune table de visites n'existe, on utilise location_tracking comme
-    indicateur d'activité, puis localStorage en dernier secours.
-  */
-  const sources = [
-    { table: "site_visits", label: "VISITES", hint: "visites enregistrées" },
-    { table: "visits", label: "VISITES", hint: "visites enregistrées" },
-    { table: "page_views", label: "PAGES VUES", hint: "pages vues enregistrées" },
-    { table: "tracking_events", label: "TRACKING", hint: "événements de tracking enregistrés" },
-    { table: "location_tracking", label: "LOCALISATIONS", hint: "clics Me localiser enregistrés" }
-  ];
-
-  for (const source of sources) {
-    try {
-      const { count, error } = await supabaseClient
-        .from(source.table)
-        .select("*", { count: "exact", head: true });
-
-      if (error) throw error;
-
-      statsVisits.textContent = count || 0;
-      if (statsVisitsLabel) statsVisitsLabel.textContent = source.label;
-      statsVisits.closest(".stat-card")?.setAttribute(
-        "title",
-        `Compteur basé sur ${source.table} : ${source.hint}.`
-      );
-      return;
-    } catch (error) {
-      // Table absente ou non autorisée : on tente la source suivante.
-    }
+  if (statsVisits) {
+    statsVisits.textContent =
+      localStorage.getItem("dedicalivres_visits") || "0";
   }
-
-  statsVisits.textContent = localStorage.getItem("dedicalivres_visits") || "0";
-  if (statsVisitsLabel) statsVisitsLabel.textContent = "VISITES LOCALES";
-  statsVisits.closest(".stat-card")?.setAttribute(
-    "title",
-    "Fallback localStorage : ce compteur ne reflète que ce navigateur. Envoie tracking-v4.js pour brancher les visites réelles."
-  );
 }
 
 async function loadLocationTracking() {
@@ -373,68 +312,6 @@ async function loadLocationTracking() {
   } catch (error) {
     console.warn("Tracking localisation indisponible :", error);
     locationRows = [];
-  }
-}
-
-
-async function loadSiteVisitRows() {
-  try {
-    const { data, error } = await supabaseClient
-      .from("site_visits")
-      .select("id, path, page_title, referrer, created_at")
-      .order("created_at", { ascending: false })
-      .limit(1200);
-
-    if (error) throw error;
-
-    siteVisitRows = Array.isArray(data) ? data : [];
-  } catch (error) {
-    console.warn("Statistiques site_visits indisponibles :", error);
-    siteVisitRows = [];
-  }
-}
-
-async function loadEventVisitRows() {
-  try {
-    const { data, error } = await supabaseClient
-      .from("event_visits")
-      .select(`
-        id,
-        event_id,
-        path,
-        referrer,
-        created_at,
-        events (
-          id,
-          title,
-          city,
-          region,
-          start_date
-        )
-      `)
-      .order("created_at", { ascending: false })
-      .limit(1200);
-
-    if (error) throw error;
-
-    eventVisitRows = Array.isArray(data) ? data : [];
-  } catch (error) {
-    console.warn("Statistiques event_visits avec jointure indisponibles :", error);
-
-    try {
-      const { data, error: fallbackError } = await supabaseClient
-        .from("event_visits")
-        .select("id, event_id, path, referrer, created_at")
-        .order("created_at", { ascending: false })
-        .limit(1200);
-
-      if (fallbackError) throw fallbackError;
-
-      eventVisitRows = Array.isArray(data) ? data : [];
-    } catch (fallbackError) {
-      console.warn("Statistiques event_visits indisponibles :", fallbackError);
-      eventVisitRows = [];
-    }
   }
 }
 
@@ -849,300 +726,6 @@ function initMap() {
   }, 250);
 }
 
-
-/* STATISTIQUES TRAFIC / ÉVÉNEMENTS */
-
-function renderTrafficStats() {
-  const todayVisits = countRowsSince(siteVisitRows, 1, true);
-  const weekVisits = countRowsSince(siteVisitRows, 7, false);
-  const topEvents = getTopEventVisits(8);
-  const topPages = getTopSitePages(8);
-
-  if (trafficToday) trafficToday.textContent = todayVisits;
-  if (trafficWeek) trafficWeek.textContent = weekVisits;
-  if (trafficEventViews) trafficEventViews.textContent = eventVisitRows.length;
-
-  if (trafficTopEvent) {
-    trafficTopEvent.textContent = topEvents[0]
-      ? truncateLabel(topEvents[0].title, 24)
-      : "—";
-  }
-
-  if (trafficStatsStatus) {
-    if (!siteVisitRows.length && !eventVisitRows.length) {
-      trafficStatsStatus.textContent = "Aucune visite enregistrée pour le moment";
-    } else {
-      trafficStatsStatus.textContent = `${siteVisitRows.length} visite${siteVisitRows.length > 1 ? "s" : ""} site · ${eventVisitRows.length} vue${eventVisitRows.length > 1 ? "s" : ""} événement`;
-    }
-  }
-
-  renderTopEventVisits(topEvents);
-  renderTopSitePages(topPages);
-}
-
-function renderTopEventVisits(items) {
-  if (!topEventVisitsList) return;
-
-  if (!items.length) {
-    topEventVisitsList.innerHTML = `<p class="priority-empty">Aucune vue de fiche événement pour le moment.</p>`;
-    return;
-  }
-
-  topEventVisitsList.innerHTML = items.map((item, index) => `
-    <article class="traffic-row">
-      <div class="traffic-rank">${index + 1}</div>
-      <div class="traffic-row-main">
-        <strong>${escapeHtml(item.title)}</strong>
-        <small>${escapeHtml(item.subtitle || "Fiche événement")}</small>
-      </div>
-      <div class="traffic-row-actions">
-        <span>${item.count}</span>
-        ${item.eventId ? `<a href="event.html?id=${encodeURIComponent(item.eventId)}" target="_blank" rel="noopener noreferrer">Voir</a>` : ""}
-      </div>
-    </article>
-  `).join("");
-}
-
-function renderTopSitePages(items) {
-  if (!topSitePagesList) return;
-
-  if (!items.length) {
-    topSitePagesList.innerHTML = `<p class="priority-empty">Aucune page consultée pour le moment.</p>`;
-    return;
-  }
-
-  topSitePagesList.innerHTML = items.map((item, index) => `
-    <article class="traffic-row">
-      <div class="traffic-rank">${index + 1}</div>
-      <div class="traffic-row-main">
-        <strong>${escapeHtml(item.label)}</strong>
-        <small>${escapeHtml(item.path)}</small>
-      </div>
-      <div class="traffic-row-actions">
-        <span>${item.count}</span>
-      </div>
-    </article>
-  `).join("");
-}
-
-function getTopEventVisits(limit) {
-  const grouped = new Map();
-
-  eventVisitRows.forEach((row) => {
-    const eventId = row.event_id || extractEventIdFromPath(row.path);
-    const key = eventId || row.path || "evenement-inconnu";
-
-    if (!grouped.has(key)) {
-      const event = row.events || {};
-
-      grouped.set(key, {
-        eventId,
-        title: event.title || (eventId ? `Événement ${eventId}` : "Événement inconnu"),
-        subtitle: [event.city, formatDate(event.start_date)].filter(Boolean).join(" · "),
-        count: 0
-      });
-    }
-
-    grouped.get(key).count += 1;
-  });
-
-  return Array.from(grouped.values())
-    .sort((a, b) => b.count - a.count)
-    .slice(0, limit);
-}
-
-function getTopSitePages(limit) {
-  const grouped = new Map();
-
-  siteVisitRows.forEach((row) => {
-    const path = row.path || "/";
-    const cleanPath = normalizePathForStats(path);
-
-    if (!grouped.has(cleanPath)) {
-      grouped.set(cleanPath, {
-        path: cleanPath,
-        label: labelPage(cleanPath, row.page_title),
-        count: 0
-      });
-    }
-
-    grouped.get(cleanPath).count += 1;
-  });
-
-  return Array.from(grouped.values())
-    .sort((a, b) => b.count - a.count)
-    .slice(0, limit);
-}
-
-function countRowsSince(rows, days, todayOnly) {
-  const now = new Date();
-  const limit = new Date(now);
-
-  if (todayOnly) {
-    limit.setHours(0, 0, 0, 0);
-  } else {
-    limit.setDate(limit.getDate() - days);
-  }
-
-  return rows.filter((row) => {
-    if (!row.created_at) return false;
-    return new Date(row.created_at) >= limit;
-  }).length;
-}
-
-function normalizePathForStats(path) {
-  const value = String(path || "/").trim() || "/";
-
-  try {
-    const url = new URL(value, window.location.origin);
-
-    if (url.pathname.includes("event")) {
-      const id = url.searchParams.get("id");
-      return id ? `${url.pathname}?id=${id}` : url.pathname;
-    }
-
-    return url.pathname || "/";
-  } catch {
-    return value.split("#")[0] || "/";
-  }
-}
-
-function labelPage(path, title) {
-  if (title) return title;
-  if (path === "/" || /index\.html$/i.test(path)) return "Accueil";
-  if (/event\.html/i.test(path)) return "Fiche événement";
-  if (/author\.html/i.test(path)) return "Fiche auteur";
-  return path.replace(/^\//, "") || "Accueil";
-}
-
-function extractEventIdFromPath(path) {
-  try {
-    const url = new URL(String(path || ""), window.location.origin);
-    return url.searchParams.get("id") || "";
-  } catch {
-    return "";
-  }
-}
-
-function truncateLabel(value, maxLength) {
-  const text = String(value || "");
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
-}
-
-/* CARTE DÉDIÉE — RECHERCHES UTILISATEURS */
-
-function initUserSearchMap() {
-  if (!window.L) return;
-
-  const mapElement = document.getElementById("user-search-map");
-  if (!mapElement) return;
-
-  if (!userSearchMap) {
-    userSearchMap = L.map("user-search-map").setView([46.6, 1.88], 6);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap"
-    }).addTo(userSearchMap);
-
-    userSearchMarkersLayer = L.layerGroup().addTo(userSearchMap);
-  }
-
-  userSearchMarkersLayer.clearLayers();
-
-  const rowsWithCoords = locationRows.filter((row) => row.lat && row.lng);
-
-  rowsWithCoords.forEach((row) => {
-    const marker = L.circleMarker([Number(row.lat), Number(row.lng)], {
-      radius: 7,
-      color: "#ff9e44",
-      fillColor: "#ff9e44",
-      fillOpacity: 0.72
-    });
-
-    marker.bindPopup(`
-      <strong>Recherche utilisateur</strong>
-      <br>
-      Zone : ${escapeHtml(row.city || row.region || "Zone inconnue")}
-      <br>
-      Appareil : ${escapeHtml(row.device || "non précisé")}
-      <br>
-      Page : ${escapeHtml(row.page || "-")}
-      <br>
-      Date : ${escapeHtml(formatDateTime(row.created_at))}
-    `);
-
-    marker.addTo(userSearchMarkersLayer);
-  });
-
-  if (rowsWithCoords.length) {
-    const bounds = L.latLngBounds(
-      rowsWithCoords.map((row) => [Number(row.lat), Number(row.lng)])
-    );
-
-    userSearchMap.fitBounds(bounds.pad(0.2), { maxZoom: 9 });
-  }
-
-  setTimeout(() => {
-    userSearchMap.invalidateSize();
-  }, 250);
-}
-
-function renderUserSearchSummary() {
-  const count = document.getElementById("user-search-map-count");
-  const total = document.getElementById("user-search-total");
-  const week = document.getElementById("user-search-week");
-  const topCity = document.getElementById("user-search-top-city");
-
-  const totalCount = locationRows.length;
-  const recentRows = getRecentLocationRows(7);
-  const top = getTopLocationLabel(locationRows);
-
-  if (count) {
-    count.textContent = `${totalCount} localisation${totalCount > 1 ? "s" : ""}`;
-  }
-
-  if (total) total.textContent = totalCount;
-  if (week) week.textContent = recentRows.length;
-  if (topCity) topCity.textContent = top || "—";
-}
-
-function getRecentLocationRows(days) {
-  const limit = new Date();
-  limit.setDate(limit.getDate() - days);
-
-  return locationRows.filter((row) => {
-    if (!row.created_at) return false;
-    return new Date(row.created_at) >= limit;
-  });
-}
-
-function getTopLocationLabel(rows) {
-  const counts = countBy(
-    rows
-      .map((row) => cleanLabel(row.city || row.region || "Zone inconnue"))
-      .filter(Boolean)
-  );
-
-  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-  return top ? top[0] : "";
-}
-
-function formatDateTime(value) {
-  if (!value) return "Non précisée";
-
-  try {
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}
-
 /* SOCIAL */
 
 function renderSocialUpcoming() {
@@ -1273,8 +856,6 @@ function showToast(message) {
     toast.remove();
   }, 3200);
 }
-
-window.showToast = showToast;
 
 function normalize(value) {
   return (value || "")

@@ -20,7 +20,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=6-stable" />
+  <link rel="stylesheet" href="admin.css" />
 </head>
 
 <body class="cyber-admin">
@@ -108,7 +108,6 @@
       type="button"
     >
       🛡️ Administration
-      <span id="author-requests-tab-badge" class="admin-tab-badge" hidden>0</span>
     </button>
 
     <button
@@ -148,85 +147,17 @@
           <strong id="stats-pending">0</strong>
         </article>
 
-        <article class="stat-card glow-red stat-card-author-requests" id="stat-card-author-requests">
-          <span class="stat-label">DEMANDES AUTEURS</span>
-          <strong id="stats-author-requests">0</strong>
-        </article>
-
         <article class="stat-card glow-orange">
           <span class="stat-label">NEWSLETTER</span>
           <strong id="stats-newsletter">0</strong>
         </article>
 
         <article class="stat-card glow-purple">
-          <span class="stat-label" id="stats-visits-label">VISITES</span>
+          <span class="stat-label">VISITES</span>
           <strong id="stats-visits">0</strong>
         </article>
 
       </section>
-
-      <!-- ============================================= -->
-      <!-- STATISTIQUES ÉVÉNEMENTS -->
-      <!-- ============================================= -->
-
-      <section class="admin-panel event-stats-panel">
-
-        <div class="section-head">
-          <h3>STATISTIQUES ÉVÉNEMENTS</h3>
-          <span id="traffic-stats-status">Analyse des visites</span>
-        </div>
-
-        <div class="traffic-stats-grid">
-          <article class="traffic-stat-card">
-            <span>Visites aujourd’hui</span>
-            <strong id="traffic-today">0</strong>
-          </article>
-
-          <article class="traffic-stat-card">
-            <span>Visites 7 jours</span>
-            <strong id="traffic-week">0</strong>
-          </article>
-
-          <article class="traffic-stat-card">
-            <span>Vues fiches événements</span>
-            <strong id="traffic-event-views">0</strong>
-          </article>
-
-          <article class="traffic-stat-card">
-            <span>Fiche la plus vue</span>
-            <strong id="traffic-top-event">—</strong>
-          </article>
-        </div>
-
-        <div class="traffic-lists-grid">
-          <article class="traffic-list-card">
-            <div class="traffic-list-head">
-              <h4>Top fiches événements</h4>
-              <span>event_visits</span>
-            </div>
-            <div id="top-event-visits-list" class="traffic-list">
-              <p class="priority-empty">Chargement…</p>
-            </div>
-          </article>
-
-          <article class="traffic-list-card">
-            <div class="traffic-list-head">
-              <h4>Pages les plus consultées</h4>
-              <span>site_visits</span>
-            </div>
-            <div id="top-site-pages-list" class="traffic-list">
-              <p class="priority-empty">Chargement…</p>
-            </div>
-          </article>
-        </div>
-
-        <p class="traffic-stats-note">
-          Ces statistiques utilisent les tables Supabase <code>site_visits</code> et <code>event_visits</code>.
-          Le tracking évite les doublons dans une même session navigateur.
-        </p>
-
-      </section>
-
 
       <!-- ============================================= -->
       <!-- MAP -->
@@ -292,43 +223,6 @@
 
       </section>
 
-      <!-- ============================================= -->
-      <!-- CARTE RECHERCHES UTILISATEURS -->
-      <!-- ============================================= -->
-
-      <section class="admin-panel user-search-map-panel">
-
-        <div class="section-head">
-          <h3>CARTE RECHERCHES UTILISATEURS</h3>
-          <span id="user-search-map-count">0 localisation</span>
-        </div>
-
-        <div class="user-search-stats-grid">
-          <article class="user-search-stat">
-            <span>Total</span>
-            <strong id="user-search-total">0</strong>
-          </article>
-
-          <article class="user-search-stat">
-            <span>7 jours</span>
-            <strong id="user-search-week">0</strong>
-          </article>
-
-          <article class="user-search-stat">
-            <span>Top zone</span>
-            <strong id="user-search-top-city">—</strong>
-          </article>
-        </div>
-
-        <p class="user-search-map-note">
-          Carte basée sur les clics des visiteurs sur « Me localiser ».
-          Les coordonnées sont approximatives afin de préserver la confidentialité.
-        </p>
-
-        <div id="user-search-map"></div>
-
-      </section>
-
     </section>
 
     <!-- ================================================= -->
@@ -363,26 +257,6 @@
           <option value="Dédicace">Dédicace</option>
           <option value="Autre">Autre</option>
         </select>
-
-      </section>
-
-
-      <!-- ================================================= -->
-      <!-- MODÉRATION AUTEURS — V6.6 -->
-      <!-- ================================================= -->
-
-      <section id="author-requests-panel" class="admin-panel author-requests-panel">
-
-        <div class="section-head">
-          <h3>MODÉRATION AUTEURS</h3>
-          <span id="author-requests-count">Chargement…</span>
-        </div>
-
-        <div id="author-requests-container" class="author-requests-container">
-          <article class="author-request-card">
-            Chargement de la modération auteurs…
-          </article>
-        </div>
 
       </section>
 
@@ -594,9 +468,9 @@
   crossorigin=""
 ></script>
 
-<script src="config.js?v=6-stable"></script>
-<script src="admin.js?v=6-stable"></script>
-<script src="admin-author-requests.js?v=6-stable"></script>
+<script src="config.js"></script>
+<script src="admin.js?v=7.5"></script>
+<script src="admin-testimonials.js?v=7.5"></script>
 
 </body>
 </html>
