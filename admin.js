@@ -42,6 +42,14 @@ const priorityCities = document.getElementById("priority-cities");
 const priorityDevices = document.getElementById("priority-devices");
 const priorityTrend = document.getElementById("priority-trend");
 
+const trafficStatsStatus = document.getElementById("traffic-stats-status");
+const trafficToday = document.getElementById("traffic-today");
+const trafficWeek = document.getElementById("traffic-week");
+const trafficEventViews = document.getElementById("traffic-event-views");
+const trafficTopEvent = document.getElementById("traffic-top-event");
+const topEventVisitsList = document.getElementById("top-event-visits-list");
+const topSitePagesList = document.getElementById("top-site-pages-list");
+
 const editModal = document.getElementById("edit-modal");
 const editId = document.getElementById("edit-id");
 const editTitle = document.getElementById("edit-title");
@@ -61,6 +69,8 @@ const closeEditModalBtn = document.getElementById("close-edit-modal");
 
 let allEvents = [];
 let locationRows = [];
+let siteVisitRows = [];
+let eventVisitRows = [];
 let map = null;
 let markersLayer = null;
 let userSearchMap = null;
@@ -250,7 +260,9 @@ async function loadDashboard() {
     loadEvents(),
     loadNewsletterCount(),
     loadVisitsCount(),
-    loadLocationTracking()
+    loadLocationTracking(),
+    loadSiteVisitRows(),
+    loadEventVisitRows()
   ]);
 
   updateStats();
@@ -258,6 +270,7 @@ async function loadDashboard() {
   renderSocialUpcoming();
   renderPriorityZones();
   renderUserSearchSummary();
+  renderTrafficStats();
   initMap();
   initUserSearchMap();
 
@@ -360,6 +373,68 @@ async function loadLocationTracking() {
   } catch (error) {
     console.warn("Tracking localisation indisponible :", error);
     locationRows = [];
+  }
+}
+
+
+async function loadSiteVisitRows() {
+  try {
+    const { data, error } = await supabaseClient
+      .from("site_visits")
+      .select("id, path, page_title, referrer, created_at")
+      .order("created_at", { ascending: false })
+      .limit(1200);
+
+    if (error) throw error;
+
+    siteVisitRows = Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.warn("Statistiques site_visits indisponibles :", error);
+    siteVisitRows = [];
+  }
+}
+
+async function loadEventVisitRows() {
+  try {
+    const { data, error } = await supabaseClient
+      .from("event_visits")
+      .select(`
+        id,
+        event_id,
+        path,
+        referrer,
+        created_at,
+        events (
+          id,
+          title,
+          city,
+          region,
+          start_date
+        )
+      `)
+      .order("created_at", { ascending: false })
+      .limit(1200);
+
+    if (error) throw error;
+
+    eventVisitRows = Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.warn("Statistiques event_visits avec jointure indisponibles :", error);
+
+    try {
+      const { data, error: fallbackError } = await supabaseClient
+        .from("event_visits")
+        .select("id, event_id, path, referrer, created_at")
+        .order("created_at", { ascending: false })
+        .limit(1200);
+
+      if (fallbackError) throw fallbackError;
+
+      eventVisitRows = Array.isArray(data) ? data : [];
+    } catch (fallbackError) {
+      console.warn("Statistiques event_visits indisponibles :", fallbackError);
+      eventVisitRows = [];
+    }
   }
 }
 
@@ -772,6 +847,186 @@ function initMap() {
   setTimeout(() => {
     map.invalidateSize();
   }, 250);
+}
+
+
+/* STATISTIQUES TRAFIC / ÉVÉNEMENTS */
+
+function renderTrafficStats() {
+  const todayVisits = countRowsSince(siteVisitRows, 1, true);
+  const weekVisits = countRowsSince(siteVisitRows, 7, false);
+  const topEvents = getTopEventVisits(8);
+  const topPages = getTopSitePages(8);
+
+  if (trafficToday) trafficToday.textContent = todayVisits;
+  if (trafficWeek) trafficWeek.textContent = weekVisits;
+  if (trafficEventViews) trafficEventViews.textContent = eventVisitRows.length;
+
+  if (trafficTopEvent) {
+    trafficTopEvent.textContent = topEvents[0]
+      ? truncateLabel(topEvents[0].title, 24)
+      : "—";
+  }
+
+  if (trafficStatsStatus) {
+    if (!siteVisitRows.length && !eventVisitRows.length) {
+      trafficStatsStatus.textContent = "Aucune visite enregistrée pour le moment";
+    } else {
+      trafficStatsStatus.textContent = `${siteVisitRows.length} visite${siteVisitRows.length > 1 ? "s" : ""} site · ${eventVisitRows.length} vue${eventVisitRows.length > 1 ? "s" : ""} événement`;
+    }
+  }
+
+  renderTopEventVisits(topEvents);
+  renderTopSitePages(topPages);
+}
+
+function renderTopEventVisits(items) {
+  if (!topEventVisitsList) return;
+
+  if (!items.length) {
+    topEventVisitsList.innerHTML = `<p class="priority-empty">Aucune vue de fiche événement pour le moment.</p>`;
+    return;
+  }
+
+  topEventVisitsList.innerHTML = items.map((item, index) => `
+    <article class="traffic-row">
+      <div class="traffic-rank">${index + 1}</div>
+      <div class="traffic-row-main">
+        <strong>${escapeHtml(item.title)}</strong>
+        <small>${escapeHtml(item.subtitle || "Fiche événement")}</small>
+      </div>
+      <div class="traffic-row-actions">
+        <span>${item.count}</span>
+        ${item.eventId ? `<a href="event.html?id=${encodeURIComponent(item.eventId)}" target="_blank" rel="noopener noreferrer">Voir</a>` : ""}
+      </div>
+    </article>
+  `).join("");
+}
+
+function renderTopSitePages(items) {
+  if (!topSitePagesList) return;
+
+  if (!items.length) {
+    topSitePagesList.innerHTML = `<p class="priority-empty">Aucune page consultée pour le moment.</p>`;
+    return;
+  }
+
+  topSitePagesList.innerHTML = items.map((item, index) => `
+    <article class="traffic-row">
+      <div class="traffic-rank">${index + 1}</div>
+      <div class="traffic-row-main">
+        <strong>${escapeHtml(item.label)}</strong>
+        <small>${escapeHtml(item.path)}</small>
+      </div>
+      <div class="traffic-row-actions">
+        <span>${item.count}</span>
+      </div>
+    </article>
+  `).join("");
+}
+
+function getTopEventVisits(limit) {
+  const grouped = new Map();
+
+  eventVisitRows.forEach((row) => {
+    const eventId = row.event_id || extractEventIdFromPath(row.path);
+    const key = eventId || row.path || "evenement-inconnu";
+
+    if (!grouped.has(key)) {
+      const event = row.events || {};
+
+      grouped.set(key, {
+        eventId,
+        title: event.title || (eventId ? `Événement ${eventId}` : "Événement inconnu"),
+        subtitle: [event.city, formatDate(event.start_date)].filter(Boolean).join(" · "),
+        count: 0
+      });
+    }
+
+    grouped.get(key).count += 1;
+  });
+
+  return Array.from(grouped.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
+function getTopSitePages(limit) {
+  const grouped = new Map();
+
+  siteVisitRows.forEach((row) => {
+    const path = row.path || "/";
+    const cleanPath = normalizePathForStats(path);
+
+    if (!grouped.has(cleanPath)) {
+      grouped.set(cleanPath, {
+        path: cleanPath,
+        label: labelPage(cleanPath, row.page_title),
+        count: 0
+      });
+    }
+
+    grouped.get(cleanPath).count += 1;
+  });
+
+  return Array.from(grouped.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
+function countRowsSince(rows, days, todayOnly) {
+  const now = new Date();
+  const limit = new Date(now);
+
+  if (todayOnly) {
+    limit.setHours(0, 0, 0, 0);
+  } else {
+    limit.setDate(limit.getDate() - days);
+  }
+
+  return rows.filter((row) => {
+    if (!row.created_at) return false;
+    return new Date(row.created_at) >= limit;
+  }).length;
+}
+
+function normalizePathForStats(path) {
+  const value = String(path || "/").trim() || "/";
+
+  try {
+    const url = new URL(value, window.location.origin);
+
+    if (url.pathname.includes("event")) {
+      const id = url.searchParams.get("id");
+      return id ? `${url.pathname}?id=${id}` : url.pathname;
+    }
+
+    return url.pathname || "/";
+  } catch {
+    return value.split("#")[0] || "/";
+  }
+}
+
+function labelPage(path, title) {
+  if (title) return title;
+  if (path === "/" || /index\.html$/i.test(path)) return "Accueil";
+  if (/event\.html/i.test(path)) return "Fiche événement";
+  if (/author\.html/i.test(path)) return "Fiche auteur";
+  return path.replace(/^\//, "") || "Accueil";
+}
+
+function extractEventIdFromPath(path) {
+  try {
+    const url = new URL(String(path || ""), window.location.origin);
+    return url.searchParams.get("id") || "";
+  } catch {
+    return "";
+  }
+}
+
+function truncateLabel(value, maxLength) {
+  const text = String(value || "");
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
 }
 
 /* CARTE DÉDIÉE — RECHERCHES UTILISATEURS */
