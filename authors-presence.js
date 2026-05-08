@@ -1,207 +1,421 @@
 /* =========================================================
-  DÉDICALIVRES — AUTEURS PRÉSENTS
-  Fichier : authors-presence.js
+   DÉDICALIVRES — V6.6 Modération auteurs
+   Fichier isolé, chargé après admin.js.
 
-  Rôle :
-  - Afficher le bloc "Auteurs présents" sur event.html.
-  - Permettre à un auteur de demander à être associé à un événement.
-  - Afficher publiquement uniquement les auteurs validés.
-
-  Ce fichier est volontairement isolé : il ne modifie pas event.js.
+   Rôle :
+   - Afficher les demandes auteurs en attente.
+   - Afficher aussi les présences validées.
+   - Rechercher / filtrer les présences auteurs.
+   - Valider, remettre en attente ou supprimer une présence.
+   - Garder les notifications admin basées uniquement sur les demandes en attente.
 ========================================================= */
 
 (function () {
   "use strict";
 
   const config = window.DEDICALIVRES_CONFIG;
-  const eventDetail = document.getElementById("event-detail");
 
   if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
-    console.error("Configuration Supabase manquante pour authors-presence.js");
+    console.error("Configuration Supabase manquante pour admin-author-requests.js");
     return;
   }
 
-  const supabaseClient = window.supabase.createClient(
+  const client = window.supabase.createClient(
     config.supabaseUrl,
     config.supabaseAnonKey
   );
 
-  const params = new URLSearchParams(window.location.search);
-  const eventId = params.get("id");
+  let authorRows = [];
 
-  if (!eventId || !eventDetail) return;
+  document.addEventListener("DOMContentLoaded", initAuthorModerationAdmin);
 
-  initAuthorPresence();
+  async function initAuthorModerationAdmin() {
+    ensurePanelExists();
+    bindAuthorModerationControls();
+    await loadAuthorModerationRows();
 
-  async function initAuthorPresence() {
-    const { data: event, error } = await supabaseClient
-      .from("events")
-      .select("id, title, validated, rejected")
-      .eq("id", eventId)
-      .maybeSingle();
-
-    // Condition demandée : option visible uniquement pour événement validé et non rejeté.
-    if (error || !event || !event.validated || event.rejected) return;
-
-    createAuthorPresenceBlock();
-    bindAuthorPresenceForm();
-    loadAuthorsPresence();
-  }
-
-  function createAuthorPresenceBlock() {
-    if (document.getElementById("authors-presence-section")) return;
-
-    const section = document.createElement("section");
-    section.id = "authors-presence-section";
-    section.className = "authors-presence";
-
-    section.innerHTML = `
-      <div class="authors-presence-header">
-        <p class="authors-presence-eyebrow">Participation auteurs</p>
-        <h2>Auteurs présents</h2>
-      </div>
-
-      <div id="authors-presence-list" class="author-presence-list"></div>
-
-      <p id="authors-presence-empty" class="author-presence-empty" hidden>
-        Aucun auteur ne s’est encore déclaré présent pour cet événement.
-      </p>
-
-      <p class="author-presence-note">
-        Les auteurs indiqués ici ont été associés à cet événement après validation par Dédicalivres.
-        Cette information concerne uniquement les auteurs dont la présence a été validée.
-        Pour une information officielle à jour, notamment en cas d’annulation ou de modification,
-        consultez toujours le site de l’événement.
-      </p>
-
-      <form id="author-presence-form" class="author-presence-form">
-        <h3>Vous êtes auteur et vous participez à cet événement ?</h3>
-        <p class="author-presence-form-intro">Demandez à être associé à cette fiche. Votre demande sera vérifiée avant affichage public.</p>
-
-        <div class="author-presence-grid">
-          <input name="pseudo" type="text" placeholder="Pseudo / nom d’auteur" minlength="2" required />
-          <input name="website" type="url" placeholder="Lien vers votre site ou page officielle" required />
-        </div>
-
-        <button class="btn-primary" type="submit">Demander à être associé</button>
-        <p id="author-presence-feedback" aria-live="polite"></p>
-      </form>
-    `;
-
-    eventDetail.insertAdjacentElement("afterend", section);
-  }
-
-  function bindAuthorPresenceForm() {
-    const form = document.getElementById("author-presence-form");
-    if (!form) return;
-
-    form.addEventListener("submit", async function (event) {
-      event.preventDefault();
-
-      const feedback = document.getElementById("author-presence-feedback");
-      const submitButton = form.querySelector('button[type="submit"]');
-
-      const formData = new FormData(form);
-      const pseudo = cleanText(formData.get("pseudo"));
-      const website = normalizeWebsite(formData.get("website"));
-
-      try {
-        if (pseudo.length < 2) throw new Error("Merci d’indiquer un pseudo valide.");
-        if (!isValidUrl(website)) throw new Error("Merci d’indiquer un lien valide.");
-
-        setButtonLoading(submitButton, true, "Envoi de la demande…");
-        setFeedback(feedback, "", "Envoi de votre demande…");
-
-        const { error } = await supabaseClient
-          .from("event_authors_presence")
-          .insert([{ event_id: eventId, pseudo, website, validated: false }]);
-
-        if (error) throw error;
-
-        form.reset();
-        setFeedback(feedback, "success", "Votre demande a bien été envoyée. Elle sera vérifiée avant affichage public.");
-      } catch (error) {
-        console.error("Erreur auteur présent :", error);
-        setFeedback(feedback, "error", error.message || "Une erreur est survenue.");
-      } finally {
-        setButtonLoading(submitButton, false, "Demander à être associé");
-      }
+    const refreshBtn = document.getElementById("refresh-btn");
+    refreshBtn?.addEventListener("click", () => {
+      setTimeout(loadAuthorModerationRows, 500);
     });
   }
 
-  async function loadAuthorsPresence() {
-    const list = document.getElementById("authors-presence-list");
-    const empty = document.getElementById("authors-presence-empty");
+  function ensurePanelExists() {
+    let panel = document.getElementById("author-requests-panel");
 
-    if (!list || !empty) return;
+    if (!panel) {
+      const moderationTab = document.getElementById("tab-moderation");
+      if (!moderationTab) return;
 
-    const { data, error } = await supabaseClient
+      const supervisionPanel = moderationTab.querySelector(".admin-panel");
+      panel = document.createElement("section");
+      panel.id = "author-requests-panel";
+      panel.className = "admin-panel author-requests-panel";
+
+      if (supervisionPanel) {
+        moderationTab.insertBefore(panel, supervisionPanel);
+      } else {
+        moderationTab.appendChild(panel);
+      }
+    }
+
+    panel.innerHTML = `
+      <div class="section-head author-moderation-head">
+        <div>
+          <h3>MODÉRATION AUTEURS</h3>
+          <p class="author-moderation-subtitle">
+            Valide les demandes d’association auteurs et garde un œil sur les présences déjà publiées.
+          </p>
+        </div>
+        <span id="author-requests-count">Chargement…</span>
+      </div>
+
+      <div class="author-moderation-toolbar">
+        <input
+          id="author-moderation-search"
+          type="search"
+          placeholder="Rechercher un auteur, événement, ville…"
+        />
+
+        <select id="author-moderation-status">
+          <option value="pending">En attente</option>
+          <option value="validated">Validées</option>
+          <option value="all">Toutes</option>
+        </select>
+
+        <button id="author-moderation-refresh" class="cyber-btn-secondary" type="button">
+          Rafraîchir auteurs
+        </button>
+      </div>
+
+      <div class="author-moderation-summary" id="author-moderation-summary">
+        <article>
+          <span>En attente</span>
+          <strong id="author-summary-pending">0</strong>
+        </article>
+        <article>
+          <span>Validées</span>
+          <strong id="author-summary-validated">0</strong>
+        </article>
+        <article>
+          <span>Total</span>
+          <strong id="author-summary-total">0</strong>
+        </article>
+      </div>
+
+      <div id="author-requests-container" class="author-requests-container">
+        <article class="author-request-card">Chargement de la modération auteurs…</article>
+      </div>
+    `;
+  }
+
+  function bindAuthorModerationControls() {
+    document
+      .getElementById("author-moderation-search")
+      ?.addEventListener("input", renderAuthorModerationRows);
+
+    document
+      .getElementById("author-moderation-status")
+      ?.addEventListener("change", renderAuthorModerationRows);
+
+    document
+      .getElementById("author-moderation-refresh")
+      ?.addEventListener("click", loadAuthorModerationRows);
+  }
+
+  async function loadAuthorModerationRows() {
+    const container = document.getElementById("author-requests-container");
+    const count = document.getElementById("author-requests-count");
+
+    if (!container) return;
+
+    container.innerHTML = `<article class="author-request-card">Chargement de la modération auteurs…</article>`;
+    if (count) count.textContent = "Chargement…";
+
+    const { data, error } = await client
       .from("event_authors_presence")
-      .select("id, pseudo, website, created_at")
-      .eq("event_id", eventId)
-      .eq("validated", true)
-      .order("created_at", { ascending: true });
+      .select(`
+        id,
+        event_id,
+        pseudo,
+        website,
+        author_slug,
+        validated,
+        created_at,
+        events (
+          id,
+          title,
+          city,
+          region,
+          start_date
+        )
+      `)
+      .order("created_at", { ascending: false })
+      .limit(500);
 
     if (error) {
-      console.error("Erreur chargement auteurs présents :", error);
-      return;
-    }
-
-    const authors = Array.isArray(data) ? data : [];
-
-    if (!authors.length) {
-      list.innerHTML = "";
-      empty.hidden = false;
-      return;
-    }
-
-    empty.hidden = true;
-
-    list.innerHTML = authors.map(function (author) {
-      return `
-        <article class="author-presence-card">
-          <div>
-            <strong>${escapeHtml(author.pseudo)}</strong>
-            <small>Auteur associé à cet événement</small>
-          </div>
-          <a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">
-            Voir le site
-          </a>
-        </article>
+      console.error("Erreur chargement modération auteurs :", error);
+      authorRows = [];
+      container.innerHTML = `
+        <div class="author-request-error">
+          Impossible de charger la modération auteurs. Vérifie les droits Supabase sur event_authors_presence.
+        </div>
       `;
-    }).join("");
+      if (count) count.textContent = "Erreur";
+      updateAuthorRequestsNotifications(0, true);
+      updateAuthorSummary();
+      return;
+    }
+
+    authorRows = Array.isArray(data) ? data : [];
+    updateAuthorSummary();
+    updateAuthorRequestsNotifications(getPendingRows().length);
+    renderAuthorModerationRows();
   }
 
-  function cleanText(value) {
-    return String(value || "").replace(/\s+/g, " ").trim();
+  function renderAuthorModerationRows() {
+    const container = document.getElementById("author-requests-container");
+    const count = document.getElementById("author-requests-count");
+    const searchInput = document.getElementById("author-moderation-search");
+    const statusSelect = document.getElementById("author-moderation-status");
+
+    if (!container) return;
+
+    const status = statusSelect?.value || "pending";
+    const query = normalize(searchInput?.value || "");
+
+    const rows = authorRows.filter((row) => {
+      if (status === "pending" && row.validated === true) return false;
+      if (status === "validated" && row.validated !== true) return false;
+
+      const event = row.events || {};
+      const haystack = normalize([
+        row.pseudo,
+        row.website,
+        row.author_slug,
+        event.title,
+        event.city,
+        event.region
+      ].filter(Boolean).join(" "));
+
+      return !query || haystack.includes(query);
+    });
+
+    if (count) {
+      count.textContent = `${rows.length} résultat${rows.length > 1 ? "s" : ""}`;
+    }
+
+    if (!rows.length) {
+      const emptyText = status === "pending"
+        ? "Aucune demande auteur en attente."
+        : status === "validated"
+          ? "Aucune présence auteur validée trouvée."
+          : "Aucune présence auteur trouvée.";
+
+      container.innerHTML = `<div class="author-request-empty">${emptyText}</div>`;
+      return;
+    }
+
+    container.innerHTML = rows.map(renderAuthorModerationCard).join("");
+    bindAuthorModerationActions();
   }
 
-  function normalizeWebsite(value) {
-    const raw = cleanText(value);
-    if (!raw) return "";
-    if (/^https?:\/\//i.test(raw)) return raw;
-    return `https://${raw}`;
+  function renderAuthorModerationCard(row) {
+    const event = row.events || {};
+    const date = row.created_at ? formatDate(row.created_at) : "Date inconnue";
+    const isValidated = row.validated === true;
+    const authorLink = row.author_slug
+      ? `author.html?slug=${encodeURIComponent(row.author_slug)}`
+      : "";
+
+    return `
+      <article class="author-request-card author-request-card-${isValidated ? "validated" : "pending"}">
+        <div class="author-request-main">
+          <div class="author-request-title-row">
+            <strong>${escapeHtml(row.pseudo || "Auteur sans nom")}</strong>
+            <span class="author-status-pill ${isValidated ? "is-validated" : "is-pending"}">
+              ${isValidated ? "Validée" : "En attente"}
+            </span>
+          </div>
+
+          <small>Créée le : ${escapeHtml(date)}</small>
+          <small>Événement : ${escapeHtml(event.title || "Événement inconnu")}</small>
+          <small>${escapeHtml([event.city, event.region].filter(Boolean).join(" — ") || "Lieu non précisé")}</small>
+          ${row.website ? `<small>Site auteur : ${escapeHtml(row.website)}</small>` : ""}
+          ${row.author_slug ? `<small>Slug auteur : ${escapeHtml(row.author_slug)}</small>` : ""}
+        </div>
+
+        <div class="author-request-actions">
+          <a href="event.html?id=${encodeURIComponent(row.event_id)}" target="_blank" rel="noopener noreferrer">Voir événement</a>
+          ${row.website ? `<a href="${escapeAttribute(row.website)}" target="_blank" rel="noopener noreferrer">Site auteur</a>` : ""}
+          ${authorLink ? `<a href="${authorLink}" target="_blank" rel="noopener noreferrer">Fiche auteur</a>` : ""}
+
+          ${
+            isValidated
+              ? `<button class="pending-author-request" type="button" data-author-request-pending="${escapeAttribute(row.id)}">Remettre en attente</button>`
+              : `<button class="validate-author-request" type="button" data-author-request-validate="${escapeAttribute(row.id)}">Valider</button>`
+          }
+
+          <button class="reject-author-request" type="button" data-author-request-delete="${escapeAttribute(row.id)}">
+            Supprimer
+          </button>
+        </div>
+      </article>
+    `;
   }
 
-  function isValidUrl(value) {
+  function bindAuthorModerationActions() {
+    document.querySelectorAll("[data-author-request-validate]").forEach((button) => {
+      button.addEventListener("click", () => validateAuthorPresence(button.dataset.authorRequestValidate));
+    });
+
+    document.querySelectorAll("[data-author-request-pending]").forEach((button) => {
+      button.addEventListener("click", () => markAuthorPresencePending(button.dataset.authorRequestPending));
+    });
+
+    document.querySelectorAll("[data-author-request-delete]").forEach((button) => {
+      button.addEventListener("click", () => deleteAuthorPresence(button.dataset.authorRequestDelete));
+    });
+  }
+
+  async function validateAuthorPresence(id) {
+    if (!id) return;
+
+    const { error } = await client
+      .from("event_authors_presence")
+      .update({ validated: true })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Erreur validation auteur :", error);
+      alert("Validation impossible. Vérifie les droits Supabase UPDATE.");
+      return;
+    }
+
+    await loadAuthorModerationRows();
+    showLocalToast("Présence auteur validée");
+  }
+
+  async function markAuthorPresencePending(id) {
+    if (!id) return;
+
+    const ok = confirm("Remettre cette présence auteur en attente ? Elle ne sera plus visible publiquement.");
+    if (!ok) return;
+
+    const { error } = await client
+      .from("event_authors_presence")
+      .update({ validated: false })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Erreur remise en attente auteur :", error);
+      alert("Modification impossible. Vérifie les droits Supabase UPDATE.");
+      return;
+    }
+
+    await loadAuthorModerationRows();
+    showLocalToast("Présence auteur remise en attente");
+  }
+
+  async function deleteAuthorPresence(id) {
+    if (!id) return;
+
+    const ok = confirm("Supprimer définitivement cette présence / demande auteur ?");
+    if (!ok) return;
+
+    const { error } = await client
+      .from("event_authors_presence")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Erreur suppression auteur :", error);
+      alert("Suppression impossible. Vérifie les droits Supabase DELETE.");
+      return;
+    }
+
+    await loadAuthorModerationRows();
+    showLocalToast("Présence auteur supprimée");
+  }
+
+  function updateAuthorSummary() {
+    const pending = getPendingRows().length;
+    const validated = authorRows.filter((row) => row.validated === true).length;
+    const total = authorRows.length;
+
+    setText("author-summary-pending", pending);
+    setText("author-summary-validated", validated);
+    setText("author-summary-total", total);
+  }
+
+  function getPendingRows() {
+    return authorRows.filter((row) => row.validated !== true);
+  }
+
+  function updateAuthorRequestsNotifications(total, hasError) {
+    const stat = document.getElementById("stats-author-requests");
+    const statCard = document.getElementById("stat-card-author-requests");
+    const tabBadge = document.getElementById("author-requests-tab-badge");
+    const moderationTab = document.querySelector('.admin-tab[data-tab="moderation"]');
+
+    if (stat) stat.textContent = hasError ? "!" : String(total);
+
+    if (tabBadge) {
+      tabBadge.textContent = String(total);
+      tabBadge.hidden = !total || !!hasError;
+    }
+
+    statCard?.classList.toggle("has-alert", !!total && !hasError);
+    moderationTab?.classList.toggle("has-author-requests", !!total && !hasError);
+
+    window.dispatchEvent(new CustomEvent("dedicalivres:authorRequestsUpdated", {
+      detail: { total, hasError: !!hasError }
+    }));
+  }
+
+  function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = String(value);
+  }
+
+  function showLocalToast(message) {
+    if (typeof window.showToast === "function") {
+      window.showToast(message);
+      return;
+    }
+
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    setTimeout(() => toast.remove(), 2600);
+  }
+
+  function formatDate(value) {
     try {
-      const url = new URL(value);
-      return ["http:", "https:"].includes(url.protocol);
+      return new Intl.DateTimeFormat("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(new Date(value));
     } catch {
-      return false;
+      return value;
     }
   }
 
-  function setFeedback(element, kind, message) {
-    if (!element) return;
-    element.textContent = message;
-    element.className = kind || "";
-  }
-
-  function setButtonLoading(button, loading, text) {
-    if (!button) return;
-    button.disabled = loading;
-    button.textContent = text;
+  function normalize(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[’']/g, " ")
+      .toLowerCase()
+      .trim();
   }
 
   function escapeHtml(value) {
