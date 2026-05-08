@@ -3,25 +3,46 @@
   <url>
     <loc>https://dedicalivres.fr/</loc>
     <lastmod>2026-05-08</lastmod>
-    <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://dedicalivres.fr/salons-du-livre.html</loc>
     <lastmod>2026-05-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://dedicalivres.fr/dedicaces.html</loc>
     <lastmod>2026-05-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://dedicalivres.fr/auteurs-independants.html</loc>
     <lastmod>2026-05-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://dedicalivres.fr/evenements-litteraires-ile-de-france.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://dedicalivres.fr/evenements-litteraires-auvergne-rhone-alpes.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://dedicalivres.fr/evenements-litteraires-nouvelle-aquitaine.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://dedicalivres.fr/evenements-litteraires-occitanie.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://dedicalivres.fr/evenements-litteraires-bretagne.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <priority>0.75</priority>
   </url>
 </urlset>
