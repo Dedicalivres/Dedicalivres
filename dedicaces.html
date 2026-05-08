@@ -4,59 +4,39 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Dédicaces et rencontres d’auteurs — Dédicalivres</title>
-
-  <meta
-    name="description"
-    content="Retrouvez les prochaines dédicaces, signatures et rencontres d’auteurs partout en France : dates, villes et informations pratiques."
-  />
-
+  <title>Dédicaces auteurs et rencontres littéraires — Dédicalivres</title>
+  <meta name="description" content="Trouvez les prochaines séances de dédicace, rencontres avec des auteurs et événements littéraires référencés en France." />
   <link rel="canonical" href="https://dedicalivres.fr/dedicaces.html" />
 
-  <meta property="og:title" content="Dédicaces et rencontres d’auteurs — Dédicalivres" />
-
-  <meta
-    property="og:description"
-    content="Agenda des dédicaces, signatures et rencontres littéraires partout en France."
-  />
-
+  <meta property="og:title" content="Dédicaces auteurs et rencontres littéraires — Dédicalivres" />
+  <meta property="og:description" content="Trouvez les prochaines séances de dédicace, rencontres avec des auteurs et événements littéraires référencés en France." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="banner.jpg" />
 
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "Dédicaces et rencontres d’auteurs — Dédicalivres",
-    "description": "Agenda des dédicaces, signatures et rencontres littéraires partout en France.",
+    "@type": "CollectionPage",
+    "name": 'Dédicaces auteurs et rencontres littéraires — Dédicalivres',
+    "description": 'Trouvez les prochaines séances de dédicace, rencontres avec des auteurs et événements littéraires référencés en France.',
+    "url": 'https://dedicalivres.fr/dedicaces.html',
     "isPartOf": {
       "@type": "WebSite",
       "name": "Dédicalivres",
-      "url": "https://dedicalivres.fr"
+      "url": "https://dedicalivres.fr/"
     }
   }
   </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet"
-  />
-
-  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=7.1" />
 </head>
-
-<body class="category-page" data-event-types="Dédicace">
-
+<body class="seo-page" data-agenda-mode="dedicaces" data-event-type="Dédicace">
 <header class="header">
   <div class="container header-inner">
-
-    <a href="index.html" aria-label="Accueil Dédicalivres">
-      <img src="logo.png" class="logo" alt="Dédicalivres" />
-    </a>
-
+    <a href="index.html" aria-label="Accueil Dédicalivres"><img src="logo.png" class="logo" alt="Dédicalivres" /></a>
     <nav aria-label="Navigation principale">
       <a href="index.html#agenda">Agenda</a>
       <a href="salons-du-livre.html">Salons & Festivals</a>
@@ -64,88 +44,34 @@
       <a href="auteurs-independants.html">Auteurs</a>
       <a href="index.html#soumettre" class="nav-submit-link">Soumettre</a>
     </nav>
-
   </div>
 </header>
 
-<main class="container section seo-page">
-
-  <p>
-    <a class="card-link detail-back-link" href="index.html#agenda">
-      ← Retour à l’agenda
-    </a>
-  </p>
-
+<main class="container seo-content">
   <section class="seo-hero">
-
-    <p class="category-kicker">
-      Rencontres littéraires
-    </p>
-
-    <h1>Dédicaces & rencontres d’auteurs</h1>
-
-    <p>
-      Retrouvez les prochaines rencontres, signatures et dédicaces
-      référencées sur Dédicalivres, pour vivre un moment direct avec les auteurs
-      et donner une valeur plus personnelle à vos livres.
-    </p>
-
+    <p class="category-kicker">Dédicaces</p>
+    <h1>Dédicaces auteurs et rencontres littéraires</h1>
+    <p>Suivez les prochaines séances de dédicace et rencontres avec des auteurs référencées sur Dédicalivres. Une page pensée pour trouver rapidement un rendez-vous littéraire.</p>
   </section>
 
-  <section class="editorial-hook">
-
-    <strong>
-      Une dédicace ne se résume jamais à une signature.
-    </strong>
-
-    <p>
-      Quelques mots échangés, une phrase écrite à la main,
-      un prénom, une date : parfois, un livre devient le souvenir précis
-      d’une rencontre que l’on garde pendant des années.
-    </p>
-
-  </section>
-
-  <section class="seo-content">
-
-    <h2>Dédicaces à venir</h2>
-
-    <p class="section-intro">
-      Les événements sont classés du plus proche au plus lointain
-      afin de faciliter la découverte des prochaines rencontres littéraires.
-    </p>
-
+  <section class="section" aria-labelledby="seo-events-title">
+    <h2 id="seo-events-title">Événements à venir</h2>
     <p id="seo-count">Chargement…</p>
-
-    <div id="seo-events" class="events-grid"></div>
-
+    <div id="seo-events" class="events-grid" aria-live="polite"></div>
   </section>
 
   <section class="seo-text-block">
-
-    <h2>Pourquoi les rencontres d’auteurs restent importantes ?</h2>
-
-    <p>
-      Les dédicaces créent un lien direct entre les lecteurs et les auteurs.
-      Elles donnent parfois à un livre une dimension plus personnelle,
-      plus humaine et plus mémorable.
-    </p>
-
-    <p>
-      Pour un auteur, c’est aussi un moment essentiel pour échanger,
-      présenter son univers et rencontrer les lecteurs au-delà des pages.
-    </p>
-</section>
+    <h2>Pourquoi consulter cette page ?</h2>
+    <p>Cette page centralise les dédicaces et rencontres littéraires validées. Elle permet aux lecteurs d’identifier les auteurs présents, les lieux et les dates, puis de consulter les informations officielles.</p><p>Les organisateurs, librairies et auteurs peuvent proposer gratuitement un événement pour le faire apparaître dans l’agenda après validation.</p>
+    <p><a class="card-link" href="index.html#soumettre">Proposer un événement</a></p>
+  </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="config.js"></script>
-<script src="seo-pages.js"></script>
-
-<script src="tracking-v4.js"></script>
-<script src="ui-effects-v6.js"></script>
-<script src="custom-cursor.js"></script>
-
+<script src="config.js?v=7.1"></script>
+<script src="seo-pages.js?v=7.1"></script>
+<script src="tracking-v4.js?v=7.1"></script>
+<script src="ui-effects-v6.js?v=7.1"></script>
+<script src="custom-cursor.js?v=7.1"></script>
 </body>
 </html>

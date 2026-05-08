@@ -4,57 +4,39 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Salons et festivals littéraires — Dédicalivres</title>
-
-  <meta
-    name="description"
-    content="Agenda des salons du livre et festivals littéraires en France : dates, villes, rencontres d’auteurs, dédicaces et informations pratiques."
-  />
-
+  <title>Salons du livre et festivals littéraires — Dédicalivres</title>
+  <meta name="description" content="Retrouvez les salons du livre, festivals littéraires et rencontres autour du livre référencés sur Dédicalivres partout en France." />
   <link rel="canonical" href="https://dedicalivres.fr/salons-du-livre.html" />
 
-  <meta property="og:title" content="Salons et festivals littéraires — Dédicalivres" />
-  <meta
-    property="og:description"
-    content="Agenda des salons du livre et festivals littéraires en France : dates, villes, rencontres d’auteurs, dédicaces et informations pratiques."
-  />
+  <meta property="og:title" content="Salons du livre et festivals littéraires — Dédicalivres" />
+  <meta property="og:description" content="Retrouvez les salons du livre, festivals littéraires et rencontres autour du livre référencés sur Dédicalivres partout en France." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="banner.jpg" />
 
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "Salons et festivals littéraires — Dédicalivres",
-    "description": "Agenda des salons du livre et festivals littéraires en France : dates, villes, rencontres d’auteurs et informations pratiques.",
+    "@type": "CollectionPage",
+    "name": 'Salons du livre et festivals littéraires — Dédicalivres',
+    "description": 'Retrouvez les salons du livre, festivals littéraires et rencontres autour du livre référencés sur Dédicalivres partout en France.',
+    "url": 'https://dedicalivres.fr/salons-du-livre.html',
     "isPartOf": {
       "@type": "WebSite",
       "name": "Dédicalivres",
-      "url": "https://dedicalivres.fr"
+      "url": "https://dedicalivres.fr/"
     }
   }
   </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet"
-  />
-
-  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=7.1" />
 </head>
-
-<body class="category-page" data-event-types="Salon,Festival">
-
+<body class="seo-page" data-agenda-mode="salons" data-event-types="Salon,Festival">
 <header class="header">
   <div class="container header-inner">
-
-    <a href="index.html" aria-label="Accueil Dédicalivres">
-      <img src="logo.png" class="logo" alt="Dédicalivres" />
-    </a>
-
+    <a href="index.html" aria-label="Accueil Dédicalivres"><img src="logo.png" class="logo" alt="Dédicalivres" /></a>
     <nav aria-label="Navigation principale">
       <a href="index.html#agenda">Agenda</a>
       <a href="salons-du-livre.html">Salons & Festivals</a>
@@ -62,79 +44,34 @@
       <a href="auteurs-independants.html">Auteurs</a>
       <a href="index.html#soumettre" class="nav-submit-link">Soumettre</a>
     </nav>
-
   </div>
 </header>
 
-<main class="container section seo-page">
-
-  <p>
-    <a class="card-link detail-back-link" href="index.html#agenda">
-      ← Retour à l’agenda
-    </a>
-  </p>
-
+<main class="container seo-content">
   <section class="seo-hero">
-    <p class="category-kicker">Agenda Dédicalivres</p>
-
-    <h1>Salons & festivals littéraires</h1>
-
-    <p>
-      Retrouvez les prochains salons du livre et festivals littéraires
-      référencés sur Dédicalivres : des rendez-vous pour rencontrer des auteurs,
-      découvrir des livres et faire vivre la lecture localement.
-    </p>
+    <p class="category-kicker">Salons &amp; festivals</p>
+    <h1>Salons du livre et festivals littéraires en France</h1>
+    <p>Découvrez les prochains salons, festivals et grands rendez-vous littéraires. Dédicalivres rassemble les événements validés pour aider les lecteurs à trouver une rencontre près de chez eux.</p>
   </section>
 
-  <section class="editorial-hook">
-    <strong>Un salon du livre, c’est une ville qui se met à lire ensemble.</strong>
-    <p>
-      Ces rendez-vous créent des passerelles entre auteurs, lecteurs,
-      librairies, éditeurs, médiathèques et lieux culturels.
-      On y vient pour feuilleter, discuter, repartir avec une histoire
-      et parfois avec une dédicace que l’on garde longtemps.
-    </p>
-  </section>
-
-  <section class="seo-content">
-
-    <h2>Événements à venir</h2>
-
-    <p class="section-intro">
-      Les événements sont classés du plus proche au plus lointain
-      pour repérer rapidement les prochains rendez-vous.
-    </p>
-
+  <section class="section" aria-labelledby="seo-events-title">
+    <h2 id="seo-events-title">Événements à venir</h2>
     <p id="seo-count">Chargement…</p>
-
-    <div id="seo-events" class="events-grid"></div>
-
+    <div id="seo-events" class="events-grid" aria-live="polite"></div>
   </section>
 
   <section class="seo-text-block">
-
-    <h2>Pourquoi suivre les salons et festivals ?</h2>
-
-    <p>
-      Ces rendez-vous sont des temps forts pour rencontrer des auteurs,
-      découvrir des éditeurs, échanger avec des libraires, programmer
-      des dédicaces et faire vivre la littérature localement.
-    </p>
-
-    <p>
-      Dédicalivres aide les lecteurs à trouver ces moments et donne plus
-      de visibilité aux organisateurs, associations, librairies et lieux
-      culturels qui les rendent possibles.
-    </p>
-</section>
+    <h2>Pourquoi consulter cette page ?</h2>
+    <p>Cette page regroupe les salons du livre et festivals littéraires publiés sur Dédicalivres. Elle sert de point d’entrée pour trouver rapidement les dates, villes, régions, sites officiels et informations pratiques.</p><p>Chaque événement reste relié à son site officiel lorsque celui-ci est renseigné, afin que Dédicalivres reste un relais fiable vers les organisateurs.</p>
+    <p><a class="card-link" href="index.html#soumettre">Proposer un événement</a></p>
+  </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="seo-pages.js"></script>
-<script src="tracking-v4.js"></script>
-<script src="ui-effects-v6.js"></script>
-<script src="custom-cursor.js"></script>
-
+<script src="config.js?v=7.1"></script>
+<script src="seo-pages.js?v=7.1"></script>
+<script src="tracking-v4.js?v=7.1"></script>
+<script src="ui-effects-v6.js?v=7.1"></script>
+<script src="custom-cursor.js?v=7.1"></script>
 </body>
 </html>
