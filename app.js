@@ -196,7 +196,6 @@
       .eq("validated", true)
       .eq("rejected", false)
       .or(`end_date.is.null,end_date.gte.${today}`)
-      .order("featured", { ascending: false })
       .order("start_date", { ascending: true });
 
     if (error) {
@@ -205,7 +204,9 @@
       return;
     }
 
-    allEvents = await attachAuthorsToEvents(Array.isArray(data) ? data : []);
+    allEvents = sortEventsByUpcomingDate(
+      await attachAuthorsToEvents(Array.isArray(data) ? data : [])
+    );
     renderFilteredEvents();
   }
 
@@ -303,6 +304,42 @@
   function matchesMonth(event, selectedMonth) {
     const start = event.start_date || "";
     return start.startsWith(selectedMonth);
+  }
+
+  function sortEventsByUpcomingDate(events) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return [...events].sort((a, b) => {
+      const dateA = getEventDate(a);
+      const dateB = getEventDate(b);
+
+      const groupA = getUpcomingSortGroup(dateA, today);
+      const groupB = getUpcomingSortGroup(dateB, today);
+
+      if (groupA !== groupB) return groupA - groupB;
+
+      if (dateA && dateB) {
+        const diff = dateA.getTime() - dateB.getTime();
+        if (diff !== 0) return diff;
+      }
+
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+
+      return String(a.title || "").localeCompare(String(b.title || ""), "fr");
+    });
+  }
+
+  function getEventDate(event) {
+    if (!event || !event.start_date) return null;
+    const date = new Date(event.start_date);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function getUpcomingSortGroup(date, today) {
+    if (!date) return 1;
+    return date >= today ? 0 : 2;
   }
 
   function renderEvents(events) {

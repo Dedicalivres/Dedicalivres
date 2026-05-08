@@ -1396,79 +1396,20 @@ body.cyber-admin {
 
 
 /* =========================================================
-   ADMIN TÉMOIGNAGES V7.5
+   V7.5.5 — Lisibilité auteurs + tri événements à venir
 ========================================================= */
-.testimonials-admin-toolbar {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) 180px auto;
-  gap: 12px;
-  margin-bottom: 18px;
+
+.admin-event-authors {
+  margin-top: 10px;
+  color: var(--cyber-cyan);
+  font-size: .86rem;
+  font-weight: 750;
+  line-height: 1.45;
 }
 
-.testimonials-admin-toolbar input,
-.testimonials-admin-toolbar select {
-  width: 100%;
-  padding: 13px 14px;
-  border: none;
-  border-radius: 16px;
-  background: rgba(255,255,255,.05);
-  color: white;
-}
-
-.testimonials-admin-list {
-  display: grid;
-  gap: 16px;
-}
-
-.testimonial-admin-card {
-  grid-template-columns: 120px minmax(0, 1fr) auto;
-}
-
-.testimonial-admin-message {
-  margin: 12px 0 0;
-  color: var(--cyber-muted);
-  line-height: 1.55;
-  max-width: 880px;
-}
-
-.testimonial-admin-actions .event-action,
-.testimonial-admin-actions a.event-action {
+.admin-event-authors span {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-
-.stat-card-testimonials {
-  box-shadow:
-    0 0 0 1px rgba(25,215,255,.12),
-    0 0 42px rgba(25,215,255,.08);
-}
-
-.testimonials-tab-badge,
-.admin-tab-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  min-height: 22px;
-  margin-left: 8px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--cyber-red);
-  color: white;
-  font-size: .76rem;
+  margin-right: 8px;
+  color: var(--cyber-green);
   font-weight: 900;
-}
-
-@media (max-width: 760px) {
-  .testimonials-admin-toolbar,
-  .testimonial-admin-card {
-    grid-template-columns: 1fr;
-  }
-
-  .testimonial-admin-actions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
 }
