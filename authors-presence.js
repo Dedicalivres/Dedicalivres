@@ -1,13 +1,16 @@
 /* =========================================================
-  DÉDICALIVRES — AUTEURS PRÉSENTS
+  DÉDICALIVRES — Auteurs présents sur fiche événement
   Fichier : authors-presence.js
+  Version : 7.5.4
 
   Rôle :
-  - Afficher le bloc "Auteurs présents" sur event.html.
-  - Permettre à un auteur de déclarer sa présence.
-  - Afficher publiquement les auteurs déclarés.
+  - Afficher les auteurs présents validés directement sur event.html.
+  - Permettre à un auteur de demander son association à l’événement.
+  - Enregistrer les nouvelles demandes avec validated:false.
 
-  Ce fichier est volontairement isolé : il ne modifie pas event.js.
+  Note :
+  Ce module ne dépend pas du rendu interne de event.js. Il attend que la fiche
+  événement soit rendue puis injecte un bloc visible dans la page.
 ========================================================= */
 
 (function () {
@@ -15,42 +18,74 @@
 
   const config = window.DEDICALIVRES_CONFIG;
   const eventDetail = document.getElementById("event-detail");
+  const params = new URLSearchParams(window.location.search);
+  const eventId = params.get("id");
 
   if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
     console.error("Configuration Supabase manquante pour authors-presence.js");
     return;
   }
 
+  if (!eventId || !eventDetail) return;
+
   const supabaseClient = window.supabase.createClient(
     config.supabaseUrl,
     config.supabaseAnonKey
   );
 
-  const params = new URLSearchParams(window.location.search);
-  const eventId = params.get("id");
+  const state = {
+    eventTitle: "",
+    retries: 0,
+    maxRetries: 50
+  };
 
-  if (!eventId || !eventDetail) return;
+  waitForEventRender();
 
-  initAuthorPresence();
+  function waitForEventRender() {
+    const detailBody = eventDetail.querySelector(".detail-body");
+    const loading = eventDetail.querySelector(".loader");
+
+    if (detailBody || !loading) {
+      initAuthorPresence();
+      return;
+    }
+
+    state.retries += 1;
+
+    if (state.retries >= state.maxRetries) {
+      initAuthorPresence();
+      return;
+    }
+
+    setTimeout(waitForEventRender, 120);
+  }
 
   async function initAuthorPresence() {
-    const { data: event, error } = await supabaseClient
-      .from("events")
-      .select("id, title, validated, rejected")
-      .eq("id", eventId)
-      .maybeSingle();
+    if (document.getElementById("authors-presence-section")) return;
 
-    // Condition demandée : option visible uniquement pour événement validé et non rejeté.
-    if (error || !event || !event.validated || event.rejected) return;
-
+    await loadEventTitleSafely();
     createAuthorPresenceBlock();
     bindAuthorPresenceForm();
-    loadAuthorsPresence();
+    await loadAuthorsPresence();
+  }
+
+  async function loadEventTitleSafely() {
+    try {
+      const { data, error } = await supabaseClient
+        .from("events")
+        .select("title")
+        .eq("id", eventId)
+        .maybeSingle();
+
+      if (!error && data?.title) {
+        state.eventTitle = data.title;
+      }
+    } catch {
+      state.eventTitle = "";
+    }
   }
 
   function createAuthorPresenceBlock() {
-    if (document.getElementById("authors-presence-section")) return;
-
     const section = document.createElement("section");
     section.id = "authors-presence-section";
     section.className = "authors-presence";
@@ -59,33 +94,54 @@
       <div class="authors-presence-header">
         <p class="authors-presence-eyebrow">Participation auteurs</p>
         <h2>Auteurs présents</h2>
+        <p>
+          Retrouvez les auteurs qui se sont déclarés présents pour cet événement.
+          Les présences sont vérifiées avant affichage public.
+        </p>
       </div>
 
-      <div id="authors-presence-list" class="author-presence-list"></div>
+      <div id="authors-presence-list" class="author-presence-list">
+        <article class="author-presence-loading">Chargement des auteurs présents…</article>
+      </div>
 
       <p id="authors-presence-empty" class="author-presence-empty" hidden>
-        Aucun auteur ne s’est encore déclaré présent pour cet événement.
-      </p>
-
-      <p class="author-presence-note">
-        Les auteurs indiqués ici se sont déclarés présents via Dédicalivres.
-        Cette information est participative et concerne uniquement les auteurs s’étant enregistrés sur Dédicalivres.
-        Pour une information officielle à jour, notamment en cas d’annulation ou de modification,
-        consultez toujours le site de l’événement.
+        Aucun auteur n’est encore affiché pour cet événement.
       </p>
 
       <form id="author-presence-form" class="author-presence-form">
         <h3>Vous êtes auteur et vous participez à cet événement ?</h3>
+        <p>
+          Demandez à être associé à cette fiche. Votre demande sera examinée avant publication.
+        </p>
 
         <div class="author-presence-grid">
           <input name="pseudo" type="text" placeholder="Pseudo / nom d’auteur" minlength="2" required />
           <input name="website" type="url" placeholder="Lien vers votre site ou page officielle" required />
         </div>
 
-        <button class="btn-primary" type="submit">Indiquer ma présence</button>
+        <button class="btn-primary" type="submit">Demander à être associé</button>
         <p id="author-presence-feedback" aria-live="polite"></p>
       </form>
     `;
+
+    const detailBody = eventDetail.querySelector(".detail-body");
+    const detailActions = eventDetail.querySelector(".detail-actions");
+    const mapBlock = eventDetail.querySelector(".detail-map-block");
+
+    if (detailActions) {
+      detailActions.insertAdjacentElement("afterend", section);
+      return;
+    }
+
+    if (mapBlock && detailBody) {
+      detailBody.insertBefore(section, mapBlock);
+      return;
+    }
+
+    if (detailBody) {
+      detailBody.appendChild(section);
+      return;
+    }
 
     eventDetail.insertAdjacentElement("afterend", section);
   }
@@ -105,26 +161,36 @@
       const website = normalizeWebsite(formData.get("website"));
 
       try {
-        if (pseudo.length < 2) throw new Error("Merci d’indiquer un pseudo valide.");
-        if (!isValidUrl(website)) throw new Error("Merci d’indiquer un lien valide.");
+        if (pseudo.length < 2) throw new Error("Merci d’indiquer un nom d’auteur valide.");
+        if (!isValidUrl(website)) throw new Error("Merci d’indiquer un lien valide vers votre site ou page officielle.");
 
-        setButtonLoading(submitButton, true, "Enregistrement…");
-        setFeedback(feedback, "", "Enregistrement en cours…");
+        setButtonLoading(submitButton, true, "Envoi…");
+        setFeedback(feedback, "", "Envoi de votre demande…");
+
+        const payload = {
+          event_id: eventId,
+          pseudo,
+          website,
+          validated: false
+        };
 
         const { error } = await supabaseClient
           .from("event_authors_presence")
-          .insert([{ event_id: eventId, pseudo, website, validated: true }]);
+          .insert([payload]);
 
         if (error) throw error;
 
         form.reset();
-        setFeedback(feedback, "success", "Merci, votre présence a bien été ajoutée 👍");
-        loadAuthorsPresence();
+        setFeedback(
+          feedback,
+          "success",
+          "Votre demande a bien été envoyée. Elle sera vérifiée avant affichage public."
+        );
       } catch (error) {
-        console.error("Erreur auteur présent :", error);
+        console.error("Erreur demande association auteur :", error);
         setFeedback(feedback, "error", error.message || "Une erreur est survenue.");
       } finally {
-        setButtonLoading(submitButton, false, "Indiquer ma présence");
+        setButtonLoading(submitButton, false, "Demander à être associé");
       }
     });
   }
@@ -135,41 +201,63 @@
 
     if (!list || !empty) return;
 
-    const { data, error } = await supabaseClient
-      .from("event_authors_presence")
-      .select("id, pseudo, website, created_at")
-      .eq("event_id", eventId)
-      .eq("validated", true)
-      .order("created_at", { ascending: true });
+    try {
+      const { data, error } = await supabaseClient
+        .from("event_authors_presence")
+        .select("id, pseudo, website, author_slug, created_at")
+        .eq("event_id", eventId)
+        .eq("validated", true)
+        .order("created_at", { ascending: true });
 
-    if (error) {
+      if (error) throw error;
+
+      const authors = Array.isArray(data) ? data : [];
+
+      if (!authors.length) {
+        list.innerHTML = "";
+        empty.hidden = false;
+        return;
+      }
+
+      empty.hidden = true;
+      list.innerHTML = authors.map(renderAuthorCard).join("");
+    } catch (error) {
       console.error("Erreur chargement auteurs présents :", error);
-      return;
-    }
-
-    const authors = Array.isArray(data) ? data : [];
-
-    if (!authors.length) {
-      list.innerHTML = "";
-      empty.hidden = false;
-      return;
-    }
-
-    empty.hidden = true;
-
-    list.innerHTML = authors.map(function (author) {
-      return `
-        <article class="author-presence-card">
-          <div>
-            <strong>${escapeHtml(author.pseudo)}</strong>
-            <small>Auteur déclaré présent</small>
-          </div>
-          <a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">
-            Voir le site
-          </a>
+      list.innerHTML = `
+        <article class="author-presence-error">
+          Impossible de charger les auteurs présents pour le moment.
         </article>
       `;
-    }).join("");
+    }
+  }
+
+  function renderAuthorCard(author) {
+    const name = escapeHtml(author.pseudo || "Auteur");
+    const website = cleanText(author.website);
+    const authorSlug = cleanText(author.author_slug);
+
+    return `
+      <article class="author-presence-card">
+        <div>
+          <strong>${name}</strong>
+          <small>Auteur déclaré présent</small>
+        </div>
+
+        <div class="author-presence-card-actions">
+          ${website ? `
+            <a href="${escapeAttribute(website)}" target="_blank" rel="noopener noreferrer">
+              Site de l’auteur
+            </a>
+          ` : ""}
+
+          ${authorSlug ? `
+            <a href="author.html?slug=${encodeURIComponent(authorSlug)}">
+              Fiche Dédicalivres
+            </a>
+          ` : ""}
+        </div>
+      </article>
+    `;
   }
 
   function cleanText(value) {
@@ -209,7 +297,7 @@
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
+      .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
 
