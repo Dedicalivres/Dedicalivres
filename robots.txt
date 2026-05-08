@@ -1,4 +1,16 @@
 User-agent: *
 Allow: /
 
+# Espace privé / modération : ne pas indexer.
+Disallow: /admin.html
+Disallow: /admin.js
+Disallow: /admin.css
+Disallow: /admin-author-requests.js
+Disallow: /admin-login-fix.js
+Disallow: /admin-v4-authors.js
+
+# Fichiers historiques non utilisés en V7 : ne pas indexer directement.
+Disallow: /style-seo-additions.css
+Disallow: /style-seo-auteurs-additions.css
+
 Sitemap: https://dedicalivres.fr/sitemap.xml
