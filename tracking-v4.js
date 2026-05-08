@@ -1,6 +1,10 @@
 /*
-  DÉDICALIVRES — Tracking V4
+  DÉDICALIVRES — Tracking V4.1 / Correctif V7.6.5
   Visites globales + visites fiches événements
+
+  Correctif : la table site_visits réelle contient :
+  id, created_at, page, path, referrer, user_agent.
+  On n'envoie donc plus page_title.
 */
 
 (function () {
@@ -32,14 +36,18 @@
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
 
-      await client.from("site_visits").insert([
-        {
-          path: location.pathname + location.search,
-          page_title: document.title || null,
-          referrer: document.referrer || null,
-          user_agent: navigator.userAgent || null
-        }
-      ]);
+      const payload = {
+        page: document.title || location.pathname || null,
+        path: location.pathname + location.search,
+        referrer: document.referrer || null,
+        user_agent: navigator.userAgent || null
+      };
+
+      const { error } = await client
+        .from("site_visits")
+        .insert([payload]);
+
+      if (error) throw error;
     } catch (error) {
       console.warn("Tracking visite site non enregistré :", error);
     }
@@ -52,7 +60,7 @@
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
 
-      await client.from("event_visits").insert([
+      const { error } = await client.from("event_visits").insert([
         {
           event_id: eventId,
           path: location.pathname + location.search,
@@ -60,6 +68,8 @@
           user_agent: navigator.userAgent || null
         }
       ]);
+
+      if (error) throw error;
     } catch (error) {
       console.warn("Tracking visite événement non enregistré :", error);
     }
