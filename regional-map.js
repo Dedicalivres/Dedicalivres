@@ -7,13 +7,44 @@
   if (!root) return;
 
   /*
-    V7.6.7f — Carte régionale réelle lisible.
+    V7.6.9 — Carte régionale réelle avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
   */
 
   const MAP_IMAGE_URL = "https://simplemaps.com/static/svg/country/fr/admin1/fr.svg";
+
+  const eventTypes = (document.body.dataset.eventTypes || document.body.dataset.eventType || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const counterContext = (() => {
+    const mode = document.body.dataset.agendaMode || "global";
+
+    if (mode === "salons" || eventTypes.includes("Salon") || eventTypes.includes("Festival")) {
+      return {
+        labelSingular: "salon/festival",
+        labelPlural: "salons/festivals",
+        help: "salons du livre et festivals littéraires validés et à venir"
+      };
+    }
+
+    if (mode === "dedicaces" || eventTypes.includes("Dédicace")) {
+      return {
+        labelSingular: "dédicace",
+        labelPlural: "dédicaces",
+        help: "séances de dédicace validées et à venir"
+      };
+    }
+
+    return {
+      labelSingular: "événement",
+      labelPlural: "événements",
+      help: "événements littéraires validés et à venir"
+    };
+  })();
 
   const REGIONS = [
     {
@@ -141,7 +172,7 @@
 
       const { data, error } = await client
         .from("events")
-        .select("region,start_date,end_date,validated,rejected")
+        .select("region,type,start_date,end_date,validated,rejected")
         .eq("validated", true)
         .eq("rejected", false)
         .or(`end_date.is.null,end_date.gte.${today}`);
@@ -151,6 +182,8 @@
       const counts = Object.fromEntries(REGIONS.map((region) => [region.name, 0]));
 
       (Array.isArray(data) ? data : []).forEach((event) => {
+        if (eventTypes.length && !eventTypes.includes(event.type)) return;
+
         const region = String(event.region || "").trim();
         if (!region || !(region in counts)) return;
 
@@ -196,7 +229,7 @@
           <div class="regional-map-total regional-map-total-real">
             <span>Total France</span>
             <strong>${total}</strong>
-            <small>événement${total > 1 ? "s" : ""} à venir</small>
+            <small>${total > 1 ? counterContext.labelPlural : counterContext.labelSingular} à venir</small>
           </div>
 
           <p class="regional-map-attribution">
@@ -207,7 +240,7 @@
         <aside class="regional-map-panel" aria-live="polite">
           <div>
             <h3>${escapeHtml(state.selected.name)}</h3>
-            <span class="regional-map-selected-count">${selectedCount} événement${selectedCount > 1 ? "s" : ""} à venir</span>
+            <span class="regional-map-selected-count">${selectedCount} ${selectedCount > 1 ? counterContext.labelPlural : counterContext.labelSingular} à venir</span>
             <p>${escapeHtml(state.selected.description)}</p>
 
             <div class="regional-map-panel-list" aria-label="Régions les plus alimentées">
@@ -230,7 +263,7 @@
       <div class="regional-map-help">
         <strong>Comment ça marche ?</strong>
         <p>
-          Les compteurs sont mis à jour à partir des événements validés et à venir.
+          Les compteurs sont mis à jour à partir des ${counterContext.help}.
           Une région peu alimentée reste visible afin d’encourager les lecteurs,
           auteurs, librairies et organisateurs à partager leurs rendez-vous.
         </p>
@@ -259,7 +292,7 @@
         href="${region.href}"
         data-region="${escapeAttribute(region.name)}"
         style="--x:${region.x}%;--y:${region.y}%;"
-        aria-label="${escapeAttribute(region.name)} — ${count} événement${count > 1 ? "s" : ""}"
+        aria-label="${escapeAttribute(region.name)} — ${count} ${count > 1 ? counterContext.labelPlural : counterContext.labelSingular}"
       >
         <span class="regional-real-marker-name">${escapeHtml(region.name)}</span>
         <span class="regional-real-marker-count">${count}</span>
