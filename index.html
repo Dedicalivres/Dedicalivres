@@ -44,7 +44,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="style.css?v=7.6.7f" />
+  <link rel="stylesheet" href="style.css?v=7.6.8" />
 </head>
 
 <body data-agenda-mode="global">
@@ -60,7 +60,7 @@
       <a href="index.html#agenda">Agenda</a>
       <a href="salons-du-livre.html">Salons & Festivals</a>
       <a href="dedicaces.html">Dédicaces</a>
-      <a href="temoignages.html">Témoignages</a>
+      <a href="auteurs-independants.html">Auteurs</a>
       <a href="index.html#soumettre" class="nav-submit-link">Soumettre</a>
     </nav>
 
@@ -87,6 +87,44 @@
         parfois, un livre devient le témoin d’un instant que l’on garde.
       </p>
     </div>
+
+    <section class="live-map-feature" aria-labelledby="live-map-title">
+      <div class="map-teaser map-teaser-feature">
+        <div>
+          <span class="map-feature-kicker">Carte en direct</span>
+          <strong id="live-map-title">Visualisez les événements littéraires sur la carte</strong>
+          <p>
+            Ouvrez la carte pour repérer rapidement les salons, festivals et dédicaces
+            autour de vous avant de choisir votre prochain rendez-vous littéraire.
+          </p>
+        </div>
+        <span>Atout Dédicalivres</span>
+      </div>
+
+      <div class="ux-actions map-feature-actions">
+        <button
+          id="mobile-map-toggle"
+          class="btn-secondary mobile-map-toggle live-map-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="map-panel"
+        >
+          Ouvrir la carte en direct
+        </button>
+
+        <button id="locate-me" class="btn-secondary locate-me-feature" type="button">
+          Me localiser
+        </button>
+      </div>
+
+      <aside
+        class="map-panel live-map-panel"
+        id="map-panel"
+        aria-label="Carte des événements"
+      >
+        <div id="map"></div>
+      </aside>
+    </section>
 
     <section id="newsletter" class="section newsletter-section">
     
@@ -140,7 +178,7 @@
       <input
         id="search-input"
         type="search"
-        placeholder="Rechercher un événement, une ville…"
+        placeholder="Rechercher un événement, une ville, un auteur…"
       />
 
       <select id="region-filter">
@@ -182,46 +220,11 @@
 
     </div>
 
-    <div class="map-teaser">
-      <div>
-        <strong>Carte en direct</strong>
-        <p>
-          Visualisez les salons, festivals et dédicaces autour de vous
-          avant de choisir votre prochain rendez-vous littéraire.
-        </p>
-      </div>
-      <span>Atout Dédicalivres</span>
-    </div>
-
-    <div class="ux-actions">
-
-      <button
-        id="mobile-map-toggle"
-        class="btn-secondary mobile-map-toggle"
-        type="button"
-      >
-        Carte en direct
-      </button>
-
-      <button id="locate-me" class="btn-secondary" type="button">
-        Me localiser
-      </button>
-
-    </div>
-
     <div class="agenda-layout">
 
       
 
       
-      <aside
-        class="map-panel"
-        id="map-panel"
-        aria-label="Carte des événements"
-      >
-        <div id="map"></div>
-      </aside>
-
       <div>
         <section
           id="events-grid"
@@ -235,44 +238,6 @@
     
 
     </div>
-
-  </section>
-
-  <section id="regions" class="section regional-links-section regional-map-section" aria-labelledby="regions-title">
-
-    <div class="regional-links-head regional-map-head">
-      <p class="category-kicker">Explorer par région</p>
-      <h2 id="regions-title">Trouver un événement littéraire près de chez vous</h2>
-      <p>
-        Cliquez sur une région pour découvrir les salons du livre, festivals littéraires,
-        séances de dédicaces et rencontres d’auteurs validés sur Dédicalivres.
-      </p>
-    </div>
-
-    <div id="regional-map-app" class="regional-map-app" aria-live="polite">
-      <article class="empty-state">
-        <div class="loader"></div>
-        <p>Chargement de la carte régionale…</p>
-      </article>
-    </div>
-
-    <noscript>
-      <div class="regional-links-grid compact">
-        <a href="evenements-litteraires-ile-de-france.html"><strong>Île-de-France</strong><span>Paris, librairies, salons et rendez-vous franciliens</span></a>
-        <a href="evenements-litteraires-auvergne-rhone-alpes.html"><strong>Auvergne-Rhône-Alpes</strong><span>Lyon, Grenoble, Clermont-Ferrand et rencontres régionales</span></a>
-        <a href="evenements-litteraires-nouvelle-aquitaine.html"><strong>Nouvelle-Aquitaine</strong><span>Bordeaux, littoral, salons et festivals du livre</span></a>
-        <a href="evenements-litteraires-occitanie.html"><strong>Occitanie</strong><span>Toulouse, Montpellier, festivals et rencontres d’auteurs</span></a>
-        <a href="evenements-litteraires-bretagne.html"><strong>Bretagne</strong><span>Librairies, festivals, salons et rendez-vous bretons</span></a>
-        <a href="evenements-litteraires-bourgogne-franche-comte.html"><strong>Bourgogne-Franche-Comté</strong><span>Dijon, Besançon, librairies et rendez-vous du livre</span></a>
-        <a href="evenements-litteraires-centre-val-de-loire.html"><strong>Centre-Val de Loire</strong><span>Tours, Orléans, rencontres et événements littéraires</span></a>
-        <a href="evenements-litteraires-corse.html"><strong>Corse</strong><span>Ajaccio, Bastia, rencontres insulaires et salons du livre</span></a>
-        <a href="evenements-litteraires-grand-est.html"><strong>Grand Est</strong><span>Strasbourg, Reims, Metz, Nancy et rendez-vous du livre</span></a>
-        <a href="evenements-litteraires-hauts-de-france.html"><strong>Hauts-de-France</strong><span>Lille, Amiens, salons, dédicaces et festivals littéraires</span></a>
-        <a href="evenements-litteraires-normandie.html"><strong>Normandie</strong><span>Rouen, Caen, littoral normand et rencontres d’auteurs</span></a>
-        <a href="evenements-litteraires-pays-de-la-loire.html"><strong>Pays de la Loire</strong><span>Nantes, Angers, Le Mans et événements autour du livre</span></a>
-        <a href="evenements-litteraires-provence-alpes-cote-azur.html"><strong>Provence-Alpes-Côte d’Azur</strong><span>Marseille, Nice, Toulon, festivals et dédicaces</span></a>
-      </div>
-    </noscript>
 
   </section>
 <section id="soumettre" class="section">
@@ -430,14 +395,13 @@
   crossorigin=""
 ></script>
 
-<script src="config.js?v=7.6.7f"></script>
-<script src="app.js?v=7.6.7f"></script>
+<script src="config.js?v=7.6.8"></script>
+<script src="app.js?v=7.6.8"></script>
 
-<script src="tracking-v4.js?v=7.6.7f"></script>
-<script src="author-search-index.js"></script>
-<script src="ui-effects-v6.js"></script>
-<script src="regional-map.js?v=7.6.7f"></script>
-<script src="custom-cursor.js"></script>
+<script src="tracking-v4.js?v=7.6.8"></script>
+<script src="author-search-index.js?v=7.6.8"></script>
+<script src="ui-effects-v6.js?v=7.6.8"></script>
+<script src="custom-cursor.js?v=7.6.8"></script>
 
 </body>
 </html>

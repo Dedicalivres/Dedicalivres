@@ -66,7 +66,8 @@
     loadEvents();
 
     if (mobileMapToggle) {
-      mobileMapToggle.textContent = "Carte en direct";
+      mobileMapToggle.textContent = "Ouvrir la carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", "false");
     }
 
     if (mapPanel) {
@@ -115,12 +116,14 @@
 
     if (mapPanel.classList.contains("is-open")) {
       mobileMapToggle.textContent = "Fermer la carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", "true");
 
       setTimeout(() => {
         map?.invalidateSize();
       }, 300);
     } else {
-      mobileMapToggle.textContent = "Carte en direct";
+      mobileMapToggle.textContent = "Ouvrir la carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", "false");
     }
   }
 
@@ -196,6 +199,7 @@
       .eq("validated", true)
       .eq("rejected", false)
       .or(`end_date.is.null,end_date.gte.${today}`)
+      .order("featured", { ascending: false })
       .order("start_date", { ascending: true });
 
     if (error) {
@@ -204,53 +208,8 @@
       return;
     }
 
-    allEvents = sortEventsByUpcomingDate(
-      await attachAuthorsToEvents(Array.isArray(data) ? data : [])
-    );
+    allEvents = Array.isArray(data) ? data : [];
     renderFilteredEvents();
-  }
-
-  async function attachAuthorsToEvents(events) {
-    if (!events.length) return events;
-
-    const ids = events
-      .map((event) => event.id)
-      .filter(Boolean);
-
-    if (!ids.length) return events;
-
-    try {
-      const { data, error } = await supabaseClient
-        .from("event_authors_presence")
-        .select("event_id, pseudo, website, author_slug, validated")
-        .eq("validated", true)
-        .in("event_id", ids);
-
-      if (error) throw error;
-
-      const authorsByEvent = new Map();
-
-      (data || []).forEach((row) => {
-        if (!row.event_id || !row.pseudo) return;
-
-        const key = String(row.event_id);
-        if (!authorsByEvent.has(key)) authorsByEvent.set(key, []);
-
-        authorsByEvent.get(key).push({
-          pseudo: row.pseudo,
-          website: row.website || "",
-          author_slug: row.author_slug || ""
-        });
-      });
-
-      return events.map((event) => ({
-        ...event,
-        _authors: authorsByEvent.get(String(event.id)) || []
-      }));
-    } catch (error) {
-      console.warn("Auteurs présents non chargés pour l’agenda :", error);
-      return events.map((event) => ({ ...event, _authors: [] }));
-    }
   }
 
   function renderFilteredEvents() {
@@ -279,17 +238,12 @@
         return false;
       }
 
-      const authorSearchText = (event._authors || [])
-        .map((author) => [author.pseudo, author.author_slug, author.website].filter(Boolean).join(" "))
-        .join(" ");
-
       const haystack = normalize([
         event.title,
         event.city,
         event.region,
         event.description,
-        event.type,
-        authorSearchText
+        event.type
       ].join(" "));
 
       if (search && !haystack.includes(search)) return false;
@@ -304,42 +258,6 @@
   function matchesMonth(event, selectedMonth) {
     const start = event.start_date || "";
     return start.startsWith(selectedMonth);
-  }
-
-  function sortEventsByUpcomingDate(events) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return [...events].sort((a, b) => {
-      const dateA = getEventDate(a);
-      const dateB = getEventDate(b);
-
-      const groupA = getUpcomingSortGroup(dateA, today);
-      const groupB = getUpcomingSortGroup(dateB, today);
-
-      if (groupA !== groupB) return groupA - groupB;
-
-      if (dateA && dateB) {
-        const diff = dateA.getTime() - dateB.getTime();
-        if (diff !== 0) return diff;
-      }
-
-      if (a.featured && !b.featured) return -1;
-      if (!a.featured && b.featured) return 1;
-
-      return String(a.title || "").localeCompare(String(b.title || ""), "fr");
-    });
-  }
-
-  function getEventDate(event) {
-    if (!event || !event.start_date) return null;
-    const date = new Date(event.start_date);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  function getUpcomingSortGroup(date, today) {
-    if (!date) return 1;
-    return date >= today ? 0 : 2;
   }
 
   function renderEvents(events) {
@@ -435,8 +353,6 @@
             </span>
           </div>
 
-          ${renderEventAuthors(event)}
-
           <p class="card-description">
             ${escapeHtml(event.description || "")}
           </p>
@@ -469,118 +385,56 @@
     `;
   }
 
-  function renderEventAuthors(event) {
-    const authors = event._authors || [];
-
-    if (!authors.length) return "";
-
-    const visibleAuthors = authors.slice(0, 3);
-    const remaining = authors.length - visibleAuthors.length;
-
-    return `
-      <div class="card-authors" aria-label="Auteurs présents">
-        <span class="card-authors-label">✍️ Auteur${authors.length > 1 ? "s" : ""} présent${authors.length > 1 ? "s" : ""}</span>
-        <div class="card-authors-list">
-          ${visibleAuthors.map((author) => {
-            const name = escapeHtml(author.pseudo || "Auteur");
-            return author.website
-              ? `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${name}</a>`
-              : `<span>${name}</span>`;
-          }).join("")}
-          ${remaining > 0 ? `<span>+${remaining}</span>` : ""}
-        </div>
-      </div>
-    `;
-  }
-
-  function renderPopupEventItem(event) {
-    const authors = event._authors || [];
-
-    return `
-      <div class="popup-event-item">
-        <button
-          class="popup-focus-btn"
-          type="button"
-          data-event-id="${escapeAttribute(event.id)}"
-          data-event-type="${escapeAttribute(event.type || "")}"
-        >
-          ${escapeHtml(event.title || "Sans titre")}
-        </button>
-
-        <div class="popup-event-meta">
-          ${event.start_date ? `📅 ${formatDateRange(event.start_date, event.end_date)}` : ""}
-          ${event.city ? ` · 📍 ${escapeHtml(event.city)}` : ""}
-        </div>
-
-        ${authors.length ? `
-          <div class="popup-authors">
-            <strong>Auteur${authors.length > 1 ? "s" : ""} présent${authors.length > 1 ? "s" : ""}</strong>
-            ${authors.map((author) => {
-              const name = escapeHtml(author.pseudo || "Auteur");
-              return author.website
-                ? `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${name}</a>`
-                : `<span>${name}</span>`;
-            }).join("")}
-          </div>
-        ` : `
-          <div class="popup-authors popup-authors-empty">
-            Aucun auteur déclaré pour le moment.
-          </div>
-        `}
-
-        <a class="popup-detail-link" href="event.html?id=${encodeURIComponent(event.id)}">
-          Voir la fiche
-        </a>
-      </div>
-    `;
-  }
-
   function renderMapMarkers(events) {
-    if (!map) return;
-
-    if (!markersLayer) {
-      markersLayer = L.layerGroup().addTo(map);
-    }
+    if (!map || !markersLayer) return;
 
     markersLayer.clearLayers();
     markerByEventId = {};
 
     const grouped = {};
 
-    (events || []).forEach((event) => {
-      const lat = Number(event.lat);
-      const lng = Number(event.lng);
-
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    events.forEach((event) => {
+      if (
+        !Number.isFinite(Number(event.lat)) ||
+        !Number.isFinite(Number(event.lng))
+      ) {
         return;
       }
 
-      const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+      const key = `${event.lat},${event.lng}`;
 
       if (!grouped[key]) {
         grouped[key] = [];
       }
 
-      grouped[key].push({
-        ...event,
-        lat,
-        lng
-      });
+      grouped[key].push(event);
     });
 
     Object.values(grouped).forEach((group) => {
       const first = group[0];
+      const lat = Number(first.lat);
+      const lng = Number(first.lng);
       const typeMeta = TYPE_META[first.type] || TYPE_META.Autre;
 
-      const marker = L.marker([first.lat, first.lng], {
-        icon: createTypeIcon(typeMeta, group.length)
+      const marker = L.marker([lat, lng], {
+        icon: createTypeIcon(typeMeta)
       });
 
       marker.bindPopup(`
         <div class="premium-popup">
-          <strong>${group.length} événement${group.length > 1 ? "s" : ""} à ce lieu</strong>
+          <strong>${group.length} événement(s)</strong>
           <br><br>
-          ${group.map(renderPopupEventItem).join("")}
+
+          ${group.map((event) => `
+            <button
+              class="popup-focus-btn"
+              type="button"
+              data-event-id="${escapeAttribute(event.id)}"
+              data-event-type="${escapeAttribute(event.type || "")}"
+            >
+              ${escapeHtml(event.title || "Sans titre")}
+            </button>
+          `).join("")}
         </div>
       `);
 
@@ -601,21 +455,14 @@
         markerByEventId[event.id] = marker;
       });
     });
-
-    setTimeout(() => {
-      map?.invalidateSize();
-    }, 150);
   }
 
-  function createTypeIcon(typeMeta, count) {
-    const countBadge = count > 1 ? `<em>${count}</em>` : "";
-
+  function createTypeIcon(typeMeta) {
     return L.divIcon({
       className: "event-marker-v5",
-      html: `<span style="--marker-color:${typeMeta.color}">${countBadge}</span>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 30],
-      popupAnchor: [0, -26]
+      html: `<span style="--marker-color:${typeMeta.color}"></span>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28]
     });
   }
 
@@ -629,7 +476,8 @@
       mapPanel.classList.remove("is-open");
 
       if (mobileMapToggle) {
-        mobileMapToggle.textContent = "Carte en direct";
+        mobileMapToggle.textContent = "Ouvrir la carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", "false");
       }
     }
 
