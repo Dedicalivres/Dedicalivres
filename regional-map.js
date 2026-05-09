@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.6.7e — Carte régionale réelle.
+    V7.6.7f — Carte régionale réelle lisible.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -255,13 +255,13 @@
 
     return `
       <a
-        class="regional-real-marker${active}"
+        class="regional-real-marker region-${region.slug}${active}"
         href="${region.href}"
         data-region="${escapeAttribute(region.name)}"
         style="--x:${region.x}%;--y:${region.y}%;"
         aria-label="${escapeAttribute(region.name)} — ${count} événement${count > 1 ? "s" : ""}"
       >
-        <span class="regional-real-marker-name">${escapeHtml(shortRegionName(region.name))}</span>
+        <span class="regional-real-marker-name">${escapeHtml(region.name)}</span>
         <span class="regional-real-marker-count">${count}</span>
       </a>
     `;

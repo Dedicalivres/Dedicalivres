@@ -2292,3 +2292,97 @@ button:active,
     text-align: center;
   }
 }
+
+
+/* =========================================================
+   V7.6.7f - CARTE RÉGIONALE RÉELLE LISIBLE
+   Libellés complets, plus petits, moins invasifs,
+   avec accents colorés doux par région.
+========================================================= */
+
+.regional-real-map-image {
+  opacity: .86;
+  filter:
+    drop-shadow(0 16px 24px rgba(58,28,113,.10))
+    saturate(.92)
+    contrast(.96);
+}
+
+.regional-real-marker {
+  gap: 5px;
+  min-height: 28px;
+  max-width: 172px;
+  padding: 4px 5px 4px 9px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.92), var(--region-soft, rgba(255,255,255,.72)));
+  border-color: var(--region-border, rgba(58,28,113,.14));
+  box-shadow:
+    0 8px 18px rgba(58,28,113,.12),
+    0 0 0 3px rgba(255,255,255,.46);
+}
+
+.regional-real-marker:hover,
+.regional-real-marker:focus,
+.regional-real-marker.is-active {
+  transform: translate(-50%, -50%) scale(1.035);
+  border-color: var(--region-accent, rgba(255,107,53,.42));
+  box-shadow:
+    0 12px 26px rgba(58,28,113,.18),
+    0 0 0 4px color-mix(in srgb, var(--region-accent, #ff6b35) 18%, transparent);
+}
+
+.regional-real-marker-name {
+  display: block;
+  max-width: 124px;
+  white-space: normal;
+  text-align: center;
+  font-size: clamp(.56rem, .82vw, .72rem);
+  line-height: 1.05;
+  font-weight: 950;
+  letter-spacing: -.025em;
+}
+
+.regional-real-marker-count {
+  min-width: 23px;
+  height: 23px;
+  padding: 0 6px;
+  font-size: .72rem;
+  background: var(--region-accent, var(--purple));
+  flex: 0 0 auto;
+}
+
+.region-ile-de-france { --region-accent:#3657b6; --region-soft:rgba(54,87,182,.10); --region-border:rgba(54,87,182,.22); }
+.region-auvergne-rhone-alpes { --region-accent:#7d62d9; --region-soft:rgba(125,98,217,.11); --region-border:rgba(125,98,217,.23); }
+.region-nouvelle-aquitaine { --region-accent:#2f82be; --region-soft:rgba(47,130,190,.11); --region-border:rgba(47,130,190,.23); }
+.region-occitanie { --region-accent:#c54d76; --region-soft:rgba(197,77,118,.11); --region-border:rgba(197,77,118,.23); }
+.region-bretagne { --region-accent:#24805f; --region-soft:rgba(36,128,95,.12); --region-border:rgba(36,128,95,.23); }
+.region-bourgogne-franche-comte { --region-accent:#9b7b22; --region-soft:rgba(155,123,34,.12); --region-border:rgba(155,123,34,.24); }
+.region-centre-val-de-loire { --region-accent:#4f9a70; --region-soft:rgba(79,154,112,.11); --region-border:rgba(79,154,112,.23); }
+.region-corse { --region-accent:#b25827; --region-soft:rgba(178,88,39,.12); --region-border:rgba(178,88,39,.24); }
+.region-grand-est { --region-accent:#c26850; --region-soft:rgba(194,104,80,.11); --region-border:rgba(194,104,80,.23); }
+.region-hauts-de-france { --region-accent:#6d57c7; --region-soft:rgba(109,87,199,.11); --region-border:rgba(109,87,199,.23); }
+.region-normandie { --region-accent:#4f8fbd; --region-soft:rgba(79,143,189,.12); --region-border:rgba(79,143,189,.23); }
+.region-pays-de-la-loire { --region-accent:#d08a42; --region-soft:rgba(208,138,66,.12); --region-border:rgba(208,138,66,.24); }
+.region-provence-alpes-cote-azur { --region-accent:#4e95d2; --region-soft:rgba(78,149,210,.12); --region-border:rgba(78,149,210,.24); }
+
+@media (max-width: 1180px) {
+  .regional-real-marker-name {
+    max-width: 104px;
+    font-size: .58rem;
+  }
+
+  .regional-real-marker {
+    max-width: 146px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .regional-real-marker-name {
+    display: none;
+  }
+
+  .regional-real-marker {
+    max-width: none;
+    padding: 5px;
+  }
+}
