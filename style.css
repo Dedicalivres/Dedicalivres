@@ -2111,3 +2111,184 @@ button:active,
     font-size: 14px;
   }
 }
+
+/* =========================================================
+   V7.6.7e - CARTE RÉGIONALE RÉELLE
+   Fond cartographique réel + marqueurs cliquables/counts.
+========================================================= */
+
+.regional-map-layout-real {
+  align-items: stretch;
+}
+
+.regional-map-card-real {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255,107,53,.08), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,.96), rgba(250,246,255,.92));
+}
+
+.regional-real-map-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 560px;
+  border-radius: 28px;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(58,28,113,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(58,28,113,.035) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(255,255,255,.98), rgba(246,240,253,.88));
+  background-size: 34px 34px, 34px 34px, auto;
+  box-shadow:
+    inset 0 0 0 1px rgba(58,28,113,.08),
+    0 18px 46px rgba(58,28,113,.10);
+}
+
+.regional-real-map-image {
+  position: absolute;
+  inset: 4% 6%;
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  filter:
+    drop-shadow(0 18px 26px rgba(58,28,113,.10))
+    saturate(1.04);
+  opacity: .92;
+}
+
+.regional-real-map-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.regional-real-marker {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 6px 5px 12px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--purple);
+  background: rgba(255,255,255,.90);
+  border: 1px solid rgba(58,28,113,.16);
+  box-shadow:
+    0 12px 26px rgba(58,28,113,.14),
+    0 0 0 4px rgba(255,255,255,.52);
+  backdrop-filter: blur(10px);
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    background .18s ease,
+    border-color .18s ease;
+}
+
+.regional-real-marker:hover,
+.regional-real-marker:focus,
+.regional-real-marker.is-active {
+  transform: translate(-50%, -50%) scale(1.06);
+  background: rgba(255,255,255,.98);
+  border-color: rgba(255,107,53,.42);
+  box-shadow:
+    0 18px 36px rgba(58,28,113,.20),
+    0 0 0 5px rgba(255,107,53,.13);
+  outline: none;
+}
+
+.regional-real-marker-name {
+  font-weight: 950;
+  font-size: clamp(.72rem, 1.1vw, .92rem);
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  text-shadow: 0 2px 12px rgba(255,255,255,.85);
+}
+
+.regional-real-marker-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--purple);
+  color: white;
+  font-weight: 950;
+  font-size: .88rem;
+  box-shadow: 0 7px 16px rgba(58,28,113,.25);
+}
+
+.regional-map-total-real {
+  left: 22px;
+  bottom: 22px;
+  z-index: 3;
+}
+
+.regional-map-attribution {
+  position: absolute;
+  right: 18px;
+  bottom: 10px;
+  z-index: 3;
+  margin: 0;
+  color: rgba(107,97,120,.74);
+  font-size: .72rem;
+  font-weight: 750;
+}
+
+@media (max-width: 1000px) {
+  .regional-real-map-wrap {
+    min-height: 500px;
+  }
+
+  .regional-real-marker-name {
+    display: none;
+  }
+
+  .regional-real-marker {
+    padding: 5px;
+  }
+}
+
+@media (max-width: 720px) {
+  .regional-real-map-wrap {
+    min-height: 390px;
+    border-radius: 22px;
+  }
+
+  .regional-real-map-image {
+    inset: 6% 2%;
+    width: 96%;
+    height: 84%;
+  }
+
+  .regional-real-marker {
+    min-height: 30px;
+    box-shadow:
+      0 8px 18px rgba(58,28,113,.14),
+      0 0 0 3px rgba(255,255,255,.52);
+  }
+
+  .regional-real-marker-count {
+    min-width: 25px;
+    height: 25px;
+    font-size: .78rem;
+  }
+
+  .regional-map-total-real {
+    position: static;
+    margin-top: 12px;
+    width: 100%;
+  }
+
+  .regional-map-attribution {
+    position: static;
+    margin-top: 8px;
+    text-align: center;
+  }
+}
