@@ -198,7 +198,46 @@ function bindTabs() {
     }
   });
 
-  // V7.7.0a : swipe mobile désactivé pour éviter les changements d’onglet involontaires.
+  // V7.7.0b — swipe tactile désactivé pour éviter les changements d’onglet involontaires sur mobile.
+  // bindMobileSwipeTabs();
+}
+
+function bindMobileSwipeTabs() {
+  const wrapper = document.querySelector(".tabs-wrapper");
+  if (!wrapper) return;
+
+  let startX = 0;
+  let endX = 0;
+
+  wrapper.addEventListener(
+    "touchstart",
+    (event) => {
+      startX = event.changedTouches[0].screenX;
+    },
+    { passive: true }
+  );
+
+  wrapper.addEventListener(
+    "touchend",
+    (event) => {
+      endX = event.changedTouches[0].screenX;
+      handleSwipeTabs();
+    },
+    { passive: true }
+  );
+
+  function handleSwipeTabs() {
+    const delta = endX - startX;
+    if (Math.abs(delta) < 60) return;
+
+    const tabs = [...document.querySelectorAll(".admin-tab")];
+    const activeIndex = tabs.findIndex((tab) =>
+      tab.classList.contains("active")
+    );
+
+    if (delta < 0) tabs[activeIndex + 1]?.click();
+    else tabs[activeIndex - 1]?.click();
+  }
 }
 
 /* DASHBOARD */
@@ -226,7 +265,7 @@ async function loadEvents() {
   const { data, error } = await supabaseClient
     .from("events")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("start_date", { ascending: true });
 
   if (error) {
     console.error(error);
@@ -290,7 +329,7 @@ function updateStats() {
   }
 }
 
-/* PRIORITY ZONES */
+/* OBSERVATOIRE TERRITORIAL — V7.7.0b */
 
 function renderPriorityZones() {
   renderTopCities();
@@ -298,89 +337,138 @@ function renderPriorityZones() {
   renderTrend();
 }
 
+function getUpcomingValidatedEvents() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return (allEvents || []).filter((event) => {
+    if (!event.validated || event.rejected) return false;
+
+    const end = event.end_date || event.start_date;
+    if (!end) return true;
+
+    const date = new Date(end);
+    if (Number.isNaN(date.getTime())) return true;
+
+    date.setHours(0, 0, 0, 0);
+    return date >= today;
+  });
+}
+
 function renderTopCities() {
   if (!priorityCities) return;
 
-  if (!locationRows.length) {
-    priorityCities.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant.</p>`;
-    return;
-  }
+  const upcoming = getUpcomingValidatedEvents();
 
-  const cityCounts = countBy(
-    locationRows
-      .map((row) => cleanLabel(row.city || row.region || "Zone inconnue"))
-      .filter(Boolean)
-  );
-
-  priorityCities.innerHTML = renderRanking(cityCounts, "localisation");
-}
-
-function renderDevices() {
-  if (!priorityDevices) return;
-
-  if (!locationRows.length) {
-    priorityDevices.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant.</p>`;
-    return;
-  }
-
-  const deviceCounts = countBy(
-    locationRows.map((row) => cleanLabel(row.device || "inconnu"))
-  );
-
-  priorityDevices.innerHTML = renderRanking(deviceCounts, "appareil");
-}
-
-function renderTrend() {
-  if (!priorityTrend) return;
-
-  if (!locationRows.length) {
-    priorityTrend.innerHTML = `
+  if (!upcoming.length) {
+    priorityCities.innerHTML = `
       <p class="priority-empty">
-        Les tendances apparaîtront après les premiers clics sur “Me localiser”.
+        Aucun événement validé à venir pour établir une observation territoriale.
       </p>
     `;
     return;
   }
 
-  const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(now.getDate() - 7);
-
-  const recent = locationRows.filter((row) => {
-    if (!row.created_at) return false;
-    return new Date(row.created_at) >= sevenDaysAgo;
-  });
-
-  const topCityCounts = countBy(
-    recent
-      .map((row) => cleanLabel(row.city || row.region || "Zone inconnue"))
+  const cityCounts = countBy(
+    upcoming
+      .map((event) => cleanLabel(event.city || "Ville non renseignée"))
       .filter(Boolean)
   );
 
-  const topCity = Object.entries(topCityCounts)
-    .sort((a, b) => b[1] - a[1])[0];
+  priorityCities.innerHTML = `
+    <div class="priority-context">
+      <strong>Top villes événements</strong>
+      <small>Basé sur les événements validés à venir.</small>
+    </div>
+    ${renderRanking(cityCounts, "événement(s) à venir")}
+  `;
+}
+
+function renderDevices() {
+  if (!priorityDevices) return;
+
+  const upcoming = getUpcomingValidatedEvents();
+
+  if (!upcoming.length) {
+    priorityDevices.innerHTML = `
+      <p class="priority-empty">
+        Les régions apparaîtront après validation des prochains événements.
+      </p>
+    `;
+    return;
+  }
+
+  const regionCounts = countBy(
+    upcoming
+      .map((event) => cleanLabel(event.region || "Région non renseignée"))
+      .filter(Boolean)
+  );
+
+  priorityDevices.innerHTML = `
+    <div class="priority-context">
+      <strong>Top régions alimentées</strong>
+      <small>Répartition des événements publiés par territoire.</small>
+    </div>
+    ${renderRanking(regionCounts, "événement(s) validé(s)")}
+  `;
+}
+
+function renderTrend() {
+  if (!priorityTrend) return;
+
+  const upcoming = getUpcomingValidatedEvents();
+  const missingImages = upcoming.filter((event) => !event.image_url).length;
+  const missingCoords = upcoming.filter((event) => {
+    return !Number.isFinite(Number(event.lat)) || !Number.isFinite(Number(event.lng));
+  }).length;
+  const missingWebsite = upcoming.filter((event) => !event.website).length;
+
+  const locatedSearches = (locationRows || []).length;
+  const recentSearches = countRecentLocationRows(7);
 
   priorityTrend.innerHTML = `
-    <div class="priority-trend-box">
-      <strong>${recent.length}</strong>
-      <span>localisation(s) sur 7 jours</span>
+    <div class="priority-trend-box observatory-trend-box">
+      <strong>${upcoming.length}</strong>
+      <span>événement(s) validé(s) à venir</span>
     </div>
 
-    ${
-      topCity
-        ? `
-          <div class="priority-mini">
-            Zone la plus active :
-            <b>${escapeHtml(topCity[0])}</b>
-          </div>
-        `
-        : `
-          <div class="priority-mini">
-            Pas encore assez de données récentes.
-          </div>
-        `
-    }
+    <div class="observatory-kpi-grid">
+      <div class="observatory-kpi">
+        <b>${missingImages}</b>
+        <span>sans image</span>
+      </div>
+      <div class="observatory-kpi">
+        <b>${missingCoords}</b>
+        <span>sans coordonnées</span>
+      </div>
+      <div class="observatory-kpi">
+        <b>${missingWebsite}</b>
+        <span>sans site officiel</span>
+      </div>
+      <div class="observatory-kpi">
+        <b>${recentSearches}</b>
+        <span>localisations 7j</span>
+      </div>
+    </div>
+
+    <div class="priority-mini">
+      ${locatedSearches
+        ? `Données visiteurs disponibles : <b>${locatedSearches}</b> localisation(s) enregistrée(s).`
+        : `Aucune localisation visiteur pour l’instant : l’observatoire utilise les événements validés pour rester utile.`
+      }
+    </div>
   `;
+}
+
+function countRecentLocationRows(days) {
+  const now = new Date();
+  const limit = new Date(now);
+  limit.setDate(now.getDate() - days);
+
+  return (locationRows || []).filter((row) => {
+    if (!row.created_at) return false;
+    return new Date(row.created_at) >= limit;
+  }).length;
 }
 
 function renderRanking(counts, label) {
@@ -851,31 +939,90 @@ async function saveEdition() {
   const id = editId.value;
   if (!id) return;
 
-  const payload = {
-    title: editTitle.value.trim(),
-    type: editType.value,
-    city: editCity.value.trim(),
-    region: editRegion.value.trim(),
-    start_date: editStartDate.value || null,
-    end_date: editEndDate.value || null,
-    website: editWebsite.value.trim(),
-    description: editDescription.value.trim(),
-    image_url: editImageUrl.value.trim() || null
-  };
-
-  const { error } = await supabaseClient
-    .from("events")
-    .update(payload)
-    .eq("id", id);
-
-  if (error) {
-    showToast("Erreur édition");
-    return;
+  if (saveEditBtn) {
+    saveEditBtn.disabled = true;
+    saveEditBtn.textContent = "ENREGISTREMENT...";
   }
 
-  closeEditModal();
-  await loadDashboard();
-  showToast("Événement modifié");
+  try {
+    let imageUrl = editImageUrl.value.trim() || null;
+
+    if (selectedAdminImageFile) {
+      imageUrl = await uploadAdminEventImage(id, selectedAdminImageFile);
+      editImageUrl.value = imageUrl || "";
+    }
+
+    const payload = {
+      title: editTitle.value.trim(),
+      type: editType.value,
+      city: editCity.value.trim(),
+      region: editRegion.value.trim(),
+      start_date: editStartDate.value || null,
+      end_date: editEndDate.value || null,
+      website: editWebsite.value.trim(),
+      description: editDescription.value.trim(),
+      image_url: imageUrl
+    };
+
+    const { error } = await supabaseClient
+      .from("events")
+      .update(payload)
+      .eq("id", id);
+
+    if (error) throw error;
+
+    selectedAdminImageFile = null;
+    if (editImageFile) editImageFile.value = "";
+
+    closeEditModal();
+    await loadDashboard();
+    showToast("Événement modifié");
+  } catch (error) {
+    console.error("Erreur édition événement :", error);
+    showToast(error?.message || "Erreur édition");
+  } finally {
+    if (saveEditBtn) {
+      saveEditBtn.disabled = false;
+      saveEditBtn.textContent = "ENREGISTRER";
+    }
+  }
+}
+
+async function uploadAdminEventImage(eventId, file) {
+  if (!file) return editImageUrl.value.trim() || null;
+
+  if (!file.type || !file.type.startsWith("image/")) {
+    throw new Error("Le fichier sélectionné n’est pas une image.");
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Image trop lourde : 5 Mo maximum.");
+  }
+
+  const extension = (file.name.split(".").pop() || "jpg")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "") || "jpg";
+
+  const path = `admin/${eventId}-${Date.now()}.${extension}`;
+
+  const { error } = await supabaseClient.storage
+    .from("event-images")
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: true
+    });
+
+  if (error) throw error;
+
+  const { data } = supabaseClient.storage
+    .from("event-images")
+    .getPublicUrl(path);
+
+  if (!data?.publicUrl) {
+    throw new Error("URL publique de l’image introuvable.");
+  }
+
+  return data.publicUrl;
 }
 
 /* HELPERS */

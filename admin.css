@@ -4,42 +4,38 @@
 
 :root {
 
-  /* V7.7.0a — thème Control Center noir / bleu cyan.
-     Les noms de variables historiques sont conservés pour éviter
-     toute régression dans les modules existants. */
-
   --cyber-bg:
-    #030914;
+    #07110d;
 
   --cyber-bg-2:
-    #071426;
+    #0c1813;
 
   --cyber-card:
-    rgba(6,18,34,.91);
+    rgba(10,22,18,.88);
 
   --cyber-border:
-    rgba(78,210,255,.18);
+    rgba(80,255,180,.12);
 
   --cyber-green:
-    #28d7ff;
+    #19ff9c;
 
   --cyber-cyan:
-    #60a5fa;
+    #19d7ff;
 
   --cyber-orange:
-    #ffb15c;
+    #ff9e44;
 
   --cyber-purple:
-    #9d7cff;
+    #c26bff;
 
   --cyber-red:
-    #ff6b86;
+    #ff5f73;
 
   --cyber-text:
-    #eaf7ff;
+    #eafff7;
 
   --cyber-muted:
-    rgba(220,240,255,.64);
+    rgba(220,255,245,.58);
 }
 
 /* =========================================================
@@ -51,13 +47,13 @@ body.cyber-admin {
   background:
     radial-gradient(
       circle at top,
-      rgba(40,215,255,.10),
+      rgba(25,255,156,.06),
       transparent 42%
     ),
     linear-gradient(
       180deg,
-      #020612,
-      #030914
+      #040806,
+      #07110d
     );
 
   color:
@@ -90,7 +86,7 @@ body.cyber-admin {
     blur(16px);
 
   background:
-    rgba(3,9,20,.78);
+    rgba(3,10,7,.72);
 
   border-bottom:
     1px solid var(--cyber-border);
@@ -114,7 +110,7 @@ body.cyber-admin {
     12px 18px;
 
   background:
-    rgba(8,20,38,.94);
+    rgba(15,28,23,.92);
 
   color:
     var(--cyber-muted);
@@ -141,7 +137,7 @@ body.cyber-admin {
   background:
     linear-gradient(
       135deg,
-      rgba(40,215,255,.20),
+      rgba(25,255,156,.18),
       rgba(25,215,255,.18)
     );
 
@@ -149,8 +145,8 @@ body.cyber-admin {
     var(--cyber-green);
 
   box-shadow:
-    0 0 0 1px rgba(40,215,255,.20),
-    0 18px 38px rgba(40,215,255,.10);
+    0 0 0 1px rgba(25,255,156,.18),
+    0 18px 38px rgba(25,255,156,.08);
 }
 
 /* =========================================================
@@ -277,13 +273,13 @@ body.cyber-admin {
     );
 
   color:
-    #03101c;
+    #05110d;
 }
 
 .cyber-btn-secondary {
 
   background:
-    rgba(8,24,44,.96);
+    rgba(18,35,28,.95);
 
   color:
     var(--cyber-cyan);
@@ -399,7 +395,7 @@ body.cyber-admin {
     24px;
 
   background:
-    rgba(7,20,38,.92);
+    rgba(14,26,22,.92);
 
   border:
     1px solid rgba(255,255,255,.05);
@@ -434,8 +430,8 @@ body.cyber-admin {
 
 .glow-green {
   box-shadow:
-    0 0 0 1px rgba(40,215,255,.14),
-    0 0 42px rgba(40,215,255,.10);
+    0 0 0 1px rgba(25,255,156,.12),
+    0 0 42px rgba(25,255,156,.08);
 }
 
 .glow-cyan {
@@ -495,10 +491,10 @@ body.cyber-admin {
     22px;
 
   background:
-    rgba(5,16,31,.92);
+    rgba(8,18,14,.92);
 
   border:
-    1px solid rgba(40,215,255,.10);
+    1px solid rgba(25,255,156,.08);
 }
 
 .priority-title {
@@ -580,7 +576,7 @@ body.cyber-admin {
     );
 
   box-shadow:
-    0 0 18px rgba(40,215,255,.34);
+    0 0 18px rgba(25,255,156,.32);
 }
 
 .priority-row small {
@@ -617,7 +613,7 @@ body.cyber-admin {
     22px;
 
   background:
-    rgba(40,215,255,.10);
+    rgba(25,255,156,.06);
 
   text-align: center;
 }
@@ -676,7 +672,7 @@ body.cyber-admin {
     24px;
 
   background:
-    rgba(5,16,31,.92);
+    rgba(8,18,14,.9);
 
   border:
     1px solid rgba(255,255,255,.04);
@@ -757,7 +753,7 @@ body.cyber-admin {
     999px;
 
   background:
-    rgba(40,215,255,.14);
+    rgba(25,255,156,.12);
 
   color:
     var(--cyber-green);
@@ -821,7 +817,7 @@ body.cyber-admin {
 }
 
 .event-action.validate {
-  background: rgba(40,215,255,.16);
+  background: rgba(25,255,156,.14);
   color: var(--cyber-green);
 }
 
@@ -867,7 +863,7 @@ body.cyber-admin {
     24px;
 
   background:
-    rgba(6,18,34,.92);
+    rgba(10,20,16,.92);
 
   border:
     1px solid rgba(255,255,255,.04);
@@ -966,10 +962,10 @@ body.cyber-admin {
     30px;
 
   background:
-    #061222;
+    #09120e;
 
   border:
-    1px solid rgba(40,215,255,.10);
+    1px solid rgba(25,255,156,.08);
 }
 
 .edit-header {
@@ -1066,10 +1062,10 @@ body.cyber-admin {
   cursor: pointer;
 
   background:
-    rgba(40,215,255,.10);
+    rgba(25,255,156,.06);
 
   border:
-    1px dashed rgba(40,215,255,.26);
+    1px dashed rgba(25,255,156,.22);
 }
 
 .admin-upload-box input {
@@ -1151,7 +1147,7 @@ body.cyber-admin {
     rgba(8,18,14,.94);
 
   border:
-    1px solid rgba(40,215,255,.14);
+    1px solid rgba(25,255,156,.12);
 
   color:
     white;
@@ -1276,7 +1272,7 @@ body.cyber-admin {
     rgba(8,18,14,.94);
 
   border:
-    1px solid rgba(40,215,255,.10);
+    1px solid rgba(25,255,156,.08);
 
   border-radius:
     28px;
@@ -1432,7 +1428,7 @@ body.cyber-admin {
   padding: 8px 12px;
   color: var(--cyber-green);
   background: rgba(25,255,156,.10);
-  border: 1px solid rgba(40,215,255,.16);
+  border: 1px solid rgba(25,255,156,.14);
   font-weight: 900;
   font-size: .8rem;
 }
@@ -1575,7 +1571,7 @@ body.cyber-admin {
     border-radius: 18px;
     background: rgba(4,8,6,.86);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(40,215,255,.10);
+    border: 1px solid rgba(25,255,156,.08);
   }
 
   .mobile-sticky-actions button {
@@ -1618,7 +1614,7 @@ body.cyber-admin {
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #03101c;
+  background: #05110d;
   color: #fff;
   font-size: .68rem;
   font-style: normal;
@@ -1779,7 +1775,7 @@ body.cyber-admin {
   align-items: center;
   padding: 16px;
   border-radius: 20px;
-  background: rgba(5,16,31,.92);
+  background: rgba(8,18,14,.9);
   border: 1px solid rgba(255,255,255,.05);
 }
 
@@ -1789,7 +1785,7 @@ body.cyber-admin {
 }
 
 .author-request-row.is-validated {
-  border-color: rgba(40,215,255,.20);
+  border-color: rgba(25,255,156,.18);
   box-shadow: inset 4px 0 0 rgba(25,255,156,.45);
 }
 
@@ -1837,7 +1833,7 @@ body.cyber-admin {
 }
 
 .author-request-actions .approve {
-  background: rgba(40,215,255,.16);
+  background: rgba(25,255,156,.14);
   color: var(--cyber-green);
 }
 
@@ -1916,61 +1912,182 @@ body.cyber-admin {
   border-color: rgba(255,95,115,.32);
 }
 
-
 /* =========================================================
-   V7.7.0a — CONTROL CENTER CYAN
-   Compléments visuels non destructifs.
+   V7.7.0b — ADMIN CONTROL CENTER CYAN + OBSERVATOIRE
+   - Séparation réelle login / dashboard
+   - Thème noir / bleu cyan
+   - Observatoire territorial plus utile
 ========================================================= */
 
-body.cyber-admin::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
+:root {
+  --cyber-bg: #020714;
+  --cyber-bg-2: #071426;
+  --cyber-card: rgba(6, 18, 34, .92);
+  --cyber-border: rgba(56, 189, 248, .18);
+  --cyber-green: #28d7ff;
+  --cyber-cyan: #60a5fa;
+  --cyber-orange: #ffb45c;
+  --cyber-purple: #8b5cf6;
+  --cyber-red: #ff5f7e;
+  --cyber-text: #eaf7ff;
+  --cyber-muted: rgba(220, 240, 255, .64);
+}
+
+.hidden,
+.login-screen.hidden,
+.dashboard.hidden,
+.edit-modal.hidden {
+  display: none !important;
+}
+
+body.cyber-admin {
   background:
-    radial-gradient(circle at 12% 8%, rgba(40,215,255,.13), transparent 28%),
-    radial-gradient(circle at 86% 18%, rgba(96,165,250,.10), transparent 32%),
-    linear-gradient(180deg, rgba(2,6,18,.62), rgba(3,9,20,.88));
+    radial-gradient(circle at 18% 0%, rgba(40, 215, 255, .14), transparent 34%),
+    radial-gradient(circle at 82% 8%, rgba(96, 165, 250, .10), transparent 36%),
+    linear-gradient(180deg, #020714, #06101f 48%, #020714);
 }
 
-.topbar-left h2::after {
-  content: "  ·  CYAN CONTROL";
-  color: var(--cyber-cyan);
-  font-size: .72rem;
-  letter-spacing: .12em;
-}
-
-.cyber-btn-primary {
-  background: linear-gradient(135deg, var(--cyber-green), var(--cyber-cyan));
-  color: #03101c;
-  box-shadow: 0 0 0 1px rgba(40,215,255,.18), 0 18px 36px rgba(40,215,255,.13);
-}
-
-.admin-tab.active,
-.stat-card,
+.login-panel,
 .admin-panel,
 .social-card,
-.priority-card,
 .event-card,
+.priority-card,
+.stat-card,
 .edit-panel {
+  border-color: var(--cyber-border) !important;
   box-shadow:
-    0 0 0 1px rgba(78,210,255,.08),
-    0 24px 60px rgba(0,0,0,.34);
+    0 24px 64px rgba(0, 0, 0, .38),
+    inset 0 1px 0 rgba(255, 255, 255, .035);
+}
+
+.login-panel,
+.edit-panel {
+  background:
+    radial-gradient(circle at top, rgba(40, 215, 255, .08), transparent 42%),
+    rgba(4, 14, 28, .96) !important;
 }
 
 .status-dot {
-  background: var(--cyber-green);
-  box-shadow: 0 0 16px var(--cyber-green), 0 0 34px rgba(40,215,255,.28);
+  background: var(--cyber-green) !important;
+  box-shadow:
+    0 0 14px var(--cyber-green),
+    0 0 34px rgba(40, 215, 255, .35) !important;
+}
+
+.admin-tab.active {
+  background:
+    linear-gradient(135deg, rgba(40, 215, 255, .20), rgba(96, 165, 250, .17)) !important;
+  color: #7ddcff !important;
+  box-shadow:
+    0 0 0 1px rgba(40, 215, 255, .22),
+    0 18px 42px rgba(40, 215, 255, .12) !important;
+}
+
+.cyber-btn-primary {
+  background:
+    linear-gradient(135deg, #28d7ff, #60a5fa) !important;
+  color: #03101f !important;
+  box-shadow: 0 16px 34px rgba(40, 215, 255, .16);
+}
+
+.cyber-btn-secondary {
+  background: rgba(9, 28, 52, .96) !important;
+  color: #7ddcff !important;
+}
+
+.priority-title,
+.badge,
+.priority-trend-box strong {
+  color: var(--cyber-green) !important;
+}
+
+.priority-card {
+  background:
+    radial-gradient(circle at top left, rgba(40, 215, 255, .06), transparent 36%),
+    rgba(5, 16, 31, .94) !important;
+}
+
+.priority-bar i {
+  background:
+    linear-gradient(90deg, #28d7ff, #60a5fa) !important;
+  box-shadow: 0 0 18px rgba(40, 215, 255, .32) !important;
+}
+
+.priority-context {
+  margin-bottom: 16px;
+  padding: 13px 14px;
+  border-radius: 18px;
+  background: rgba(40, 215, 255, .06);
+  border: 1px solid rgba(40, 215, 255, .10);
+}
+
+.priority-context strong {
+  display: block;
+  color: var(--cyber-text);
+  font-family: "Orbitron", sans-serif;
+  letter-spacing: .05em;
+  font-size: .86rem;
+  margin-bottom: 6px;
+}
+
+.priority-context small {
+  display: block;
+  color: var(--cyber-muted);
+  line-height: 1.45;
+}
+
+.observatory-trend-box {
+  background:
+    radial-gradient(circle at top, rgba(40, 215, 255, .14), transparent 46%),
+    rgba(40, 215, 255, .06) !important;
+}
+
+.observatory-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.observatory-kpi {
+  min-height: 86px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .035);
+  border: 1px solid rgba(40, 215, 255, .10);
+}
+
+.observatory-kpi b {
+  display: block;
+  color: #7ddcff;
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.55rem;
+  margin-bottom: 6px;
+}
+
+.observatory-kpi span {
+  color: var(--cyber-muted);
+  font-size: .82rem;
+  font-weight: 800;
 }
 
 .admin-upload-box {
-  background: rgba(40,215,255,.07);
-  border-color: rgba(40,215,255,.28);
+  background: rgba(40, 215, 255, .06) !important;
+  border-color: rgba(40, 215, 255, .24) !important;
 }
 
-/* Le changement d’onglet tactile par glissement est désactivé côté JS.
-   Les onglets restent défilables horizontalement et activables au clic. */
-.admin-tabs {
-  touch-action: pan-x;
+.save-edit-btn[disabled],
+button:disabled {
+  opacity: .58;
+  cursor: wait;
+}
+
+@media (max-width: 760px) {
+  .observatory-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-screen {
+    min-height: 100svh;
+  }
 }
