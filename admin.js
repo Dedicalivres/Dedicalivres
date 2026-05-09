@@ -198,45 +198,7 @@ function bindTabs() {
     }
   });
 
-  bindMobileSwipeTabs();
-}
-
-function bindMobileSwipeTabs() {
-  const wrapper = document.querySelector(".tabs-wrapper");
-  if (!wrapper) return;
-
-  let startX = 0;
-  let endX = 0;
-
-  wrapper.addEventListener(
-    "touchstart",
-    (event) => {
-      startX = event.changedTouches[0].screenX;
-    },
-    { passive: true }
-  );
-
-  wrapper.addEventListener(
-    "touchend",
-    (event) => {
-      endX = event.changedTouches[0].screenX;
-      handleSwipeTabs();
-    },
-    { passive: true }
-  );
-
-  function handleSwipeTabs() {
-    const delta = endX - startX;
-    if (Math.abs(delta) < 60) return;
-
-    const tabs = [...document.querySelectorAll(".admin-tab")];
-    const activeIndex = tabs.findIndex((tab) =>
-      tab.classList.contains("active")
-    );
-
-    if (delta < 0) tabs[activeIndex + 1]?.click();
-    else tabs[activeIndex - 1]?.click();
-  }
+  // V7.7.0a : swipe mobile désactivé pour éviter les changements d’onglet involontaires.
 }
 
 /* DASHBOARD */
