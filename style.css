@@ -2048,3 +2048,66 @@ button:active,
   }
 }
 
+
+
+/* =========================================================
+   V7.6.7d - CARTE RÉGIONALE PREMIUM ORDONNÉE
+   Mise en page semi-schématique, plus lisible et plus stable.
+========================================================= */
+.regional-map-card {
+  min-height: 620px;
+}
+
+.regional-map-svg-wrap {
+  max-width: 920px;
+}
+
+.regional-map-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 16px 26px rgba(58,28,113,.11));
+}
+
+.regional-shape {
+  stroke: rgba(255,255,255,.92);
+  stroke-width: 5;
+}
+
+.regional-region-link:hover .regional-shape,
+.regional-region-link:focus .regional-shape,
+.regional-region-link.is-active .regional-shape {
+  filter: brightness(1.05) saturate(1.14) drop-shadow(0 10px 14px rgba(58,28,113,.16));
+  opacity: 1;
+}
+
+.regional-label {
+  font-size: 15px;
+  letter-spacing: -.02em;
+  stroke: rgba(255,255,255,.82);
+  stroke-width: 5px;
+}
+
+.regional-count-badge {
+  stroke-width: 4;
+}
+
+.regional-count-text {
+  font-size: 14px;
+}
+
+@media (max-width: 980px) {
+  .regional-map-card {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 680px) {
+  .regional-map-svg {
+    min-width: 760px;
+  }
+
+  .regional-label {
+    font-size: 14px;
+  }
+}

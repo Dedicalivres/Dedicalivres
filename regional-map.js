@@ -6,25 +6,147 @@
 
   if (!root) return;
 
+  /*
+    V7.6.7d — Carte régionale premium ordonnée
+    Carte volontairement semi-schématique : elle privilégie la lisibilité,
+    la navigation mobile et les compteurs dynamiques plutôt qu'une précision IGN.
+  */
   const REGIONS = [
-    { name: "Bretagne", slug: "bretagne", href: "evenements-litteraires-bretagne.html", color: "#b8efd9", points: "55,205 150,175 190,230 150,285 60,260", label: [128,230], badge: [125,260], description: "Librairies, festivals, salons et rendez-vous bretons" },
-    { name: "Normandie", slug: "normandie", href: "evenements-litteraires-normandie.html", color: "#cce6ff", points: "170,110 300,100 340,170 280,215 190,200", label: [250,155], badge: [270,185], description: "Rouen, Caen, littoral normand et rencontres d’auteurs" },
-    { name: "Hauts-de-France", slug: "hauts-de-france", href: "evenements-litteraires-hauts-de-france.html", color: "#eadcff", points: "330,55 455,60 485,140 425,185 340,165", label: [405,98], badge: [420,135], description: "Lille, Amiens, salons, dédicaces et festivals littéraires" },
-    { name: "Île-de-France", slug: "ile-de-france", href: "evenements-litteraires-ile-de-france.html", color: "#fff1b8", points: "342,190 430,185 455,250 405,295 330,260", label: [390,228], badge: [405,262], description: "Paris, librairies, salons et rendez-vous franciliens" },
-    { name: "Grand Est", slug: "grand-est", href: "evenements-litteraires-grand-est.html", color: "#ffd9d2", points: "490,115 650,145 705,250 605,330 470,275 450,185", label: [590,205], badge: [625,240], description: "Strasbourg, Reims, Metz, Nancy et rendez-vous du livre" },
-    { name: "Pays de la Loire", slug: "pays-de-la-loire", href: "evenements-litteraires-pays-de-la-loire.html", color: "#ffe4cf", points: "150,280 275,235 330,285 290,400 165,405 90,340", label: [220,325], badge: [245,358], description: "Nantes, Angers, Le Mans et événements autour du livre" },
-    { name: "Centre-Val de Loire", slug: "centre-val-de-loire", href: "evenements-litteraires-centre-val-de-loire.html", color: "#d7f4df", points: "320,285 455,280 505,390 415,480 290,405", label: [395,365], badge: [392,402], description: "Tours, Orléans, rencontres et événements littéraires" },
-    { name: "Bourgogne-Franche-Comté", slug: "bourgogne-franche-comte", href: "evenements-litteraires-bourgogne-franche-comte.html", color: "#fff2bf", points: "455,305 605,335 620,465 500,530 415,480 505,390", label: [535,405], badge: [535,448], description: "Dijon, Besançon, librairies et rendez-vous du livre" },
-    { name: "Nouvelle-Aquitaine", slug: "nouvelle-aquitaine", href: "evenements-litteraires-nouvelle-aquitaine.html", color: "#cde8ff", points: "155,420 290,420 405,505 350,610 205,610 95,520", label: [260,510], badge: [275,555], description: "Bordeaux, littoral, salons et festivals du livre" },
-    { name: "Auvergne-Rhône-Alpes", slug: "auvergne-rhone-alpes", href: "evenements-litteraires-auvergne-rhone-alpes.html", color: "#e6d9ff", points: "420,505 525,540 620,520 680,600 560,640 420,615 350,610", label: [520,575], badge: [528,615], description: "Lyon, Grenoble, Clermont-Ferrand et rencontres régionales" },
-    { name: "Occitanie", slug: "occitanie", href: "evenements-litteraires-occitanie.html", color: "#ffd8e4", points: "280,510 420,520 420,635 270,650 185,610", label: [330,585], badge: [330,622], description: "Toulouse, Montpellier, festivals et rencontres d’auteurs" },
-    { name: "Provence-Alpes-Côte d’Azur", slug: "provence-alpes-cote-azur", href: "evenements-litteraires-provence-alpes-cote-azur.html", color: "#d8ebff", points: "620,525 735,500 755,575 680,635 600,610", label: [675,560], badge: [688,596], description: "Marseille, Nice, Toulon, festivals et dédicaces" },
-    { name: "Corse", slug: "corse", href: "evenements-litteraires-corse.html", color: "#ffe7b8", points: "705,610 742,632 722,708 678,688", label: [710,670], badge: [710,704], description: "Ajaccio, Bastia, rencontres insulaires et salons du livre" }
+    {
+      name: "Bretagne",
+      slug: "bretagne",
+      href: "evenements-litteraires-bretagne.html",
+      color: "#b7efd8",
+      points: "50,210 160,178 220,235 165,296 58,270",
+      label: [135,230],
+      badge: [137,264],
+      description: "Librairies, festivals, salons et rendez-vous bretons"
+    },
+    {
+      name: "Normandie",
+      slug: "normandie",
+      href: "evenements-litteraires-normandie.html",
+      color: "#cfe7ff",
+      points: "180,120 330,102 378,168 318,224 198,206",
+      label: [278,158],
+      badge: [296,190],
+      description: "Rouen, Caen, littoral normand et rencontres d’auteurs"
+    },
+    {
+      name: "Hauts-de-France",
+      slug: "hauts-de-france",
+      href: "evenements-litteraires-hauts-de-france.html",
+      color: "#eadfff",
+      points: "390,48 535,52 565,132 510,190 398,165",
+      label: [472,98],
+      badge: [486,134],
+      description: "Lille, Amiens, salons, dédicaces et festivals littéraires"
+    },
+    {
+      name: "Île-de-France",
+      slug: "ile-de-france",
+      href: "evenements-litteraires-ile-de-france.html",
+      color: "#fff0b8",
+      points: "392,205 505,190 535,265 468,325 378,282",
+      label: [455,240],
+      badge: [462,276],
+      description: "Paris, librairies, salons et rendez-vous franciliens"
+    },
+    {
+      name: "Grand Est",
+      slug: "grand-est",
+      href: "evenements-litteraires-grand-est.html",
+      color: "#ffd7cf",
+      points: "575,122 770,150 832,254 724,348 565,292 535,190",
+      label: [688,210],
+      badge: [715,252],
+      description: "Strasbourg, Reims, Metz, Nancy et rendez-vous du livre"
+    },
+    {
+      name: "Pays de la Loire",
+      slug: "pays-de-la-loire",
+      href: "evenements-litteraires-pays-de-la-loire.html",
+      color: "#ffe5d0",
+      points: "158,316 315,256 382,318 338,430 188,438 98,368",
+      label: [252,346],
+      badge: [274,382],
+      description: "Nantes, Angers, Le Mans et événements autour du livre"
+    },
+    {
+      name: "Centre-Val de Loire",
+      slug: "centre-val-de-loire",
+      href: "evenements-litteraires-centre-val-de-loire.html",
+      color: "#d8f3df",
+      points: "392,316 545,306 590,430 500,512 348,440",
+      label: [470,388],
+      badge: [468,430],
+      description: "Tours, Orléans, rencontres et événements littéraires"
+    },
+    {
+      name: "Bourgogne-Franche-Comté",
+      slug: "bourgogne-franche-comte",
+      href: "evenements-litteraires-bourgogne-franche-comte.html",
+      color: "#fff2bf",
+      points: "565,328 728,360 735,502 598,570 500,512 590,430",
+      label: [640,426],
+      badge: [642,474],
+      description: "Dijon, Besançon, librairies et rendez-vous du livre"
+    },
+    {
+      name: "Nouvelle-Aquitaine",
+      slug: "nouvelle-aquitaine",
+      href: "evenements-litteraires-nouvelle-aquitaine.html",
+      color: "#cfe8ff",
+      points: "150,468 338,458 475,548 392,658 190,650 70,552",
+      label: [275,545],
+      badge: [296,590],
+      description: "Bordeaux, littoral, salons et festivals du livre"
+    },
+    {
+      name: "Occitanie",
+      slug: "occitanie",
+      href: "evenements-litteraires-occitanie.html",
+      color: "#ffd7e5",
+      points: "326,570 488,540 594,606 535,710 352,718 240,650",
+      label: [415,626],
+      badge: [416,668],
+      description: "Toulouse, Montpellier, festivals et rencontres d’auteurs"
+    },
+    {
+      name: "Auvergne-Rhône-Alpes",
+      slug: "auvergne-rhone-alpes",
+      href: "evenements-litteraires-auvergne-rhone-alpes.html",
+      color: "#e6d9ff",
+      points: "528,538 675,548 760,624 680,720 535,710 594,606",
+      label: [650,622],
+      badge: [650,672],
+      description: "Lyon, Grenoble, Clermont-Ferrand et rencontres régionales"
+    },
+    {
+      name: "Provence-Alpes-Côte d’Azur",
+      slug: "provence-alpes-cote-azur",
+      href: "evenements-litteraires-provence-alpes-cote-azur.html",
+      color: "#d8ebff",
+      points: "705,538 860,510 882,604 762,680 680,624",
+      label: [782,592],
+      badge: [782,638],
+      description: "Marseille, Nice, Toulon, festivals et dédicaces"
+    },
+    {
+      name: "Corse",
+      slug: "corse",
+      href: "evenements-litteraires-corse.html",
+      color: "#ffe8b8",
+      points: "820,655 865,682 846,754 795,732",
+      label: [832,708],
+      badge: [832,744],
+      description: "Ajaccio, Bastia, rencontres insulaires et salons du livre"
+    }
   ];
 
   const state = {
     counts: Object.fromEntries(REGIONS.map((region) => [region.name, 0])),
-    selected: REGIONS.find((region) => region.name === "Occitanie") || REGIONS[0]
+    selected: REGIONS.find((region) => region.name === "Bretagne") || REGIONS[0]
   };
 
   render();
@@ -62,6 +184,14 @@
       });
 
       state.counts = counts;
+
+      const topRegion = [...REGIONS]
+        .sort((a, b) => (counts[b.name] || 0) - (counts[a.name] || 0))[0];
+
+      if (topRegion && (counts[topRegion.name] || 0) > 0) {
+        state.selected = topRegion;
+      }
+
       render();
     } catch (error) {
       console.warn("Carte régionale : compteurs indisponibles", error);
@@ -79,9 +209,7 @@
       <div class="regional-map-layout">
         <div class="regional-map-card">
           <div class="regional-map-svg-wrap" aria-label="Carte de France des événements littéraires par région">
-            <svg class="regional-map-svg" viewBox="0 0 780 720" role="img" aria-labelledby="regional-map-title regional-map-desc">
-              <title id="regional-map-title">Carte de France des régions Dédicalivres</title>
-              <desc id="regional-map-desc">Chaque région est cliquable et affiche le nombre d'événements littéraires à venir référencés.</desc>
+            <svg class="regional-map-svg" viewBox="0 0 920 760" role="img" aria-label="Carte de France des régions Dédicalivres avec compteurs d’événements">
               ${REGIONS.map(renderRegion).join("")}
             </svg>
           </div>
@@ -141,13 +269,13 @@
   function renderRegion(region) {
     const count = state.counts[region.name] || 0;
     const labelLines = splitRegionName(region.name);
-    const labelYStart = region.label[1] - ((labelLines.length - 1) * 9);
+    const labelYStart = region.label[1] - ((labelLines.length - 1) * 10);
 
     return `
       <a class="regional-region-link ${state.selected.name === region.name ? "is-active" : ""}" href="${region.href}" data-region="${escapeAttribute(region.name)}" aria-label="${escapeAttribute(region.name)} — ${count} événement${count > 1 ? "s" : ""}">
         <polygon class="regional-shape" points="${region.points}" fill="${region.color}"></polygon>
-        ${labelLines.map((line, index) => `<text class="regional-label" x="${region.label[0]}" y="${labelYStart + index * 22}">${escapeHtml(line)}</text>`).join("")}
-        <circle class="regional-count-badge" cx="${region.badge[0]}" cy="${region.badge[1]}" r="18"></circle>
+        ${labelLines.map((line, index) => `<text class="regional-label" x="${region.label[0]}" y="${labelYStart + index * 21}">${escapeHtml(line)}</text>`).join("")}
+        <circle class="regional-count-badge" cx="${region.badge[0]}" cy="${region.badge[1]}" r="16"></circle>
         <text class="regional-count-text" x="${region.badge[0]}" y="${region.badge[1]}">${count}</text>
       </a>
     `;
@@ -169,7 +297,7 @@
   }
 
   function splitRegionName(name) {
-    if (name === "Auvergne-Rhône-Alpes") return ["Auvergne-Rhône", "Alpes"];
+    if (name === "Auvergne-Rhône-Alpes") return ["Auvergne-", "Rhône-Alpes"];
     if (name === "Bourgogne-Franche-Comté") return ["Bourgogne-", "Franche-Comté"];
     if (name === "Centre-Val de Loire") return ["Centre-Val", "de Loire"];
     if (name === "Nouvelle-Aquitaine") return ["Nouvelle-", "Aquitaine"];
