@@ -1,16 +1,12 @@
 (function () {
-  "use strict";
-
   const config = window.DEDICALIVRES_CONFIG;
   const container = document.getElementById("event-detail");
 
-  if (!config || !container || !window.supabase) return;
+  if (!config || !container) return;
 
   const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
-
-  const SITE_URL = "https://dedicalivres.fr";
 
   if (!eventId) {
     container.innerHTML = `<div class="empty-state"><p>Événement introuvable.</p></div>`;
@@ -29,14 +25,14 @@
 
     if (error || !data) {
       container.innerHTML = `<div class="empty-state"><p>Impossible de charger cet événement.</p></div>`;
-      updateBasicNoIndexMeta();
       return;
     }
 
-    updateSeoMeta(data);
+    document.title = `${data.title || "Événement"} — Dédicalivres`;
+    document.querySelector('meta[name="description"]')?.setAttribute("content", `${data.title || "Événement littéraire"} à ${data.city || "proximité"} — informations, dates et lien officiel.`);
 
     const image = data.image_url
-      ? `<img class="detail-image" src="${escapeAttribute(data.image_url)}" alt="${escapeAttribute(data.title || "Événement littéraire")}" />`
+      ? `<img class="detail-image" src="${escapeAttribute(data.image_url)}" alt="${escapeAttribute(data.title || "Événement")}" />`
       : `<div class="detail-image detail-image-placeholder"></div>`;
 
     container.innerHTML = `
@@ -46,7 +42,6 @@
         <div class="card-tags">
           ${data.type ? `<span class="badge">${escapeHtml(data.type)}</span>` : ""}
           ${data.price ? `<span class="badge badge-price">${escapeHtml(data.price)}</span>` : ""}
-          ${data.verified ? `<span class="badge badge-verified">Vérifié</span>` : ""}
         </div>
 
         <h1 class="detail-title">${escapeHtml(data.title || "Sans titre")}</h1>
@@ -54,27 +49,28 @@
         <div class="detail-meta detail-info-grid">
           ${data.start_date ? `<p>📅 <strong>Date :</strong> ${formatDateRange(data.start_date, data.end_date)}</p>` : ""}
           <p>📍 <strong>Lieu :</strong> ${escapeHtml([data.city, data.region].filter(Boolean).join(", ")) || "Non précisé"}</p>
-          ${data.type ? `<p>🏷️ <strong>Type :</strong> ${escapeHtml(data.type)}</p>` : ""}
         </div>
 
         ${data.description ? `<div class="detail-description">${escapeHtml(data.description).replace(/\n/g, "<br>")}</div>` : ""}
 
-        ${renderSeoRelayBlock(data)}
-
         <div class="detail-actions">
           ${data.website ? `<a class="btn-primary detail-button" href="${escapeAttribute(data.website)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
+          <button id="detail-favorite-btn" class="btn-secondary detail-button favorite-toggle" type="button">♡ Ajouter aux favoris</button>
+          <button id="detail-calendar-btn" class="btn-secondary detail-button" type="button">📅 Ajouter à mon agenda</button>
           <a class="btn-secondary detail-button" href="index.html#agenda">Retour à l’agenda</a>
         </div>
 
         ${Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng)) ? `
-          <div class="detail-map-block">
-            <h2>Localisation</h2>
-            <p>Repérez rapidement le lieu de cet événement littéraire.</p>
-            <div id="detail-map"></div>
-          </div>
-        ` : ""}
+              <div class="detail-map-block">
+                <h2>Localisation</h2>
+                <p>Repérez rapidement le lieu de cet événement littéraire.</p>
+                <div id="detail-map"></div>
+              </div>
+            ` : ""}
       </div>
     `;
+
+    bindDetailActions(data);
 
     if (Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng)) && window.L) {
       const map = L.map("detail-map", { scrollWheelZoom: false }).setView([Number(data.lat), Number(data.lng)], 11);
@@ -85,168 +81,104 @@
     }
   }
 
-  function renderSeoRelayBlock(event) {
-    const city = event.city ? escapeHtml(event.city) : "la ville indiquée";
-    const region = event.region ? escapeHtml(event.region) : "sa région";
-    const type = event.type ? escapeHtml(event.type.toLowerCase()) : "événement littéraire";
+  function bindDetailActions(event) {
+    const favoriteButton = document.getElementById("detail-favorite-btn");
+    const calendarButton = document.getElementById("detail-calendar-btn");
 
-    return `
-      <section class="event-seo-panel" aria-label="Informations Dédicalivres sur cet événement">
-        <h2>À propos de cet événement littéraire</h2>
-        <p>
-          Cette fiche Dédicalivres référence ${type} à ${city}, en ${region}.
-          Elle sert de relais pratique pour retrouver la date, le lieu, les informations essentielles
-          et le lien officiel de l’organisateur lorsqu’il est disponible.
-        </p>
-      </section>
-    `;
-  }
-
-  function updateSeoMeta(event) {
-    const title = buildSeoTitle(event);
-    const description = buildSeoDescription(event);
-    const canonicalUrl = `${SITE_URL}/event.html?id=${encodeURIComponent(event.id)}`;
-    const imageUrl = resolveAbsoluteUrl(event.image_url || "banner.jpg");
-
-    document.title = title;
-
-    setMeta("name", "description", description);
-    setMeta("property", "og:title", title);
-    setMeta("property", "og:description", description);
-    setMeta("property", "og:type", "article");
-    setMeta("property", "og:url", canonicalUrl);
-    setMeta("property", "og:image", imageUrl);
-    setMeta("name", "twitter:card", "summary_large_image");
-
-    const canonical = document.getElementById("canonical-link") || document.querySelector('link[rel="canonical"]');
-    if (canonical) canonical.setAttribute("href", canonicalUrl);
-
-    updateJsonLd(event, canonicalUrl, imageUrl, title, description);
-  }
-
-  function updateBasicNoIndexMeta() {
-    setMeta("name", "robots", "noindex,follow");
-  }
-
-  function buildSeoTitle(event) {
-    const parts = [event.title || "Événement littéraire"];
-
-    if (event.city) parts.push(event.city);
-    if (event.start_date) parts.push(formatDate(event.start_date));
-
-    return `${parts.join(" — ")} — Dédicalivres`;
-  }
-
-  function buildSeoDescription(event) {
-    const fragments = [];
-
-    fragments.push(`Retrouvez les informations de ${event.title || "cet événement littéraire"}`);
-
-    if (event.type) fragments.push(`type ${event.type}`);
-    if (event.city || event.region) fragments.push(`à ${[event.city, event.region].filter(Boolean).join(", ")}`);
-    if (event.start_date) fragments.push(`le ${formatDateRange(event.start_date, event.end_date)}`);
-
-    const base = `${fragments.join(" ")}.`;
-    const suffix = " Dates, lieu, auteurs présents et lien officiel sur Dédicalivres.";
-
-    return `${base}${suffix}`.replace(/\s+/g, " ").slice(0, 165);
-  }
-
-  function updateJsonLd(event, canonicalUrl, imageUrl, title, description) {
-    const script = document.getElementById("event-jsonld");
-    if (!script) return;
-
-    const hasGeo = Number.isFinite(Number(event.lat)) && Number.isFinite(Number(event.lng));
-
-    const jsonLd = {
-      "@context": "https://schema.org",
-      "@type": "Event",
-      name: event.title || "Événement littéraire",
-      description,
-      url: canonicalUrl,
-      image: imageUrl ? [imageUrl] : undefined,
-      startDate: event.start_date || undefined,
-      endDate: event.end_date || event.start_date || undefined,
-      eventStatus: "https://schema.org/EventScheduled",
-      eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-      location: {
-        "@type": "Place",
-        name: [event.city, event.region].filter(Boolean).join(", ") || "Lieu à confirmer",
-        address: {
-          "@type": "PostalAddress",
-          addressLocality: event.city || undefined,
-          addressRegion: event.region || undefined,
-          addressCountry: "FR"
-        },
-        geo: hasGeo
-          ? {
-              "@type": "GeoCoordinates",
-              latitude: Number(event.lat),
-              longitude: Number(event.lng)
-            }
-          : undefined
-      },
-      offers: event.price
-        ? {
-            "@type": "Offer",
-            availability: "https://schema.org/InStock",
-            price: /gratuit/i.test(event.price) ? "0" : undefined,
-            priceCurrency: "EUR",
-            url: event.website || canonicalUrl
-          }
-        : undefined,
-      organizer: event.website
-        ? {
-            "@type": "Organization",
-            name: event.title || "Organisateur de l’événement",
-            url: event.website
-          }
-        : undefined,
-      mainEntityOfPage: {
-        "@type": "WebPage",
-        "@id": canonicalUrl,
-        name: title
-      }
-    };
-
-    script.textContent = JSON.stringify(removeUndefined(jsonLd), null, 2);
-  }
-
-  function removeUndefined(value) {
-    if (Array.isArray(value)) {
-      return value.map(removeUndefined).filter((item) => item !== undefined);
+    function refreshFavoriteButton() {
+      if (!favoriteButton) return;
+      const active = getFavoriteIds().includes(String(event.id));
+      favoriteButton.classList.toggle("is-favorite", active);
+      favoriteButton.textContent = active ? "♥ Favori" : "♡ Ajouter aux favoris";
+      favoriteButton.setAttribute("aria-pressed", active ? "true" : "false");
     }
 
-    if (value && typeof value === "object") {
-      return Object.entries(value).reduce((acc, [key, item]) => {
-        const clean = removeUndefined(item);
-        if (clean !== undefined) acc[key] = clean;
-        return acc;
-      }, {});
-    }
+    favoriteButton?.addEventListener("click", () => {
+      toggleFavorite(event.id);
+      refreshFavoriteButton();
+    });
 
-    return value === undefined || value === null || value === "" ? undefined : value;
+    calendarButton?.addEventListener("click", () => downloadICS(event));
+    refreshFavoriteButton();
   }
 
-  function resolveAbsoluteUrl(path) {
-    if (!path) return `${SITE_URL}/banner.jpg`;
-    if (/^https?:\/\//i.test(path)) return path;
-    const normalized = String(path).replace(/^\/+/, "");
-    return `${SITE_URL}/${normalized}`;
+  function getFavoriteIds() {
+    try {
+      const value = JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
+      return Array.isArray(value) ? value.map(String) : [];
+    } catch {
+      return [];
+    }
   }
 
-  function setMeta(attribute, key, content) {
-    if (!content) return;
+  function toggleFavorite(id) {
+    const ids = getFavoriteIds();
+    const key = String(id || "");
+    if (!key) return;
+    const next = ids.includes(key) ? ids.filter((item) => item !== key) : [...ids, key];
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify([...new Set(next)]));
+  }
 
-    let meta = document.querySelector(`meta[${attribute}="${key}"]`);
+  function downloadICS(event) {
+    const detailUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(event.id)}`;
+    const location = [event.city, event.region].filter(Boolean).join(", ");
+    const start = toICSDate(event.start_date);
+    const end = toICSDate(addOneDay(event.end_date || event.start_date));
+    const description = `${event.description || ""}\n\nFiche Dédicalivres : ${detailUrl}`;
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Dedicalivres//Agenda//FR",
+      "BEGIN:VEVENT",
+      `UID:${event.id || Date.now()}@dedicalivres.fr`,
+      `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}`,
+      start ? `DTSTART;VALUE=DATE:${start}` : "",
+      end ? `DTEND;VALUE=DATE:${end}` : "",
+      `SUMMARY:${escapeICS(event.title || "Événement littéraire")}`,
+      location ? `LOCATION:${escapeICS(location)}` : "",
+      `DESCRIPTION:${escapeICS(description)}`,
+      `URL:${detailUrl}`,
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ].filter(Boolean).join("\r\n");
 
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.setAttribute(attribute, key);
-      document.head.appendChild(meta);
-    }
+    const blob = new Blob([lines], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${slugify(event.title || "dedicalivres-evenement")}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
 
-    meta.setAttribute("content", content);
+  function toICSDate(value) {
+    if (!value) return "";
+    return String(value).slice(0, 10).replace(/-/g, "");
+  }
+
+  function addOneDay(value) {
+    if (!value) return "";
+    const date = new Date(`${String(value).slice(0, 10)}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + 1);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function escapeICS(value) {
+    return String(value || "")
+      .replace(/\\/g, "\\\\")
+      .replace(/\n/g, "\\n")
+      .replace(/,/g, "\\,")
+      .replace(/;/g, "\\;");
+  }
+
+  function slugify(value) {
+    return normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "dedicalivres";
+  }
+
+  function normalize(value) {
+    return (value || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   }
 
   function formatDateRange(startDate, endDate) {
@@ -257,16 +189,7 @@
 
   function formatDate(value) {
     if (!value) return "";
-
-    try {
-      return new Intl.DateTimeFormat("fr-FR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      }).format(new Date(value));
-    } catch {
-      return value;
-    }
+    return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
   }
 
   function escapeHtml(value) {

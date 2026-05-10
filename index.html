@@ -44,7 +44,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="style.css?v=7.7.2" />
+  <link rel="stylesheet" href="style.css?v=7.7.5" />
 </head>
 
 <body data-agenda-mode="global">
@@ -88,50 +88,19 @@
       </p>
     </div>
 
-    <section id="newsletter" class="section newsletter-section">
-    
-        <h2>Recevoir les prochains événements</h2>
-    
-        <p>
-          Recevez les prochains salons, festivals et dédicaces
-          proches de chez vous.
-        </p>
-    
-        <form id="newsletter-form" class="newsletter-form">
-    
-          <input
-            name="email"
-            type="email"
-            placeholder="Votre email"
-            required
-          />
-    
-          <select name="region">
-            <option value="">Toutes les régions</option>
-            <option>Auvergne-Rhône-Alpes</option>
-            <option>Bourgogne-Franche-Comté</option>
-            <option>Bretagne</option>
-            <option>Centre-Val de Loire</option>
-            <option>Corse</option>
-            <option>Grand Est</option>
-            <option>Hauts-de-France</option>
-            <option>Île-de-France</option>
-            <option>Normandie</option>
-            <option>Nouvelle-Aquitaine</option>
-            <option>Occitanie</option>
-            <option>Pays de la Loire</option>
-            <option>Provence-Alpes-Côte d’Azur</option>
-          </select>
-    
-          <button class="btn-primary" type="submit">
-            S’inscrire
-          </button>
-    
-        </form>
-    
-        <p id="newsletter-feedback"></p>
-    
-      </section>
+    <section id="saved-events" class="section saved-events-section" aria-labelledby="saved-events-title">
+      <div class="saved-events-head">
+        <div>
+          <p class="category-kicker">Mes repères</p>
+          <h2 id="saved-events-title">Mes événements sauvegardés</h2>
+          <p>Ajoutez un salon, une dédicace ou une rencontre à vos favoris pour les retrouver lors de votre prochaine visite sur ce navigateur.</p>
+        </div>
+        <button id="clear-favorites" class="btn-secondary" type="button">Vider mes favoris</button>
+      </div>
+      <div id="favorites-list" class="favorites-list" aria-live="polite">
+        <article class="empty-state">Aucun favori pour le moment.</article>
+      </div>
+    </section>
 
     <p id="results-count">Chargement…</p>
 
@@ -140,7 +109,7 @@
       <input
         id="search-input"
         type="search"
-        placeholder="Rechercher un événement, une ville, un auteur…"
+        placeholder="Rechercher un événement, une ville…"
       />
 
       <select id="region-filter">
@@ -430,14 +399,14 @@
   crossorigin=""
 ></script>
 
-<script src="config.js?v=7.7.2"></script>
-<script src="app.js?v=7.7.2"></script>
+<script src="config.js?v=7.7.5"></script>
+<script src="app.js?v=7.7.5"></script>
 
-<script src="tracking-v4.js?v=7.7.2"></script>
-<script src="author-search-index.js"></script>
-<script src="ui-effects-v6.js"></script>
-<script src="regional-map.js?v=7.7.2"></script>
-<script src="custom-cursor.js"></script>
+<script src="tracking-v4.js?v=7.7.5"></script>
+<script src="author-search-index.js?v=7.7.5"></script>
+<script src="ui-effects-v6.js?v=7.7.5"></script>
+<script src="regional-map.js?v=7.6.7f"></script>
+<script src="custom-cursor.js?v=7.7.5"></script>
 
 </body>
 </html>
