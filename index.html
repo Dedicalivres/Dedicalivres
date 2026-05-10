@@ -44,7 +44,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="style.css?v=7.7.1f" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body data-agenda-mode="global">
@@ -133,47 +133,6 @@
     
       </section>
 
-
-    <section class="live-map-feature" aria-labelledby="live-map-title">
-      <div class="map-teaser map-teaser-feature">
-        <div>
-          <span class="map-feature-kicker">Carte en direct</span>
-          <strong id="live-map-title">Carte en direct</strong>
-          <p>
-            Visualisez les salons, festivals et dédicaces autour de vous
-            avant de choisir votre prochain rendez-vous littéraire.
-          </p>
-        </div>
-        <span>Atout Dédicalivres</span>
-      </div>
-
-      <div class="ux-actions map-feature-actions">
-
-        <button
-          id="mobile-map-toggle"
-          class="btn-secondary mobile-map-toggle live-map-toggle"
-          type="button"
-          aria-expanded="false"
-          aria-controls="map-panel"
-        >
-          Carte en direct
-        </button>
-
-        <button id="locate-me" class="btn-secondary locate-me-feature" type="button">
-          Me localiser
-        </button>
-
-      </div>
-
-      <aside
-        class="map-panel live-map-panel"
-        id="map-panel"
-        aria-label="Carte des événements"
-      >
-        <div id="map"></div>
-      </aside>
-    </section>
-
     <p id="results-count">Chargement…</p>
 
     <div class="filters">
@@ -181,7 +140,7 @@
       <input
         id="search-input"
         type="search"
-        placeholder="Rechercher un événement, une ville, un auteur…"
+        placeholder="Rechercher un événement, une ville…"
       />
 
       <select id="region-filter">
@@ -223,11 +182,46 @@
 
     </div>
 
+    <div class="map-teaser">
+      <div>
+        <strong>Carte en direct</strong>
+        <p>
+          Visualisez les salons, festivals et dédicaces autour de vous
+          avant de choisir votre prochain rendez-vous littéraire.
+        </p>
+      </div>
+      <span>Atout Dédicalivres</span>
+    </div>
+
+    <div class="ux-actions">
+
+      <button
+        id="mobile-map-toggle"
+        class="btn-secondary mobile-map-toggle"
+        type="button"
+      >
+        Carte en direct
+      </button>
+
+      <button id="locate-me" class="btn-secondary" type="button">
+        Me localiser
+      </button>
+
+    </div>
+
     <div class="agenda-layout">
 
       
 
       
+      <aside
+        class="map-panel"
+        id="map-panel"
+        aria-label="Carte des événements"
+      >
+        <div id="map"></div>
+      </aside>
+
       <div>
         <section
           id="events-grid"
@@ -398,13 +392,13 @@
   crossorigin=""
 ></script>
 
-<script src="config.js?v=7.7.1f"></script>
-<script src="app.js?v=7.7.1f"></script>
+<script src="config.js?v=7.7.1g"></script>
+<script src="app.js?v=7.7.1g"></script>
 
-<script src="tracking-v4.js?v=7.7.1f"></script>
-<script src="author-search-index.js"></script>
-<script src="ui-effects-v6.js"></script>
-<script src="custom-cursor.js"></script>
+<script src="tracking-v4.js?v=7.7.1g"></script>
+<script src="author-search-index.js?v=7.7.1g"></script>
+<script src="ui-effects-v6.js?v=7.7.1g"></script>
+<script src="custom-cursor.js?v=7.7.1g"></script>
 
 </body>
 </html>
