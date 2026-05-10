@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.7.6c — Carte régionale réelle avec compteurs contextualisés par page.
+    V7.7.6d — Carte régionale réelle responsive avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -245,7 +245,7 @@
 
             <div class="regional-map-panel-list" aria-label="Régions les plus alimentées">
               ${topRegions.map((region) => `
-                <a class="regional-map-mini-row" href="${region.href}">
+                <a class="regional-map-mini-row" href="${regionHref(region)}">
                   <strong>${escapeHtml(region.name)}</strong>
                   <span>${state.counts[region.name] || 0}</span>
                 </a>
@@ -254,7 +254,7 @@
           </div>
 
           <div class="regional-map-panel-actions">
-            <a class="btn-primary" href="${state.selected.href}">Voir les événements en ${escapeHtml(state.selected.name)}</a>
+            <a class="btn-primary" href="${regionHref(state.selected)}">Voir les événements en ${escapeHtml(state.selected.name)}</a>
             <a class="btn-secondary" href="index.html#soumettre">Proposer un événement</a>
           </div>
         </aside>
@@ -273,7 +273,7 @@
     return `
       <a
         class="regional-real-marker region-${region.slug}${active}"
-        href="${region.href}"
+        href="${regionHref(region)}"
         data-region="${escapeAttribute(region.name)}"
         style="--x:${region.x}%;--y:${region.y}%;"
         aria-label="${escapeAttribute(region.name)} — ${count} ${count > 1 ? counterContext.labelPlural : counterContext.labelSingular}"
