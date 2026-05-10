@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.7.2 — Carte régionale aquarelle avec compteurs contextualisés par page.
+    V7.7.2b — Carte régionale aquarelle réelle avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -50,6 +50,9 @@
     {
       name: "Île-de-France",
       slug: "ile-de-france",
+      color: "#f3d6e9",
+      washW: 22,
+      washH: 18,
       href: "evenements-litteraires-ile-de-france.html",
       description: "Paris, librairies, salons et rendez-vous franciliens",
       x: 52,
@@ -58,6 +61,9 @@
     {
       name: "Auvergne-Rhône-Alpes",
       slug: "auvergne-rhone-alpes",
+      color: "#bfe7de",
+      washW: 28,
+      washH: 24,
       href: "evenements-litteraires-auvergne-rhone-alpes.html",
       description: "Lyon, Grenoble, Clermont-Ferrand et rencontres régionales",
       x: 61,
@@ -66,6 +72,9 @@
     {
       name: "Nouvelle-Aquitaine",
       slug: "nouvelle-aquitaine",
+      color: "#d8c7ea",
+      washW: 28,
+      washH: 24,
       href: "evenements-litteraires-nouvelle-aquitaine.html",
       description: "Bordeaux, littoral, salons et festivals du livre",
       x: 36,
@@ -74,6 +83,9 @@
     {
       name: "Occitanie",
       slug: "occitanie",
+      color: "#f5b9c8",
+      washW: 30,
+      washH: 20,
       href: "evenements-litteraires-occitanie.html",
       description: "Toulouse, Montpellier, festivals et rencontres d’auteurs",
       x: 49,
@@ -82,6 +94,9 @@
     {
       name: "Bretagne",
       slug: "bretagne",
+      color: "#b9e1df",
+      washW: 22,
+      washH: 16,
       href: "evenements-litteraires-bretagne.html",
       description: "Librairies, festivals, salons et rendez-vous bretons",
       x: 19,
@@ -90,6 +105,9 @@
     {
       name: "Bourgogne-Franche-Comté",
       slug: "bourgogne-franche-comte",
+      color: "#f7c8bd",
+      washW: 24,
+      washH: 18,
       href: "evenements-litteraires-bourgogne-franche-comte.html",
       description: "Dijon, Besançon, librairies et rendez-vous du livre",
       x: 66,
@@ -98,6 +116,9 @@
     {
       name: "Centre-Val de Loire",
       slug: "centre-val-de-loire",
+      color: "#f6dfaa",
+      washW: 26,
+      washH: 18,
       href: "evenements-litteraires-centre-val-de-loire.html",
       description: "Tours, Orléans, rencontres et événements littéraires",
       x: 43,
@@ -106,6 +127,9 @@
     {
       name: "Corse",
       slug: "corse",
+      color: "#f2b8c7",
+      washW: 12,
+      washH: 14,
       href: "evenements-litteraires-corse.html",
       description: "Ajaccio, Bastia, rencontres insulaires et salons du livre",
       x: 82,
@@ -114,6 +138,9 @@
     {
       name: "Grand Est",
       slug: "grand-est",
+      color: "#d8c6eb",
+      washW: 27,
+      washH: 22,
       href: "evenements-litteraires-grand-est.html",
       description: "Strasbourg, Reims, Metz, Nancy et rendez-vous du livre",
       x: 73,
@@ -122,6 +149,9 @@
     {
       name: "Hauts-de-France",
       slug: "hauts-de-france",
+      color: "#bfe6ef",
+      washW: 22,
+      washH: 16,
       href: "evenements-litteraires-hauts-de-france.html",
       description: "Lille, Amiens, salons, dédicaces et festivals littéraires",
       x: 52,
@@ -130,6 +160,9 @@
     {
       name: "Normandie",
       slug: "normandie",
+      color: "#c9e7c8",
+      washW: 25,
+      washH: 17,
       href: "evenements-litteraires-normandie.html",
       description: "Rouen, Caen, littoral normand et rencontres d’auteurs",
       x: 33,
@@ -138,6 +171,9 @@
     {
       name: "Pays de la Loire",
       slug: "pays-de-la-loire",
+      color: "#f6cfbc",
+      washW: 24,
+      washH: 16,
       href: "evenements-litteraires-pays-de-la-loire.html",
       description: "Nantes, Angers, Le Mans et événements autour du livre",
       x: 30,
@@ -146,6 +182,9 @@
     {
       name: "Provence-Alpes-Côte d’Azur",
       slug: "provence-alpes-cote-azur",
+      color: "#f7d69a",
+      washW: 24,
+      washH: 18,
       href: "evenements-litteraires-provence-alpes-cote-azur.html",
       description: "Marseille, Nice, Toulon, festivals et dédicaces",
       x: 73,
@@ -235,12 +274,11 @@
     root.innerHTML = `
       <div class="regional-map-layout regional-map-layout-real">
         <div class="regional-map-card regional-map-card-real">
-          <div class="regional-real-map-wrap regional-watercolor-map-wrap" aria-label="Carte réelle des régions de France avec compteurs Dédicalivres">
-            <div class="regional-watercolor-paper" aria-hidden="true"></div>
+          <div class="regional-real-map-wrap regional-watercolor-map-wrap" aria-label="Carte aquarelle des régions de France avec compteurs Dédicalivres">
             <div class="regional-watercolor-layer" aria-hidden="true">
-              ${REGIONS.map(renderWatercolorSpot).join("")}
+              ${REGIONS.map(renderRegionWash).join("")}
             </div>
-            <img class="regional-real-map-image" src="${MAP_IMAGE_URL}" alt="Carte des régions de France" loading="lazy" />
+            <img class="regional-real-map-image regional-watercolor-map-base" src="${MAP_IMAGE_URL}" alt="Carte des régions de France" loading="lazy" />
             <div class="regional-real-map-overlay" aria-label="Régions cliquables">
               ${REGIONS.map(renderRegionMarker).join("")}
             </div>
@@ -253,7 +291,7 @@
           </div>
 
           <p class="regional-map-attribution">
-            Carte de référence : SimpleMaps — contours régionaux utilisés comme support visuel.
+            Carte aquarelle Dédicalivres — support visuel régional avec contours de référence.
           </p>
         </div>
 
@@ -302,11 +340,13 @@
     bindInteractions();
   }
 
-  function renderWatercolorSpot(region) {
+
+  function renderRegionWash(region) {
+    const active = state.selected.name === region.name ? " is-active" : "";
     return `
       <span
-        class="regional-watercolor-spot region-${region.slug}"
-        style="--x:${region.x}%;--y:${region.y}%;"
+        class="regional-watercolor-region region-${region.slug}${active}"
+        style="--x:${region.x}%;--y:${region.y}%;--w:${region.washW || 24}%;--h:${region.washH || 18}%;--region-color:${region.color || '#d8e7d4'};"
       ></span>
     `;
   }

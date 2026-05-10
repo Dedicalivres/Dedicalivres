@@ -2451,114 +2451,185 @@ button:active,
 }
 
 /* =========================================================
-   V7.7.2 - CARTE RÉGIONALE AQUARELLE
-   Ambiance artistique douce, sans drapeaux ni surcharge.
-   Les compteurs et liens existants restent inchangés.
+   V7.7.2b - CARTE RÉGIONALE AQUARELLE CONFORME APERÇU
+   Objectif : rendu artistique doux, compteurs ronds simples,
+   sans badges texte intrusifs sur la carte.
 ========================================================= */
 
-.regional-watercolor-map-wrap {
+.regional-map-card-real {
   background:
-    radial-gradient(circle at 14% 14%, rgba(255, 196, 166, .20), transparent 34%),
-    radial-gradient(circle at 88% 10%, rgba(190, 174, 232, .20), transparent 32%),
-    linear-gradient(135deg, rgba(255,255,255,.98), rgba(253,247,240,.90));
+    radial-gradient(circle at 14% 18%, rgba(255, 214, 184, .28), transparent 28%),
+    radial-gradient(circle at 82% 20%, rgba(198, 226, 255, .24), transparent 34%),
+    radial-gradient(circle at 52% 84%, rgba(244, 194, 208, .22), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,.96), rgba(255,250,244,.90));
 }
 
-.regional-watercolor-paper {
+.regional-watercolor-map-wrap {
+  position: relative;
+  width: min(900px, 100%);
+  aspect-ratio: 1.38 / 1;
+  margin: 0 auto;
+  overflow: visible;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 18% 26%, rgba(162, 219, 220, .18), transparent 24%),
+    radial-gradient(circle at 75% 25%, rgba(190, 167, 222, .18), transparent 26%),
+    radial-gradient(circle at 50% 75%, rgba(240, 160, 183, .16), transparent 30%);
+}
+
+.regional-watercolor-map-wrap::before {
+  content: "";
   position: absolute;
-  inset: 0;
+  inset: 2% 4%;
   z-index: 0;
   pointer-events: none;
-  opacity: .44;
-  background-image:
-    radial-gradient(circle at 18% 22%, rgba(58,28,113,.045) 0 1px, transparent 1.6px),
-    radial-gradient(circle at 72% 64%, rgba(255,107,53,.045) 0 1px, transparent 1.7px),
-    linear-gradient(90deg, rgba(255,255,255,.28) 50%, transparent 50%);
-  background-size: 13px 13px, 17px 17px, 7px 7px;
-  mix-blend-mode: multiply;
+  background:
+    radial-gradient(circle at 30% 35%, rgba(255,255,255,.40), transparent 32%),
+    radial-gradient(circle at 65% 65%, rgba(255,255,255,.28), transparent 35%);
+  filter: blur(2px);
 }
 
 .regional-watercolor-layer {
   position: absolute;
-  inset: 4% 6%;
+  inset: 0;
   z-index: 1;
   pointer-events: none;
-  filter: blur(17px) saturate(1.12);
-  opacity: .76;
+  -webkit-mask: url("https://simplemaps.com/static/svg/country/fr/admin1/fr.svg") center / contain no-repeat;
+  mask: url("https://simplemaps.com/static/svg/country/fr/admin1/fr.svg") center / contain no-repeat;
 }
 
-.regional-watercolor-spot {
+.regional-watercolor-region {
   position: absolute;
   left: var(--x);
   top: var(--y);
-  width: var(--watercolor-w, 24%);
-  height: var(--watercolor-h, 18%);
-  transform: translate(-50%, -50%) rotate(var(--watercolor-rotate, -5deg));
-  border-radius: 48% 58% 44% 62%;
+  width: var(--w);
+  height: var(--h);
+  transform: translate(-50%, -50%) rotate(var(--rotation, -4deg));
+  border-radius: 48% 52% 45% 55% / 52% 42% 58% 48%;
   background:
-    radial-gradient(circle at 38% 34%, color-mix(in srgb, var(--region-accent, #7d62d9) 38%, white) 0%, color-mix(in srgb, var(--region-accent, #7d62d9) 18%, transparent) 54%, transparent 76%);
+    radial-gradient(circle at 30% 28%, rgba(255,255,255,.38), transparent 28%),
+    radial-gradient(circle at 70% 66%, rgba(255,255,255,.18), transparent 35%),
+    var(--region-color);
+  opacity: .86;
+  filter: blur(7px) saturate(1.12);
   mix-blend-mode: multiply;
+  box-shadow: 0 0 46px color-mix(in srgb, var(--region-color) 60%, transparent);
 }
 
-.regional-real-map-image {
+.regional-watercolor-region:nth-child(2n) { --rotation: 5deg; }
+.regional-watercolor-region:nth-child(3n) { --rotation: -8deg; }
+.regional-watercolor-region:nth-child(5n) { --rotation: 9deg; }
+.regional-watercolor-region.is-active {
+  opacity: .98;
+  filter: blur(5px) saturate(1.22);
+}
+
+.regional-watercolor-map-base,
+.regional-real-map-image.regional-watercolor-map-base {
+  position: relative;
   z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   opacity: .34;
-  filter:
-    drop-shadow(0 16px 24px rgba(58,28,113,.10))
-    saturate(.28)
-    contrast(.92)
-    brightness(1.08);
+  filter: grayscale(.55) sepia(.08) contrast(.94) brightness(1.08);
   mix-blend-mode: multiply;
 }
 
 .regional-real-map-overlay {
-  z-index: 3;
+  z-index: 4;
 }
 
 .regional-real-marker {
-  background:
-    linear-gradient(135deg, rgba(255,255,255,.94), rgba(255,250,246,.84));
-  border-color: color-mix(in srgb, var(--region-accent, #3a1c71) 28%, rgba(255,255,255,.75));
+  width: 46px !important;
+  min-width: 46px !important;
+  height: 46px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(58,28,113,.12) !important;
   box-shadow:
-    0 9px 20px rgba(58,28,113,.13),
-    0 0 0 3px rgba(255,255,255,.55);
+    0 10px 24px rgba(58,28,113,.16),
+    0 2px 0 rgba(255,255,255,.8) inset !important;
+  backdrop-filter: blur(10px);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: translate(-50%, -50%) !important;
 }
 
-.regional-real-marker.is-active,
 .regional-real-marker:hover,
-.regional-real-marker:focus {
-  background:
-    linear-gradient(135deg, rgba(255,255,255,.98), color-mix(in srgb, var(--region-accent, #ff6b35) 14%, white));
+.regional-real-marker:focus,
+.regional-real-marker.is-active {
+  transform: translate(-50%, -50%) scale(1.12) !important;
+  background: #fff !important;
+  border-color: rgba(58,28,113,.22) !important;
+  box-shadow:
+    0 14px 30px rgba(58,28,113,.22),
+    0 0 0 6px rgba(255,255,255,.52) !important;
 }
 
-.regional-map-card-real {
-  background:
-    radial-gradient(circle at 12% 10%, rgba(255,204,172,.16), transparent 32%),
-    radial-gradient(circle at 92% 16%, rgba(197,216,255,.22), transparent 34%),
-    rgba(255,255,255,.88);
+.regional-real-marker-name {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
 }
 
-.region-ile-de-france { --watercolor-w:20%; --watercolor-h:15%; --watercolor-rotate:8deg; }
-.region-auvergne-rhone-alpes { --watercolor-w:24%; --watercolor-h:19%; --watercolor-rotate:-8deg; }
-.region-nouvelle-aquitaine { --watercolor-w:27%; --watercolor-h:22%; --watercolor-rotate:7deg; }
-.region-occitanie { --watercolor-w:25%; --watercolor-h:18%; --watercolor-rotate:2deg; }
-.region-bretagne { --watercolor-w:20%; --watercolor-h:14%; --watercolor-rotate:-8deg; }
-.region-bourgogne-franche-comte { --watercolor-w:22%; --watercolor-h:15%; --watercolor-rotate:-5deg; }
-.region-centre-val-de-loire { --watercolor-w:22%; --watercolor-h:16%; --watercolor-rotate:5deg; }
-.region-corse { --watercolor-w:13%; --watercolor-h:14%; --watercolor-rotate:-12deg; }
-.region-grand-est { --watercolor-w:24%; --watercolor-h:18%; --watercolor-rotate:5deg; }
-.region-hauts-de-france { --watercolor-w:20%; --watercolor-h:14%; --watercolor-rotate:-3deg; }
-.region-normandie { --watercolor-w:22%; --watercolor-h:15%; --watercolor-rotate:9deg; }
-.region-pays-de-la-loire { --watercolor-w:22%; --watercolor-h:16%; --watercolor-rotate:-6deg; }
-.region-provence-alpes-cote-azur { --watercolor-w:22%; --watercolor-h:16%; --watercolor-rotate:8deg; }
+.regional-real-marker-count {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--purple) !important;
+  font-size: 1rem !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+}
 
-@media (max-width: 760px) {
-  .regional-watercolor-layer {
-    inset: 4% 1%;
-    opacity: .68;
-    filter: blur(14px) saturate(1.05);
+.regional-map-total-real {
+  background: rgba(255,255,255,.88) !important;
+  border: 1px solid rgba(58,28,113,.10) !important;
+  backdrop-filter: blur(12px);
+}
+
+.regional-map-attribution {
+  opacity: .62;
+}
+
+@media (max-width: 780px) {
+  .regional-watercolor-map-wrap {
+    aspect-ratio: 1.05 / 1;
+    min-height: 330px;
   }
 
-  .regional-real-map-image {
-    opacity: .40;
+  .regional-real-marker {
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+  }
+
+  .regional-real-marker-count {
+    font-size: .9rem !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .regional-watercolor-map-wrap {
+    min-height: 300px;
+    transform: scale(.98);
+    transform-origin: top center;
+  }
+
+  .regional-real-marker {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
   }
 }
