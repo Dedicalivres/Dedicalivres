@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.6.9 — Carte régionale réelle avec compteurs contextualisés par page.
+    V7.7.1d — Carte régionale réelle avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -158,6 +158,23 @@
     selected: REGIONS.find((region) => region.name === "Bretagne") || REGIONS[0]
   };
 
+
+
+  function getContextualHref(region) {
+    const href = region && region.href ? region.href : "index.html#agenda";
+    const mode = document.body.dataset.agendaMode || "global";
+
+    if (mode === "salons" || eventTypes.includes("Salon") || eventTypes.includes("Festival")) {
+      return `${href}?types=Salon,Festival`;
+    }
+
+    if (mode === "dedicaces" || eventTypes.includes("Dédicace")) {
+      return `${href}?type=Dédicace`;
+    }
+
+    return href;
+  }
+
   render();
   loadCounts();
 
@@ -245,7 +262,7 @@
 
             <div class="regional-map-panel-list" aria-label="Régions les plus alimentées">
               ${topRegions.map((region) => `
-                <a class="regional-map-mini-row" href="${getRegionHref(region)}">
+                <a class="regional-map-mini-row" href="${getContextualHref(region)}">
                   <strong>${escapeHtml(region.name)}</strong>
                   <span>${state.counts[region.name] || 0}</span>
                 </a>
@@ -254,7 +271,7 @@
           </div>
 
           <div class="regional-map-panel-actions">
-            <a class="btn-primary" href="${getRegionHref(state.selected)}">Voir les ${counterContext.labelPlural} en ${escapeHtml(state.selected.name)}</a>
+            <a class="btn-primary" href="${getContextualHref(state.selected)}">Voir les événements en ${escapeHtml(state.selected.name)}</a>
             <a class="btn-secondary" href="index.html#soumettre">Proposer un événement</a>
           </div>
         </aside>
@@ -271,7 +288,7 @@
 
       <div class="regional-map-mobile-list" aria-label="Liste des régions">
         ${REGIONS.map((region) => `
-          <a href="${getRegionHref(region)}">
+          <a href="${getContextualHref(region)}">
             <strong>${escapeHtml(region.name)}</strong>
             <span>${state.counts[region.name] || 0}</span>
           </a>
@@ -282,15 +299,6 @@
     bindInteractions();
   }
 
-  function getRegionHref(region) {
-    const base = region.href;
-    if (eventTypes.length) {
-      const paramName = eventTypes.length > 1 ? "types" : "type";
-      return `${base}?${paramName}=${encodeURIComponent(eventTypes.join(","))}`;
-    }
-    return base;
-  }
-
   function renderRegionMarker(region) {
     const count = state.counts[region.name] || 0;
     const active = state.selected.name === region.name ? " is-active" : "";
@@ -298,7 +306,7 @@
     return `
       <a
         class="regional-real-marker region-${region.slug}${active}"
-        href="${getRegionHref(region)}"
+        href="${getContextualHref(region)}"
         data-region="${escapeAttribute(region.name)}"
         style="--x:${region.x}%;--y:${region.y}%;"
         aria-label="${escapeAttribute(region.name)} — ${count} ${count > 1 ? counterContext.labelPlural : counterContext.labelSingular}"

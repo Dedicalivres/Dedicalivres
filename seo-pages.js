@@ -25,11 +25,11 @@
   const city = document.body.dataset.city || "";
   const eventType = document.body.dataset.eventType || "";
   const pageMode = document.body.dataset.agendaMode || "";
-  const urlParams = new URLSearchParams(window.location.search || "");
-  const urlType = urlParams.get("type") || "";
-  const urlTypes = urlParams.get("types") || "";
+  const params = new URLSearchParams(window.location.search || "");
+  const paramType = params.get("type") || "";
+  const paramTypes = params.get("types") || "";
 
-  let eventTypes = (urlTypes || urlType || document.body.dataset.eventTypes || eventType || "")
+  let eventTypes = (paramTypes || paramType || document.body.dataset.eventTypes || eventType || "")
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
@@ -49,24 +49,7 @@
     Autre: { className: "type-autre" }
   };
 
-  ensurePublicNavigation();
   loadSeoEvents();
-
-  function ensurePublicNavigation() {
-    const nav = document.querySelector("header nav");
-    if (!nav) return;
-
-    nav.querySelectorAll('a[href*="auteurs-independants.html"]').forEach((link) => link.remove());
-
-    if (!nav.querySelector('a[href="temoignages.html"]')) {
-      const submit = nav.querySelector(".nav-submit-link") || nav.querySelector('a[href="index.html#soumettre"]');
-      const testimonialLink = document.createElement("a");
-      testimonialLink.href = "temoignages.html";
-      testimonialLink.textContent = "Témoignages";
-      if (submit) nav.insertBefore(testimonialLink, submit);
-      else nav.appendChild(testimonialLink);
-    }
-  }
 
   async function loadSeoEvents() {
     if (!eventsContainer) return;
@@ -95,6 +78,10 @@
 
     if (city) {
       query = query.ilike("city", city);
+    }
+
+    if (eventTypes.length) {
+      query = query.in("type", eventTypes);
     }
 
     const { data, error } = await query;

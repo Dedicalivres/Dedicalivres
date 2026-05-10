@@ -69,7 +69,7 @@
       grid.innerHTML = `
         <article class="empty-state testimonials-empty">
           <h3>Les premiers souvenirs arrivent bientôt.</h3>
-          <p>Vous avez rencontré un auteur, reçu une nouvelle dédicace coup de cœur ou vécu un beau moment littéraire ? Soyez parmi les premiers à le partager avec Dédicalivres.</p>
+          <p>Vous avez rencontré un auteur, fait signer un livre ou vécu un beau moment littéraire ? Soyez parmi les premiers à le partager avec Dédicalivres.</p>
           <p><a class="btn-primary" href="#testimonial-form">Laisser un témoignage</a></p>
         </article>
       `;
