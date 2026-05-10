@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.7.6d — Carte régionale réelle responsive avec compteurs contextualisés par page.
+    V7.7.6e — Carte régionale réelle avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -157,6 +157,22 @@
     counts: Object.fromEntries(REGIONS.map((region) => [region.name, 0])),
     selected: REGIONS.find((region) => region.name === "Bretagne") || REGIONS[0]
   };
+
+
+  function getContextQuery() {
+    const mode = document.body.dataset.agendaMode || "global";
+    if (mode === "salons" || eventTypes.includes("Salon") || eventTypes.includes("Festival")) {
+      return "?types=Salon,Festival";
+    }
+    if (mode === "dedicaces" || eventTypes.includes("Dédicace")) {
+      return "?type=Dédicace";
+    }
+    return "";
+  }
+
+  function regionHref(region) {
+    return `${region.href}${getContextQuery()}`;
+  }
 
   render();
   loadCounts();

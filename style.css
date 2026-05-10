@@ -1723,265 +1723,34 @@ button:active,
 
 
 /* =========================================================
-   LOT 6.1.2 - DEMANDE ASSOCIATION AUTEUR SAFE
-   Bloc isolé sous la fiche événement
+   V7.7.6e — Garde-fou cartes catégories
+   Force les pages Salons/Dédicaces à utiliser la carte interactive.
 ========================================================= */
-
-.authors-presence {
-  max-width: 980px;
-  margin: 26px auto 0;
-  padding: clamp(22px, 4vw, 34px);
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at top left, rgba(255,107,53,.12), transparent 36%),
-    linear-gradient(135deg, rgba(255,255,255,.94), rgba(241,232,251,.72));
-  border: 1px solid rgba(58,28,113,.10);
-  box-shadow: 0 16px 38px rgba(58,28,113,.10);
-}
-
-.authors-presence-header {
-  margin-bottom: 18px;
-}
-
-.authors-presence-eyebrow {
-  margin: 0 0 8px;
-  color: var(--orange);
-  font-size: .78rem;
-  font-weight: 950;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-
-.authors-presence h2,
-.author-presence-form h3 {
-  font-family: "Playfair Display", serif;
-  color: var(--purple);
-  line-height: 1.08;
-}
-
-.authors-presence h2 {
-  margin: 0;
-  font-size: clamp(1.7rem, 3vw, 2.35rem);
-}
-
-.author-presence-list {
-  display: grid;
-  gap: 12px;
-  margin: 18px 0;
-}
-
-.author-presence-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 20px;
-  background: rgba(255,255,255,.82);
-  border: 1px solid rgba(58,28,113,.08);
-}
-
-.author-presence-card strong {
-  display: block;
-  color: var(--text);
-  font-weight: 950;
-}
-
-.author-presence-card small {
-  display: block;
-  margin-top: 3px;
-  color: var(--muted);
-  font-weight: 750;
-}
-
-.author-presence-card a {
-  flex: 0 0 auto;
-  color: var(--purple);
-  font-weight: 950;
-  text-decoration: none;
-}
-
-.author-presence-card a:hover {
-  color: var(--orange);
-}
-
-.author-presence-empty,
-.author-presence-note,
-.author-presence-form-intro {
-  color: var(--muted);
-  font-weight: 750;
-  line-height: 1.6;
-}
-
-.author-presence-note {
-  margin: 16px 0 22px;
-}
-
-.author-presence-form {
-  display: grid;
-  gap: 14px;
-  margin-top: 20px;
-  padding: 22px;
-  border-radius: 24px;
-  background: rgba(255,255,255,.78);
-  border: 1px solid rgba(58,28,113,.08);
-}
-
-.author-presence-form h3 {
-  margin: 0;
-  font-size: clamp(1.35rem, 2.3vw, 1.8rem);
-}
-
-.author-presence-form-intro {
-  margin: -4px 0 2px;
-}
-
-.author-presence-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.author-presence-form input {
-  width: 100%;
-  border: 1px solid #ded4e9;
-  border-radius: 14px;
-  background: white;
-  color: var(--text);
-  padding: 13px 15px;
-  min-height: 48px;
-  outline: none;
-  font: inherit;
-  font-weight: 750;
-}
-
-.author-presence-form input:focus {
-  border-color: var(--orange);
-  box-shadow: 0 0 0 4px rgba(255,107,53,.12);
-}
-
-#author-presence-feedback.success {
-  color: #16803c;
-  font-weight: 900;
-}
-
-#author-presence-feedback.error {
-  color: #b42318;
-  font-weight: 900;
-}
-
-@media (max-width: 780px) {
-  .author-presence-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .author-presence-card {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .author-presence-form {
-    padding: 18px;
-  }
-}
-
-
-/* =========================================================
-   V7.7.6d — Carte régionale responsive / positions stables
-   Les pastilles sont désormais calées sur la taille réelle de l'image,
-   pas sur le grand conteneur. Cela évite le décalage selon la largeur écran.
-========================================================= */
-
-.regional-map-card-real {
-  overflow: visible !important;
-}
-
-.regional-real-map-wrap {
-  position: relative !important;
-  width: min(980px, 100%) !important;
-  min-height: 0 !important;
-  aspect-ratio: auto !important;
-  margin: 0 auto !important;
-  overflow: visible !important;
-  padding: 0 !important;
-  border-radius: 24px !important;
-}
-
-.regional-real-map-image {
-  position: relative !important;
-  inset: auto !important;
-  display: block !important;
-  width: 100% !important;
-  height: auto !important;
-  max-width: 100% !important;
-  object-fit: contain !important;
-  opacity: .88 !important;
-}
-
-.regional-real-map-overlay {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 6 !important;
-  pointer-events: none !important;
-}
-
-.regional-real-marker {
-  pointer-events: auto !important;
-}
-
-/* Desktop large : libellés confortables */
-@media (min-width: 1001px) {
-  .regional-real-marker-name {
-    display: block !important;
-  }
-}
-
-/* Tablette / petit écran : pastilles seules, mais toujours alignées sur l'image */
-@media (max-width: 1000px) {
-  .regional-real-marker-name {
-    display: none !important;
-  }
-
-  .regional-real-marker {
-    width: 42px !important;
-    min-width: 42px !important;
-    height: 42px !important;
-    padding: 0 !important;
-    border-radius: 999px !important;
-    justify-content: center !important;
-  }
-
-  .regional-real-marker-count {
-    min-width: 0 !important;
-    width: auto !important;
-    height: auto !important;
-    padding: 0 !important;
-    background: transparent !important;
-    color: var(--purple) !important;
-    box-shadow: none !important;
-  }
-}
-
-@media (max-width: 620px) {
-  .regional-real-map-wrap {
-    width: 112% !important;
-    margin-left: -6% !important;
-    margin-right: -6% !important;
-  }
-
-  .regional-real-marker {
-    width: 34px !important;
-    min-width: 34px !important;
-    height: 34px !important;
-  }
-
-  .regional-real-marker-count {
-    font-size: .82rem !important;
-  }
+.regional-map-section .regional-links-grid,
+.regional-crosslinks > .regional-links-grid.compact {
+  display: none !important;
 }
 
 .regional-map-help,
-.regional-map-mobile-list,
-.regional-map-section .regional-links-grid:not(.regional-map-noscript) {
+.regional-map-mobile-list {
   display: none !important;
+}
+
+.regional-map-section .regional-map-app {
+  display: block !important;
+  min-height: 420px;
+}
+
+.regional-map-fallback {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255,255,255,.8);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+@media (max-width: 780px) {
+  .regional-map-section .regional-map-app {
+    min-height: 280px;
+  }
 }
