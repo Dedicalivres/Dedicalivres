@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.7.1h — Carte régionale réelle avec compteurs contextualisés par page.
+    V7.7.2 — Carte régionale aquarelle avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -235,7 +235,11 @@
     root.innerHTML = `
       <div class="regional-map-layout regional-map-layout-real">
         <div class="regional-map-card regional-map-card-real">
-          <div class="regional-real-map-wrap" aria-label="Carte réelle des régions de France avec compteurs Dédicalivres">
+          <div class="regional-real-map-wrap regional-watercolor-map-wrap" aria-label="Carte réelle des régions de France avec compteurs Dédicalivres">
+            <div class="regional-watercolor-paper" aria-hidden="true"></div>
+            <div class="regional-watercolor-layer" aria-hidden="true">
+              ${REGIONS.map(renderWatercolorSpot).join("")}
+            </div>
             <img class="regional-real-map-image" src="${MAP_IMAGE_URL}" alt="Carte des régions de France" loading="lazy" />
             <div class="regional-real-map-overlay" aria-label="Régions cliquables">
               ${REGIONS.map(renderRegionMarker).join("")}
@@ -296,6 +300,15 @@
     `;
 
     bindInteractions();
+  }
+
+  function renderWatercolorSpot(region) {
+    return `
+      <span
+        class="regional-watercolor-spot region-${region.slug}"
+        style="--x:${region.x}%;--y:${region.y}%;"
+      ></span>
+    `;
   }
 
   function renderRegionMarker(region) {
