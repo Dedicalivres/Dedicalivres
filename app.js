@@ -922,6 +922,97 @@
     });
   }
 
+
+
+  async function searchMunicipalities(query, limit = 8) {
+    const value = cleanText(query || "");
+    if (value.length < 2) return [];
+
+    try {
+      const response = await fetch(
+        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(value)}&limit=${encodeURIComponent(limit)}&type=municipality&autocomplete=1`
+      );
+
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      const features = Array.isArray(data.features) ? data.features : [];
+      const seen = new Set();
+
+      return features
+        .map((feature) => {
+          const properties = feature.properties || {};
+          const coords = feature.geometry?.coordinates || [];
+          const city = cleanText(
+            properties.city ||
+            properties.municipality ||
+            properties.name ||
+            properties.label ||
+            ""
+          );
+
+          const postcode = cleanText(properties.postcode || properties.citycode || "");
+          const context = cleanText(properties.context || "");
+          const region = extractRegionFromAddressContext(context);
+          const label = [city, postcode ? `(${postcode})` : "", region || context]
+            .filter(Boolean)
+            .join(" ");
+
+          return {
+            city,
+            label: label || city,
+            region,
+            context,
+            lat: Number(coords[1]),
+            lng: Number(coords[0])
+          };
+        })
+        .filter((item) => {
+          if (!item.city || !Number.isFinite(item.lat) || !Number.isFinite(item.lng)) return false;
+          const key = normalize([item.city, item.region, item.lat.toFixed(4), item.lng.toFixed(4)].join("|"));
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    } catch (error) {
+      console.warn("Autocomplétion ville indisponible :", error);
+      return [];
+    }
+  }
+
+  function extractRegionFromAddressContext(context) {
+    const parts = String(context || "")
+      .split(",")
+      .map((part) => cleanText(part))
+      .filter(Boolean);
+
+    if (!parts.length) return "";
+
+    const knownRegions = [
+      "Auvergne-Rhône-Alpes",
+      "Bourgogne-Franche-Comté",
+      "Bretagne",
+      "Centre-Val de Loire",
+      "Corse",
+      "Grand Est",
+      "Hauts-de-France",
+      "Île-de-France",
+      "Normandie",
+      "Nouvelle-Aquitaine",
+      "Occitanie",
+      "Pays de la Loire",
+      "Provence-Alpes-Côte d’Azur",
+      "Provence-Alpes-Côte d'Azur"
+    ];
+
+    const normalizedParts = parts.map((part) => normalize(part));
+    const match = knownRegions.find((region) => normalizedParts.includes(normalize(region)));
+
+    if (!match) return parts[parts.length - 1] || "";
+    return match.replace("Côte d'Azur", "Côte d’Azur");
+  }
+
+
   function renderCitySuggestions(suggestions) {
     if (!citySuggestions) return;
 
