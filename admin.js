@@ -34,7 +34,7 @@ const filterType = document.getElementById("filter-type");
 
 const statsEvents = document.getElementById("stats-events");
 const statsPending = document.getElementById("stats-pending");
-const statsNewsletter = document.getElementById("stats-newsletter");
+const statsFeatured = document.getElementById("stats-featured") || document.getElementById("stats-newsletter");
 const statsVisits = document.getElementById("stats-visits");
 
 const priorityCities = document.getElementById("priority-cities");
@@ -278,17 +278,12 @@ async function loadEvents() {
 }
 
 async function loadNewsletterCount() {
-  try {
-    const { count } = await supabaseClient
-      .from("newsletter_subscribers")
-      .select("*", {
-        count: "exact",
-        head: true
-      });
-
-    if (statsNewsletter) statsNewsletter.textContent = count || 0;
-  } catch {
-    if (statsNewsletter) statsNewsletter.textContent = "0";
+  // V7.7.6a — La carte anciennement “newsletter” devient un indicateur interne
+  // de mise en avant, utile pour préparer la future option premium sans changer
+  // le schéma Supabase.
+  if (statsFeatured) {
+    const featuredCount = (allEvents || []).filter((event) => !!event.featured).length;
+    statsFeatured.textContent = String(featuredCount);
   }
 }
 
@@ -323,6 +318,7 @@ function updateStats() {
 
   if (statsEvents) statsEvents.textContent = allEvents.length;
   if (statsPending) statsPending.textContent = pending.length;
+  if (statsFeatured) statsFeatured.textContent = String((allEvents || []).filter((event) => !!event.featured).length);
 
   if (eventsCount) {
     eventsCount.textContent = `${getFilteredEvents().length} éléments`;
@@ -541,10 +537,25 @@ function getFilteredEvents() {
     if (status === "pending") return !event.validated && !event.rejected;
     if (status === "validated") return !!event.validated;
     if (status === "featured") return !!event.featured;
+    if (status === "premium-ready") return isPremiumReady(event);
     if (status === "missing-image") return !event.image_url;
 
     return true;
   });
+}
+
+
+function isPremiumReady(event) {
+  return Boolean(
+    event &&
+    event.validated === true &&
+    event.rejected !== true &&
+    !event.featured &&
+    event.image_url &&
+    event.website &&
+    Number.isFinite(Number(event.lat)) &&
+    Number.isFinite(Number(event.lng))
+  );
 }
 
 /* RENDER EVENTS */
@@ -568,8 +579,13 @@ function renderEvents() {
 }
 
 function renderEventCard(event) {
+  const isFeatured = !!event.featured;
+  const isPending = !event.validated && !event.rejected;
+  const premiumReady = isPremiumReady(event);
+  const publicUrl = `event.html?id=${encodeURIComponent(event.id)}`;
+
   return `
-    <article class="event-card event-card-with-image">
+    <article class="event-card event-card-with-image admin-premium-event-card ${isFeatured ? "is-featured-admin" : ""}">
 
       ${
         event.image_url
@@ -587,51 +603,55 @@ function renderEventCard(event) {
         `
       }
 
-      <div>
-        <div class="event-title">
-          ${escapeHtml(event.title || "")}
+      <div class="event-admin-main">
+        <div class="event-title-row">
+          <div class="event-title">
+            ${escapeHtml(event.title || "")}
+          </div>
+          ${isFeatured ? `<span class="premium-ribbon-admin">⭐ Sélection Dédicalivres</span>` : ""}
         </div>
 
         <div class="event-meta">
-          <span>📍 ${escapeHtml(event.city || "")}</span>
+          <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}</span>
           <span>📅 ${formatDate(event.start_date)}</span>
           <span>🏷️ ${escapeHtml(event.type || "")}</span>
         </div>
 
         <div class="event-badges">
-          ${
-            !event.validated && !event.rejected
-              ? `<span class="badge pending">EN ATTENTE</span>`
-              : ""
-          }
-
+          ${isPending ? `<span class="badge pending">EN ATTENTE</span>` : ""}
           ${event.validated ? `<span class="badge">VALIDÉ</span>` : ""}
-
-          ${
-            event.rejected
-              ? `<span class="badge rejected">REJETÉ</span>`
-              : ""
-          }
-
-          ${
-            event.featured
-              ? `<span class="badge featured">MISE EN AVANT</span>`
-              : ""
-          }
-
-          ${
-            !event.image_url
-              ? `<span class="badge missing-image">SANS IMAGE</span>`
-              : ""
-          }
+          ${event.rejected ? `<span class="badge rejected">REJETÉ</span>` : ""}
+          ${isFeatured ? `<span class="badge featured">MISE EN AVANT</span>` : ""}
+          ${premiumReady && !isFeatured ? `<span class="badge premium-ready">POTENTIEL PREMIUM</span>` : ""}
+          ${!event.image_url ? `<span class="badge missing-image">SANS IMAGE</span>` : ""}
         </div>
+
+        <p class="premium-admin-note">
+          ${isFeatured
+            ? "Événement valorisé côté public. À terme, cette action pourra correspondre à une option premium / participation."
+            : premiumReady
+              ? "Fiche complète : bonne candidate pour une future mise en avant premium."
+              : "Compléter image, site officiel ou coordonnées avant une mise en avant forte."
+          }
+        </p>
       </div>
 
-      <div class="event-actions">
-        <button class="event-action validate" data-action="validate" data-id="${event.id}" type="button">✔</button>
-        <button class="event-action reject" data-action="reject" data-id="${event.id}" type="button">✖</button>
-        <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button">★</button>
-        <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button">✎</button>
+      <div class="event-actions premium-event-actions">
+        <button class="event-action validate action-large" data-action="validate" data-id="${event.id}" type="button">
+          <b>✔</b><span>Valider</span>
+        </button>
+        <button class="event-action reject action-large" data-action="reject" data-id="${event.id}" type="button">
+          <b>✖</b><span>Refuser</span>
+        </button>
+        <button class="event-action featured action-large ${isFeatured ? "active-featured" : ""}" data-action="featured" data-id="${event.id}" type="button">
+          <b>★</b><span>${isFeatured ? "Retirer" : "Mettre en avant"}</span>
+        </button>
+        <button class="event-action edit action-large" data-action="edit" data-id="${event.id}" type="button">
+          <b>✎</b><span>Modifier</span>
+        </button>
+        <button class="event-action view action-large" data-action="view" data-id="${event.id}" data-url="${escapeHtml(publicUrl)}" type="button">
+          <b>↗</b><span>Voir fiche</span>
+        </button>
       </div>
 
     </article>
@@ -650,6 +670,7 @@ function bindEventActions() {
       if (action === "reject") await rejectEvent(id);
       if (action === "featured") await toggleFeatured(id);
       if (action === "edit") openEditModal(id);
+      if (action === "view") window.open(button.dataset.url || `event.html?id=${encodeURIComponent(id)}`, "_blank", "noopener");
     });
   });
 }
@@ -710,7 +731,7 @@ async function toggleFeatured(id) {
   }
 
   await loadDashboard();
-  showToast("Mise à jour");
+  showToast(!event.featured ? "Événement mis en avant" : "Mise en avant retirée");
 }
 
 /* MAP */
