@@ -69,7 +69,7 @@
       grid.innerHTML = `
         <article class="empty-state testimonials-empty">
           <h3>Les premiers souvenirs arrivent bientôt.</h3>
-          <p>Vous avez rencontré un auteur, fait signer un livre ou vécu un beau moment littéraire ? Soyez parmi les premiers à le partager avec Dédicalivres.</p>
+          <p>Vous avez rencontré un auteur, reçu une nouvelle dédicace coup de cœur ou vécu un beau moment littéraire ? Soyez parmi les premiers à le partager avec Dédicalivres.</p>
           <p><a class="btn-primary" href="#testimonial-form">Laisser un témoignage</a></p>
         </article>
       `;
@@ -82,7 +82,7 @@
   function renderTestimonial(row) {
     return `
       <article class="testimonial-card">
-        ${row.image_url ? `<img class="testimonial-image" src="${escapeAttribute(row.image_url)}" alt="Livre dédicacé partagé par ${escapeAttribute(row.pseudo || "un lecteur")}" loading="lazy" />` : `<div class="testimonial-image-placeholder">📖</div>`}
+        ${row.image_url ? `<img class="testimonial-image" src="${escapeAttribute(row.image_url)}" alt="Nouvelle dédicace coup de cœur partagée par ${escapeAttribute(row.pseudo || "un lecteur")}" loading="lazy" />` : `<div class="testimonial-image-placeholder">📖</div>`}
         <div class="testimonial-card-body">
           <div class="card-tags">
             <span class="badge badge-price">Témoignage</span>

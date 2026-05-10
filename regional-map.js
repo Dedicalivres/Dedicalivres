@@ -245,7 +245,7 @@
 
             <div class="regional-map-panel-list" aria-label="Régions les plus alimentées">
               ${topRegions.map((region) => `
-                <a class="regional-map-mini-row" href="${region.href}">
+                <a class="regional-map-mini-row" href="${getRegionHref(region)}">
                   <strong>${escapeHtml(region.name)}</strong>
                   <span>${state.counts[region.name] || 0}</span>
                 </a>
@@ -254,7 +254,7 @@
           </div>
 
           <div class="regional-map-panel-actions">
-            <a class="btn-primary" href="${state.selected.href}">Voir les événements en ${escapeHtml(state.selected.name)}</a>
+            <a class="btn-primary" href="${getRegionHref(state.selected)}">Voir les ${counterContext.labelPlural} en ${escapeHtml(state.selected.name)}</a>
             <a class="btn-secondary" href="index.html#soumettre">Proposer un événement</a>
           </div>
         </aside>
@@ -271,7 +271,7 @@
 
       <div class="regional-map-mobile-list" aria-label="Liste des régions">
         ${REGIONS.map((region) => `
-          <a href="${region.href}">
+          <a href="${getRegionHref(region)}">
             <strong>${escapeHtml(region.name)}</strong>
             <span>${state.counts[region.name] || 0}</span>
           </a>
@@ -282,6 +282,15 @@
     bindInteractions();
   }
 
+  function getRegionHref(region) {
+    const base = region.href;
+    if (eventTypes.length) {
+      const paramName = eventTypes.length > 1 ? "types" : "type";
+      return `${base}?${paramName}=${encodeURIComponent(eventTypes.join(","))}`;
+    }
+    return base;
+  }
+
   function renderRegionMarker(region) {
     const count = state.counts[region.name] || 0;
     const active = state.selected.name === region.name ? " is-active" : "";
@@ -289,7 +298,7 @@
     return `
       <a
         class="regional-real-marker region-${region.slug}${active}"
-        href="${region.href}"
+        href="${getRegionHref(region)}"
         data-region="${escapeAttribute(region.name)}"
         style="--x:${region.x}%;--y:${region.y}%;"
         aria-label="${escapeAttribute(region.name)} — ${count} ${count > 1 ? counterContext.labelPlural : counterContext.labelSingular}"

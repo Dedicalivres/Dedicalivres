@@ -40,6 +40,8 @@
   const cityLatInput = document.getElementById("city-lat");
   const cityLngInput = document.getElementById("city-lng");
   const cityHelp = document.getElementById("city-help");
+  const citySuggestions = document.getElementById("city-suggestions");
+  const regionSubmit = document.getElementById("region-submit");
 
   let map;
   let markersLayer;
@@ -48,6 +50,8 @@
   let userPosition = null;
   let selectedPreviewImage = null;
   let userMarker = null;
+  let cityAutocompleteTimer = null;
+  let lastCitySuggestions = [];
 
   const TYPE_META = {
     Salon: { className: "type-salon", color: "#3a1c71" },
@@ -67,7 +71,7 @@
 
     if (mobileMapToggle) {
       mobileMapToggle.textContent = "Ouvrir la carte en direct";
-      mobileMapToggle.setAttribute("aria-expanded", "false");
+        mobileMapToggle.setAttribute("aria-expanded", "false");
     }
 
     if (mapPanel) {
@@ -116,14 +120,13 @@
 
     if (mapPanel.classList.contains("is-open")) {
       mobileMapToggle.textContent = "Fermer la carte en direct";
-      mobileMapToggle.setAttribute("aria-expanded", "true");
 
       setTimeout(() => {
         map?.invalidateSize();
       }, 300);
     } else {
       mobileMapToggle.textContent = "Ouvrir la carte en direct";
-      mobileMapToggle.setAttribute("aria-expanded", "false");
+        mobileMapToggle.setAttribute("aria-expanded", "false");
     }
   }
 
@@ -208,8 +211,47 @@
       return;
     }
 
-    allEvents = Array.isArray(data) ? data : [];
+    const rawEvents = Array.isArray(data) ? data : [];
+    allEvents = sortEventsByUpcomingDate(await attachAuthorsToEvents(rawEvents));
     renderFilteredEvents();
+  }
+
+  async function attachAuthorsToEvents(events) {
+    if (!events.length) return events;
+
+    const ids = events.map((event) => event.id).filter(Boolean);
+    if (!ids.length) return events.map((event) => ({ ...event, _authors: [] }));
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("event_authors_presence")
+        .select("event_id,pseudo,website,author_slug,validated")
+        .eq("validated", true)
+        .in("event_id", ids);
+
+      if (error) throw error;
+
+      const authorsByEvent = new Map();
+
+      (Array.isArray(data) ? data : []).forEach((row) => {
+        if (!row.event_id || !row.pseudo) return;
+        const key = String(row.event_id);
+        if (!authorsByEvent.has(key)) authorsByEvent.set(key, []);
+        authorsByEvent.get(key).push({
+          pseudo: row.pseudo,
+          website: row.website || "",
+          author_slug: row.author_slug || ""
+        });
+      });
+
+      return events.map((event) => ({
+        ...event,
+        _authors: authorsByEvent.get(String(event.id)) || []
+      }));
+    } catch (error) {
+      console.warn("Auteurs présents non chargés pour l’agenda :", error);
+      return events.map((event) => ({ ...event, _authors: [] }));
+    }
   }
 
   function renderFilteredEvents() {
@@ -238,12 +280,17 @@
         return false;
       }
 
+      const authorSearchText = (event._authors || [])
+        .map((author) => [author.pseudo, author.author_slug, author.website].filter(Boolean).join(" "))
+        .join(" ");
+
       const haystack = normalize([
         event.title,
         event.city,
         event.region,
         event.description,
-        event.type
+        event.type,
+        authorSearchText
       ].join(" "));
 
       if (search && !haystack.includes(search)) return false;
@@ -353,6 +400,8 @@
             </span>
           </div>
 
+          ${renderEventAuthors(event)}
+
           <p class="card-description">
             ${escapeHtml(event.description || "")}
           </p>
@@ -382,6 +431,62 @@
           </div>
         </div>
       </article>
+    `;
+  }
+
+  function renderEventAuthors(event) {
+    const authors = event._authors || [];
+    if (!authors.length) return "";
+
+    const visibleAuthors = authors.slice(0, 3);
+    const remaining = authors.length - visibleAuthors.length;
+
+    return `
+      <div class="card-authors" aria-label="Auteurs présents">
+        <span class="card-authors-label">✍️ Auteur${authors.length > 1 ? "s" : ""} présent${authors.length > 1 ? "s" : ""}</span>
+        <div class="card-authors-list">
+          ${visibleAuthors.map((author) => {
+            const name = escapeHtml(author.pseudo || "Auteur");
+            return author.website
+              ? `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${name}</a>`
+              : `<span>${name}</span>`;
+          }).join("")}
+          ${remaining > 0 ? `<span>+${remaining}</span>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPopupEventItem(event) {
+    const authors = event._authors || [];
+
+    return `
+      <div class="popup-event-item">
+        <button
+          class="popup-focus-btn"
+          type="button"
+          data-event-id="${escapeAttribute(event.id)}"
+          data-event-type="${escapeAttribute(event.type || "")}"
+        >
+          ${escapeHtml(event.title || "Sans titre")}
+        </button>
+        <div class="popup-event-meta">
+          ${event.start_date ? `📅 ${formatDateRange(event.start_date, event.end_date)}` : ""}
+          ${event.city ? ` · 📍 ${escapeHtml(event.city)}` : ""}
+        </div>
+        ${authors.length ? `
+          <div class="popup-authors">
+            <strong>Auteur${authors.length > 1 ? "s" : ""} présent${authors.length > 1 ? "s" : ""}</strong>
+            ${authors.map((author) => {
+              const name = escapeHtml(author.pseudo || "Auteur");
+              return author.website
+                ? `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${name}</a>`
+                : `<span>${name}</span>`;
+            }).join("")}
+          </div>
+        ` : ""}
+        <a class="popup-detail-link" href="event.html?id=${encodeURIComponent(event.id)}">Voir la fiche</a>
+      </div>
     `;
   }
 
@@ -417,7 +522,7 @@
       const typeMeta = TYPE_META[first.type] || TYPE_META.Autre;
 
       const marker = L.marker([lat, lng], {
-        icon: createTypeIcon(typeMeta)
+        icon: createTypeIcon(typeMeta, group.length)
       });
 
       marker.bindPopup(`
@@ -425,16 +530,7 @@
           <strong>${group.length} événement(s)</strong>
           <br><br>
 
-          ${group.map((event) => `
-            <button
-              class="popup-focus-btn"
-              type="button"
-              data-event-id="${escapeAttribute(event.id)}"
-              data-event-type="${escapeAttribute(event.type || "")}"
-            >
-              ${escapeHtml(event.title || "Sans titre")}
-            </button>
-          `).join("")}
+          ${group.map(renderPopupEventItem).join("")}
         </div>
       `);
 
@@ -457,12 +553,15 @@
     });
   }
 
-  function createTypeIcon(typeMeta) {
+  function createTypeIcon(typeMeta, count) {
+    const countBadge = count > 1 ? `<em>${count}</em>` : "";
+
     return L.divIcon({
       className: "event-marker-v5",
-      html: `<span style="--marker-color:${typeMeta.color}"></span>`,
-      iconSize: [28, 28],
-      iconAnchor: [14, 28]
+      html: `<span style="--marker-color:${typeMeta.color}">${countBadge}</span>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+      popupAnchor: [0, -26]
     });
   }
 
@@ -477,7 +576,7 @@
 
       if (mobileMapToggle) {
         mobileMapToggle.textContent = "Ouvrir la carte en direct";
-      mobileMapToggle.setAttribute("aria-expanded", "false");
+        mobileMapToggle.setAttribute("aria-expanded", "false");
       }
     }
 
@@ -772,20 +871,146 @@
   function bindCityAutocomplete() {
     if (!cityInput) return;
 
-    cityInput.addEventListener("change", async () => {
-      const coords = await geocodeMunicipality(cityInput.value);
+    cityInput.addEventListener("input", () => {
+      const value = cleanText(cityInput.value);
+      clearCitySelection();
 
-      if (!coords) return;
+      if (cityAutocompleteTimer) clearTimeout(cityAutocompleteTimer);
 
-      cityLatInput.value = coords.lat;
-      cityLngInput.value = coords.lng;
-
-      if (cityHelp) {
-        cityHelp.textContent = "Ville validée ✔";
-        cityHelp.classList.remove("error");
-        cityHelp.classList.add("success");
+      if (value.length < 2) {
+        clearCitySuggestions();
+        setCityHelp("Saisissez au moins 2 lettres pour afficher les villes proposées.", "");
+        return;
       }
+
+      cityAutocompleteTimer = setTimeout(async () => {
+        cityInput.classList.add("loading");
+        setCityHelp("Recherche des villes…", "");
+
+        const suggestions = await searchMunicipalities(value, 8);
+        cityInput.classList.remove("loading");
+        lastCitySuggestions = suggestions;
+        renderCitySuggestions(suggestions);
+
+        if (!suggestions.length) {
+          setCityHelp("Aucune ville trouvée. Vérifiez l’orthographe ou essayez une autre commune.", "error");
+          return;
+        }
+
+        setCityHelp("Sélectionnez une ville proposée pour garantir l’orthographe et la carte.", "");
+      }, 220);
     });
+
+    cityInput.addEventListener("change", async () => {
+      const value = cleanText(cityInput.value);
+      const selected = findCitySuggestion(value);
+
+      if (selected) {
+        applyCitySuggestion(selected);
+        return;
+      }
+
+      const coords = await geocodeMunicipality(value);
+
+      if (!coords) {
+        clearCitySelection();
+        setCityHelp("Ville non reconnue. Choisissez une ville proposée pour placer correctement l’événement.", "error");
+        return;
+      }
+
+      applyCitySuggestion(coords);
+    });
+  }
+
+  function renderCitySuggestions(suggestions) {
+    if (!citySuggestions) return;
+
+    citySuggestions.innerHTML = suggestions
+      .map((item) => `<option value="${escapeAttribute(item.city)}" label="${escapeAttribute(item.label)}"></option>`)
+      .join("");
+  }
+
+  function clearCitySuggestions() {
+    lastCitySuggestions = [];
+    if (citySuggestions) citySuggestions.innerHTML = "";
+  }
+
+  function findCitySuggestion(value) {
+    const normalizedValue = normalize(value);
+    return lastCitySuggestions.find((item) => {
+      return normalize(item.city) === normalizedValue || normalize(item.label) === normalizedValue;
+    });
+  }
+
+  function applyCitySuggestion(selection) {
+    if (!selection) return;
+
+    cityInput.value = selection.city || cityInput.value;
+    if (cityLatInput) cityLatInput.value = selection.lat;
+    if (cityLngInput) cityLngInput.value = selection.lng;
+
+    if (regionSubmit && selection.region) {
+      setSelectValueIfExists(regionSubmit, selection.region);
+    }
+
+    setCityHelp(
+      selection.region
+        ? `Ville validée ✔ Région renseignée : ${selection.region}`
+        : "Ville validée ✔",
+      "success"
+    );
+  }
+
+  function clearCitySelection() {
+    if (cityLatInput) cityLatInput.value = "";
+    if (cityLngInput) cityLngInput.value = "";
+    if (cityHelp) cityHelp.classList.remove("success", "error");
+  }
+
+  function setCityHelp(message, type) {
+    if (!cityHelp) return;
+    cityHelp.textContent = message;
+    cityHelp.classList.remove("success", "error");
+    if (type) cityHelp.classList.add(type);
+  }
+
+  function setSelectValueIfExists(select, value) {
+    const normalizedValue = normalize(value);
+    const option = Array.from(select.options).find((item) => {
+      return normalize(item.value || item.textContent) === normalizedValue;
+    });
+    if (option) select.value = option.value;
+  }
+
+  function sortEventsByUpcomingDate(events) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return [...events].sort((a, b) => {
+      const dateA = getEventDate(a);
+      const dateB = getEventDate(b);
+      const groupA = getUpcomingSortGroup(dateA, today);
+      const groupB = getUpcomingSortGroup(dateB, today);
+      if (groupA !== groupB) return groupA - groupB;
+      if (dateA && dateB) {
+        const diff = dateA.getTime() - dateB.getTime();
+        if (diff !== 0) return diff;
+      }
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return String(a.title || "").localeCompare(String(b.title || ""), "fr");
+    });
+  }
+
+  function getEventDate(event) {
+    if (!event || !event.start_date) return null;
+    const date = new Date(event.start_date);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function getUpcomingSortGroup(date, today) {
+    if (!date) return 1;
+    return date >= today ? 0 : 2;
   }
 
   function populateMonthFilter() {

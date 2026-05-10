@@ -44,7 +44,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="style.css?v=7.6.8" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body data-agenda-mode="global">
@@ -60,7 +60,7 @@
       <a href="index.html#agenda">Agenda</a>
       <a href="salons-du-livre.html">Salons & Festivals</a>
       <a href="dedicaces.html">Dédicaces</a>
-      <a href="auteurs-independants.html">Auteurs</a>
+      <a href="temoignages.html">Témoignages</a>
       <a href="index.html#soumettre" class="nav-submit-link">Soumettre</a>
     </nav>
 
@@ -87,44 +87,6 @@
         parfois, un livre devient le témoin d’un instant que l’on garde.
       </p>
     </div>
-
-    <section class="live-map-feature" aria-labelledby="live-map-title">
-      <div class="map-teaser map-teaser-feature">
-        <div>
-          <span class="map-feature-kicker">Carte en direct</span>
-          <strong id="live-map-title">Visualisez les événements littéraires sur la carte</strong>
-          <p>
-            Ouvrez la carte pour repérer rapidement les salons, festivals et dédicaces
-            autour de vous avant de choisir votre prochain rendez-vous littéraire.
-          </p>
-        </div>
-        <span>Atout Dédicalivres</span>
-      </div>
-
-      <div class="ux-actions map-feature-actions">
-        <button
-          id="mobile-map-toggle"
-          class="btn-secondary mobile-map-toggle live-map-toggle"
-          type="button"
-          aria-expanded="false"
-          aria-controls="map-panel"
-        >
-          Ouvrir la carte en direct
-        </button>
-
-        <button id="locate-me" class="btn-secondary locate-me-feature" type="button">
-          Me localiser
-        </button>
-      </div>
-
-      <aside
-        class="map-panel live-map-panel"
-        id="map-panel"
-        aria-label="Carte des événements"
-      >
-        <div id="map"></div>
-      </aside>
-    </section>
 
     <section id="newsletter" class="section newsletter-section">
     
@@ -178,7 +140,7 @@
       <input
         id="search-input"
         type="search"
-        placeholder="Rechercher un événement, une ville, un auteur…"
+        placeholder="Rechercher un événement, une ville…"
       />
 
       <select id="region-filter">
@@ -220,11 +182,46 @@
 
     </div>
 
+    <div class="map-teaser">
+      <div>
+        <strong>Carte en direct</strong>
+        <p>
+          Visualisez les salons, festivals et dédicaces autour de vous
+          avant de choisir votre prochain rendez-vous littéraire.
+        </p>
+      </div>
+      <span>Atout Dédicalivres</span>
+    </div>
+
+    <div class="ux-actions">
+
+      <button
+        id="mobile-map-toggle"
+        class="btn-secondary mobile-map-toggle"
+        type="button"
+      >
+        Carte en direct
+      </button>
+
+      <button id="locate-me" class="btn-secondary" type="button">
+        Me localiser
+      </button>
+
+    </div>
+
     <div class="agenda-layout">
 
       
 
       
+      <aside
+        class="map-panel"
+        id="map-panel"
+        aria-label="Carte des événements"
+      >
+        <div id="map"></div>
+      </aside>
+
       <div>
         <section
           id="events-grid"
@@ -395,13 +392,14 @@
   crossorigin=""
 ></script>
 
-<script src="config.js?v=7.6.8"></script>
-<script src="app.js?v=7.6.8"></script>
+<script src="config.js?v=7.7.1"></script>
+<script src="app.js?v=7.7.1"></script>
 
-<script src="tracking-v4.js?v=7.6.8"></script>
-<script src="author-search-index.js?v=7.6.8"></script>
-<script src="ui-effects-v6.js?v=7.6.8"></script>
-<script src="custom-cursor.js?v=7.6.8"></script>
+<script src="tracking-v4.js?v=7.7.1"></script>
+<script src="regional-map.js?v=7.7.1"></script>
+<script src="author-search-index.js?v=7.7.1"></script>
+<script src="ui-effects-v6.js?v=7.7.1"></script>
+<script src="custom-cursor.js?v=7.7.1"></script>
 
 </body>
 </html>
