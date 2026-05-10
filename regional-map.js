@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.7.2e — Carte régionale aquarelle + positions corrigées avec compteurs contextualisés par page.
+    V7.7.2b — Carte régionale aquarelle réelle avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -50,86 +50,86 @@
     {
       name: "Île-de-France",
       slug: "ile-de-france",
-      color: "#f3d6e9",
-      washW: 22,
-      washH: 18,
+      color: "#f4bfdc",
+      washW: 24,
+      washH: 20,
       href: "evenements-litteraires-ile-de-france.html",
       description: "Paris, librairies, salons et rendez-vous franciliens",
       x: 52,
-      y: 36
+      y: 34
     },
     {
       name: "Auvergne-Rhône-Alpes",
       slug: "auvergne-rhone-alpes",
-      color: "#bfe7de",
-      washW: 28,
-      washH: 24,
+      color: "#8fdccc",
+      washW: 31,
+      washH: 26,
       href: "evenements-litteraires-auvergne-rhone-alpes.html",
       description: "Lyon, Grenoble, Clermont-Ferrand et rencontres régionales",
-      x: 60,
-      y: 66
+      x: 61,
+      y: 63
     },
     {
       name: "Nouvelle-Aquitaine",
       slug: "nouvelle-aquitaine",
-      color: "#d8c7ea",
-      washW: 28,
-      washH: 24,
+      color: "#c3a8e6",
+      washW: 31,
+      washH: 26,
       href: "evenements-litteraires-nouvelle-aquitaine.html",
       description: "Bordeaux, littoral, salons et festivals du livre",
-      x: 37,
-      y: 62
+      x: 36,
+      y: 61
     },
     {
       name: "Occitanie",
       slug: "occitanie",
-      color: "#f5b9c8",
-      washW: 30,
-      washH: 20,
+      color: "#f19ab6",
+      washW: 32,
+      washH: 22,
       href: "evenements-litteraires-occitanie.html",
       description: "Toulouse, Montpellier, festivals et rencontres d’auteurs",
       x: 49,
-      y: 80
+      y: 78
     },
     {
       name: "Bretagne",
       slug: "bretagne",
-      color: "#b9e1df",
-      washW: 22,
-      washH: 16,
+      color: "#8bd7d1",
+      washW: 25,
+      washH: 18,
       href: "evenements-litteraires-bretagne.html",
       description: "Librairies, festivals, salons et rendez-vous bretons",
-      x: 24,
-      y: 36
+      x: 19,
+      y: 34
     },
     {
       name: "Bourgogne-Franche-Comté",
       slug: "bourgogne-franche-comte",
-      color: "#f7c8bd",
-      washW: 24,
-      washH: 18,
+      color: "#f4a998",
+      washW: 27,
+      washH: 20,
       href: "evenements-litteraires-bourgogne-franche-comte.html",
       description: "Dijon, Besançon, librairies et rendez-vous du livre",
       x: 66,
-      y: 48
+      y: 45
     },
     {
       name: "Centre-Val de Loire",
       slug: "centre-val-de-loire",
-      color: "#f6dfaa",
-      washW: 26,
-      washH: 18,
+      color: "#f5cf7c",
+      washW: 28,
+      washH: 20,
       href: "evenements-litteraires-centre-val-de-loire.html",
       description: "Tours, Orléans, rencontres et événements littéraires",
       x: 43,
-      y: 47
+      y: 44
     },
     {
       name: "Corse",
       slug: "corse",
-      color: "#f2b8c7",
-      washW: 12,
-      washH: 14,
+      color: "#ef92aa",
+      washW: 13,
+      washH: 15,
       href: "evenements-litteraires-corse.html",
       description: "Ajaccio, Bastia, rencontres insulaires et salons du livre",
       x: 82,
@@ -138,57 +138,57 @@
     {
       name: "Grand Est",
       slug: "grand-est",
-      color: "#d8c6eb",
-      washW: 27,
-      washH: 22,
+      color: "#bda3e5",
+      washW: 30,
+      washH: 24,
       href: "evenements-litteraires-grand-est.html",
       description: "Strasbourg, Reims, Metz, Nancy et rendez-vous du livre",
-      x: 74,
-      y: 30
+      x: 73,
+      y: 27
     },
     {
       name: "Hauts-de-France",
       slug: "hauts-de-france",
-      color: "#bfe6ef",
-      washW: 22,
-      washH: 16,
+      color: "#92d7e8",
+      washW: 24,
+      washH: 18,
       href: "evenements-litteraires-hauts-de-france.html",
       description: "Lille, Amiens, salons, dédicaces et festivals littéraires",
-      x: 53,
-      y: 18
+      x: 52,
+      y: 15
     },
     {
       name: "Normandie",
       slug: "normandie",
-      color: "#c9e7c8",
-      washW: 25,
-      washH: 17,
+      color: "#a9dea8",
+      washW: 27,
+      washH: 19,
       href: "evenements-litteraires-normandie.html",
       description: "Rouen, Caen, littoral normand et rencontres d’auteurs",
-      x: 34,
-      y: 28
+      x: 33,
+      y: 25
     },
     {
       name: "Pays de la Loire",
       slug: "pays-de-la-loire",
-      color: "#f6cfbc",
-      washW: 24,
-      washH: 16,
+      color: "#f1b08f",
+      washW: 26,
+      washH: 18,
       href: "evenements-litteraires-pays-de-la-loire.html",
       description: "Nantes, Angers, Le Mans et événements autour du livre",
-      x: 33,
-      y: 47
+      x: 30,
+      y: 45
     },
     {
       name: "Provence-Alpes-Côte d’Azur",
       slug: "provence-alpes-cote-azur",
-      color: "#f7d69a",
-      washW: 24,
-      washH: 18,
+      color: "#f5bf61",
+      washW: 27,
+      washH: 20,
       href: "evenements-litteraires-provence-alpes-cote-azur.html",
       description: "Marseille, Nice, Toulon, festivals et dédicaces",
       x: 73,
-      y: 75
+      y: 73
     }
   ];
 
@@ -341,12 +341,22 @@
   }
 
 
+  function visualX(region) {
+    // Le SVG SimpleMaps contient des marges internes : on recale les pastilles vers la droite
+    // sans changer la logique de clic ni les compteurs.
+    return Math.round((8 + Number(region.x || 50) * 0.88) * 100) / 100;
+  }
+
+  function visualY(region) {
+    return Math.round(Number(region.y || 50) * 100) / 100;
+  }
+
   function renderRegionWash(region) {
     const active = state.selected.name === region.name ? " is-active" : "";
     return `
       <span
         class="regional-watercolor-region region-${region.slug}${active}"
-        style="--x:${region.x}%;--y:${region.y}%;--w:${region.washW || 24}%;--h:${region.washH || 18}%;--region-color:${region.color || '#d8e7d4'};"
+        style="--x:${visualX(region)}%;--y:${visualY(region)}%;--w:${region.washW || 24}%;--h:${region.washH || 18}%;--region-color:${region.color || '#d8e7d4'};"
       ></span>
     `;
   }
@@ -360,7 +370,7 @@
         class="regional-real-marker region-${region.slug}${active}"
         href="${regionHref(region)}"
         data-region="${escapeAttribute(region.name)}"
-        style="--x:${region.x}%;--y:${region.y}%;"
+        style="--x:${visualX(region)}%;--y:${visualY(region)}%;"
         aria-label="${escapeAttribute(region.name)} — ${count} ${count > 1 ? counterContext.labelPlural : counterContext.labelSingular}"
       >
         <span class="regional-real-marker-name">${escapeHtml(region.name)}</span>
