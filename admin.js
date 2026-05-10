@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V7.7.7a / 5 ONGLETs
+   DÉDICALIVRES — ADMIN V7.7.7b / CONNEXION ROBUSTE
 ========================================================= */
 
 "use strict";
@@ -136,8 +136,14 @@ async function handleLogin(event) {
     if (error) throw error;
 
     showDashboard();
-    await loadDashboard();
-    showToast("Connexion réussie");
+
+    try {
+      await loadDashboard();
+      showToast("Connexion réussie");
+    } catch (dashboardError) {
+      console.error("Dashboard partiellement chargé :", dashboardError);
+      showToast("Connexion réussie · certains modules doivent être actualisés");
+    }
   } catch (error) {
     console.error(error);
     loginFeedback.textContent = "Connexion impossible.";
@@ -242,23 +248,37 @@ function bindMobileSwipeTabs() {
 /* DASHBOARD */
 
 async function loadDashboard() {
-  await Promise.all([
-    loadEvents(),
-    loadNewsletterCount(),
-    loadVisitsCount(),
-    loadLocationTracking()
-  ]);
+  await safeAdminStep("chargement événements", loadEvents);
+  await safeAdminStep("chargement indicateur mise en avant", loadNewsletterCount);
+  await safeAdminStep("chargement visites", loadVisitsCount);
+  await safeAdminStep("chargement localisation", loadLocationTracking);
 
-  updateStats();
-  renderEvents();
-  renderPremiumDashboard();
-  renderSocialUpcoming();
-  renderPriorityZones();
-  initMap();
+  safeAdminStepSync("statistiques", updateStats);
+  safeAdminStepSync("liste événements", renderEvents);
+  safeAdminStepSync("premium", renderPremiumDashboard);
+  safeAdminStepSync("réseaux", renderSocialUpcoming);
+  safeAdminStepSync("observatoire", renderPriorityZones);
+  safeAdminStepSync("carte admin", initMap);
 
   setTimeout(() => {
     map?.invalidateSize();
   }, 250);
+}
+
+async function safeAdminStep(label, fn) {
+  try {
+    await fn();
+  } catch (error) {
+    console.warn(`Admin : ${label} indisponible`, error);
+  }
+}
+
+function safeAdminStepSync(label, fn) {
+  try {
+    fn();
+  } catch (error) {
+    console.warn(`Admin : ${label} indisponible`, error);
+  }
 }
 
 async function loadEvents() {
