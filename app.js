@@ -20,8 +20,6 @@
 
   const eventsGrid = document.getElementById("events-grid");
   const resultsCount = document.getElementById("results-count");
-  const favoritesList = document.getElementById("favorites-list");
-  const clearFavoritesButton = document.getElementById("clear-favorites");
 
   const form = document.getElementById("submission-form");
   const formFeedback = document.getElementById("form-feedback");
@@ -39,11 +37,9 @@
   const mapPanel = document.getElementById("map-panel");
 
   const cityInput = document.getElementById("city-input");
-  const citySuggestions = document.getElementById("city-suggestions");
   const cityLatInput = document.getElementById("city-lat");
   const cityLngInput = document.getElementById("city-lng");
   const cityHelp = document.getElementById("city-help");
-  const regionSubmit = document.getElementById("region-submit");
 
   let map;
   let markersLayer;
@@ -52,10 +48,6 @@
   let userPosition = null;
   let selectedPreviewImage = null;
   let userMarker = null;
-
-  const FAVORITES_KEY = "dedicalivres_favorite_events_v1";
-  let cityAutocompleteTimer = null;
-  let lastCitySuggestions = [];
 
   const TYPE_META = {
     Salon: { className: "type-salon", color: "#3a1c71" },
@@ -73,12 +65,28 @@
     initMap();
     loadEvents();
 
+    initDefaultMapVisibility();
+  }
+
+  function initDefaultMapVisibility() {
+    if (!mapPanel) return;
+
+    const shouldOpenByDefault =
+      window.matchMedia &&
+      window.matchMedia("(min-width: 781px)").matches;
+
+    mapPanel.classList.toggle("is-open", shouldOpenByDefault);
+
     if (mobileMapToggle) {
-      mobileMapToggle.textContent = "Carte en direct";
+      mobileMapToggle.textContent = shouldOpenByDefault
+        ? "Fermer la carte en direct"
+        : "Carte en direct";
     }
 
-    if (mapPanel) {
-      mapPanel.classList.remove("is-open");
+    if (shouldOpenByDefault) {
+      setTimeout(() => {
+        map?.invalidateSize();
+      }, 350);
     }
   }
 
@@ -112,9 +120,6 @@
     });
 
     searchInput?.addEventListener("input", renderFilteredEvents);
-
-    bindFavoriteAndCalendarActions();
-    clearFavoritesButton?.addEventListener("click", clearFavorites);
 
     bindCityAutocomplete();
   }
@@ -216,46 +221,8 @@
       return;
     }
 
-    allEvents = await attachAuthorsToEvents(Array.isArray(data) ? data : []);
+    allEvents = Array.isArray(data) ? data : [];
     renderFilteredEvents();
-  }
-
-  async function attachAuthorsToEvents(events) {
-    if (!events.length) return events;
-
-    const ids = events.map((event) => event.id).filter(Boolean);
-    if (!ids.length) return events;
-
-    try {
-      const { data, error } = await supabaseClient
-        .from("event_authors_presence")
-        .select("event_id,pseudo,website,author_slug,validated")
-        .eq("validated", true)
-        .in("event_id", ids);
-
-      if (error) throw error;
-
-      const authorsByEvent = new Map();
-
-      (Array.isArray(data) ? data : []).forEach((row) => {
-        if (!row.event_id || !row.pseudo) return;
-        const key = String(row.event_id);
-        if (!authorsByEvent.has(key)) authorsByEvent.set(key, []);
-        authorsByEvent.get(key).push({
-          pseudo: row.pseudo,
-          website: row.website || "",
-          author_slug: row.author_slug || ""
-        });
-      });
-
-      return events.map((event) => ({
-        ...event,
-        _authors: authorsByEvent.get(String(event.id)) || []
-      }));
-    } catch (error) {
-      console.warn("Auteurs présents non chargés pour l’agenda :", error);
-      return events.map((event) => ({ ...event, _authors: [] }));
-    }
   }
 
   function renderFilteredEvents() {
@@ -284,17 +251,12 @@
         return false;
       }
 
-      const authorSearchText = (event._authors || [])
-        .map((author) => [author.pseudo, author.author_slug, author.website].filter(Boolean).join(" "))
-        .join(" ");
-
       const haystack = normalize([
         event.title,
         event.city,
         event.region,
         event.description,
-        event.type,
-        authorSearchText
+        event.type
       ].join(" "));
 
       if (search && !haystack.includes(search)) return false;
@@ -327,8 +289,6 @@
     }
 
     eventsGrid.innerHTML = events.map(renderEventCard).join("");
-    updateFavoriteButtons();
-    renderFavoritesPanel();
   }
 
   function renderEventCard(event) {
@@ -406,8 +366,6 @@
             </span>
           </div>
 
-          ${renderEventAuthors(event)}
-
           <p class="card-description">
             ${escapeHtml(event.description || "")}
           </p>
@@ -419,14 +377,6 @@
             >
               Voir le détail
             </a>
-
-            <button class="card-link favorite-toggle" type="button" data-favorite-id="${escapeAttribute(event.id)}">
-              ♡ Favori
-            </button>
-
-            <button class="card-link calendar-download" type="button" data-calendar-id="${escapeAttribute(event.id)}">
-              📅 Agenda
-            </button>
 
             ${
               event.website
@@ -445,29 +395,6 @@
           </div>
         </div>
       </article>
-    `;
-  }
-
-  function renderEventAuthors(event) {
-    const authors = event._authors || [];
-    if (!authors.length) return "";
-
-    const visibleAuthors = authors.slice(0, 3);
-    const remaining = authors.length - visibleAuthors.length;
-
-    return `
-      <div class="card-authors" aria-label="Auteurs présents">
-        <span class="card-authors-label">✍️ Auteur${authors.length > 1 ? "s" : ""} présent${authors.length > 1 ? "s" : ""}</span>
-        <div class="card-authors-list">
-          ${visibleAuthors.map((author) => {
-            const name = escapeHtml(author.pseudo || "Auteur");
-            return author.website
-              ? `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${name}</a>`
-              : `<span>${name}</span>`;
-          }).join("")}
-          ${remaining > 0 ? `<span>+${remaining}</span>` : ""}
-        </div>
-      </div>
     `;
   }
 
@@ -810,60 +737,22 @@
   }
 
   async function geocodeMunicipality(city) {
-    const results = await searchMunicipalities(city, 1);
-    const first = results[0];
-
-    if (!first) return null;
-
-    return {
-      lng: first.lng,
-      lat: first.lat,
-      city: first.city,
-      region: first.region
-    };
-  }
-
-  async function searchMunicipalities(query, limit = 8) {
-    const value = cleanText(query);
-
-    if (value.length < 2) return [];
-
     try {
       const response = await fetch(
-        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(value)}&limit=${limit}&type=municipality&autocomplete=1`
+        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(city)}&limit=1&type=municipality`
       );
 
       const data = await response.json();
-      const features = Array.isArray(data.features) ? data.features : [];
+      const coords = data.features?.[0]?.geometry?.coordinates;
 
-      return features
-        .map((feature) => {
-          const properties = feature.properties || {};
-          const coords = feature.geometry?.coordinates || [];
-          const cityName = cleanText(
-            properties.city ||
-            properties.name ||
-            properties.municipality ||
-            ""
-          );
-          const regionName = extractRegionFromContext(properties.context || "");
+      if (!coords) return null;
 
-          if (!cityName || !Number.isFinite(Number(coords[0])) || !Number.isFinite(Number(coords[1]))) {
-            return null;
-          }
-
-          return {
-            city: cityName,
-            region: regionName,
-            label: regionName ? `${cityName} — ${regionName}` : cityName,
-            lng: Number(coords[0]),
-            lat: Number(coords[1])
-          };
-        })
-        .filter(Boolean);
-    } catch (error) {
-      console.warn("Autocomplétion ville indisponible :", error);
-      return [];
+      return {
+        lng: Number(coords[0]),
+        lat: Number(coords[1])
+      };
+    } catch {
+      return null;
     }
   }
 
@@ -895,159 +784,20 @@
   function bindCityAutocomplete() {
     if (!cityInput) return;
 
-    cityInput.addEventListener("input", () => {
-      const value = cleanText(cityInput.value);
-
-      clearCitySelection();
-
-      if (cityAutocompleteTimer) {
-        clearTimeout(cityAutocompleteTimer);
-      }
-
-      if (value.length < 2) {
-        clearCitySuggestions();
-        setCityHelp(
-          "Saisissez au moins 2 lettres pour afficher les villes proposées.",
-          ""
-        );
-        return;
-      }
-
-      cityAutocompleteTimer = setTimeout(async () => {
-        cityInput.classList.add("loading");
-        setCityHelp("Recherche des villes…", "");
-
-        const suggestions = await searchMunicipalities(value, 8);
-
-        cityInput.classList.remove("loading");
-        lastCitySuggestions = suggestions;
-        renderCitySuggestions(suggestions);
-
-        if (!suggestions.length) {
-          setCityHelp(
-            "Aucune ville trouvée. Vérifiez l’orthographe ou essayez une autre commune.",
-            "error"
-          );
-          return;
-        }
-
-        setCityHelp(
-          "Sélectionnez une ville proposée pour garantir l’orthographe et la carte.",
-          ""
-        );
-      }, 260);
-    });
-
     cityInput.addEventListener("change", async () => {
-      const value = cleanText(cityInput.value);
-      const selected = findCitySuggestion(value);
+      const coords = await geocodeMunicipality(cityInput.value);
 
-      if (selected) {
-        applyCitySuggestion(selected);
-        return;
+      if (!coords) return;
+
+      cityLatInput.value = coords.lat;
+      cityLngInput.value = coords.lng;
+
+      if (cityHelp) {
+        cityHelp.textContent = "Ville validée ✔";
+        cityHelp.classList.remove("error");
+        cityHelp.classList.add("success");
       }
-
-      const coords = await geocodeMunicipality(value);
-
-      if (!coords) {
-        clearCitySelection();
-        setCityHelp(
-          "Ville non reconnue. Choisissez une ville proposée pour placer correctement l’événement.",
-          "error"
-        );
-        return;
-      }
-
-      applyCitySuggestion(coords);
     });
-  }
-
-  function renderCitySuggestions(suggestions) {
-    if (!citySuggestions) return;
-
-    citySuggestions.innerHTML = suggestions
-      .map((item) => {
-        return `
-          <option value="${escapeAttribute(item.city)}" label="${escapeAttribute(item.label)}"></option>
-        `;
-      })
-      .join("");
-  }
-
-  function clearCitySuggestions() {
-    lastCitySuggestions = [];
-
-    if (citySuggestions) {
-      citySuggestions.innerHTML = "";
-    }
-  }
-
-  function findCitySuggestion(value) {
-    const normalizedValue = normalize(value);
-
-    return lastCitySuggestions.find((item) => {
-      return normalize(item.city) === normalizedValue || normalize(item.label) === normalizedValue;
-    });
-  }
-
-  function applyCitySuggestion(selection) {
-    if (!selection) return;
-
-    cityInput.value = selection.city || cityInput.value;
-
-    if (cityLatInput) cityLatInput.value = selection.lat;
-    if (cityLngInput) cityLngInput.value = selection.lng;
-
-    if (regionSubmit && selection.region) {
-      setSelectValueIfExists(regionSubmit, selection.region);
-    }
-
-    setCityHelp(
-      selection.region
-        ? `Ville validée ✔ Région renseignée : ${selection.region}`
-        : "Ville validée ✔",
-      "success"
-    );
-  }
-
-  function clearCitySelection() {
-    if (cityLatInput) cityLatInput.value = "";
-    if (cityLngInput) cityLngInput.value = "";
-
-    if (cityHelp) {
-      cityHelp.classList.remove("success", "error");
-    }
-  }
-
-  function setCityHelp(message, type) {
-    if (!cityHelp) return;
-
-    cityHelp.textContent = message;
-    cityHelp.classList.remove("success", "error");
-
-    if (type) {
-      cityHelp.classList.add(type);
-    }
-  }
-
-  function setSelectValueIfExists(select, value) {
-    const normalizedValue = normalize(value);
-    const option = Array.from(select.options).find((item) => {
-      return normalize(item.value || item.textContent) === normalizedValue;
-    });
-
-    if (option) {
-      select.value = option.value;
-    }
-  }
-
-  function extractRegionFromContext(context) {
-    const parts = String(context || "")
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    return parts.length ? parts[parts.length - 1] : "";
   }
 
   function populateMonthFilter() {
@@ -1182,155 +932,6 @@
     return "desktop";
   }
 
-  function bindFavoriteAndCalendarActions() {
-    document.addEventListener("click", (event) => {
-      const favoriteButton = event.target.closest(".favorite-toggle");
-      if (favoriteButton) {
-        event.preventDefault();
-        toggleFavorite(favoriteButton.dataset.favoriteId);
-        return;
-      }
-
-      const calendarButton = event.target.closest(".calendar-download");
-      if (calendarButton) {
-        event.preventDefault();
-        const item = allEvents.find((entry) => String(entry.id) === String(calendarButton.dataset.calendarId));
-        if (item) downloadICS(item);
-      }
-    });
-  }
-
-  function getFavoriteIds() {
-    try {
-      const value = JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
-      return Array.isArray(value) ? value.map(String) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function saveFavoriteIds(ids) {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify([...new Set(ids.map(String))]));
-  }
-
-  function toggleFavorite(id) {
-    if (!id) return;
-    const ids = getFavoriteIds();
-    const key = String(id);
-    const next = ids.includes(key) ? ids.filter((item) => item !== key) : [...ids, key];
-    saveFavoriteIds(next);
-    updateFavoriteButtons();
-    renderFavoritesPanel();
-  }
-
-  function clearFavorites() {
-    saveFavoriteIds([]);
-    updateFavoriteButtons();
-    renderFavoritesPanel();
-  }
-
-  function updateFavoriteButtons() {
-    const ids = getFavoriteIds();
-    document.querySelectorAll(".favorite-toggle").forEach((button) => {
-      const active = ids.includes(String(button.dataset.favoriteId || ""));
-      button.classList.toggle("is-favorite", active);
-      button.textContent = active ? "♥ Favori" : "♡ Favori";
-      button.setAttribute("aria-pressed", active ? "true" : "false");
-    });
-  }
-
-  function renderFavoritesPanel() {
-    if (!favoritesList) return;
-
-    const ids = getFavoriteIds();
-    const events = allEvents.filter((event) => ids.includes(String(event.id)));
-
-    if (!events.length) {
-      favoritesList.innerHTML = `<article class="empty-state favorites-empty">Aucun événement sauvegardé pour le moment. Utilisez le bouton “♡ Favori” sur une fiche événement.</article>`;
-      return;
-    }
-
-    favoritesList.innerHTML = events.map((event) => `
-      <article class="favorite-mini-card">
-        <div>
-          <strong>${escapeHtml(event.title || "Événement")}</strong>
-          <span>${escapeHtml(formatDateRange(event.start_date, event.end_date))} · ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}</span>
-        </div>
-        <div class="favorite-mini-actions">
-          <a class="card-link" href="event.html?id=${encodeURIComponent(event.id)}">Voir</a>
-          <button class="card-link calendar-download" type="button" data-calendar-id="${escapeAttribute(event.id)}">📅 Agenda</button>
-          <button class="card-link favorite-toggle is-favorite" type="button" data-favorite-id="${escapeAttribute(event.id)}">♥ Retirer</button>
-        </div>
-      </article>
-    `).join("");
-  }
-
-  function downloadICS(event) {
-    const ics = buildICS(event);
-    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${slugify(event.title || "dedicalivres-evenement")}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  function buildICS(event) {
-    const start = toICSDate(event.start_date);
-    const end = toICSDate(addOneDay(event.end_date || event.start_date));
-    const detailUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, "")}event.html?id=${encodeURIComponent(event.id)}`;
-    const location = [event.city, event.region].filter(Boolean).join(", ");
-    const description = `${event.description || ""}\n\nFiche Dédicalivres : ${detailUrl}`;
-
-    return [
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "PRODID:-//Dedicalivres//Agenda//FR",
-      "BEGIN:VEVENT",
-      `UID:${event.id || Date.now()}@dedicalivres.fr`,
-      `DTSTAMP:${toICSDateTime(new Date())}`,
-      start ? `DTSTART;VALUE=DATE:${start}` : "",
-      end ? `DTEND;VALUE=DATE:${end}` : "",
-      `SUMMARY:${escapeICS(event.title || "Événement littéraire")}`,
-      location ? `LOCATION:${escapeICS(location)}` : "",
-      `DESCRIPTION:${escapeICS(description)}`,
-      `URL:${detailUrl}`,
-      "END:VEVENT",
-      "END:VCALENDAR"
-    ].filter(Boolean).join("\r\n");
-  }
-
-  function toICSDate(value) {
-    if (!value) return "";
-    return String(value).slice(0, 10).replace(/-/g, "");
-  }
-
-  function toICSDateTime(date) {
-    return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  }
-
-  function addOneDay(value) {
-    if (!value) return "";
-    const date = new Date(`${String(value).slice(0, 10)}T00:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + 1);
-    return date.toISOString().slice(0, 10);
-  }
-
-  function escapeICS(value) {
-    return String(value || "")
-      .replace(/\\/g, "\\\\")
-      .replace(/\n/g, "\\n")
-      .replace(/,/g, "\\,")
-      .replace(/;/g, "\\;");
-  }
-
-  function slugify(value) {
-    return normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "dedicalivres";
-  }
-
   function resetFilters() {
     if (searchInput) searchInput.value = "";
     if (regionFilter) regionFilter.value = "";
@@ -1406,10 +1007,6 @@
     } catch {
       return value;
     }
-  }
-
-  function cleanText(value) {
-    return String(value || "").replace(/\s+/g, " ").trim();
   }
 
   function normalize(value) {
