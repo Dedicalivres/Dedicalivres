@@ -2633,3 +2633,110 @@ button:active,
     height: 34px !important;
   }
 }
+
+
+/* =========================================================
+   V7.7.2d - AQUARELLE RÉELLEMENT VISIBLE
+   Correction ciblée : abandon du masque discret, aplats colorés
+   au-dessus du fond de carte pour se rapprocher de l’aperçu validé.
+========================================================= */
+
+.regional-map-card-real {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255, 225, 195, .42), transparent 26%),
+    radial-gradient(circle at 86% 18%, rgba(205, 225, 255, .34), transparent 30%),
+    radial-gradient(circle at 46% 88%, rgba(255, 205, 216, .32), transparent 32%),
+    linear-gradient(135deg, rgba(255,255,255,.98), rgba(255,252,246,.94)) !important;
+}
+
+.regional-watercolor-map-wrap {
+  background:
+    radial-gradient(circle at 28% 26%, rgba(110, 197, 205, .18), transparent 24%),
+    radial-gradient(circle at 74% 26%, rgba(176, 151, 214, .18), transparent 28%),
+    radial-gradient(circle at 48% 76%, rgba(240, 120, 158, .16), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,251,244,.16)) !important;
+}
+
+.regional-watercolor-map-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .28;
+  background-image:
+    linear-gradient(rgba(58,28,113,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(58,28,113,.04) 1px, transparent 1px),
+    radial-gradient(circle at 35% 20%, rgba(255,255,255,.75), transparent 28%),
+    radial-gradient(circle at 70% 72%, rgba(255,255,255,.45), transparent 34%);
+  background-size: 34px 34px, 34px 34px, auto, auto;
+}
+
+.regional-watercolor-layer {
+  z-index: 3 !important;
+  overflow: hidden;
+  opacity: 1 !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+  mix-blend-mode: multiply;
+  filter: saturate(1.25) contrast(1.02);
+}
+
+.regional-watercolor-region {
+  width: calc(var(--w) * 1.65) !important;
+  height: calc(var(--h) * 1.72) !important;
+  opacity: .72 !important;
+  filter: blur(15px) saturate(1.65) contrast(1.06) !important;
+  mix-blend-mode: multiply !important;
+  box-shadow: none !important;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255,255,255,.40), transparent 24%),
+    radial-gradient(circle at 76% 72%, rgba(255,255,255,.20), transparent 35%),
+    var(--region-color) !important;
+}
+
+.regional-watercolor-region.is-active {
+  opacity: .86 !important;
+  filter: blur(11px) saturate(1.85) contrast(1.08) !important;
+}
+
+.regional-watercolor-map-base,
+.regional-real-map-image.regional-watercolor-map-base {
+  z-index: 2 !important;
+  opacity: .28 !important;
+  filter: grayscale(.22) sepia(.06) contrast(1.18) brightness(1.03) !important;
+  mix-blend-mode: multiply !important;
+}
+
+.regional-real-map-overlay {
+  z-index: 5 !important;
+}
+
+.regional-real-marker {
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 42px !important;
+  background: rgba(255,255,255,.96) !important;
+  border: 1px solid rgba(58,28,113,.10) !important;
+  box-shadow:
+    0 10px 22px rgba(58,28,113,.13),
+    0 2px 0 rgba(255,255,255,.9) inset !important;
+}
+
+.regional-real-marker-count {
+  font-size: .96rem !important;
+}
+
+@media (max-width: 780px) {
+  .regional-watercolor-region {
+    width: calc(var(--w) * 1.95) !important;
+    height: calc(var(--h) * 2.05) !important;
+    opacity: .76 !important;
+    filter: blur(13px) saturate(1.75) !important;
+  }
+
+  .regional-watercolor-map-base,
+  .regional-real-map-image.regional-watercolor-map-base {
+    opacity: .31 !important;
+  }
+}

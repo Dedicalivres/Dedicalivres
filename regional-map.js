@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.7.2b — Carte régionale aquarelle réelle avec compteurs contextualisés par page.
+    V7.7.2e — Carte régionale aquarelle + positions corrigées avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -56,7 +56,7 @@
       href: "evenements-litteraires-ile-de-france.html",
       description: "Paris, librairies, salons et rendez-vous franciliens",
       x: 52,
-      y: 34
+      y: 36
     },
     {
       name: "Auvergne-Rhône-Alpes",
@@ -66,8 +66,8 @@
       washH: 24,
       href: "evenements-litteraires-auvergne-rhone-alpes.html",
       description: "Lyon, Grenoble, Clermont-Ferrand et rencontres régionales",
-      x: 61,
-      y: 63
+      x: 60,
+      y: 66
     },
     {
       name: "Nouvelle-Aquitaine",
@@ -77,8 +77,8 @@
       washH: 24,
       href: "evenements-litteraires-nouvelle-aquitaine.html",
       description: "Bordeaux, littoral, salons et festivals du livre",
-      x: 36,
-      y: 61
+      x: 37,
+      y: 62
     },
     {
       name: "Occitanie",
@@ -89,7 +89,7 @@
       href: "evenements-litteraires-occitanie.html",
       description: "Toulouse, Montpellier, festivals et rencontres d’auteurs",
       x: 49,
-      y: 78
+      y: 80
     },
     {
       name: "Bretagne",
@@ -99,8 +99,8 @@
       washH: 16,
       href: "evenements-litteraires-bretagne.html",
       description: "Librairies, festivals, salons et rendez-vous bretons",
-      x: 19,
-      y: 34
+      x: 24,
+      y: 36
     },
     {
       name: "Bourgogne-Franche-Comté",
@@ -111,7 +111,7 @@
       href: "evenements-litteraires-bourgogne-franche-comte.html",
       description: "Dijon, Besançon, librairies et rendez-vous du livre",
       x: 66,
-      y: 45
+      y: 48
     },
     {
       name: "Centre-Val de Loire",
@@ -122,7 +122,7 @@
       href: "evenements-litteraires-centre-val-de-loire.html",
       description: "Tours, Orléans, rencontres et événements littéraires",
       x: 43,
-      y: 44
+      y: 47
     },
     {
       name: "Corse",
@@ -143,8 +143,8 @@
       washH: 22,
       href: "evenements-litteraires-grand-est.html",
       description: "Strasbourg, Reims, Metz, Nancy et rendez-vous du livre",
-      x: 73,
-      y: 27
+      x: 74,
+      y: 30
     },
     {
       name: "Hauts-de-France",
@@ -154,8 +154,8 @@
       washH: 16,
       href: "evenements-litteraires-hauts-de-france.html",
       description: "Lille, Amiens, salons, dédicaces et festivals littéraires",
-      x: 52,
-      y: 15
+      x: 53,
+      y: 18
     },
     {
       name: "Normandie",
@@ -165,8 +165,8 @@
       washH: 17,
       href: "evenements-litteraires-normandie.html",
       description: "Rouen, Caen, littoral normand et rencontres d’auteurs",
-      x: 33,
-      y: 25
+      x: 34,
+      y: 28
     },
     {
       name: "Pays de la Loire",
@@ -176,8 +176,8 @@
       washH: 16,
       href: "evenements-litteraires-pays-de-la-loire.html",
       description: "Nantes, Angers, Le Mans et événements autour du livre",
-      x: 30,
-      y: 45
+      x: 33,
+      y: 47
     },
     {
       name: "Provence-Alpes-Côte d’Azur",
@@ -188,7 +188,7 @@
       href: "evenements-litteraires-provence-alpes-cote-azur.html",
       description: "Marseille, Nice, Toulon, festivals et dédicaces",
       x: 73,
-      y: 73
+      y: 75
     }
   ];
 
