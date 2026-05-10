@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.7.2b — Carte régionale aquarelle réelle avec compteurs contextualisés par page.
+    V7.7.2g — Carte régionale sobre avec survol coloré avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -275,8 +275,8 @@
       <div class="regional-map-layout regional-map-layout-real">
         <div class="regional-map-card regional-map-card-real">
           <div class="regional-real-map-wrap regional-watercolor-map-wrap" aria-label="Carte aquarelle des régions de France avec compteurs Dédicalivres">
-            <div class="regional-watercolor-layer" aria-hidden="true">
-              ${REGIONS.map(renderRegionWash).join("")}
+            <div class="regional-watercolor-layer regional-focus-layer" aria-hidden="true">
+              ${renderRegionWash(state.selected)}
             </div>
             <img class="regional-real-map-image regional-watercolor-map-base" src="${MAP_IMAGE_URL}" alt="Carte des régions de France" loading="lazy" />
             <div class="regional-real-map-overlay" aria-label="Régions cliquables">
@@ -342,9 +342,9 @@
 
 
   function visualX(region) {
-    // Le SVG SimpleMaps contient des marges internes : on recale les pastilles vers la droite
+    // Le SVG SimpleMaps contient des marges internes : on recale les pastilles
     // sans changer la logique de clic ni les compteurs.
-    return Math.round((8 + Number(region.x || 50) * 0.88) * 100) / 100;
+    return Math.round((8.5 + Number(region.x || 50) * 0.875) * 100) / 100;
   }
 
   function visualY(region) {
@@ -355,8 +355,8 @@
     const active = state.selected.name === region.name ? " is-active" : "";
     return `
       <span
-        class="regional-watercolor-region region-${region.slug}${active}"
-        style="--x:${visualX(region)}%;--y:${visualY(region)}%;--w:${region.washW || 24}%;--h:${region.washH || 18}%;--region-color:${region.color || '#d8e7d4'};"
+        class="regional-watercolor-region regional-focus-region region-${region.slug}${active}"
+        style="--x:${visualX(region)}%;--y:${visualY(region)}%;--w:${Math.max(24, Number(region.washW || 24) * 0.92)}%;--h:${Math.max(18, Number(region.washH || 18) * 0.92)}%;--region-color:${region.color || '#d8e7d4'};"
       ></span>
     `;
   }
@@ -370,7 +370,7 @@
         class="regional-real-marker region-${region.slug}${active}"
         href="${regionHref(region)}"
         data-region="${escapeAttribute(region.name)}"
-        style="--x:${visualX(region)}%;--y:${visualY(region)}%;"
+        style="--x:${visualX(region)}%;--y:${visualY(region)}%;--region-color:${region.color || '#d8e7d4'};"
         aria-label="${escapeAttribute(region.name)} — ${count} ${count > 1 ? counterContext.labelPlural : counterContext.labelSingular}"
       >
         <span class="regional-real-marker-name">${escapeHtml(region.name)}</span>

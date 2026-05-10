@@ -2635,7 +2635,7 @@ button:active,
 }
 
 /* =========================================================
-   V7.7.2f - CARTE RÉGIONALE AQUARELLE : COULEURS + ALIGNEMENT
+   V7.7.2g - CARTE RÉGIONALE AQUARELLE : COULEURS + ALIGNEMENT
    - pastilles recalées via JS pour compenser les marges du SVG
    - aquarelle plus visible, sans badges longs
 ========================================================= */
@@ -2749,5 +2749,177 @@ button:active,
   .regional-watercolor-map-wrap::after {
     opacity: .9;
     filter: blur(4px) saturate(1.18);
+  }
+}
+
+
+/* =========================================================
+   V7.7.2g - CARTE RÉGIONALE SOBRE + SURVOL COLORÉ
+   Repli depuis l'aquarelle générale trop anarchique :
+   - carte calme vert/gris
+   - une seule zone colorée à la fois au survol/sélection
+   - compteurs ronds conservés
+========================================================= */
+
+.regional-map-card-real {
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255, 225, 200, .24), transparent 26%),
+    radial-gradient(circle at 84% 12%, rgba(215, 224, 255, .22), transparent 31%),
+    linear-gradient(135deg, rgba(255,255,255,.98), rgba(255,250,244,.94)) !important;
+}
+
+.regional-watercolor-map-wrap {
+  position: relative !important;
+  width: min(900px, 100%) !important;
+  aspect-ratio: 1.38 / 1 !important;
+  margin: 0 auto !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+  background:
+    radial-gradient(circle at 30% 38%, rgba(139, 167, 139, .12), transparent 28%),
+    radial-gradient(circle at 66% 54%, rgba(139, 167, 139, .10), transparent 30%) !important;
+}
+
+/* Supprime l'aquarelle multicolore globale de la version précédente. */
+.regional-watercolor-map-wrap::after {
+  display: none !important;
+}
+
+.regional-watercolor-layer,
+.regional-focus-layer {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 4 !important;
+  pointer-events: none !important;
+  -webkit-mask: url("https://simplemaps.com/static/svg/country/fr/admin1/fr.svg") center / contain no-repeat !important;
+  mask: url("https://simplemaps.com/static/svg/country/fr/admin1/fr.svg") center / contain no-repeat !important;
+  opacity: 1 !important;
+}
+
+/* Une seule tache colorée, liée à la région sélectionnée/survolée. */
+.regional-watercolor-region,
+.regional-focus-region {
+  position: absolute !important;
+  left: var(--x) !important;
+  top: var(--y) !important;
+  width: var(--w) !important;
+  height: var(--h) !important;
+  transform: translate(-50%, -50%) rotate(-4deg) !important;
+  border-radius: 48% 52% 45% 55% / 52% 42% 58% 48% !important;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255,255,255,.42), transparent 29%),
+    radial-gradient(circle at 68% 68%, rgba(255,255,255,.18), transparent 38%),
+    var(--region-color) !important;
+  opacity: .55 !important;
+  filter: blur(10px) saturate(1.15) !important;
+  mix-blend-mode: multiply !important;
+  box-shadow: 0 0 48px color-mix(in srgb, var(--region-color) 42%, transparent) !important;
+}
+
+.regional-real-map-image.regional-watercolor-map-base {
+  z-index: 5 !important;
+  opacity: .62 !important;
+  filter: grayscale(.48) sepia(.08) contrast(1.04) brightness(1.04) !important;
+  mix-blend-mode: multiply !important;
+}
+
+.regional-real-map-overlay {
+  z-index: 7 !important;
+}
+
+.regional-real-marker {
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.94) !important;
+  border: 1px solid rgba(58,28,113,.12) !important;
+  box-shadow:
+    0 12px 24px rgba(58,28,113,.15),
+    0 0 0 5px rgba(255,255,255,.36),
+    inset 0 1px 0 rgba(255,255,255,.96) !important;
+  backdrop-filter: blur(10px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.regional-real-marker:hover,
+.regional-real-marker:focus,
+.regional-real-marker.is-active {
+  transform: translate(-50%, -50%) scale(1.12) !important;
+  border-color: color-mix(in srgb, var(--region-color) 58%, rgba(58,28,113,.18)) !important;
+  box-shadow:
+    0 14px 30px rgba(58,28,113,.20),
+    0 0 0 8px color-mix(in srgb, var(--region-color) 24%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.98) !important;
+}
+
+.regional-real-marker-name {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+}
+
+.regional-real-marker-count {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--purple) !important;
+  font-size: 1rem !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+}
+
+.regional-map-panel h3::before {
+  content: "";
+  display: inline-block;
+  width: .75em;
+  height: .75em;
+  margin-right: .45em;
+  border-radius: 999px;
+  background: var(--orange);
+  opacity: .72;
+  vertical-align: .03em;
+}
+
+@media (max-width: 780px) {
+  .regional-watercolor-map-wrap {
+    aspect-ratio: 1.05 / 1 !important;
+    min-height: 330px !important;
+  }
+
+  .regional-real-marker {
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+  }
+
+  .regional-real-marker-count {
+    font-size: .9rem !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .regional-watercolor-map-wrap {
+    min-height: 300px !important;
+    transform: scale(.98) !important;
+    transform-origin: top center !important;
+  }
+
+  .regional-real-marker {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
   }
 }
