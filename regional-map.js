@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.7.6e — Carte régionale réelle avec compteurs contextualisés par page.
+    V7.6.9 — Carte régionale réelle avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -15,10 +15,16 @@
 
   const MAP_IMAGE_URL = "https://simplemaps.com/static/svg/country/fr/admin1/fr.svg";
 
-  const eventTypes = (document.body.dataset.eventTypes || document.body.dataset.eventType || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  const pageMode = document.body.dataset.agendaMode || "global";
+  const eventTypes = (() => {
+    if (pageMode === "salons") return ["Salon", "Festival"];
+    if (pageMode === "dedicaces") return ["Dédicace"];
+
+    return (document.body.dataset.eventTypes || document.body.dataset.eventType || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  })();
 
   const counterContext = (() => {
     const mode = document.body.dataset.agendaMode || "global";
@@ -160,13 +166,14 @@
 
 
   function getContextQuery() {
-    const mode = document.body.dataset.agendaMode || "global";
-    if (mode === "salons" || eventTypes.includes("Salon") || eventTypes.includes("Festival")) {
+    if (pageMode === "salons" || eventTypes.includes("Salon") || eventTypes.includes("Festival")) {
       return "?types=Salon,Festival";
     }
-    if (mode === "dedicaces" || eventTypes.includes("Dédicace")) {
+
+    if (pageMode === "dedicaces" || eventTypes.includes("Dédicace")) {
       return "?type=Dédicace";
     }
+
     return "";
   }
 
@@ -198,7 +205,9 @@
       const counts = Object.fromEntries(REGIONS.map((region) => [region.name, 0]));
 
       (Array.isArray(data) ? data : []).forEach((event) => {
-        if (eventTypes.length && !eventTypes.includes(event.type)) return;
+        if (pageMode === "salons" && !["Salon", "Festival"].includes(event.type)) return;
+        if (pageMode === "dedicaces" && event.type !== "Dédicace") return;
+        if (pageMode !== "salons" && pageMode !== "dedicaces" && eventTypes.length && !eventTypes.includes(event.type)) return;
 
         const region = String(event.region || "").trim();
         if (!region || !(region in counts)) return;

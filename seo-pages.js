@@ -23,12 +23,29 @@
 
   const region = document.body.dataset.region || "";
   const city = document.body.dataset.city || "";
-  const eventType = document.body.dataset.eventType || "";
+  const pageMode = document.body.dataset.agendaMode || "";
+  const params = new URLSearchParams(window.location.search || "");
 
-  const eventTypes = (document.body.dataset.eventTypes || eventType || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  function getRequiredTypes() {
+    const fromParams = params.get("types") || params.get("type") || "";
+    const fromDataset = document.body.dataset.eventTypes || document.body.dataset.eventType || "";
+    let values = (fromParams || fromDataset)
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (pageMode === "salons") {
+      values = ["Salon", "Festival"];
+    }
+
+    if (pageMode === "dedicaces") {
+      values = ["Dédicace"];
+    }
+
+    return Array.from(new Set(values));
+  }
+
+  let eventTypes = getRequiredTypes();
 
   const TYPE_META = {
     Salon: { className: "type-salon" },
@@ -84,6 +101,9 @@
 
     const events = (Array.isArray(data) ? data : [])
       .filter((event) => {
+        if (!event || event.rejected === true || event.validated !== true) return false;
+        if (pageMode === "salons") return ["Salon", "Festival"].includes(event.type);
+        if (pageMode === "dedicaces") return event.type === "Dédicace";
         return !eventTypes.length || eventTypes.includes(event.type);
       })
       .sort(sortByUpcomingDate);
@@ -94,8 +114,30 @@
     }
 
     if (!events.length) {
-      eventsContainer.innerHTML = `
-        <article class="empty-state">
+      eventsContainer.innerHTML = renderEmptyRegionalState();
+
+      window.dispatchEvent(
+        new CustomEvent("dedicalivres:cards-rendered")
+      );
+
+      return;
+    }
+
+    eventsContainer.innerHTML = events.map(renderEventCard).join("");
+
+    window.dispatchEvent(
+      new CustomEvent("dedicalivres:cards-rendered")
+    );
+  }
+
+
+  function renderEmptyRegionalState() {
+    const regionName = region || "cette région";
+    const isRegionalPage = Boolean(region);
+
+    if (!isRegionalPage) {
+      return `
+        <article class="empty-state seo-empty-state">
           <p>
             Aucun événement à venir pour le moment.
             Revenez bientôt ou proposez un événement.
@@ -108,84 +150,37 @@
           </p>
         </article>
       `;
-
-      return;
     }
 
-    eventsContainer.innerHTML = events.map(renderEventCard).join("");
+    return `
+      <article class="empty-state seo-empty-state regional-empty-state">
+        <span class="regional-empty-kicker">Agenda participatif</span>
 
-    bindSeoCalendarButtons(events);
+        <h2>${escapeHtml(regionName)} attend ses prochaines rencontres littéraires</h2>
 
-    window.dispatchEvent(
-      new CustomEvent("dedicalivres:cards-rendered")
-    );
-  }
+        <p>
+          Aucun salon du livre, festival littéraire, rencontre d’auteur ou séance de dédicace
+          n’est encore référencé pour ${escapeHtml(regionName)}.
+        </p>
 
-  function bindSeoCalendarButtons(events) {
-    document.querySelectorAll(".seo-calendar-download").forEach((button) => {
-      button.addEventListener("click", () => {
-        const item = events.find((event) => String(event.id) === String(button.dataset.eventId));
-        if (item) downloadICS(item);
-      });
-    });
-  }
+        <p>
+          Dédicalivres avance grâce aux lecteurs, auteurs, librairies, médiathèques,
+          associations et organisateurs qui partagent les rendez-vous autour du livre.
+          Si vous connaissez un événement littéraire dans cette région, votre contribution
+          peut aider à faire vivre l’agenda local et à équilibrer la visibilité entre les territoires.
+        </p>
 
-  function downloadICS(event) {
-    const detailUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, "")}event.html?id=${encodeURIComponent(event.id)}`;
-    const location = [event.city, event.region].filter(Boolean).join(", ");
-    const start = toICSDate(event.start_date);
-    const end = toICSDate(addOneDay(event.end_date || event.start_date));
-    const description = `${event.description || ""}\n\nFiche Dédicalivres : ${detailUrl}`;
-    const lines = [
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "PRODID:-//Dedicalivres//Agenda//FR",
-      "BEGIN:VEVENT",
-      `UID:${event.id || Date.now()}@dedicalivres.fr`,
-      `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}`,
-      start ? `DTSTART;VALUE=DATE:${start}` : "",
-      end ? `DTEND;VALUE=DATE:${end}` : "",
-      `SUMMARY:${escapeICS(event.title || "Événement littéraire")}`,
-      location ? `LOCATION:${escapeICS(location)}` : "",
-      `DESCRIPTION:${escapeICS(description)}`,
-      `URL:${detailUrl}`,
-      "END:VEVENT",
-      "END:VCALENDAR"
-    ].filter(Boolean).join("\r\n");
+        <div class="regional-empty-actions">
+          <a class="btn-primary" href="index.html#soumettre">
+            Proposer un événement en ${escapeHtml(regionName)}
+          </a>
 
-    const blob = new Blob([lines], { type: "text/calendar;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${slugify(event.title || "dedicalivres-evenement")}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  function toICSDate(value) {
-    if (!value) return "";
-    return String(value).slice(0, 10).replace(/-/g, "");
-  }
-
-  function addOneDay(value) {
-    if (!value) return "";
-    const date = new Date(`${String(value).slice(0, 10)}T00:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + 1);
-    return date.toISOString().slice(0, 10);
-  }
-
-  function escapeICS(value) {
-    return String(value || "")
-      .replace(/\\/g, "\\\\")
-      .replace(/\n/g, "\\n")
-      .replace(/,/g, "\\,")
-      .replace(/;/g, "\\;");
-  }
-
-  function slugify(value) {
-    return normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "dedicalivres";
+          <a class="btn-secondary" href="index.html#agenda">
+            Voir l’agenda national
+          </a>
+        </div>
+      </article>
+    `;
   }
 
   function sortByUpcomingDate(a, b) {
