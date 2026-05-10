@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V10 + ZONES PRIORITAIRES
+   DÉDICALIVRES — ADMIN V7.7.7a / 5 ONGLETs
 ========================================================= */
 
 "use strict";
@@ -34,7 +34,7 @@ const filterType = document.getElementById("filter-type");
 
 const statsEvents = document.getElementById("stats-events");
 const statsPending = document.getElementById("stats-pending");
-const statsFeatured = document.getElementById("stats-featured") || document.getElementById("stats-newsletter");
+const statsNewsletter = document.getElementById("stats-newsletter");
 const statsVisits = document.getElementById("stats-visits");
 
 const priorityCities = document.getElementById("priority-cities");
@@ -198,8 +198,7 @@ function bindTabs() {
     }
   });
 
-  // V7.7.0b — swipe tactile désactivé pour éviter les changements d’onglet involontaires sur mobile.
-  // bindMobileSwipeTabs();
+  bindMobileSwipeTabs();
 }
 
 function bindMobileSwipeTabs() {
@@ -252,6 +251,7 @@ async function loadDashboard() {
 
   updateStats();
   renderEvents();
+  renderPremiumDashboard();
   renderSocialUpcoming();
   renderPriorityZones();
   initMap();
@@ -265,7 +265,7 @@ async function loadEvents() {
   const { data, error } = await supabaseClient
     .from("events")
     .select("*")
-    .order("start_date", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error(error);
@@ -278,12 +278,17 @@ async function loadEvents() {
 }
 
 async function loadNewsletterCount() {
-  // V7.7.6a — La carte anciennement “newsletter” devient un indicateur interne
-  // de mise en avant, utile pour préparer la future option premium sans changer
-  // le schéma Supabase.
-  if (statsFeatured) {
-    const featuredCount = (allEvents || []).filter((event) => !!event.featured).length;
-    statsFeatured.textContent = String(featuredCount);
+  try {
+    const { count } = await supabaseClient
+      .from("newsletter_subscribers")
+      .select("*", {
+        count: "exact",
+        head: true
+      });
+
+    if (statsNewsletter) statsNewsletter.textContent = count || 0;
+  } catch {
+    if (statsNewsletter) statsNewsletter.textContent = "0";
   }
 }
 
@@ -319,13 +324,12 @@ function updateStats() {
   if (statsEvents) statsEvents.textContent = allEvents.length;
   if (statsPending) statsPending.textContent = pending.length;
   if (statsFeatured) statsFeatured.textContent = String((allEvents || []).filter((event) => !!event.featured).length);
-
-  if (eventsCount) {
+if (eventsCount) {
     eventsCount.textContent = `${getFilteredEvents().length} éléments`;
   }
 }
 
-/* OBSERVATOIRE TERRITORIAL — V7.7.0b */
+/* PRIORITY ZONES */
 
 function renderPriorityZones() {
   renderTopCities();
@@ -333,138 +337,89 @@ function renderPriorityZones() {
   renderTrend();
 }
 
-function getUpcomingValidatedEvents() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  return (allEvents || []).filter((event) => {
-    if (!event.validated || event.rejected) return false;
-
-    const end = event.end_date || event.start_date;
-    if (!end) return true;
-
-    const date = new Date(end);
-    if (Number.isNaN(date.getTime())) return true;
-
-    date.setHours(0, 0, 0, 0);
-    return date >= today;
-  });
-}
-
 function renderTopCities() {
   if (!priorityCities) return;
 
-  const upcoming = getUpcomingValidatedEvents();
-
-  if (!upcoming.length) {
-    priorityCities.innerHTML = `
-      <p class="priority-empty">
-        Aucun événement validé à venir pour établir une observation territoriale.
-      </p>
-    `;
+  if (!locationRows.length) {
+    priorityCities.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant.</p>`;
     return;
   }
 
   const cityCounts = countBy(
-    upcoming
-      .map((event) => cleanLabel(event.city || "Ville non renseignée"))
+    locationRows
+      .map((row) => cleanLabel(row.city || row.region || "Zone inconnue"))
       .filter(Boolean)
   );
 
-  priorityCities.innerHTML = `
-    <div class="priority-context">
-      <strong>Top villes événements</strong>
-      <small>Basé sur les événements validés à venir.</small>
-    </div>
-    ${renderRanking(cityCounts, "événement(s) à venir")}
-  `;
+  priorityCities.innerHTML = renderRanking(cityCounts, "localisation");
 }
 
 function renderDevices() {
   if (!priorityDevices) return;
 
-  const upcoming = getUpcomingValidatedEvents();
-
-  if (!upcoming.length) {
-    priorityDevices.innerHTML = `
-      <p class="priority-empty">
-        Les régions apparaîtront après validation des prochains événements.
-      </p>
-    `;
+  if (!locationRows.length) {
+    priorityDevices.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant.</p>`;
     return;
   }
 
-  const regionCounts = countBy(
-    upcoming
-      .map((event) => cleanLabel(event.region || "Région non renseignée"))
-      .filter(Boolean)
+  const deviceCounts = countBy(
+    locationRows.map((row) => cleanLabel(row.device || "inconnu"))
   );
 
-  priorityDevices.innerHTML = `
-    <div class="priority-context">
-      <strong>Top régions alimentées</strong>
-      <small>Répartition des événements publiés par territoire.</small>
-    </div>
-    ${renderRanking(regionCounts, "événement(s) validé(s)")}
-  `;
+  priorityDevices.innerHTML = renderRanking(deviceCounts, "appareil");
 }
 
 function renderTrend() {
   if (!priorityTrend) return;
 
-  const upcoming = getUpcomingValidatedEvents();
-  const missingImages = upcoming.filter((event) => !event.image_url).length;
-  const missingCoords = upcoming.filter((event) => {
-    return !Number.isFinite(Number(event.lat)) || !Number.isFinite(Number(event.lng));
-  }).length;
-  const missingWebsite = upcoming.filter((event) => !event.website).length;
+  if (!locationRows.length) {
+    priorityTrend.innerHTML = `
+      <p class="priority-empty">
+        Les tendances apparaîtront après les premiers clics sur “Me localiser”.
+      </p>
+    `;
+    return;
+  }
 
-  const locatedSearches = (locationRows || []).length;
-  const recentSearches = countRecentLocationRows(7);
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(now.getDate() - 7);
+
+  const recent = locationRows.filter((row) => {
+    if (!row.created_at) return false;
+    return new Date(row.created_at) >= sevenDaysAgo;
+  });
+
+  const topCityCounts = countBy(
+    recent
+      .map((row) => cleanLabel(row.city || row.region || "Zone inconnue"))
+      .filter(Boolean)
+  );
+
+  const topCity = Object.entries(topCityCounts)
+    .sort((a, b) => b[1] - a[1])[0];
 
   priorityTrend.innerHTML = `
-    <div class="priority-trend-box observatory-trend-box">
-      <strong>${upcoming.length}</strong>
-      <span>événement(s) validé(s) à venir</span>
+    <div class="priority-trend-box">
+      <strong>${recent.length}</strong>
+      <span>localisation(s) sur 7 jours</span>
     </div>
 
-    <div class="observatory-kpi-grid">
-      <div class="observatory-kpi">
-        <b>${missingImages}</b>
-        <span>sans image</span>
-      </div>
-      <div class="observatory-kpi">
-        <b>${missingCoords}</b>
-        <span>sans coordonnées</span>
-      </div>
-      <div class="observatory-kpi">
-        <b>${missingWebsite}</b>
-        <span>sans site officiel</span>
-      </div>
-      <div class="observatory-kpi">
-        <b>${recentSearches}</b>
-        <span>localisations 7j</span>
-      </div>
-    </div>
-
-    <div class="priority-mini">
-      ${locatedSearches
-        ? `Données visiteurs disponibles : <b>${locatedSearches}</b> localisation(s) enregistrée(s).`
-        : `Aucune localisation visiteur pour l’instant : l’observatoire utilise les événements validés pour rester utile.`
-      }
-    </div>
+    ${
+      topCity
+        ? `
+          <div class="priority-mini">
+            Zone la plus active :
+            <b>${escapeHtml(topCity[0])}</b>
+          </div>
+        `
+        : `
+          <div class="priority-mini">
+            Pas encore assez de données récentes.
+          </div>
+        `
+    }
   `;
-}
-
-function countRecentLocationRows(days) {
-  const now = new Date();
-  const limit = new Date(now);
-  limit.setDate(now.getDate() - days);
-
-  return (locationRows || []).filter((row) => {
-    if (!row.created_at) return false;
-    return new Date(row.created_at) >= limit;
-  }).length;
 }
 
 function renderRanking(counts, label) {
@@ -537,25 +492,11 @@ function getFilteredEvents() {
     if (status === "pending") return !event.validated && !event.rejected;
     if (status === "validated") return !!event.validated;
     if (status === "featured") return !!event.featured;
-    if (status === "premium-ready") return isPremiumReady(event);
+    if (status === "premium-ready") return isPremiumCandidate(event);
     if (status === "missing-image") return !event.image_url;
 
     return true;
   });
-}
-
-
-function isPremiumReady(event) {
-  return Boolean(
-    event &&
-    event.validated === true &&
-    event.rejected !== true &&
-    !event.featured &&
-    event.image_url &&
-    event.website &&
-    Number.isFinite(Number(event.lat)) &&
-    Number.isFinite(Number(event.lng))
-  );
 }
 
 /* RENDER EVENTS */
@@ -564,6 +505,7 @@ function renderEvents() {
   if (!eventsContainer) return;
 
   const events = getFilteredEvents();
+  if (eventsCount) eventsCount.textContent = `${events.length} élément${events.length > 1 ? "s" : ""}`;
 
   if (!events.length) {
     eventsContainer.innerHTML = `
@@ -579,13 +521,8 @@ function renderEvents() {
 }
 
 function renderEventCard(event) {
-  const isFeatured = !!event.featured;
-  const isPending = !event.validated && !event.rejected;
-  const premiumReady = isPremiumReady(event);
-  const publicUrl = `event.html?id=${encodeURIComponent(event.id)}`;
-
   return `
-    <article class="event-card event-card-with-image admin-premium-event-card ${isFeatured ? "is-featured-admin" : ""}">
+    <article class="event-card event-card-with-image">
 
       ${
         event.image_url
@@ -603,55 +540,52 @@ function renderEventCard(event) {
         `
       }
 
-      <div class="event-admin-main">
-        <div class="event-title-row">
-          <div class="event-title">
-            ${escapeHtml(event.title || "")}
-          </div>
-          ${isFeatured ? `<span class="premium-ribbon-admin">⭐ Sélection Dédicalivres</span>` : ""}
+      <div>
+        <div class="event-title">
+          ${escapeHtml(event.title || "")}
         </div>
 
         <div class="event-meta">
-          <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}</span>
+          <span>📍 ${escapeHtml(event.city || "")}</span>
           <span>📅 ${formatDate(event.start_date)}</span>
           <span>🏷️ ${escapeHtml(event.type || "")}</span>
         </div>
 
         <div class="event-badges">
-          ${isPending ? `<span class="badge pending">EN ATTENTE</span>` : ""}
-          ${event.validated ? `<span class="badge">VALIDÉ</span>` : ""}
-          ${event.rejected ? `<span class="badge rejected">REJETÉ</span>` : ""}
-          ${isFeatured ? `<span class="badge featured">MISE EN AVANT</span>` : ""}
-          ${premiumReady && !isFeatured ? `<span class="badge premium-ready">POTENTIEL PREMIUM</span>` : ""}
-          ${!event.image_url ? `<span class="badge missing-image">SANS IMAGE</span>` : ""}
-        </div>
-
-        <p class="premium-admin-note">
-          ${isFeatured
-            ? "Événement valorisé côté public. À terme, cette action pourra correspondre à une option premium / participation."
-            : premiumReady
-              ? "Fiche complète : bonne candidate pour une future mise en avant premium."
-              : "Compléter image, site officiel ou coordonnées avant une mise en avant forte."
+          ${
+            !event.validated && !event.rejected
+              ? `<span class="badge pending">EN ATTENTE</span>`
+              : ""
           }
-        </p>
+
+          ${event.validated ? `<span class="badge">VALIDÉ</span>` : ""}
+
+          ${
+            event.rejected
+              ? `<span class="badge rejected">REJETÉ</span>`
+              : ""
+          }
+
+          ${
+            event.featured
+              ? `<span class="badge featured">MISE EN AVANT</span>`
+              : ""
+          }
+
+          ${
+            !event.image_url
+              ? `<span class="badge missing-image">SANS IMAGE</span>`
+              : ""
+          }
+        </div>
       </div>
 
-      <div class="event-actions premium-event-actions">
-        <button class="event-action validate action-large" data-action="validate" data-id="${event.id}" type="button">
-          <b>✔</b><span>Valider</span>
-        </button>
-        <button class="event-action reject action-large" data-action="reject" data-id="${event.id}" type="button">
-          <b>✖</b><span>Refuser</span>
-        </button>
-        <button class="event-action featured action-large ${isFeatured ? "active-featured" : ""}" data-action="featured" data-id="${event.id}" type="button">
-          <b>★</b><span>${isFeatured ? "Retirer" : "Mettre en avant"}</span>
-        </button>
-        <button class="event-action edit action-large" data-action="edit" data-id="${event.id}" type="button">
-          <b>✎</b><span>Modifier</span>
-        </button>
-        <button class="event-action view action-large" data-action="view" data-id="${event.id}" data-url="${escapeHtml(publicUrl)}" type="button">
-          <b>↗</b><span>Voir fiche</span>
-        </button>
+      <div class="event-actions">
+        <button class="event-action validate" data-action="validate" data-id="${event.id}" type="button" title="Valider">✔ <span>Valider</span></button>
+        <button class="event-action reject" data-action="reject" data-id="${event.id}" type="button" title="Refuser">✖ <span>Refuser</span></button>
+        <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button" title="${event.featured ? "Retirer la mise en avant" : "Mettre en avant"}">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
+        <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button" title="Modifier">✎ <span>Modifier</span></button>
+        <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer" title="Voir la fiche">↗ <span>Voir</span></a>
       </div>
 
     </article>
@@ -670,7 +604,6 @@ function bindEventActions() {
       if (action === "reject") await rejectEvent(id);
       if (action === "featured") await toggleFeatured(id);
       if (action === "edit") openEditModal(id);
-      if (action === "view") window.open(button.dataset.url || `event.html?id=${encodeURIComponent(id)}`, "_blank", "noopener");
     });
   });
 }
@@ -731,7 +664,7 @@ async function toggleFeatured(id) {
   }
 
   await loadDashboard();
-  showToast(!event.featured ? "Événement mis en avant" : "Mise en avant retirée");
+  showToast("Mise à jour");
 }
 
 /* MAP */
@@ -748,50 +681,45 @@ function initMap() {
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap"
     }).addTo(map);
-  }
 
-  if (!markersLayer) {
     markersLayer = L.layerGroup().addTo(map);
   }
 
   markersLayer.clearLayers();
 
-  const eventsWithCoordinates = (allEvents || []).filter((event) => {
-    return Number.isFinite(Number(event.lat)) && Number.isFinite(Number(event.lng));
-  });
+  allEvents.forEach((event) => {
+    if (!event.lat || !event.lng) return;
 
-  const groupedEvents = groupEventsByCoordinates(eventsWithCoordinates);
-
-  Object.values(groupedEvents).forEach((group) => {
-    const first = group[0];
-    const lat = Number(first.lat);
-    const lng = Number(first.lng);
-    const typeMeta = getAdminTypeMeta(first.type);
-
-    const marker = L.marker([lat, lng], {
-      icon: createAdminEventIcon(typeMeta, group.length)
-    });
-
-    marker.bindPopup(renderAdminMapEventPopup(group));
-    marker.addTo(markersLayer);
-  });
-
-  (locationRows || []).forEach((row) => {
-    const lat = Number(row.lat);
-    const lng = Number(row.lng);
-
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-    const marker = L.marker([lat, lng], {
-      icon: createAdminUserSearchIcon()
+    const marker = L.circleMarker([event.lat, event.lng], {
+      radius: 7,
+      color: "#19ff9c",
+      fillColor: "#19ff9c",
+      fillOpacity: 0.85
     });
 
     marker.bindPopup(`
-      <div class="admin-map-popup">
-        <strong>Recherche utilisateur</strong>
-        <span>${escapeHtml(row.city || row.region || "Zone inconnue")}</span>
-        ${row.device ? `<small>${escapeHtml(row.device)}</small>` : ""}
-      </div>
+      <strong>${escapeHtml(event.title)}</strong>
+      <br>
+      ${escapeHtml(event.city || "")}
+    `);
+
+    marker.addTo(markersLayer);
+  });
+
+  locationRows.forEach((row) => {
+    if (!row.lat || !row.lng) return;
+
+    const marker = L.circleMarker([row.lat, row.lng], {
+      radius: 5,
+      color: "#ff9e44",
+      fillColor: "#ff9e44",
+      fillOpacity: 0.65
+    });
+
+    marker.bindPopup(`
+      <strong>Recherche utilisateur</strong>
+      <br>
+      ${escapeHtml(row.city || row.region || "Zone inconnue")}
     `);
 
     marker.addTo(markersLayer);
@@ -802,76 +730,118 @@ function initMap() {
   }, 250);
 }
 
-function groupEventsByCoordinates(events) {
-  return (events || []).reduce((acc, event) => {
-    if (!Number.isFinite(Number(event.lat)) || !Number.isFinite(Number(event.lng))) {
-      return acc;
-    }
 
-    const key = `${Number(event.lat).toFixed(5)},${Number(event.lng).toFixed(5)}`;
+/* PREMIUM */
 
-    if (!acc[key]) {
-      acc[key] = [];
-    }
+function isPremiumCandidate(event) {
+  if (!event || event.rejected) return false;
 
-    acc[key].push(event);
-    return acc;
-  }, {});
+  const hasCore = !!event.validated && !!event.start_date;
+  const hasPublicValue = !!event.website || !!event.image_url || String(event.description || "").length > 160;
+  const premiumType = ["Salon", "Festival", "Dédicace"].includes(event.type);
+  const upcomingSoon = isUpcomingWithinDays(event, 60);
+
+  return hasCore && premiumType && (hasPublicValue || upcomingSoon);
 }
 
-function getAdminTypeMeta(type) {
-  const map = {
-    Salon: { className: "type-salon", color: "#3a1c71", label: "Salon" },
-    Festival: { className: "type-festival", color: "#ff6b35", label: "Festival" },
-    Dédicace: { className: "type-dedicace", color: "#16803c", label: "Dédicace" },
-    Autre: { className: "type-autre", color: "#2f6fed", label: "Autre" }
-  };
+function isUpcomingWithinDays(event, days) {
+  if (!event?.start_date) return false;
 
-  return map[type] || map.Autre;
+  const start = new Date(event.start_date);
+  if (Number.isNaN(start.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const limit = new Date(today);
+  limit.setDate(today.getDate() + days);
+
+  return start >= today && start <= limit;
 }
 
-function createAdminEventIcon(typeMeta, count) {
-  const countBadge = count > 1 ? `<em>${count}</em>` : "";
+function renderPremiumDashboard() {
+  if (!premiumContainer) return;
 
-  return L.divIcon({
-    className: `admin-event-marker-v5 ${typeMeta.className}`,
-    html: `<span style="--marker-color:${typeMeta.color}">${countBadge}</span>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 34],
-    popupAnchor: [0, -28]
-  });
+  const featured = (allEvents || []).filter((event) => !!event.featured && !event.rejected);
+  const candidates = (allEvents || []).filter((event) => isPremiumCandidate(event) && !event.featured);
+  const missingImage = (allEvents || []).filter((event) => event.validated && !event.rejected && !event.image_url);
+
+  if (premiumFeaturedCount) premiumFeaturedCount.textContent = String(featured.length);
+  if (premiumCandidatesCount) premiumCandidatesCount.textContent = String(candidates.length);
+  if (premiumMissingImageCount) premiumMissingImageCount.textContent = String(missingImage.length);
+  if (premiumCount) {
+    premiumCount.textContent =
+      `${featured.length} mis en avant · ${candidates.length} potentiel${candidates.length > 1 ? "s" : ""}`;
+  }
+
+  const rows = [...featured, ...candidates]
+    .filter(Boolean)
+    .filter((event, index, arr) => arr.findIndex((item) => String(item.id) === String(event.id)) === index)
+    .sort((a, b) => {
+      if (!!b.featured !== !!a.featured) return Number(!!b.featured) - Number(!!a.featured);
+      return new Date(a.start_date || "2999-12-31") - new Date(b.start_date || "2999-12-31");
+    })
+    .slice(0, 40);
+
+  if (!rows.length) {
+    premiumContainer.innerHTML = `
+      <article class="event-card">
+        Aucun événement premium ou potentiel premium pour le moment.
+      </article>
+    `;
+    return;
+  }
+
+  premiumContainer.innerHTML = rows.map(renderPremiumCard).join("");
+  bindEventActions();
 }
 
-function createAdminUserSearchIcon() {
-  return L.divIcon({
-    className: "admin-user-search-marker-v5",
-    html: `<span></span>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 24],
-    popupAnchor: [0, -20]
-  });
-}
-
-function renderAdminMapEventPopup(group) {
-  const title = group.length > 1
-    ? `${group.length} événements à ce lieu`
-    : "Événement";
+function renderPremiumCard(event) {
+  const reason = event.featured
+    ? "Mis en avant actif"
+    : !event.image_url
+      ? "Potentiel à compléter : image manquante"
+      : isUpcomingWithinDays(event, 60)
+        ? "Événement proche à valoriser"
+        : "Potentiel éditorial";
 
   return `
-    <div class="admin-map-popup admin-map-popup-events">
-      <strong>${escapeHtml(title)}</strong>
+    <article class="event-card event-card-with-image premium-admin-card">
+      ${
+        event.image_url
+          ? `<img class="event-admin-thumb" src="${escapeHtml(event.image_url)}" alt="" />`
+          : `<div class="event-admin-thumb-placeholder">PAS D’IMAGE</div>`
+      }
 
-      ${group.map((event) => `
-        <article class="admin-map-popup-event">
-          <b>${escapeHtml(event.title || "Sans titre")}</b>
-          <span>${escapeHtml([event.city, event.region].filter(Boolean).join(", ") || "Lieu non précisé")}</span>
-          <small>${escapeHtml(formatDate(event.start_date) || "Date non précisée")} · ${escapeHtml(event.type || "Type non précisé")}</small>
-          <a href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer">Voir la fiche</a>
-        </article>
-      `).join("")}
-    </div>
+      <div>
+        <div class="event-title">${escapeHtml(event.title || "")}</div>
+        <div class="event-meta">
+          <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}</span>
+          <span>📅 ${formatDate(event.start_date)}</span>
+          <span>🏷️ ${escapeHtml(event.type || "")}</span>
+        </div>
+        <div class="event-badges">
+          ${event.featured ? `<span class="badge featured">MIS EN AVANT</span>` : `<span class="badge pending">POTENTIEL PREMIUM</span>`}
+          ${!event.image_url ? `<span class="badge missing-image">SANS IMAGE</span>` : ""}
+          <span class="badge">${escapeHtml(reason)}</span>
+        </div>
+      </div>
+
+      <div class="event-actions">
+        <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button">
+          ★ <span>${event.featured ? "Retirer" : "Avant"}</span>
+        </button>
+        <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button">
+          ✎ <span>Modifier</span>
+        </button>
+        <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer">
+          ↗ <span>Voir</span>
+        </a>
+      </div>
+    </article>
   `;
 }
+
 
 /* SOCIAL */
 
@@ -960,90 +930,31 @@ async function saveEdition() {
   const id = editId.value;
   if (!id) return;
 
-  if (saveEditBtn) {
-    saveEditBtn.disabled = true;
-    saveEditBtn.textContent = "ENREGISTREMENT...";
+  const payload = {
+    title: editTitle.value.trim(),
+    type: editType.value,
+    city: editCity.value.trim(),
+    region: editRegion.value.trim(),
+    start_date: editStartDate.value || null,
+    end_date: editEndDate.value || null,
+    website: editWebsite.value.trim(),
+    description: editDescription.value.trim(),
+    image_url: editImageUrl.value.trim() || null
+  };
+
+  const { error } = await supabaseClient
+    .from("events")
+    .update(payload)
+    .eq("id", id);
+
+  if (error) {
+    showToast("Erreur édition");
+    return;
   }
 
-  try {
-    let imageUrl = editImageUrl.value.trim() || null;
-
-    if (selectedAdminImageFile) {
-      imageUrl = await uploadAdminEventImage(id, selectedAdminImageFile);
-      editImageUrl.value = imageUrl || "";
-    }
-
-    const payload = {
-      title: editTitle.value.trim(),
-      type: editType.value,
-      city: editCity.value.trim(),
-      region: editRegion.value.trim(),
-      start_date: editStartDate.value || null,
-      end_date: editEndDate.value || null,
-      website: editWebsite.value.trim(),
-      description: editDescription.value.trim(),
-      image_url: imageUrl
-    };
-
-    const { error } = await supabaseClient
-      .from("events")
-      .update(payload)
-      .eq("id", id);
-
-    if (error) throw error;
-
-    selectedAdminImageFile = null;
-    if (editImageFile) editImageFile.value = "";
-
-    closeEditModal();
-    await loadDashboard();
-    showToast("Événement modifié");
-  } catch (error) {
-    console.error("Erreur édition événement :", error);
-    showToast(error?.message || "Erreur édition");
-  } finally {
-    if (saveEditBtn) {
-      saveEditBtn.disabled = false;
-      saveEditBtn.textContent = "ENREGISTRER";
-    }
-  }
-}
-
-async function uploadAdminEventImage(eventId, file) {
-  if (!file) return editImageUrl.value.trim() || null;
-
-  if (!file.type || !file.type.startsWith("image/")) {
-    throw new Error("Le fichier sélectionné n’est pas une image.");
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error("Image trop lourde : 5 Mo maximum.");
-  }
-
-  const extension = (file.name.split(".").pop() || "jpg")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "") || "jpg";
-
-  const path = `admin/${eventId}-${Date.now()}.${extension}`;
-
-  const { error } = await supabaseClient.storage
-    .from("event-images")
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: true
-    });
-
-  if (error) throw error;
-
-  const { data } = supabaseClient.storage
-    .from("event-images")
-    .getPublicUrl(path);
-
-  if (!data?.publicUrl) {
-    throw new Error("URL publique de l’image introuvable.");
-  }
-
-  return data.publicUrl;
+  closeEditModal();
+  await loadDashboard();
+  showToast("Événement modifié");
 }
 
 /* HELPERS */

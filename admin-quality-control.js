@@ -6,7 +6,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "7.7.0c";
+  const VERSION = "7.7.7a";
   const SOON_DAYS = 14;
 
   const config = window.DEDICALIVRES_CONFIG;
@@ -37,7 +37,7 @@
   }
 
   function waitForAdmin(attempt = 0) {
-    const moderationPanel = document.getElementById("tab-moderation");
+    const moderationPanel = document.getElementById("tab-events");
     if (moderationPanel) {
       injectStatCard();
       injectPanel(moderationPanel);
@@ -115,8 +115,9 @@
       </div>
     `;
 
-    const firstPanel = moderationPanel.querySelector(".admin-panel");
-    if (firstPanel) moderationPanel.insertBefore(panel, firstPanel);
+    const firstPanel = moderationPanel.querySelector("#quality-anchor") || moderationPanel.querySelector(".admin-panel");
+    if (firstPanel?.id === "quality-anchor") firstPanel.replaceWith(panel);
+    else if (firstPanel) moderationPanel.insertBefore(panel, firstPanel);
     else moderationPanel.appendChild(panel);
 
     document.getElementById("quality-refresh")?.addEventListener("click", loadQualityRows);

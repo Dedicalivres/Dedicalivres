@@ -20,7 +20,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=7.7.6a" />
+  <link rel="stylesheet" href="admin.css" />
 </head>
 
 <body class="cyber-admin">
@@ -29,9 +29,9 @@
   <div class="login-panel">
     <img src="logo.png" alt="Dédicalivres" class="cyber-logo" />
 
-    <h1>ADMIN PREMIUM</h1>
+    <h1>ADMIN CONTROL</h1>
     <p class="login-subtitle">
-      Supervision • Validation • Mise en avant • Réseaux
+      Tableau de bord • Événements • Modération • Premium • Réseaux
     </p>
 
     <form id="login-form" class="login-form">
@@ -61,7 +61,7 @@
 
       <div>
         <h2>CONTROL CENTER</h2>
-        <p>Dédicalivres supervision · premium · contenus</p>
+        <p>Dédicalivres · pilotage éditorial et premium</p>
       </div>
 
     </div>
@@ -92,33 +92,31 @@
   <!-- ONGLET -->
   <!-- ===================================================== -->
 
+  
   <nav class="admin-tabs">
 
-    <button
-      class="admin-tab active"
-      data-tab="overview"
-      type="button"
-    >
-      ⚡ Actu
+    <button class="admin-tab active" data-tab="overview" type="button">
+      ⚡ Tableau de bord
     </button>
 
-    <button
-      class="admin-tab"
-      data-tab="moderation"
-      type="button"
-    >
-      🛡️ Administration
+    <button class="admin-tab" data-tab="events" type="button">
+      📚 Événements
     </button>
 
-    <button
-      class="admin-tab"
-      data-tab="social"
-      type="button"
-    >
+    <button class="admin-tab" data-tab="moderation" type="button">
+      🛡️ Modération
+    </button>
+
+    <button class="admin-tab" data-tab="premium" type="button">
+      ⭐ Premium
+    </button>
+
+    <button class="admin-tab" data-tab="social" type="button">
       🚀 Réseaux
     </button>
 
   </nav>
+
 
   <!-- ===================================================== -->
   <!-- CONTENU -->
@@ -225,21 +223,19 @@
 
     </section>
 
+
     <!-- ================================================= -->
-    <!-- ADMIN -->
+    <!-- ÉVÉNEMENTS -->
     <!-- ================================================= -->
 
-    <section
-      id="tab-moderation"
-      class="admin-tab-panel"
-    >
+    <section id="tab-events" class="admin-tab-panel">
 
-      <section class="toolbar">
+      <section class="toolbar admin-toolbar-events">
 
         <input
           type="search"
           id="search-input"
-          placeholder="Recherche événement..."
+          placeholder="Recherche événement, ville, région..."
         />
 
         <select id="filter-status">
@@ -264,144 +260,76 @@
       <section class="admin-panel">
 
         <div class="section-head">
-          <h3>SUPERVISION</h3>
+          <h3>ÉVÉNEMENTS</h3>
           <span id="events-count">0 éléments</span>
         </div>
 
-        <div
-          id="events-container"
-          class="events-container"
-        ></div>
+        <div id="events-container" class="events-container"></div>
 
       </section>
 
+      <div id="quality-anchor"></div>
+
+    </section>
+
+    <!-- ================================================= -->
+    <!-- MODÉRATION -->
+    <!-- ================================================= -->
+
+    <section id="tab-moderation" class="admin-tab-panel">
+      <section class="admin-panel admin-empty-panel">
+        <div class="section-head">
+          <h3>MODÉRATION</h3>
+          <span>Demandes visiteurs</span>
+        </div>
+        <p class="priority-empty">
+          Les demandes auteurs et les témoignages s’affichent ici automatiquement.
+        </p>
+      </section>
+    </section>
+
+    <!-- ================================================= -->
+    <!-- PREMIUM -->
+    <!-- ================================================= -->
+
+    <section id="tab-premium" class="admin-tab-panel">
+      <section class="admin-panel premium-control-panel">
+        <div class="section-head">
+          <h3>PREMIUM / MISE EN AVANT</h3>
+          <span id="premium-count">0 élément</span>
+        </div>
+
+        <div class="premium-intro">
+          <strong>Préparer la future option premium</strong>
+          <small>
+            Cette zone utilise le champ existant <code>featured</code>. Aucun changement Supabase :
+            aujourd’hui c’est une sélection éditoriale, demain elle pourra devenir une option premium.
+          </small>
+        </div>
+
+        <div class="premium-kpi-grid">
+          <article class="premium-kpi"><b id="premium-featured-count">0</b><span>mis en avant</span></article>
+          <article class="premium-kpi"><b id="premium-candidates-count">0</b><span>potentiels premium</span></article>
+          <article class="premium-kpi"><b id="premium-missing-image-count">0</b><span>à compléter</span></article>
+        </div>
+
+        <div id="premium-container" class="events-container premium-events-container"></div>
+      </section>
     </section>
 
     <!-- ================================================= -->
     <!-- SOCIAL -->
     <!-- ================================================= -->
 
-    <section
-      id="tab-social"
-      class="admin-tab-panel"
-    >
-
-      <section class="social-grid social-grid-instagram">
-
-        <article class="social-card instagram-generator-card">
-
-          <div class="social-card-head">
-            <div>
-              <h3>Générateur Instagram</h3>
-              <p>
-                Sélectionne des événements, choisis un angle, puis copie une publication prête à adapter sur mobile ou PC.
-              </p>
-            </div>
-            <span class="social-pill">Dédicalivres au centre</span>
-          </div>
-
-          <div class="social-generator-controls">
-            <label>
-              <span>Mode</span>
-              <select id="social-post-mode">
-                <option value="central">Dédicalivres au centre</option>
-                <option value="regional">Focus régional</option>
-                <option value="multi">Multi-régions</option>
-                <option value="story">Story courte</option>
-                <option value="carousel">Carousel Instagram</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Région</span>
-              <select id="social-region-filter">
-                <option value="">Toutes les régions</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Type</span>
-              <select id="social-type-filter">
-                <option value="">Tous les types</option>
-                <option value="Salon">Salon</option>
-                <option value="Festival">Festival</option>
-                <option value="Dédicace">Dédicace</option>
-                <option value="Autre">Autre</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Nombre</span>
-              <select id="social-max-events">
-                <option value="3">3 événements</option>
-                <option value="5" selected>5 événements</option>
-                <option value="8">8 événements</option>
-                <option value="12">12 événements</option>
-              </select>
-            </label>
-          </div>
-
-          <input
-            id="social-event-search"
-            class="social-search-input"
-            type="search"
-            placeholder="Rechercher un événement, une ville, une région…"
-          />
-
-          <div class="social-generator-actions mobile-sticky-actions">
-            <button id="social-generate-post" class="cyber-btn-primary" type="button">Générer</button>
-            <button id="social-copy-post" class="cyber-btn-secondary" type="button">Copier</button>
-            <button id="social-clear-selection" class="cyber-btn-danger" type="button">Effacer</button>
-          </div>
-
-          <div class="social-selection-summary" id="social-selection-summary">
-            Aucun événement sélectionné. Le générateur utilisera les prochains événements visibles.
-          </div>
-
-          <div id="social-events-selector" class="social-events-selector">
-            <p class="priority-empty">Chargement des événements à venir…</p>
-          </div>
-
-          <label class="instagram-caption-wrap">
-            <span>Texte généré</span>
-            <textarea
-              id="instagram-caption"
-              rows="12"
-              placeholder="Choisis un mode, sélectionne quelques événements, puis clique sur Générer."
-            ></textarea>
-          </label>
-
-        </article>
-
-        <article class="social-card social-help-card">
-          <h3>Conseil publication</h3>
-          <p>
-            Le mode prioritaire place Dédicalivres au centre du partage. Les modes régionaux servent à parler localement, avec des hashtags adaptés aux territoires sélectionnés.
-          </p>
-          <ul class="social-tips-list">
-            <li>3 à 5 événements pour un post lisible.</li>
-            <li>1 région pour toucher un public local.</li>
-            <li>Multi-régions pour montrer le rayonnement national.</li>
-            <li>Carousel pour préparer plusieurs slides.</li>
-          </ul>
-        </article>
-
-        <article class="social-card">
-
-          <h3>Planning Réseaux</h3>
-
-          <p>
-            Événements bientôt publiables.
-          </p>
-
-          <div id="social-upcoming"></div>
-
-        </article>
-
+    <section id="tab-social" class="admin-tab-panel">
+      <section class="admin-panel admin-empty-panel">
+        <div class="section-head">
+          <h3>RÉSEAUX</h3>
+          <span>Générateur Instagram</span>
+        </div>
+        <p class="priority-empty">Chargement du générateur Instagram…</p>
       </section>
-
     </section>
-
   </section>
 
 </main>
@@ -527,14 +455,8 @@
   crossorigin=""
 ></script>
 
-
-<script src="config.js?v=7.7.6a"></script>
-<script src="admin.js?v=7.7.6a"></script>
-<script src="admin-social-generator.js?v=7.7.6a"></script>
-<script src="admin-testimonials.js?v=7.7.6a"></script>
-<script src="admin-author-requests-robust.js?v=7.7.6a"></script>
-<script src="admin-visits-counter-fix.js?v=7.7.6a"></script>
-<script src="admin-quality-control.js?v=7.7.6a"></script>
+<script src="config.js"></script>
+<script src="admin.js"></script>
 
 </body>
 </html>
