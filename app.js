@@ -37,9 +37,11 @@
   const mapPanel = document.getElementById("map-panel");
 
   const cityInput = document.getElementById("city-input");
+  const citySuggestions = document.getElementById("city-suggestions");
   const cityLatInput = document.getElementById("city-lat");
   const cityLngInput = document.getElementById("city-lng");
   const cityHelp = document.getElementById("city-help");
+  const regionSubmit = document.getElementById("region-submit");
 
   let map;
   let markersLayer;
@@ -48,6 +50,8 @@
   let userPosition = null;
   let selectedPreviewImage = null;
   let userMarker = null;
+  let cityAutocompleteTimer = null;
+  let lastCitySuggestions = [];
 
   const TYPE_META = {
     Salon: { className: "type-salon", color: "#3a1c71" },
@@ -205,47 +209,8 @@
       return;
     }
 
-    allEvents = await attachAuthorsToEvents(Array.isArray(data) ? data : []);
+    allEvents = Array.isArray(data) ? data : [];
     renderFilteredEvents();
-  }
-
-
-  async function attachAuthorsToEvents(events) {
-    if (!events.length) return events;
-
-    const ids = events.map((event) => event.id).filter(Boolean);
-    if (!ids.length) return events;
-
-    try {
-      const { data, error } = await supabaseClient
-        .from("event_authors_presence")
-        .select("event_id,pseudo,website,author_slug,validated")
-        .eq("validated", true)
-        .in("event_id", ids);
-
-      if (error) throw error;
-
-      const authorsByEvent = new Map();
-
-      (data || []).forEach((row) => {
-        if (!row.event_id || !row.pseudo) return;
-        const key = String(row.event_id);
-        if (!authorsByEvent.has(key)) authorsByEvent.set(key, []);
-        authorsByEvent.get(key).push({
-          pseudo: row.pseudo,
-          website: row.website || "",
-          author_slug: row.author_slug || ""
-        });
-      });
-
-      return events.map((event) => ({
-        ...event,
-        _authors: authorsByEvent.get(String(event.id)) || []
-      }));
-    } catch (error) {
-      console.warn("Auteurs présents non chargés pour l’agenda :", error);
-      return events.map((event) => ({ ...event, _authors: [] }));
-    }
   }
 
   function renderFilteredEvents() {
@@ -274,17 +239,12 @@
         return false;
       }
 
-      const authorSearchText = (event._authors || [])
-        .map((author) => [author.pseudo, author.author_slug, author.website].filter(Boolean).join(" "))
-        .join(" ");
-
       const haystack = normalize([
         event.title,
         event.city,
         event.region,
         event.description,
-        event.type,
-        authorSearchText
+        event.type
       ].join(" "));
 
       if (search && !haystack.includes(search)) return false;
@@ -394,8 +354,6 @@
             </span>
           </div>
 
-          ${renderEventAuthors(event)}
-
           <p class="card-description">
             ${escapeHtml(event.description || "")}
           </p>
@@ -425,30 +383,6 @@
           </div>
         </div>
       </article>
-    `;
-  }
-
-
-  function renderEventAuthors(event) {
-    const authors = event._authors || [];
-    if (!authors.length) return "";
-
-    const visibleAuthors = authors.slice(0, 3);
-    const remaining = authors.length - visibleAuthors.length;
-
-    return `
-      <div class="card-authors" aria-label="Auteurs présents">
-        <span class="card-authors-label">✍️ Auteur${authors.length > 1 ? "s" : ""} présent${authors.length > 1 ? "s" : ""}</span>
-        <div class="card-authors-list">
-          ${visibleAuthors.map((author) => {
-            const name = escapeHtml(author.pseudo || "Auteur");
-            return author.website
-              ? `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${name}</a>`
-              : `<span>${name}</span>`;
-          }).join("")}
-          ${remaining > 0 ? `<span>+${remaining}</span>` : ""}
-        </div>
-      </div>
     `;
   }
 
@@ -791,22 +725,60 @@
   }
 
   async function geocodeMunicipality(city) {
+    const results = await searchMunicipalities(city, 1);
+    const first = results[0];
+
+    if (!first) return null;
+
+    return {
+      lng: first.lng,
+      lat: first.lat,
+      city: first.city,
+      region: first.region
+    };
+  }
+
+  async function searchMunicipalities(query, limit = 8) {
+    const value = cleanText(query);
+
+    if (value.length < 2) return [];
+
     try {
       const response = await fetch(
-        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(city)}&limit=1&type=municipality`
+        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(value)}&limit=${limit}&type=municipality&autocomplete=1`
       );
 
       const data = await response.json();
-      const coords = data.features?.[0]?.geometry?.coordinates;
+      const features = Array.isArray(data.features) ? data.features : [];
 
-      if (!coords) return null;
+      return features
+        .map((feature) => {
+          const properties = feature.properties || {};
+          const coords = feature.geometry?.coordinates || [];
+          const cityName = cleanText(
+            properties.city ||
+            properties.name ||
+            properties.municipality ||
+            ""
+          );
+          const regionName = extractRegionFromContext(properties.context || "");
 
-      return {
-        lng: Number(coords[0]),
-        lat: Number(coords[1])
-      };
-    } catch {
-      return null;
+          if (!cityName || !Number.isFinite(Number(coords[0])) || !Number.isFinite(Number(coords[1]))) {
+            return null;
+          }
+
+          return {
+            city: cityName,
+            region: regionName,
+            label: regionName ? `${cityName} — ${regionName}` : cityName,
+            lng: Number(coords[0]),
+            lat: Number(coords[1])
+          };
+        })
+        .filter(Boolean);
+    } catch (error) {
+      console.warn("Autocomplétion ville indisponible :", error);
+      return [];
     }
   }
 
@@ -838,137 +810,159 @@
   function bindCityAutocomplete() {
     if (!cityInput) return;
 
-    const datalist = document.getElementById("city-suggestions");
-    const regionSelect = document.getElementById("region-submit");
-    let debounceTimer = null;
-    let lastSuggestions = [];
-
     cityInput.addEventListener("input", () => {
-      const query = cityInput.value.trim();
+      const value = cleanText(cityInput.value);
 
-      cityLatInput.value = "";
-      cityLngInput.value = "";
+      clearCitySelection();
 
-      if (cityHelp) {
-        cityHelp.textContent = query.length >= 2
-          ? "Recherche de villes…"
-          : "Sélectionnez une ville proposée pour placer correctement l’événement sur la carte.";
-        cityHelp.classList.remove("success", "error");
+      if (cityAutocompleteTimer) {
+        clearTimeout(cityAutocompleteTimer);
       }
 
-      if (debounceTimer) clearTimeout(debounceTimer);
-
-      if (query.length < 2) {
-        if (datalist) datalist.innerHTML = "";
+      if (value.length < 2) {
+        clearCitySuggestions();
+        setCityHelp(
+          "Saisissez au moins 2 lettres pour afficher les villes proposées.",
+          ""
+        );
         return;
       }
 
-      debounceTimer = setTimeout(async () => {
-        await loadCitySuggestions(query);
-      }, 250);
-    });
-
-    cityInput.addEventListener("change", () => {
-      applySelectedCity();
-    });
-
-    async function loadCitySuggestions(query) {
-      try {
+      cityAutocompleteTimer = setTimeout(async () => {
         cityInput.classList.add("loading");
+        setCityHelp("Recherche des villes…", "");
 
-        const response = await fetch(
-          `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=8&type=municipality`
-        );
+        const suggestions = await searchMunicipalities(value, 8);
 
-        const data = await response.json();
-        lastSuggestions = (data.features || []).map((feature) => {
-          const props = feature.properties || {};
-          const coords = feature.geometry?.coordinates || [];
-          const label = props.city || props.municipality || props.name || props.label || "";
-          const region = extractRegionFromContext(props.context || "");
-
-          return {
-            label,
-            region,
-            lat: Number(coords[1]),
-            lng: Number(coords[0]),
-            display: region ? `${label} — ${region}` : label
-          };
-        }).filter((item) => item.label && Number.isFinite(item.lat) && Number.isFinite(item.lng));
-
-        if (datalist) {
-          datalist.innerHTML = lastSuggestions.map((item) =>
-            `<option value="${escapeAttribute(item.label)}" label="${escapeAttribute(item.display)}"></option>`
-          ).join("");
-        }
-
-        if (cityHelp) {
-          cityHelp.textContent = lastSuggestions.length
-            ? "Choisissez une ville dans la liste proposée."
-            : "Aucune ville trouvée pour cette saisie.";
-          cityHelp.classList.toggle("error", !lastSuggestions.length);
-        }
-      } catch (error) {
-        console.warn("Autocomplétion ville indisponible :", error);
-        if (cityHelp) {
-          cityHelp.textContent = "Suggestions indisponibles. Vous pouvez saisir la ville manuellement.";
-          cityHelp.classList.add("error");
-        }
-      } finally {
         cityInput.classList.remove("loading");
+        lastCitySuggestions = suggestions;
+        renderCitySuggestions(suggestions);
+
+        if (!suggestions.length) {
+          setCityHelp(
+            "Aucune ville trouvée. Vérifiez l’orthographe ou essayez une autre commune.",
+            "error"
+          );
+          return;
+        }
+
+        setCityHelp(
+          "Sélectionnez une ville proposée pour garantir l’orthographe et la carte.",
+          ""
+        );
+      }, 260);
+    });
+
+    cityInput.addEventListener("change", async () => {
+      const value = cleanText(cityInput.value);
+      const selected = findCitySuggestion(value);
+
+      if (selected) {
+        applyCitySuggestion(selected);
+        return;
       }
+
+      const coords = await geocodeMunicipality(value);
+
+      if (!coords) {
+        clearCitySelection();
+        setCityHelp(
+          "Ville non reconnue. Choisissez une ville proposée pour placer correctement l’événement.",
+          "error"
+        );
+        return;
+      }
+
+      applyCitySuggestion(coords);
+    });
+  }
+
+  function renderCitySuggestions(suggestions) {
+    if (!citySuggestions) return;
+
+    citySuggestions.innerHTML = suggestions
+      .map((item) => {
+        return `
+          <option value="${escapeAttribute(item.city)}" label="${escapeAttribute(item.label)}"></option>
+        `;
+      })
+      .join("");
+  }
+
+  function clearCitySuggestions() {
+    lastCitySuggestions = [];
+
+    if (citySuggestions) {
+      citySuggestions.innerHTML = "";
+    }
+  }
+
+  function findCitySuggestion(value) {
+    const normalizedValue = normalize(value);
+
+    return lastCitySuggestions.find((item) => {
+      return normalize(item.city) === normalizedValue || normalize(item.label) === normalizedValue;
+    });
+  }
+
+  function applyCitySuggestion(selection) {
+    if (!selection) return;
+
+    cityInput.value = selection.city || cityInput.value;
+
+    if (cityLatInput) cityLatInput.value = selection.lat;
+    if (cityLngInput) cityLngInput.value = selection.lng;
+
+    if (regionSubmit && selection.region) {
+      setSelectValueIfExists(regionSubmit, selection.region);
     }
 
-    function applySelectedCity() {
-      const value = cityInput.value.trim();
-      const selected = lastSuggestions.find((item) => normalize(item.label) === normalize(value));
+    setCityHelp(
+      selection.region
+        ? `Ville validée ✔ Région renseignée : ${selection.region}`
+        : "Ville validée ✔",
+      "success"
+    );
+  }
 
-      if (!selected) {
-        if (cityHelp) {
-          cityHelp.textContent = "Ville saisie manuellement. Les coordonnées seront recherchées à l’envoi.";
-          cityHelp.classList.remove("success");
-        }
-        return;
-      }
+  function clearCitySelection() {
+    if (cityLatInput) cityLatInput.value = "";
+    if (cityLngInput) cityLngInput.value = "";
 
-      cityInput.value = selected.label;
-      cityLatInput.value = selected.lat;
-      cityLngInput.value = selected.lng;
+    if (cityHelp) {
+      cityHelp.classList.remove("success", "error");
+    }
+  }
 
-      if (regionSelect && selected.region) {
-        const option = Array.from(regionSelect.options).find((opt) => normalize(opt.value || opt.textContent) === normalize(selected.region));
-        if (option) regionSelect.value = option.value || option.textContent;
-      }
+  function setCityHelp(message, type) {
+    if (!cityHelp) return;
 
-      if (cityHelp) {
-        cityHelp.textContent = selected.region
-          ? `Ville validée ✔ Région détectée : ${selected.region}`
-          : "Ville validée ✔";
-        cityHelp.classList.remove("error");
-        cityHelp.classList.add("success");
-      }
+    cityHelp.textContent = message;
+    cityHelp.classList.remove("success", "error");
+
+    if (type) {
+      cityHelp.classList.add(type);
+    }
+  }
+
+  function setSelectValueIfExists(select, value) {
+    const normalizedValue = normalize(value);
+    const option = Array.from(select.options).find((item) => {
+      return normalize(item.value || item.textContent) === normalizedValue;
+    });
+
+    if (option) {
+      select.value = option.value;
     }
   }
 
   function extractRegionFromContext(context) {
-    const regions = [
-      "Auvergne-Rhône-Alpes",
-      "Bourgogne-Franche-Comté",
-      "Bretagne",
-      "Centre-Val de Loire",
-      "Corse",
-      "Grand Est",
-      "Hauts-de-France",
-      "Île-de-France",
-      "Normandie",
-      "Nouvelle-Aquitaine",
-      "Occitanie",
-      "Pays de la Loire",
-      "Provence-Alpes-Côte d’Azur"
-    ];
+    const parts = String(context || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
 
-    const normalizedContext = normalize(context || "");
-    return regions.find((region) => normalizedContext.includes(normalize(region))) || "";
+    return parts.length ? parts[parts.length - 1] : "";
   }
 
   function populateMonthFilter() {
@@ -1178,6 +1172,10 @@
     } catch {
       return value;
     }
+  }
+
+  function cleanText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
   }
 
   function normalize(value) {
