@@ -1723,382 +1723,357 @@ button:active,
 
 
 /* =========================================================
-   V7.7.6f — CORRECTIF CSS SEUL / CARTE RÉGIONALE
-   Cause : regional-map.js injecte les classes regional-real-*
-   mais elles n'étaient plus stylées dans style.css.
-   Ne touche ni HTML, ni JS, ni admin.
+   LOT 6.1.2 - DEMANDE ASSOCIATION AUTEUR SAFE
+   Bloc isolé sous la fiche événement
 ========================================================= */
 
-.regional-map-section {
-  overflow: hidden;
+.authors-presence {
+  max-width: 980px;
+  margin: 26px auto 0;
+  padding: clamp(22px, 4vw, 34px);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.12), transparent 36%),
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(241,232,251,.72));
+  border: 1px solid rgba(58,28,113,.10);
+  box-shadow: 0 16px 38px rgba(58,28,113,.10);
 }
 
-.regional-map-section .regional-map-head {
+.authors-presence-header {
   margin-bottom: 18px;
 }
 
-.regional-map-section .regional-map-head p {
-  max-width: 920px;
+.authors-presence-eyebrow {
+  margin: 0 0 8px;
+  color: var(--orange);
+  font-size: .78rem;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.authors-presence h2,
+.author-presence-form h3 {
+  font-family: "Playfair Display", serif;
+  color: var(--purple);
+  line-height: 1.08;
+}
+
+.authors-presence h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 2.35rem);
+}
+
+.author-presence-list {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.author-presence-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.82);
+  border: 1px solid rgba(58,28,113,.08);
+}
+
+.author-presence-card strong {
+  display: block;
+  color: var(--text);
+  font-weight: 950;
+}
+
+.author-presence-card small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.author-presence-card a {
+  flex: 0 0 auto;
+  color: var(--purple);
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.author-presence-card a:hover {
+  color: var(--orange);
+}
+
+.author-presence-empty,
+.author-presence-note,
+.author-presence-form-intro {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.6;
+}
+
+.author-presence-note {
+  margin: 16px 0 22px;
+}
+
+.author-presence-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+  padding: 22px;
+  border-radius: 24px;
+  background: rgba(255,255,255,.78);
+  border: 1px solid rgba(58,28,113,.08);
+}
+
+.author-presence-form h3 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.3vw, 1.8rem);
+}
+
+.author-presence-form-intro {
+  margin: -4px 0 2px;
+}
+
+.author-presence-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.author-presence-form input {
+  width: 100%;
+  border: 1px solid #ded4e9;
+  border-radius: 14px;
+  background: white;
+  color: var(--text);
+  padding: 13px 15px;
+  min-height: 48px;
+  outline: none;
+  font: inherit;
+  font-weight: 750;
+}
+
+.author-presence-form input:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 4px rgba(255,107,53,.12);
+}
+
+#author-presence-feedback.success {
+  color: #16803c;
+  font-weight: 900;
+}
+
+#author-presence-feedback.error {
+  color: #b42318;
+  font-weight: 900;
+}
+
+@media (max-width: 780px) {
+  .author-presence-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .author-presence-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .author-presence-form {
+    padding: 18px;
+  }
+}
+
+
+/* =========================================================
+   V7.7.6b — Réparation cartes catégories
+   - la carte régionale ne doit jamais retomber en liste mobile
+   - les blocs explicatifs sont neutralisés
+========================================================= */
+.regional-map-help,
+.regional-map-mobile-list {
+  display: none !important;
+}
+
+.regional-map-section .regional-links-grid:not(.regional-map-noscript) {
+  display: none !important;
 }
 
 .regional-map-app {
-  width: 100%;
+  min-height: 420px;
 }
 
-.regional-map-layout,
 .regional-map-layout-real {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, .7fr);
   gap: 22px;
   align-items: stretch;
 }
 
-.regional-map-card,
-.regional-map-card-real {
-  position: relative;
-  overflow: hidden;
-  min-height: 520px;
-  border-radius: 30px;
-  background:
-    radial-gradient(circle at 12% 18%, rgba(255,107,53,.10), transparent 28%),
-    radial-gradient(circle at 86% 16%, rgba(58,28,113,.09), transparent 30%),
-    rgba(255,255,255,.78);
-  border: 1px solid rgba(58,28,113,.08);
-  box-shadow: 0 18px 46px rgba(58,28,113,.10);
+@media (max-width: 980px) {
+  .regional-map-layout-real {
+    grid-template-columns: 1fr;
+  }
+
+  .regional-map-app {
+    min-height: 0;
+  }
 }
 
+
+/* =========================================================
+   V7.7.6g — Carte régionale stable
+   Choix UX : la carte ne porte que des pastilles.
+   Les noms complets restent dans le panneau latéral / dessous.
+   Objectif : éviter les libellés qui se chevauchent selon la taille écran.
+========================================================= */
+
 .regional-real-map-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 980px;
-  margin: 0 auto;
-  aspect-ratio: 1.45 / 1;
-  overflow: hidden;
-  border-radius: 28px;
-  background:
-    linear-gradient(rgba(58,28,113,.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(58,28,113,.045) 1px, transparent 1px),
-    radial-gradient(circle at 20% 20%, rgba(255,107,53,.09), transparent 32%),
-    radial-gradient(circle at 80% 80%, rgba(58,28,113,.08), transparent 34%),
-    rgba(255,255,255,.78);
-  background-size:
-    42px 42px,
-    42px 42px,
-    auto,
-    auto,
-    auto;
+  position: relative !important;
+  width: 100% !important;
+  max-width: 920px !important;
+  margin: 0 auto !important;
+  aspect-ratio: 1.42 / 1 !important;
+  min-height: 460px !important;
 }
 
 .regional-real-map-image {
-  position: absolute;
-  inset: 5% 5% 7% 5%;
-  width: 90%;
-  height: 88%;
-  object-fit: contain;
-  display: block;
-  opacity: .88;
-  filter: saturate(.86) contrast(.94);
-  pointer-events: none;
+  position: absolute !important;
+  inset: 4% 5% 8% 5% !important;
+  width: 90% !important;
+  height: 88% !important;
+  object-fit: contain !important;
+  display: block !important;
 }
 
 .regional-real-map-overlay {
-  position: absolute;
-  inset: 5% 5% 7% 5%;
-  width: 90%;
-  height: 88%;
-  z-index: 2;
-  pointer-events: none;
+  position: absolute !important;
+  inset: 4% 5% 8% 5% !important;
+  width: 90% !important;
+  height: 88% !important;
+  z-index: 4 !important;
+  pointer-events: none !important;
 }
 
+/* Pastilles uniquement, tous écrans */
 .regional-real-marker {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
-  z-index: 3;
-  transform: translate(-50%, -50%);
-  pointer-events: auto;
+  position: absolute !important;
+  left: var(--x) !important;
+  top: var(--y) !important;
+  transform: translate(-50%, -50%) !important;
+  pointer-events: auto !important;
 
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  min-width: 0 !important;
+  width: 58px !important;
+  height: 58px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
 
-  min-width: 172px;
-  min-height: 48px;
-  padding: 7px 8px 7px 18px;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 
-  border-radius: 999px;
-  background: rgba(255,255,255,.86);
-  border: 1px solid rgba(58,28,113,.10);
+  background: rgba(255,255,255,.86) !important;
+  border: 1px solid rgba(58,28,113,.10) !important;
   box-shadow:
-    0 13px 26px rgba(58,28,113,.13),
-    0 0 0 5px rgba(255,255,255,.34);
-  text-decoration: none;
-  color: var(--purple);
-  backdrop-filter: blur(12px);
-  transition:
-    transform .18s ease,
-    box-shadow .18s ease,
-    background .18s ease;
+    0 14px 28px rgba(58,28,113,.16),
+    0 0 0 7px rgba(255,255,255,.45) !important;
+  text-decoration: none !important;
+  backdrop-filter: blur(10px) !important;
 }
 
 .regional-real-marker:hover,
 .regional-real-marker:focus,
 .regional-real-marker.is-active {
-  transform: translate(-50%, -50%) scale(1.04);
-  background: rgba(255,255,255,.95);
+  transform: translate(-50%, -50%) scale(1.08) !important;
   box-shadow:
-    0 18px 34px rgba(58,28,113,.18),
-    0 0 0 5px rgba(255,107,53,.14);
-  outline: none;
+    0 18px 34px rgba(58,28,113,.20),
+    0 0 0 8px rgba(255,107,53,.15) !important;
+  outline: none !important;
 }
 
 .regional-real-marker-name {
-  color: var(--purple);
-  font-weight: 950;
-  font-size: clamp(.78rem, 1.2vw, .96rem);
-  line-height: 1.05;
-  white-space: normal;
-  text-align: left;
-}
-
-.regional-real-marker-count {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-
-  background: var(--purple);
-  color: white;
-  font-weight: 950;
-  box-shadow: 0 8px 18px rgba(58,28,113,.20);
-}
-
-.region-bretagne .regional-real-marker-count { background: #23835f; }
-.region-normandie .regional-real-marker-count { background: #448fb9; }
-.region-hauts-de-france .regional-real-marker-count { background: #6c55c9; }
-.region-ile-de-france .regional-real-marker-count { background: #316fc0; }
-.region-grand-est .regional-real-marker-count { background: #b85c45; }
-.region-pays-de-la-loire .regional-real-marker-count { background: #cf8e2e; }
-.region-centre-val-de-loire .regional-real-marker-count { background: #4f9866; }
-.region-bourgogne-franche-comte .regional-real-marker-count { background: #9b841e; }
-.region-nouvelle-aquitaine .regional-real-marker-count { background: #2d8abd; }
-.region-occitanie .regional-real-marker-count { background: #c94d7b; }
-.region-auvergne-rhone-alpes .regional-real-marker-count { background: #7655d6; }
-.region-provence-alpes-cote-azur .regional-real-marker-count { background: #4a9bd5; }
-.region-corse .regional-real-marker-count { background: #b95a25; }
-
-.regional-map-total,
-.regional-map-total-real {
-  position: absolute;
-  left: 22px;
-  bottom: 22px;
-  z-index: 4;
-
-  min-width: 190px;
-  padding: 18px 20px;
-  border-radius: 24px;
-  background: rgba(255,255,255,.90);
-  border: 1px solid rgba(58,28,113,.08);
-  box-shadow: 0 14px 30px rgba(58,28,113,.12);
-}
-
-.regional-map-total span,
-.regional-map-total-real span {
-  display: block;
-  color: var(--muted);
-  font-weight: 950;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  font-size: .8rem;
-}
-
-.regional-map-total strong,
-.regional-map-total-real strong {
-  display: block;
-  margin-top: 4px;
-  font-family: "Playfair Display", serif;
-  color: var(--purple);
-  font-size: 2.3rem;
-  line-height: 1;
-}
-
-.regional-map-total small,
-.regional-map-total-real small {
-  display: block;
-  color: var(--muted);
-  font-weight: 800;
-}
-
-.regional-map-attribution {
-  position: absolute;
-  right: 18px;
-  bottom: 14px;
-  max-width: 260px;
-  margin: 0;
-  color: rgba(107,97,120,.72);
-  font-size: .72rem;
-  font-weight: 700;
-}
-
-.regional-map-panel {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 18px;
-
-  padding: 24px;
-  border-radius: 30px;
-  background:
-    radial-gradient(circle at top left, rgba(255,107,53,.10), transparent 36%),
-    rgba(255,255,255,.84);
-  border: 1px solid rgba(58,28,113,.08);
-  box-shadow: 0 18px 46px rgba(58,28,113,.10);
-}
-
-.regional-map-panel h3 {
-  margin: 0 0 8px;
-  font-family: "Playfair Display", serif;
-  color: var(--purple);
-  font-size: clamp(1.45rem, 2.3vw, 2rem);
-}
-
-.regional-map-selected-count {
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(58,28,113,.10);
-  color: var(--purple);
-  font-weight: 950;
-}
-
-.regional-map-panel p {
-  color: var(--muted);
-  font-weight: 750;
-  line-height: 1.55;
-}
-
-.regional-map-panel-list {
-  display: grid;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.regional-map-mini-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 11px 13px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.76);
-  border: 1px solid rgba(58,28,113,.07);
-  text-decoration: none;
-  color: var(--purple);
-  font-weight: 900;
-}
-
-.regional-map-mini-row span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  background: var(--purple);
-  color: white;
-  font-weight: 950;
-}
-
-.regional-map-panel-actions {
-  display: grid;
-  gap: 10px;
-}
-
-.regional-map-help,
-.regional-map-mobile-list,
-.regional-crosslinks > .regional-links-grid.compact {
   display: none !important;
 }
 
-/* Mobile/tablette : conserver la carte lisible sans liste parasite */
+.regional-real-marker-count {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #fff !important;
+  font-weight: 950 !important;
+  font-size: 1.08rem !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.20) !important;
+}
+
+.regional-map-card-real,
+.regional-map-card {
+  min-height: 560px !important;
+}
+
+/* Le panneau contient les noms, donc il doit rester très lisible */
+.regional-map-panel {
+  min-width: 0 !important;
+}
+
+.regional-map-panel-list {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+/* Mobile : pastilles plus petites, pas de liste parasite */
 @media (max-width: 980px) {
-  .regional-map-layout,
-  .regional-map-layout-real {
-    grid-template-columns: 1fr;
-  }
-
-  .regional-map-card,
-  .regional-map-card-real {
-    min-height: 440px;
-  }
-
   .regional-real-map-wrap {
-    min-height: 420px;
-    aspect-ratio: auto;
+    min-height: 420px !important;
+    aspect-ratio: 1.3 / 1 !important;
+  }
+
+  .regional-map-card-real,
+  .regional-map-card {
+    min-height: 460px !important;
   }
 
   .regional-real-marker {
-    min-width: 0;
-    width: 48px;
-    height: 48px;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .regional-real-marker-name {
-    display: none;
+    width: 48px !important;
+    height: 48px !important;
   }
 
   .regional-real-marker-count {
-    width: 42px;
-    height: 42px;
-  }
-
-  .regional-map-total,
-  .regional-map-total-real {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    margin: -12px 16px 16px;
-  }
-
-  .regional-map-attribution {
-    display: none;
+    width: 40px !important;
+    height: 40px !important;
+    font-size: .95rem !important;
   }
 }
 
 @media (max-width: 560px) {
-  .regional-map-card,
-  .regional-map-card-real {
-    min-height: 360px;
+  .regional-real-map-wrap {
+    min-height: 350px !important;
   }
 
-  .regional-real-map-wrap {
-    min-height: 350px;
+  .regional-map-card-real,
+  .regional-map-card {
+    min-height: 390px !important;
   }
 
   .regional-real-map-image,
   .regional-real-map-overlay {
-    inset: 4% 1% 8% 1%;
-    width: 98%;
-    height: 88%;
+    inset: 4% 1% 8% 1% !important;
+    width: 98% !important;
+    height: 88% !important;
   }
 
   .regional-real-marker {
-    width: 42px;
-    height: 42px;
+    width: 40px !important;
+    height: 40px !important;
   }
 
   .regional-real-marker-count {
-    width: 36px;
-    height: 36px;
-    font-size: .9rem;
+    width: 34px !important;
+    height: 34px !important;
+    font-size: .88rem !important;
   }
 }
