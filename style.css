@@ -1723,34 +1723,382 @@ button:active,
 
 
 /* =========================================================
-   V7.7.6e — Garde-fou cartes catégories
-   Force les pages Salons/Dédicaces à utiliser la carte interactive.
+   V7.7.6f — CORRECTIF CSS SEUL / CARTE RÉGIONALE
+   Cause : regional-map.js injecte les classes regional-real-*
+   mais elles n'étaient plus stylées dans style.css.
+   Ne touche ni HTML, ni JS, ni admin.
 ========================================================= */
-.regional-map-section .regional-links-grid,
-.regional-crosslinks > .regional-links-grid.compact {
-  display: none !important;
+
+.regional-map-section {
+  overflow: hidden;
 }
 
-.regional-map-help,
-.regional-map-mobile-list {
-  display: none !important;
+.regional-map-section .regional-map-head {
+  margin-bottom: 18px;
 }
 
-.regional-map-section .regional-map-app {
-  display: block !important;
-  min-height: 420px;
+.regional-map-section .regional-map-head p {
+  max-width: 920px;
 }
 
-.regional-map-fallback {
-  padding: 18px;
-  border-radius: 22px;
-  background: rgba(255,255,255,.8);
+.regional-map-app {
+  width: 100%;
+}
+
+.regional-map-layout,
+.regional-map-layout-real {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+  gap: 22px;
+  align-items: stretch;
+}
+
+.regional-map-card,
+.regional-map-card-real {
+  position: relative;
+  overflow: hidden;
+  min-height: 520px;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,107,53,.10), transparent 28%),
+    radial-gradient(circle at 86% 16%, rgba(58,28,113,.09), transparent 30%),
+    rgba(255,255,255,.78);
+  border: 1px solid rgba(58,28,113,.08);
+  box-shadow: 0 18px 46px rgba(58,28,113,.10);
+}
+
+.regional-real-map-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  aspect-ratio: 1.45 / 1;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    linear-gradient(rgba(58,28,113,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(58,28,113,.045) 1px, transparent 1px),
+    radial-gradient(circle at 20% 20%, rgba(255,107,53,.09), transparent 32%),
+    radial-gradient(circle at 80% 80%, rgba(58,28,113,.08), transparent 34%),
+    rgba(255,255,255,.78);
+  background-size:
+    42px 42px,
+    42px 42px,
+    auto,
+    auto,
+    auto;
+}
+
+.regional-real-map-image {
+  position: absolute;
+  inset: 5% 5% 7% 5%;
+  width: 90%;
+  height: 88%;
+  object-fit: contain;
+  display: block;
+  opacity: .88;
+  filter: saturate(.86) contrast(.94);
+  pointer-events: none;
+}
+
+.regional-real-map-overlay {
+  position: absolute;
+  inset: 5% 5% 7% 5%;
+  width: 90%;
+  height: 88%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.regional-real-marker {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  min-width: 172px;
+  min-height: 48px;
+  padding: 7px 8px 7px 18px;
+
+  border-radius: 999px;
+  background: rgba(255,255,255,.86);
+  border: 1px solid rgba(58,28,113,.10);
+  box-shadow:
+    0 13px 26px rgba(58,28,113,.13),
+    0 0 0 5px rgba(255,255,255,.34);
+  text-decoration: none;
+  color: var(--purple);
+  backdrop-filter: blur(12px);
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    background .18s ease;
+}
+
+.regional-real-marker:hover,
+.regional-real-marker:focus,
+.regional-real-marker.is-active {
+  transform: translate(-50%, -50%) scale(1.04);
+  background: rgba(255,255,255,.95);
+  box-shadow:
+    0 18px 34px rgba(58,28,113,.18),
+    0 0 0 5px rgba(255,107,53,.14);
+  outline: none;
+}
+
+.regional-real-marker-name {
+  color: var(--purple);
+  font-weight: 950;
+  font-size: clamp(.78rem, 1.2vw, .96rem);
+  line-height: 1.05;
+  white-space: normal;
+  text-align: left;
+}
+
+.regional-real-marker-count {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+
+  background: var(--purple);
+  color: white;
+  font-weight: 950;
+  box-shadow: 0 8px 18px rgba(58,28,113,.20);
+}
+
+.region-bretagne .regional-real-marker-count { background: #23835f; }
+.region-normandie .regional-real-marker-count { background: #448fb9; }
+.region-hauts-de-france .regional-real-marker-count { background: #6c55c9; }
+.region-ile-de-france .regional-real-marker-count { background: #316fc0; }
+.region-grand-est .regional-real-marker-count { background: #b85c45; }
+.region-pays-de-la-loire .regional-real-marker-count { background: #cf8e2e; }
+.region-centre-val-de-loire .regional-real-marker-count { background: #4f9866; }
+.region-bourgogne-franche-comte .regional-real-marker-count { background: #9b841e; }
+.region-nouvelle-aquitaine .regional-real-marker-count { background: #2d8abd; }
+.region-occitanie .regional-real-marker-count { background: #c94d7b; }
+.region-auvergne-rhone-alpes .regional-real-marker-count { background: #7655d6; }
+.region-provence-alpes-cote-azur .regional-real-marker-count { background: #4a9bd5; }
+.region-corse .regional-real-marker-count { background: #b95a25; }
+
+.regional-map-total,
+.regional-map-total-real {
+  position: absolute;
+  left: 22px;
+  bottom: 22px;
+  z-index: 4;
+
+  min-width: 190px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  background: rgba(255,255,255,.90);
+  border: 1px solid rgba(58,28,113,.08);
+  box-shadow: 0 14px 30px rgba(58,28,113,.12);
+}
+
+.regional-map-total span,
+.regional-map-total-real span {
+  display: block;
+  color: var(--muted);
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-size: .8rem;
+}
+
+.regional-map-total strong,
+.regional-map-total-real strong {
+  display: block;
+  margin-top: 4px;
+  font-family: "Playfair Display", serif;
+  color: var(--purple);
+  font-size: 2.3rem;
+  line-height: 1;
+}
+
+.regional-map-total small,
+.regional-map-total-real small {
+  display: block;
   color: var(--muted);
   font-weight: 800;
 }
 
-@media (max-width: 780px) {
-  .regional-map-section .regional-map-app {
-    min-height: 280px;
+.regional-map-attribution {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  max-width: 260px;
+  margin: 0;
+  color: rgba(107,97,120,.72);
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.regional-map-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+
+  padding: 24px;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.10), transparent 36%),
+    rgba(255,255,255,.84);
+  border: 1px solid rgba(58,28,113,.08);
+  box-shadow: 0 18px 46px rgba(58,28,113,.10);
+}
+
+.regional-map-panel h3 {
+  margin: 0 0 8px;
+  font-family: "Playfair Display", serif;
+  color: var(--purple);
+  font-size: clamp(1.45rem, 2.3vw, 2rem);
+}
+
+.regional-map-selected-count {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(58,28,113,.10);
+  color: var(--purple);
+  font-weight: 950;
+}
+
+.regional-map-panel p {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.regional-map-panel-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.regional-map-mini-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.76);
+  border: 1px solid rgba(58,28,113,.07);
+  text-decoration: none;
+  color: var(--purple);
+  font-weight: 900;
+}
+
+.regional-map-mini-row span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--purple);
+  color: white;
+  font-weight: 950;
+}
+
+.regional-map-panel-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.regional-map-help,
+.regional-map-mobile-list,
+.regional-crosslinks > .regional-links-grid.compact {
+  display: none !important;
+}
+
+/* Mobile/tablette : conserver la carte lisible sans liste parasite */
+@media (max-width: 980px) {
+  .regional-map-layout,
+  .regional-map-layout-real {
+    grid-template-columns: 1fr;
+  }
+
+  .regional-map-card,
+  .regional-map-card-real {
+    min-height: 440px;
+  }
+
+  .regional-real-map-wrap {
+    min-height: 420px;
+    aspect-ratio: auto;
+  }
+
+  .regional-real-marker {
+    min-width: 0;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .regional-real-marker-name {
+    display: none;
+  }
+
+  .regional-real-marker-count {
+    width: 42px;
+    height: 42px;
+  }
+
+  .regional-map-total,
+  .regional-map-total-real {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    margin: -12px 16px 16px;
+  }
+
+  .regional-map-attribution {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .regional-map-card,
+  .regional-map-card-real {
+    min-height: 360px;
+  }
+
+  .regional-real-map-wrap {
+    min-height: 350px;
+  }
+
+  .regional-real-map-image,
+  .regional-real-map-overlay {
+    inset: 4% 1% 8% 1%;
+    width: 98%;
+    height: 88%;
+  }
+
+  .regional-real-marker {
+    width: 42px;
+    height: 42px;
+  }
+
+  .regional-real-marker-count {
+    width: 36px;
+    height: 36px;
+    font-size: .9rem;
   }
 }
