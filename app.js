@@ -48,7 +48,6 @@
   let userPosition = null;
   let selectedPreviewImage = null;
   let userMarker = null;
-  let currentMarkerBounds = null;
 
   const TYPE_META = {
     Salon: { className: "type-salon", color: "#3a1c71" },
@@ -66,12 +65,24 @@
     initMap();
     loadEvents();
 
-    if (mobileMapToggle) {
-      mobileMapToggle.textContent = "Carte en direct";
-    }
+    const shouldOpenMapOnDesktop =
+      window.matchMedia && window.matchMedia("(min-width: 901px)").matches;
 
     if (mapPanel) {
-      mapPanel.classList.remove("is-open");
+      mapPanel.classList.toggle("is-open", shouldOpenMapOnDesktop);
+    }
+
+    if (mobileMapToggle) {
+      mobileMapToggle.textContent = shouldOpenMapOnDesktop
+        ? "Fermer la carte en direct"
+        : "Carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", shouldOpenMapOnDesktop ? "true" : "false");
+    }
+
+    if (shouldOpenMapOnDesktop) {
+      setTimeout(() => {
+        map?.invalidateSize();
+      }, 350);
     }
   }
 
@@ -118,7 +129,9 @@
       mobileMapToggle.textContent = "Fermer la carte en direct";
       mobileMapToggle.setAttribute("aria-expanded", "true");
 
-      refreshMapSizeAndBounds();
+      setTimeout(() => {
+        map?.invalidateSize();
+      }, 300);
     } else {
       mobileMapToggle.textContent = "Carte en direct";
       mobileMapToggle.setAttribute("aria-expanded", "false");
@@ -383,90 +396,56 @@
     `;
   }
 
-  function renderPopupEventItem(event) {
-    const authors = event._authors || [];
-
-    return `
-      <div class="popup-event-item">
-        <button
-          class="popup-focus-btn"
-          type="button"
-          data-event-id="${escapeAttribute(event.id)}"
-          data-event-type="${escapeAttribute(event.type || "")}"
-        >
-          ${escapeHtml(event.title || "Sans titre")}
-        </button>
-
-        <div class="popup-event-meta">
-          ${event.start_date ? `📅 ${formatDateRange(event.start_date, event.end_date)}` : ""}
-          ${event.city ? ` · 📍 ${escapeHtml(event.city)}` : ""}
-        </div>
-
-        ${authors.length ? `
-          <div class="popup-authors">
-            <strong>Auteur${authors.length > 1 ? "s" : ""} présent${authors.length > 1 ? "s" : ""}</strong>
-            ${authors.map((author) => {
-              const name = escapeHtml(author.pseudo || "Auteur");
-              return author.website
-                ? `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${name}</a>`
-                : `<span>${name}</span>`;
-            }).join("")}
-          </div>
-        ` : ""}
-
-        <a class="popup-detail-link" href="event.html?id=${encodeURIComponent(event.id)}">
-          Voir la fiche
-        </a>
-      </div>
-    `;
-  }
-
   function renderMapMarkers(events) {
     if (!map || !markersLayer) return;
 
     markersLayer.clearLayers();
     markerByEventId = {};
-    currentMarkerBounds = null;
 
     const grouped = {};
-    const markerPositions = [];
 
     events.forEach((event) => {
-      const lat = Number(event.lat);
-      const lng = Number(event.lng);
-
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      if (
+        !Number.isFinite(Number(event.lat)) ||
+        !Number.isFinite(Number(event.lng))
+      ) {
         return;
       }
 
-      const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+      const key = `${event.lat},${event.lng}`;
 
       if (!grouped[key]) {
         grouped[key] = [];
       }
 
-      grouped[key].push({
-        ...event,
-        lat,
-        lng
-      });
+      grouped[key].push(event);
     });
 
     Object.values(grouped).forEach((group) => {
       const first = group[0];
+      const lat = Number(first.lat);
+      const lng = Number(first.lng);
       const typeMeta = TYPE_META[first.type] || TYPE_META.Autre;
-      markerPositions.push([first.lat, first.lng]);
 
-      const marker = L.marker([first.lat, first.lng], {
-        icon: createTypeIcon(typeMeta, group.length)
+      const marker = L.marker([lat, lng], {
+        icon: createTypeIcon(typeMeta)
       });
 
       marker.bindPopup(`
         <div class="premium-popup">
-          <strong>${group.length} événement${group.length > 1 ? "s" : ""} à ce lieu</strong>
+          <strong>${group.length} événement(s)</strong>
           <br><br>
 
-          ${group.map(renderPopupEventItem).join("")}
+          ${group.map((event) => `
+            <button
+              class="popup-focus-btn"
+              type="button"
+              data-event-id="${escapeAttribute(event.id)}"
+              data-event-type="${escapeAttribute(event.type || "")}"
+            >
+              ${escapeHtml(event.title || "Sans titre")}
+            </button>
+          `).join("")}
         </div>
       `);
 
@@ -487,46 +466,14 @@
         markerByEventId[event.id] = marker;
       });
     });
-
-    if (markerPositions.length) {
-      currentMarkerBounds = L.latLngBounds(markerPositions);
-    }
-
-    if (mapPanel?.classList.contains("is-open")) {
-      refreshMapSizeAndBounds();
-    }
   }
 
-  function refreshMapSizeAndBounds() {
-    if (!map) return;
-
-    window.setTimeout(() => {
-      map.invalidateSize(false);
-
-      if (currentMarkerBounds && currentMarkerBounds.isValid()) {
-        map.fitBounds(currentMarkerBounds, {
-          padding: [24, 24],
-          maxZoom: 8
-        });
-      } else {
-        map.setView([46.603354, 1.888334], 5);
-      }
-    }, 120);
-
-    window.setTimeout(() => {
-      map.invalidateSize(false);
-    }, 420);
-  }
-
-  function createTypeIcon(typeMeta, count = 1) {
-    const countBadge = count > 1 ? `<em>${count}</em>` : "";
-
+  function createTypeIcon(typeMeta) {
     return L.divIcon({
       className: "event-marker-v5",
-      html: `<span style="--marker-color:${typeMeta.color}">${countBadge}</span>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 30],
-      popupAnchor: [0, -26]
+      html: `<span style="--marker-color:${typeMeta.color}"></span>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28]
     });
   }
 
@@ -835,49 +782,13 @@
   function bindCityAutocomplete() {
     if (!cityInput) return;
 
-    const datalist = document.getElementById("city-suggestions");
-    const suggestionsByLabel = new Map();
-    let debounceTimer = null;
-
-    cityInput.addEventListener("input", () => {
-      const query = cityInput.value.trim();
-
-      if (cityLatInput) cityLatInput.value = "";
-      if (cityLngInput) cityLngInput.value = "";
-
-      if (query.length < 2) {
-        if (datalist) datalist.innerHTML = "";
-        return;
-      }
-
-      window.clearTimeout(debounceTimer);
-      debounceTimer = window.setTimeout(() => {
-        loadCitySuggestions(query, datalist, suggestionsByLabel);
-      }, 220);
-    });
-
     cityInput.addEventListener("change", async () => {
-      const label = cityInput.value.trim();
-      const suggestion = suggestionsByLabel.get(label);
+      const coords = await geocodeMunicipality(cityInput.value);
 
-      if (suggestion) {
-        applyCitySuggestion(suggestion);
-        return;
-      }
+      if (!coords) return;
 
-      const coords = await geocodeMunicipality(label);
-
-      if (!coords) {
-        if (cityHelp) {
-          cityHelp.textContent = "Sélectionnez une ville proposée pour placer correctement l’événement sur la carte.";
-          cityHelp.classList.remove("success");
-          cityHelp.classList.add("error");
-        }
-        return;
-      }
-
-      if (cityLatInput) cityLatInput.value = coords.lat;
-      if (cityLngInput) cityLngInput.value = coords.lng;
+      cityLatInput.value = coords.lat;
+      cityLngInput.value = coords.lng;
 
       if (cityHelp) {
         cityHelp.textContent = "Ville validée ✔";
@@ -885,64 +796,6 @@
         cityHelp.classList.add("success");
       }
     });
-  }
-
-  async function loadCitySuggestions(query, datalist, suggestionsByLabel) {
-    if (!datalist) return;
-
-    cityInput?.classList.add("loading");
-
-    try {
-      const response = await fetch(
-        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=8&type=municipality`
-      );
-
-      const data = await response.json();
-      suggestionsByLabel.clear();
-      datalist.innerHTML = "";
-
-      (data.features || []).forEach((feature) => {
-        const properties = feature.properties || {};
-        const coordinates = feature.geometry?.coordinates || [];
-        const city = properties.city || properties.name || properties.label || "";
-        const postcode = properties.postcode || "";
-        const context = properties.context || "";
-        const label = [city, postcode, context].filter(Boolean).join(" — ");
-
-        if (!city || !Number.isFinite(Number(coordinates[0])) || !Number.isFinite(Number(coordinates[1]))) {
-          return;
-        }
-
-        suggestionsByLabel.set(label, {
-          label,
-          city,
-          lng: Number(coordinates[0]),
-          lat: Number(coordinates[1])
-        });
-
-        const option = document.createElement("option");
-        option.value = label;
-        datalist.appendChild(option);
-      });
-    } catch (error) {
-      console.warn("Suggestions villes indisponibles :", error);
-    } finally {
-      cityInput?.classList.remove("loading");
-    }
-  }
-
-  function applyCitySuggestion(suggestion) {
-    if (!suggestion) return;
-
-    if (cityInput) cityInput.value = suggestion.city;
-    if (cityLatInput) cityLatInput.value = suggestion.lat;
-    if (cityLngInput) cityLngInput.value = suggestion.lng;
-
-    if (cityHelp) {
-      cityHelp.textContent = `Ville validée : ${suggestion.city} ✔`;
-      cityHelp.classList.remove("error");
-      cityHelp.classList.add("success");
-    }
   }
 
   function populateMonthFilter() {
