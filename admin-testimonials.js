@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN TÉMOIGNAGES V7.7.7b
+   DÉDICALIVRES — ADMIN TÉMOIGNAGES V7.7.7c
    Module isolé : n’écrase pas admin.js
 ========================================================= */
 (function () {

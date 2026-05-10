@@ -6,7 +6,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "7.7.7b";
+  const VERSION = "7.7.7c";
   const SOON_DAYS = 14;
 
   const config = window.DEDICALIVRES_CONFIG;

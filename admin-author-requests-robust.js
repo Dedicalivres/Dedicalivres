@@ -9,7 +9,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "7.7.7b";
+  const VERSION = "7.7.7c";
   const config = window.DEDICALIVRES_CONFIG;
 
   if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {

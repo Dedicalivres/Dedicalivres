@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V7.7.7b / CONNEXION ROBUSTE
+   DÉDICALIVRES — ADMIN V7.7.7c / CYAN + SUPPRESSION REFUSÉS
 ========================================================= */
 
 "use strict";
@@ -511,6 +511,7 @@ function getFilteredEvents() {
 
     if (status === "pending") return !event.validated && !event.rejected;
     if (status === "validated") return !!event.validated;
+    if (status === "rejected") return !!event.rejected;
     if (status === "featured") return !!event.featured;
     if (status === "premium-ready") return isPremiumCandidate(event);
     if (status === "missing-image") return !event.image_url;
@@ -606,6 +607,11 @@ function renderEventCard(event) {
         <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button" title="${event.featured ? "Retirer la mise en avant" : "Mettre en avant"}">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
         <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button" title="Modifier">✎ <span>Modifier</span></button>
         <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer" title="Voir la fiche">↗ <span>Voir</span></a>
+        ${
+          event.rejected
+            ? `<button class="event-action delete" data-action="delete" data-id="${event.id}" type="button" title="Supprimer définitivement">🗑 <span>Suppr.</span></button>`
+            : ""
+        }
       </div>
 
     </article>
@@ -624,6 +630,7 @@ function bindEventActions() {
       if (action === "reject") await rejectEvent(id);
       if (action === "featured") await toggleFeatured(id);
       if (action === "edit") openEditModal(id);
+      if (action === "delete") await deleteRejectedEvent(id);
     });
   });
 }
@@ -686,6 +693,43 @@ async function toggleFeatured(id) {
   await loadDashboard();
   showToast("Mise à jour");
 }
+
+
+async function deleteRejectedEvent(id) {
+  const event = allEvents.find((item) => String(item.id) === String(id));
+
+  if (!event) {
+    showToast("Événement introuvable");
+    return;
+  }
+
+  if (!event.rejected) {
+    showToast("Suppression réservée aux événements refusés");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Supprimer définitivement l’événement refusé :\n\n${event.title || "Sans titre"}\n\nCette action est irréversible.`
+  );
+
+  if (!confirmed) return;
+
+  const { error } = await supabaseClient
+    .from("events")
+    .delete()
+    .eq("id", id)
+    .eq("rejected", true);
+
+  if (error) {
+    console.error(error);
+    showToast("Erreur suppression");
+    return;
+  }
+
+  await loadDashboard();
+  showToast("Événement refusé supprimé");
+}
+
 
 /* MAP */
 

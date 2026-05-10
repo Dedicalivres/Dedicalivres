@@ -1623,3 +1623,162 @@ body.cyber-admin {
     height: 150px;
   }
 }
+
+
+/* =========================================================
+   V7.7.7c — SKIN BLEU CYANOTIQUE + SUPPRESSION REFUSÉS
+========================================================= */
+
+:root {
+  --cyber-bg: #03101a;
+  --cyber-bg-2: #061a2a;
+  --cyber-card: rgba(5, 20, 34, .90);
+  --cyber-border: rgba(20, 210, 255, .16);
+  --cyber-green: #35e7ff;
+  --cyber-cyan: #19d7ff;
+  --cyber-orange: #ffb15c;
+  --cyber-purple: #7b8cff;
+  --cyber-red: #ff5f7e;
+  --cyber-text: #eafaff;
+  --cyber-muted: rgba(220, 246, 255, .62);
+}
+
+body.cyber-admin {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(25,215,255,.14), transparent 36%),
+    radial-gradient(circle at 86% 8%, rgba(123,140,255,.10), transparent 32%),
+    linear-gradient(180deg, #010812, #03101a 46%, #06111f) !important;
+}
+
+body.cyber-admin::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: .18;
+  background-image:
+    linear-gradient(rgba(25,215,255,.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(25,215,255,.10) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.header,
+.topbar,
+.admin-tabs {
+  background: rgba(2, 10, 20, .78) !important;
+  border-color: rgba(25, 215, 255, .14) !important;
+}
+
+.status-dot {
+  background: var(--cyber-cyan) !important;
+  box-shadow: 0 0 18px var(--cyber-cyan), 0 0 34px rgba(25,215,255,.25) !important;
+}
+
+.admin-tab.active {
+  background:
+    linear-gradient(135deg, rgba(25,215,255,.22), rgba(123,140,255,.18)) !important;
+  color: #7eeeff !important;
+  box-shadow:
+    0 0 0 1px rgba(25,215,255,.22),
+    0 18px 38px rgba(25,215,255,.10) !important;
+}
+
+.cyber-btn-primary {
+  background: linear-gradient(135deg, #35e7ff, #19a9ff) !important;
+  color: #01101a !important;
+  box-shadow: 0 0 22px rgba(25,215,255,.16);
+}
+
+.cyber-btn-secondary {
+  background: rgba(8, 28, 46, .96) !important;
+  color: #79edff !important;
+  border: 1px solid rgba(25,215,255,.12);
+}
+
+.admin-panel,
+.stat-card,
+.social-card,
+.priority-card,
+.event-card {
+  background: rgba(5, 20, 34, .88) !important;
+  border-color: rgba(25,215,255,.10) !important;
+}
+
+.glow-green,
+.glow-cyan {
+  box-shadow:
+    0 0 0 1px rgba(25,215,255,.14),
+    0 0 42px rgba(25,215,255,.10) !important;
+}
+
+.glow-orange {
+  box-shadow:
+    0 0 0 1px rgba(123,140,255,.14),
+    0 0 42px rgba(123,140,255,.10) !important;
+}
+
+.glow-purple {
+  box-shadow:
+    0 0 0 1px rgba(53,231,255,.12),
+    0 0 42px rgba(53,231,255,.08) !important;
+}
+
+.priority-title,
+.section-head h3,
+.topbar-left h2 {
+  color: #9af4ff;
+  text-shadow: 0 0 18px rgba(25,215,255,.18);
+}
+
+.badge {
+  background: rgba(25,215,255,.12) !important;
+  color: #85f0ff !important;
+}
+
+.badge.pending {
+  background: rgba(255,177,92,.14) !important;
+  color: var(--cyber-orange) !important;
+}
+
+.badge.rejected {
+  background: rgba(255,95,126,.15) !important;
+  color: var(--cyber-red) !important;
+}
+
+.badge.featured {
+  background: rgba(123,140,255,.16) !important;
+  color: #b7c0ff !important;
+}
+
+.event-action.delete {
+  background: rgba(255,95,126,.16);
+  color: var(--cyber-red);
+}
+
+.event-action.delete:hover {
+  box-shadow:
+    0 0 0 1px rgba(255,95,126,.22),
+    0 14px 28px rgba(255,95,126,.10);
+}
+
+.stat-card-featured-premium {
+  background:
+    radial-gradient(circle at top right, rgba(123,140,255,.13), transparent 36%),
+    rgba(5,20,34,.90) !important;
+}
+
+.premium-control-panel::before {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(25,215,255,.13), transparent 34%),
+    radial-gradient(circle at 90% 12%, rgba(123,140,255,.11), transparent 30%) !important;
+}
+
+.premium-intro {
+  background: rgba(25,215,255,.07) !important;
+  border-color: rgba(25,215,255,.14) !important;
+}
+
+.premium-intro strong {
+  color: #86f0ff !important;
+}
