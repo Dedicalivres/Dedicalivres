@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V7.7.7c / CYAN + SUPPRESSION REFUSÉS
+   DÉDICALIVRES — ADMIN V7.7.8b / CYAN + SUPPRESSION REFUSÉS
 ========================================================= */
 
 "use strict";

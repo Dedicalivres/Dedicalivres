@@ -108,23 +108,22 @@
         if (pseudo.length < 2) throw new Error("Merci d’indiquer un pseudo valide.");
         if (!isValidUrl(website)) throw new Error("Merci d’indiquer un lien valide.");
 
-        setButtonLoading(submitButton, true, "Enregistrement…");
-        setFeedback(feedback, "", "Enregistrement en cours…");
+        setButtonLoading(submitButton, true, "Envoi…");
+        setFeedback(feedback, "", "Envoi de votre demande…");
 
         const { error } = await supabaseClient
           .from("event_authors_presence")
-          .insert([{ event_id: eventId, pseudo, website, validated: true }]);
+          .insert([{ event_id: eventId, pseudo, website, validated: false }]);
 
         if (error) throw error;
 
         form.reset();
-        setFeedback(feedback, "success", "Merci, votre présence a bien été ajoutée 👍");
-        loadAuthorsPresence();
+        setFeedback(feedback, "success", "Merci, votre demande a bien été envoyée. Elle sera vérifiée avant affichage public.");
       } catch (error) {
         console.error("Erreur auteur présent :", error);
         setFeedback(feedback, "error", error.message || "Une erreur est survenue.");
       } finally {
-        setButtonLoading(submitButton, false, "Indiquer ma présence");
+        setButtonLoading(submitButton, false, "Demander à être associé");
       }
     });
   }

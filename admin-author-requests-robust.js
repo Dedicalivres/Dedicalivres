@@ -9,7 +9,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "7.7.7c";
+  const VERSION = "7.7.8b";
   const config = window.DEDICALIVRES_CONFIG;
 
   if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
@@ -303,7 +303,7 @@
           ${row.event_id ? `<a href="event.html?id=${encodeURIComponent(row.event_id)}" target="_blank" rel="noopener noreferrer">Événement</a>` : ""}
           ${row.website ? `<a href="${escapeAttribute(row.website)}" target="_blank" rel="noopener noreferrer">Site auteur</a>` : ""}
           ${!isValidated ? `<button class="approve" type="button" data-author-action="validate" data-id="${escapeAttribute(row.id)}">Valider</button>` : `<button class="pending" type="button" data-author-action="pending" data-id="${escapeAttribute(row.id)}">Remettre en attente</button>`}
-          <button class="delete" type="button" data-author-action="delete" data-id="${escapeAttribute(row.id)}">Supprimer</button>
+          <button class="delete" type="button" data-author-action="delete" data-id="${escapeAttribute(row.id)}">Retirer / supprimer</button>
         </div>
       </article>
     `;
@@ -346,7 +346,7 @@
   }
 
   async function deleteAuthorPresence(id) {
-    const ok = confirm("Supprimer cette demande / présence auteur ?");
+    const ok = confirm("Retirer définitivement cette présence auteur de la fiche événement ?");
     if (!ok) return;
 
     const { error } = await client

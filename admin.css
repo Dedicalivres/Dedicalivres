@@ -1626,7 +1626,7 @@ body.cyber-admin {
 
 
 /* =========================================================
-   V7.7.7c — SKIN BLEU CYANOTIQUE + SUPPRESSION REFUSÉS
+   V7.7.8b — SKIN BLEU CYANOTIQUE + SUPPRESSION REFUSÉS
 ========================================================= */
 
 :root {
@@ -1781,4 +1781,40 @@ body.cyber-admin::before {
 
 .premium-intro strong {
   color: #86f0ff !important;
+}
+
+
+/* =========================================================
+   V7.7.8b — Modération auteurs verrouillée
+========================================================= */
+
+.author-request-actions .delete,
+button.delete[data-author-action="delete"] {
+  background: rgba(255,95,126,.16) !important;
+  color: var(--cyber-red) !important;
+  border: 1px solid rgba(255,95,126,.22) !important;
+}
+
+.author-request-actions .approve,
+button.approve[data-author-action="validate"] {
+  background: rgba(25,215,255,.16) !important;
+  color: var(--cyber-cyan) !important;
+  border: 1px solid rgba(25,215,255,.22) !important;
+}
+
+.author-request-actions .pending,
+button.pending[data-author-action="pending"] {
+  background: rgba(255,177,92,.14) !important;
+  color: var(--cyber-orange) !important;
+  border: 1px solid rgba(255,177,92,.22) !important;
+}
+
+.author-request-actions button,
+.author-request-actions a {
+  min-height: 42px;
+  border-radius: 14px;
+  padding: 10px 13px;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
 }
