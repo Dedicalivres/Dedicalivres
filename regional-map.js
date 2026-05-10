@@ -7,7 +7,7 @@
   if (!root) return;
 
   /*
-    V7.7.3d — Carte régionale sobre restaurée sans bloc explicatif.
+    V7.6.9 — Carte régionale réelle avec compteurs contextualisés par page.
     La carte visuelle utilise un SVG réel des régions de France comme fond,
     avec des points cliquables et compteurs dynamiques par région.
     Source cartographique affichée en attribution dans le bloc.
@@ -50,9 +50,6 @@
     {
       name: "Île-de-France",
       slug: "ile-de-france",
-      color: "#f4bfdc",
-      washW: 24,
-      washH: 20,
       href: "evenements-litteraires-ile-de-france.html",
       description: "Paris, librairies, salons et rendez-vous franciliens",
       x: 52,
@@ -61,9 +58,6 @@
     {
       name: "Auvergne-Rhône-Alpes",
       slug: "auvergne-rhone-alpes",
-      color: "#8fdccc",
-      washW: 31,
-      washH: 26,
       href: "evenements-litteraires-auvergne-rhone-alpes.html",
       description: "Lyon, Grenoble, Clermont-Ferrand et rencontres régionales",
       x: 61,
@@ -72,9 +66,6 @@
     {
       name: "Nouvelle-Aquitaine",
       slug: "nouvelle-aquitaine",
-      color: "#c3a8e6",
-      washW: 31,
-      washH: 26,
       href: "evenements-litteraires-nouvelle-aquitaine.html",
       description: "Bordeaux, littoral, salons et festivals du livre",
       x: 36,
@@ -83,9 +74,6 @@
     {
       name: "Occitanie",
       slug: "occitanie",
-      color: "#f19ab6",
-      washW: 32,
-      washH: 22,
       href: "evenements-litteraires-occitanie.html",
       description: "Toulouse, Montpellier, festivals et rencontres d’auteurs",
       x: 49,
@@ -94,9 +82,6 @@
     {
       name: "Bretagne",
       slug: "bretagne",
-      color: "#8bd7d1",
-      washW: 25,
-      washH: 18,
       href: "evenements-litteraires-bretagne.html",
       description: "Librairies, festivals, salons et rendez-vous bretons",
       x: 19,
@@ -105,9 +90,6 @@
     {
       name: "Bourgogne-Franche-Comté",
       slug: "bourgogne-franche-comte",
-      color: "#f4a998",
-      washW: 27,
-      washH: 20,
       href: "evenements-litteraires-bourgogne-franche-comte.html",
       description: "Dijon, Besançon, librairies et rendez-vous du livre",
       x: 66,
@@ -116,9 +98,6 @@
     {
       name: "Centre-Val de Loire",
       slug: "centre-val-de-loire",
-      color: "#f5cf7c",
-      washW: 28,
-      washH: 20,
       href: "evenements-litteraires-centre-val-de-loire.html",
       description: "Tours, Orléans, rencontres et événements littéraires",
       x: 43,
@@ -127,9 +106,6 @@
     {
       name: "Corse",
       slug: "corse",
-      color: "#ef92aa",
-      washW: 13,
-      washH: 15,
       href: "evenements-litteraires-corse.html",
       description: "Ajaccio, Bastia, rencontres insulaires et salons du livre",
       x: 82,
@@ -138,9 +114,6 @@
     {
       name: "Grand Est",
       slug: "grand-est",
-      color: "#bda3e5",
-      washW: 30,
-      washH: 24,
       href: "evenements-litteraires-grand-est.html",
       description: "Strasbourg, Reims, Metz, Nancy et rendez-vous du livre",
       x: 73,
@@ -149,9 +122,6 @@
     {
       name: "Hauts-de-France",
       slug: "hauts-de-france",
-      color: "#92d7e8",
-      washW: 24,
-      washH: 18,
       href: "evenements-litteraires-hauts-de-france.html",
       description: "Lille, Amiens, salons, dédicaces et festivals littéraires",
       x: 52,
@@ -160,9 +130,6 @@
     {
       name: "Normandie",
       slug: "normandie",
-      color: "#a9dea8",
-      washW: 27,
-      washH: 19,
       href: "evenements-litteraires-normandie.html",
       description: "Rouen, Caen, littoral normand et rencontres d’auteurs",
       x: 33,
@@ -171,9 +138,6 @@
     {
       name: "Pays de la Loire",
       slug: "pays-de-la-loire",
-      color: "#f1b08f",
-      washW: 26,
-      washH: 18,
       href: "evenements-litteraires-pays-de-la-loire.html",
       description: "Nantes, Angers, Le Mans et événements autour du livre",
       x: 30,
@@ -182,9 +146,6 @@
     {
       name: "Provence-Alpes-Côte d’Azur",
       slug: "provence-alpes-cote-azur",
-      color: "#f5bf61",
-      washW: 27,
-      washH: 20,
       href: "evenements-litteraires-provence-alpes-cote-azur.html",
       description: "Marseille, Nice, Toulon, festivals et dédicaces",
       x: 73,
@@ -200,12 +161,15 @@
 
   function getContextQuery() {
     const mode = document.body.dataset.agendaMode || "global";
+
     if (mode === "salons" || eventTypes.includes("Salon") || eventTypes.includes("Festival")) {
       return "?types=Salon,Festival";
     }
+
     if (mode === "dedicaces" || eventTypes.includes("Dédicace")) {
       return "?type=Dédicace";
     }
+
     return "";
   }
 
@@ -274,11 +238,8 @@
     root.innerHTML = `
       <div class="regional-map-layout regional-map-layout-real">
         <div class="regional-map-card regional-map-card-real">
-          <div class="regional-real-map-wrap regional-watercolor-map-wrap" aria-label="Carte aquarelle des régions de France avec compteurs Dédicalivres">
-            <div class="regional-watercolor-layer regional-focus-layer" aria-hidden="true">
-              ${renderRegionWash(state.selected)}
-            </div>
-            <img class="regional-real-map-image regional-watercolor-map-base" src="${MAP_IMAGE_URL}" alt="Carte des régions de France" loading="lazy" />
+          <div class="regional-real-map-wrap" aria-label="Carte réelle des régions de France avec compteurs Dédicalivres">
+            <img class="regional-real-map-image" src="${MAP_IMAGE_URL}" alt="Carte des régions de France" loading="lazy" />
             <div class="regional-real-map-overlay" aria-label="Régions cliquables">
               ${REGIONS.map(renderRegionMarker).join("")}
             </div>
@@ -291,7 +252,7 @@
           </div>
 
           <p class="regional-map-attribution">
-            Carte aquarelle Dédicalivres — support visuel régional avec contours de référence.
+            Carte de référence : SimpleMaps — contours régionaux utilisés comme support visuel.
           </p>
         </div>
 
@@ -318,38 +279,10 @@
         </aside>
       </div>
 
-      <div class="regional-map-mobile-list" aria-label="Liste des régions">
-        ${REGIONS.map((region) => `
-          <a href="${regionHref(region)}">
-            <strong>${escapeHtml(region.name)}</strong>
-            <span>${state.counts[region.name] || 0}</span>
-          </a>
-        `).join("")}
-      </div>
+
     `;
 
     bindInteractions();
-  }
-
-
-  function visualX(region) {
-    // Le SVG SimpleMaps contient des marges internes : on recale les pastilles
-    // sans changer la logique de clic ni les compteurs.
-    return Math.round((8.5 + Number(region.x || 50) * 0.875) * 100) / 100;
-  }
-
-  function visualY(region) {
-    return Math.round(Number(region.y || 50) * 100) / 100;
-  }
-
-  function renderRegionWash(region) {
-    const active = state.selected.name === region.name ? " is-active" : "";
-    return `
-      <span
-        class="regional-watercolor-region regional-focus-region region-${region.slug}${active}"
-        style="--x:${visualX(region)}%;--y:${visualY(region)}%;--w:${Math.max(24, Number(region.washW || 24) * 0.92)}%;--h:${Math.max(18, Number(region.washH || 18) * 0.92)}%;--region-color:${region.color || '#d8e7d4'};"
-      ></span>
-    `;
   }
 
   function renderRegionMarker(region) {
@@ -361,7 +294,7 @@
         class="regional-real-marker region-${region.slug}${active}"
         href="${regionHref(region)}"
         data-region="${escapeAttribute(region.name)}"
-        style="--x:${visualX(region)}%;--y:${visualY(region)}%;--region-color:${region.color || '#d8e7d4'};"
+        style="--x:${region.x}%;--y:${region.y}%;"
         aria-label="${escapeAttribute(region.name)} — ${count} ${count > 1 ? counterContext.labelPlural : counterContext.labelSingular}"
       >
         <span class="regional-real-marker-name">${escapeHtml(region.name)}</span>
