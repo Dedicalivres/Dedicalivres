@@ -64,6 +64,37 @@ let map = null;
 let markersLayer = null;
 let selectedAdminImageFile = null;
 
+const ADMIN_EVENTS_COLUMNS = [
+  "id",
+  "created_at",
+  "title",
+  "type",
+  "city",
+  "region",
+  "description",
+  "start_date",
+  "end_date",
+  "website",
+  "image_url",
+  "validated",
+  "rejected",
+  "featured",
+  "verified",
+  "lat",
+  "lng",
+  "price"
+].join(", ");
+
+const ADMIN_LOCATION_COLUMNS = [
+  "id",
+  "created_at",
+  "city",
+  "region",
+  "device",
+  "lat",
+  "lng"
+].join(", ");
+
 init();
 
 async function init() {
@@ -251,7 +282,8 @@ async function loadDashboard() {
   await safeAdminStep("chargement événements", loadEvents);
   await safeAdminStep("chargement indicateur mise en avant", loadNewsletterCount);
   await safeAdminStep("chargement visites", loadVisitsCount);
-  await safeAdminStep("chargement localisation", loadLocationTracking);
+  // Anti-egress : le module localisation est désactivé par défaut car il ne remonte pas de données utiles actuellement.
+  locationRows = [];
 
   safeAdminStepSync("statistiques", updateStats);
   safeAdminStepSync("liste événements", renderEvents);
@@ -284,8 +316,9 @@ function safeAdminStepSync(label, fn) {
 async function loadEvents() {
   const { data, error } = await supabaseClient
     .from("events")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .select(ADMIN_EVENTS_COLUMNS)
+    .order("created_at", { ascending: false })
+    .limit(500);
 
   if (error) {
     console.error(error);
@@ -320,20 +353,9 @@ async function loadVisitsCount() {
 }
 
 async function loadLocationTracking() {
-  try {
-    const { data, error } = await supabaseClient
-      .from("location_tracking")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(500);
-
-    if (error) throw error;
-
-    locationRows = Array.isArray(data) ? data : [];
-  } catch (error) {
-    console.warn("Tracking localisation indisponible :", error);
-    locationRows = [];
-  }
+  // Module volontairement neutralisé pour réduire les requêtes admin.
+  // À réactiver plus tard si les compteurs de localisation sont de nouveau utiles.
+  locationRows = [];
 }
 
 function updateStats() {
@@ -352,9 +374,19 @@ if (eventsCount) {
 /* PRIORITY ZONES */
 
 function renderPriorityZones() {
-  renderTopCities();
-  renderDevices();
-  renderTrend();
+  // Anti-egress : affichage neutre sans requête location_tracking.
+  renderLocationDisabledPanels();
+}
+
+function renderLocationDisabledPanels() {
+  const message = `<p class="priority-empty">Module localisation désactivé pour réduire la consommation Supabase.</p>`;
+  if (priorityCities) priorityCities.innerHTML = message;
+  if (priorityDevices) priorityDevices.innerHTML = message;
+  if (priorityTrend) priorityTrend.innerHTML = `
+    <p class="priority-empty">
+      Les compteurs de localisation sont temporairement désactivés car ils ne remontaient pas de données utiles.
+    </p>
+  `;
 }
 
 function renderTopCities() {
@@ -548,11 +580,9 @@ function renderEventCard(event) {
       ${
         event.image_url
           ? `
-          <img
-            class="event-admin-thumb"
-            src="${escapeHtml(event.image_url)}"
-            alt=""
-          />
+          <div class="event-admin-thumb-placeholder" title="Image disponible, non chargée automatiquement pour économiser Supabase">
+            IMAGE DISPONIBLE
+          </div>
         `
           : `
           <div class="event-admin-thumb-placeholder">
@@ -607,6 +637,7 @@ function renderEventCard(event) {
         <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button" title="${event.featured ? "Retirer la mise en avant" : "Mettre en avant"}">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
         <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button" title="Modifier">✎ <span>Modifier</span></button>
         <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer" title="Voir la fiche">↗ <span>Voir</span></a>
+        ${event.image_url ? `<a class="event-action view" href="${escapeHtml(event.image_url)}" target="_blank" rel="noopener noreferrer" title="Voir l’image">🖼 <span>Image</span></a>` : ""}
         ${
           event.rejected
             ? `<button class="event-action delete" data-action="delete" data-id="${event.id}" type="button" title="Supprimer définitivement">🗑 <span>Suppr.</span></button>`
@@ -770,24 +801,7 @@ function initMap() {
     marker.addTo(markersLayer);
   });
 
-  locationRows.forEach((row) => {
-    if (!row.lat || !row.lng) return;
-
-    const marker = L.circleMarker([row.lat, row.lng], {
-      radius: 5,
-      color: "#ff9e44",
-      fillColor: "#ff9e44",
-      fillOpacity: 0.65
-    });
-
-    marker.bindPopup(`
-      <strong>Recherche utilisateur</strong>
-      <br>
-      ${escapeHtml(row.city || row.region || "Zone inconnue")}
-    `);
-
-    marker.addTo(markersLayer);
-  });
+  // Marqueurs de recherches utilisateurs désactivés pour réduire les requêtes localisation.
 
   setTimeout(() => {
     map.invalidateSize();
@@ -873,7 +887,7 @@ function renderPremiumCard(event) {
     <article class="event-card event-card-with-image premium-admin-card">
       ${
         event.image_url
-          ? `<img class="event-admin-thumb" src="${escapeHtml(event.image_url)}" alt="" />`
+          ? `<div class="event-admin-thumb-placeholder" title="Image disponible, non chargée automatiquement pour économiser Supabase">IMAGE DISPONIBLE</div>`
           : `<div class="event-admin-thumb-placeholder">PAS D’IMAGE</div>`
       }
 
@@ -901,6 +915,7 @@ function renderPremiumCard(event) {
         <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer">
           ↗ <span>Voir</span>
         </a>
+        ${event.image_url ? `<a class="event-action view" href="${escapeHtml(event.image_url)}" target="_blank" rel="noopener noreferrer" title="Voir l’image">🖼 <span>Image</span></a>` : ""}
       </div>
     </article>
   `;
@@ -965,7 +980,7 @@ function renderEditImagePreview(url) {
   }
 
   editImagePreview.innerHTML = `
-    <img src="${escapeHtml(url)}" alt="" />
+    <img src="${escapeHtml(url)}" alt="" loading="lazy" decoding="async" />
   `;
 }
 

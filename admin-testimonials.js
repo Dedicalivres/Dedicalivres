@@ -141,7 +141,7 @@
 
     return `
       <article class="event-card testimonial-admin-card">
-        ${row.image_url ? `<img class="event-admin-thumb" src="${escapeAttribute(row.image_url)}" alt="" />` : `<div class="event-admin-thumb-placeholder">SANS PHOTO</div>`}
+        ${row.image_url ? `<div class="event-admin-thumb-placeholder" title="Photo disponible, non chargée automatiquement pour économiser Supabase">PHOTO DISPONIBLE</div>` : `<div class="event-admin-thumb-placeholder">SANS PHOTO</div>`}
 
         <div>
           <div class="event-title">${escapeHtml(row.pseudo || "Témoignage")}</div>
