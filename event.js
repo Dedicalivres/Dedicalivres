@@ -18,7 +18,7 @@
   async function loadEvent(id) {
     const { data, error } = await client
       .from("events")
-      .select("*")
+      .select("id,title,type,region,city,price,start_date,end_date,website,description,lat,lng,image_url,validated")
       .eq("id", id)
       .eq("validated", true)
       .maybeSingle();
@@ -32,7 +32,7 @@
     document.querySelector('meta[name="description"]')?.setAttribute("content", `${data.title || "Événement littéraire"} à ${data.city || "proximité"} — informations, dates et lien officiel.`);
 
     const image = data.image_url
-      ? `<img class="detail-image" src="${escapeAttribute(data.image_url)}" alt="${escapeAttribute(data.title || "Événement")}" />`
+      ? `<img class="detail-image" src="${escapeAttribute(data.image_url)}" alt="${escapeAttribute(data.title || "Événement")}" loading="lazy" decoding="async" />`
       : `<div class="detail-image detail-image-placeholder"></div>`;
 
     container.innerHTML = `

@@ -82,7 +82,7 @@
   function renderTestimonial(row) {
     return `
       <article class="testimonial-card">
-        ${row.image_url ? `<img class="testimonial-image" src="${escapeAttribute(row.image_url)}" alt="Nouvelle dédicace coup de cœur partagée par ${escapeAttribute(row.pseudo || "un lecteur")}" loading="lazy" />` : `<div class="testimonial-image-placeholder">📖</div>`}
+        ${row.image_url ? `<img class="testimonial-image" src="${escapeAttribute(row.image_url)}" alt="Nouvelle dédicace coup de cœur partagée par ${escapeAttribute(row.pseudo || "un lecteur")}" loading="lazy" decoding="async" />` : `<div class="testimonial-image-placeholder">📖</div>`}
         <div class="testimonial-card-body">
           <div class="card-tags">
             <span class="badge badge-price">Témoignage</span>
@@ -201,12 +201,12 @@
   }
 
   async function uploadImage(file) {
-    const extension = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension || "jpg"}`;
+    const compressed = await compressImage(file);
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
 
     const { error } = await client.storage
       .from("testimonial-images")
-      .upload(fileName, file, { cacheControl: "3600", upsert: false });
+      .upload(fileName, compressed, { cacheControl: "2592000", upsert: false });
 
     if (error) throw error;
 
@@ -216,6 +216,47 @@
 
     return data.publicUrl;
   }
+
+  async function compressImage(file) {
+    return new Promise((resolve) => {
+      const img = new Image();
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxWidth = 1200;
+        const ratio = Math.min(1, maxWidth / img.width);
+
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+
+            resolve(
+              new File([blob], `${Date.now()}-${Math.random()
+                .toString(36)
+                .slice(2)}.jpg`, {
+                type: "image/jpeg"
+              })
+            );
+          },
+          "image/jpeg",
+          0.74
+        );
+      };
+
+      img.onerror = () => resolve(file);
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
 
   function setFeedback(message, type) {
     if (!feedback) return;

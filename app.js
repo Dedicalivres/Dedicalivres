@@ -208,12 +208,13 @@
 
     const { data, error } = await supabaseClient
       .from("events")
-      .select("*")
+      .select("id,title,type,region,city,price,start_date,end_date,website,description,lat,lng,image_url,featured,verified,validated,rejected")
       .eq("validated", true)
       .eq("rejected", false)
       .or(`end_date.is.null,end_date.gte.${today}`)
       .order("featured", { ascending: false })
-      .order("start_date", { ascending: true });
+      .order("start_date", { ascending: true })
+      .limit(300);
 
     if (error) {
       console.error(error);
@@ -313,6 +314,8 @@
                 class="card-image"
                 src="${escapeAttribute(image)}"
                 alt="${escapeAttribute(event.title || "Événement")}"
+                loading="lazy"
+                decoding="async"
               />
             `
             : `<div class="card-image"></div>`
@@ -679,15 +682,16 @@
   async function uploadImage(file) {
     const compressed = await compressImage(file);
 
-    const extension = (compressed.name.split(".").pop() || "jpg").toLowerCase();
-
     const fileName = `${Date.now()}-${Math.random()
       .toString(36)
-      .slice(2)}.${extension}`;
+      .slice(2)}.jpg`;
 
     const { error } = await supabaseClient.storage
       .from("event-images")
-      .upload(fileName, compressed);
+      .upload(fileName, compressed, {
+        cacheControl: "2592000",
+        upsert: false
+      });
 
     if (error) throw error;
 
@@ -704,7 +708,7 @@
 
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const maxWidth = 1600;
+        const maxWidth = 1200;
         const ratio = Math.min(1, maxWidth / img.width);
 
         canvas.width = img.width * ratio;
@@ -722,13 +726,15 @@
             }
 
             resolve(
-              new File([blob], file.name, {
+              new File([blob], `${Date.now()}-${Math.random()
+                .toString(36)
+                .slice(2)}.jpg`, {
                 type: "image/jpeg"
               })
             );
           },
           "image/jpeg",
-          0.86
+          0.74
         );
       };
 
