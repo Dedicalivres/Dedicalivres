@@ -6,7 +6,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "7.6.2";
+  const VERSION = "7.6.3-secure";
   const REGIONS = [
     "Auvergne-Rhône-Alpes",
     "Bourgogne-Franche-Comté",
@@ -55,7 +55,19 @@
   let filteredEvents = [];
   const selectedIds = new Set();
 
-  ready(initWhenReady);
+  ready(() => {
+    waitForAdminAuthentication(initWhenReady);
+  });
+
+  window.addEventListener("dedicalivres:admin-authenticated", () => {
+    waitForAdminAuthentication(initWhenReady);
+  });
+
+  function waitForAdminAuthentication(callback) {
+    if (window.DEDICALIVRES_ADMIN_AUTHENTICATED === true) {
+      callback();
+    }
+  }
 
   function ready(callback) {
     if (document.readyState === "loading") {
@@ -66,6 +78,8 @@
   }
 
   function initWhenReady() {
+    if (window.DEDICALIVRES_ADMIN_AUTHENTICATED !== true) return;
+    if (window.DEDICALIVRES_SOCIAL_GENERATOR_VERSION) return;
     let attempts = 0;
     const timer = setInterval(() => {
       attempts += 1;
@@ -214,6 +228,7 @@
   }
 
   async function loadEvents() {
+    if (window.DEDICALIVRES_ADMIN_AUTHENTICATED !== true) return;
     const selector = document.getElementById("social-events-selector");
 
     try {

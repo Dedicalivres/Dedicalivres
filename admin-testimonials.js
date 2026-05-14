@@ -13,12 +13,30 @@
   let currentFilter = "pending";
 
   document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(initTestimonialsAdmin, 900);
+    waitForAdminAuthentication(initTestimonialsAdmin);
   });
 
-  window.addEventListener("dedicalivres:testimonials-refresh", loadTestimonials);
+  window.addEventListener("dedicalivres:admin-authenticated", () => {
+    waitForAdminAuthentication(initTestimonialsAdmin);
+  });
+
+  window.addEventListener("dedicalivres:testimonials-refresh", () => {
+    if (isAdminAuthenticated()) loadTestimonials();
+  });
+
+  function waitForAdminAuthentication(callback) {
+    if (isAdminAuthenticated()) {
+      setTimeout(callback, 250);
+      return;
+    }
+  }
+
+  function isAdminAuthenticated() {
+    return window.DEDICALIVRES_ADMIN_AUTHENTICATED === true;
+  }
 
   function initTestimonialsAdmin() {
+    if (!isAdminAuthenticated()) return;
     injectStatCard();
     injectPanel();
     bindRefreshButton();
@@ -88,6 +106,7 @@
   }
 
   async function loadTestimonials() {
+    if (!isAdminAuthenticated()) return;
     const list = document.getElementById("testimonials-admin-list");
     if (list) list.innerHTML = `<article class="event-card">Chargement des témoignages…</article>`;
 
@@ -182,6 +201,7 @@
   }
 
   async function updateStatus(id, payload, successMessage) {
+    if (!isAdminAuthenticated()) return;
     const { error } = await client.from("testimonials").update(payload).eq("id", id);
     if (error) {
       alert("Action impossible. Vérifie les règles RLS de la table testimonials.");
@@ -193,6 +213,7 @@
   }
 
   async function deleteRow(id) {
+    if (!isAdminAuthenticated()) return;
     if (!confirm("Supprimer définitivement ce témoignage ?")) return;
     const { error } = await client.from("testimonials").delete().eq("id", id);
     if (error) {
