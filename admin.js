@@ -41,6 +41,11 @@ const priorityCities = document.getElementById("priority-cities");
 const priorityDevices = document.getElementById("priority-devices");
 const priorityTrend = document.getElementById("priority-trend");
 
+const adminMapPanel = document.getElementById("admin-map-panel");
+const adminMapToggle = document.getElementById("admin-map-toggle");
+const adminMapStatus = document.getElementById("admin-map-status");
+const adminMapElement = document.getElementById("admin-map");
+
 const editModal = document.getElementById("edit-modal");
 const editId = document.getElementById("edit-id");
 const editTitle = document.getElementById("edit-title");
@@ -63,6 +68,7 @@ let locationRows = [];
 let map = null;
 let markersLayer = null;
 let selectedAdminImageFile = null;
+let adminMapRequested = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
@@ -137,8 +143,17 @@ function bindEvents() {
 
   refreshBtn?.addEventListener("click", async () => {
     if (!(await ensureAdminSession())) return;
-    await loadDashboard();
-    showToast("Dashboard actualisé");
+    refreshBtn.disabled = true;
+    const previousLabel = refreshBtn.textContent;
+    refreshBtn.textContent = "Actualisation...";
+
+    try {
+      await loadDashboard();
+      showToast("Dashboard actualisé");
+    } finally {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = previousLabel || "Actualiser";
+    }
   });
 
   searchInput?.addEventListener("input", renderEvents);
@@ -149,6 +164,7 @@ function bindEvents() {
   saveEditBtn?.addEventListener("click", saveEdition);
   removeEditImageBtn?.addEventListener("click", removeEditImage);
   editImageFile?.addEventListener("change", handleAdminImagePreview);
+  adminMapToggle?.addEventListener("click", toggleAdminMap);
 
   editModal?.addEventListener("click", (event) => {
     if (event.target === editModal) closeEditModal();
@@ -412,16 +428,31 @@ async function loadDashboard() {
   // Anti-egress : le module localisation est désactivé par défaut car il ne remonte pas de données utiles actuellement.
   locationRows = [];
 
+  refreshAdminViews();
+
+  if (adminMapRequested) {
+    safeAdminStepSync("carte admin", initMap);
+  } else {
+    collapseAdminMap();
+  }
+
+  window.dispatchEvent(new CustomEvent("dedicalivres:admin-dashboard-refreshed"));
+  window.dispatchEvent(new CustomEvent("dedicalivres:testimonials-refresh"));
+
+  // Sécurité affichage : certains modules secondaires se chargent juste après l'authentification.
+  // Ce second passage évite d'avoir à cliquer deux fois sur Actualiser pour voir les compteurs.
+  setTimeout(() => {
+    refreshAdminViews();
+    if (adminMapRequested) map?.invalidateSize();
+  }, 350);
+}
+
+function refreshAdminViews() {
   safeAdminStepSync("statistiques", updateStats);
   safeAdminStepSync("liste événements", renderEvents);
   safeAdminStepSync("premium", renderPremiumDashboard);
   safeAdminStepSync("réseaux", renderSocialUpcoming);
   safeAdminStepSync("observatoire", renderPriorityZones);
-  safeAdminStepSync("carte admin", initMap);
-
-  setTimeout(() => {
-    map?.invalidateSize();
-  }, 250);
 }
 
 async function safeAdminStep(label, fn) {
@@ -895,10 +926,68 @@ async function deleteRejectedEvent(id) {
 
 /* MAP */
 
+function collapseAdminMap() {
+  adminMapRequested = false;
+
+  if (adminMapElement) {
+    adminMapElement.hidden = true;
+    adminMapElement.style.display = "none";
+  }
+
+  adminMapPanel?.classList.add("is-collapsed");
+
+  if (adminMapToggle) {
+    adminMapToggle.textContent = "Afficher la carte live";
+    adminMapToggle.setAttribute("aria-expanded", "false");
+  }
+
+  if (adminMapStatus) {
+    adminMapStatus.textContent = "Carte repliée par défaut pour limiter les chargements";
+  }
+}
+
+function expandAdminMap() {
+  adminMapRequested = true;
+
+  if (adminMapElement) {
+    adminMapElement.hidden = false;
+    adminMapElement.style.display = "";
+  }
+
+  adminMapPanel?.classList.remove("is-collapsed");
+
+  if (adminMapToggle) {
+    adminMapToggle.textContent = "Masquer la carte live";
+    adminMapToggle.setAttribute("aria-expanded", "true");
+  }
+
+  if (adminMapStatus) {
+    adminMapStatus.textContent = "Carte chargée à la demande";
+  }
+
+  initMap();
+
+  setTimeout(() => {
+    map?.invalidateSize();
+  }, 250);
+}
+
+function toggleAdminMap() {
+  if (!(window.DEDICALIVRES_ADMIN_AUTHENTICATED === true)) return;
+
+  if (adminMapRequested) {
+    collapseAdminMap();
+    return;
+  }
+
+  expandAdminMap();
+}
+
 function initMap() {
   if (!window.L) return;
+  if (!adminMapRequested) return;
 
-  const mapElement = document.getElementById("admin-map");
+  const mapElement = adminMapElement || document.getElementById("admin-map");
   if (!mapElement) return;
 
   if (!map) {

@@ -161,14 +161,24 @@
       <!-- MAP -->
       <!-- ============================================= -->
 
-      <section class="admin-panel">
+      <section class="admin-panel admin-map-panel is-collapsed" id="admin-map-panel">
 
         <div class="section-head">
           <h3>CARTE LIVE</h3>
-          <span>activité géographique</span>
+          <span id="admin-map-status">Carte repliée par défaut pour limiter les chargements</span>
         </div>
 
-        <div id="admin-map"></div>
+        <button
+          id="admin-map-toggle"
+          class="cyber-btn-secondary"
+          type="button"
+          aria-expanded="false"
+          aria-controls="admin-map"
+        >
+          Afficher la carte live
+        </button>
+
+        <div id="admin-map" hidden style="display:none;"></div>
 
       </section>
 
@@ -456,8 +466,8 @@
   crossorigin=""
 ></script>
 
-<script src="config.js?v=8.3"></script>
-<script src="admin.js?v=8.3"></script>
+<script src="config.js?v=8.4"></script>
+<script src="admin.js?v=8.4"></script>
 
 </body>
 </html>
