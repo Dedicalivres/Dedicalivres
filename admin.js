@@ -63,16 +63,6 @@ let locationRows = [];
 let map = null;
 let markersLayer = null;
 let selectedAdminImageFile = null;
-let protectedAdminModulesLoaded = false;
-let adminBooting = false;
-
-const PROTECTED_ADMIN_MODULES = [
-  "admin-visits-counter-fix.js",
-  "admin-author-requests-robust.js",
-  "admin-testimonials.js",
-  "admin-quality-control.js",
-  "admin-social-generator.js"
-];
 
 const ADMIN_EVENTS_COLUMNS = [
   "id",
@@ -108,25 +98,14 @@ const ADMIN_LOCATION_COLUMNS = [
 init();
 
 async function init() {
-  lockDashboard();
   bindEvents();
   bindTabs();
 
-  adminBooting = true;
+  const { data } = await supabaseClient.auth.getSession();
 
-  try {
-    const { data } = await supabaseClient.auth.getSession();
-
-    if (data?.session) {
-      await unlockAdmin();
-    } else {
-      lockDashboard();
-    }
-  } catch (error) {
-    console.warn("Session admin non vérifiée :", error);
-    lockDashboard();
-  } finally {
-    adminBooting = false;
+  if (data?.session) {
+    showDashboard();
+    await loadDashboard();
   }
 }
 
@@ -135,7 +114,6 @@ function bindEvents() {
   logoutBtn?.addEventListener("click", logout);
 
   refreshBtn?.addEventListener("click", async () => {
-    if (!(await ensureAdminSession())) return;
     await loadDashboard();
     showToast("Dashboard actualisé");
   });
@@ -188,8 +166,10 @@ async function handleLogin(event) {
 
     if (error) throw error;
 
+    showDashboard();
+
     try {
-      await unlockAdmin();
+      await loadDashboard();
       showToast("Connexion réussie");
     } catch (dashboardError) {
       console.error("Dashboard partiellement chargé :", dashboardError);
@@ -208,121 +188,20 @@ async function handleLogin(event) {
 
 async function logout() {
   await supabaseClient.auth.signOut();
-  window.DEDICALIVRES_ADMIN_AUTHENTICATED = false;
-  lockDashboard();
-  clearAdminSensitiveState();
-  showToast("Déconnecté");
 
-  setTimeout(() => {
-    window.location.reload();
-  }, 250);
+  dashboard?.classList.add("hidden");
+  loginScreen?.classList.remove("hidden");
+
+  showToast("Déconnecté");
 }
 
 function showDashboard() {
   loginScreen?.classList.add("hidden");
-  loginScreen?.setAttribute("aria-hidden", "true");
-
-  if (dashboard) {
-    dashboard.classList.remove("hidden");
-    dashboard.hidden = false;
-    dashboard.style.display = "";
-    dashboard.setAttribute("aria-hidden", "false");
-  }
+  dashboard?.classList.remove("hidden");
 
   setTimeout(() => {
     map?.invalidateSize();
   }, 300);
-}
-
-function lockDashboard() {
-  window.DEDICALIVRES_ADMIN_AUTHENTICATED = false;
-
-  if (dashboard) {
-    dashboard.classList.add("hidden");
-    dashboard.hidden = true;
-    dashboard.style.display = "none";
-    dashboard.setAttribute("aria-hidden", "true");
-  }
-
-  if (loginScreen) {
-    loginScreen.classList.remove("hidden");
-    loginScreen.removeAttribute("aria-hidden");
-  }
-}
-
-async function unlockAdmin() {
-  if (!(await ensureAdminSession())) return;
-
-  window.DEDICALIVRES_ADMIN_AUTHENTICATED = true;
-  showDashboard();
-  await loadProtectedAdminModules();
-  window.dispatchEvent(new CustomEvent("dedicalivres:admin-authenticated"));
-  await loadDashboard();
-}
-
-async function ensureAdminSession() {
-  try {
-    const { data } = await supabaseClient.auth.getSession();
-
-    if (!data?.session) {
-      lockDashboard();
-      if (!adminBooting) showToast("Connexion admin requise");
-      return false;
-    }
-
-    window.DEDICALIVRES_ADMIN_AUTHENTICATED = true;
-    return true;
-  } catch (error) {
-    console.warn("Session admin indisponible :", error);
-    lockDashboard();
-    return false;
-  }
-}
-
-async function loadProtectedAdminModules() {
-  if (protectedAdminModulesLoaded) return;
-  protectedAdminModulesLoaded = true;
-
-  for (const src of PROTECTED_ADMIN_MODULES) {
-    await loadAdminScript(src);
-  }
-}
-
-function loadAdminScript(src) {
-  return new Promise((resolve) => {
-    if (document.querySelector(`script[data-protected-admin-module="${src}"]`)) {
-      resolve();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `${src}?v=7.7.9-secure-admin`;
-    script.defer = true;
-    script.dataset.protectedAdminModule = src;
-    script.onload = () => resolve();
-    script.onerror = () => {
-      console.warn(`Module admin non chargé : ${src}`);
-      resolve();
-    };
-    document.body.appendChild(script);
-  });
-}
-
-function clearAdminSensitiveState() {
-  allEvents = [];
-  locationRows = [];
-
-  if (eventsContainer) eventsContainer.innerHTML = "";
-  if (eventsCount) eventsCount.textContent = "0 élément";
-  if (statsEvents) statsEvents.textContent = "0";
-  if (statsPending) statsPending.textContent = "0";
-  if (statsNewsletter) statsNewsletter.textContent = "0";
-  if (statsVisits) statsVisits.textContent = "0";
-
-  document.getElementById("premium-container")?.replaceChildren();
-  document.getElementById("testimonials-admin-panel")?.remove();
-  document.getElementById("stats-testimonials-card")?.remove();
-  document.getElementById("tab-social")?.replaceChildren();
 }
 
 /* TABS */
@@ -400,8 +279,6 @@ function bindMobileSwipeTabs() {
 /* DASHBOARD */
 
 async function loadDashboard() {
-  if (!(await ensureAdminSession())) return;
-
   await safeAdminStep("chargement événements", loadEvents);
   await safeAdminStep("chargement indicateur mise en avant", loadNewsletterCount);
   await safeAdminStep("chargement visites", loadVisitsCount);
@@ -783,7 +660,7 @@ function bindEventActions() {
       if (action === "validate") await validateEvent(id);
       if (action === "reject") await rejectEvent(id);
       if (action === "featured") await toggleFeatured(id);
-      if (action === "edit") await openEditModal(id);
+      if (action === "edit") openEditModal(id);
       if (action === "delete") await deleteRejectedEvent(id);
     });
   });
@@ -792,7 +669,6 @@ function bindEventActions() {
 /* ACTIONS */
 
 async function validateEvent(id) {
-  if (!(await ensureAdminSession())) return;
   const { error } = await supabaseClient
     .from("events")
     .update({
@@ -811,7 +687,6 @@ async function validateEvent(id) {
 }
 
 async function rejectEvent(id) {
-  if (!(await ensureAdminSession())) return;
   const { error } = await supabaseClient
     .from("events")
     .update({
@@ -830,7 +705,6 @@ async function rejectEvent(id) {
 }
 
 async function toggleFeatured(id) {
-  if (!(await ensureAdminSession())) return;
   const event = allEvents.find((item) => String(item.id) === String(id));
 
   if (!event) return;
@@ -853,7 +727,6 @@ async function toggleFeatured(id) {
 
 
 async function deleteRejectedEvent(id) {
-  if (!(await ensureAdminSession())) return;
   const event = allEvents.find((item) => String(item.id) === String(id));
 
   if (!event) {
@@ -1077,8 +950,7 @@ function renderSocialUpcoming() {
 
 /* MODAL */
 
-async function openEditModal(id) {
-  if (!(await ensureAdminSession())) return;
+function openEditModal(id) {
   const event = allEvents.find((item) => String(item.id) === String(id));
   if (!event) return;
 
@@ -1134,7 +1006,6 @@ function removeEditImage() {
 }
 
 async function saveEdition() {
-  if (!(await ensureAdminSession())) return;
   const id = editId.value;
   if (!id) return;
 
@@ -1150,6 +1021,11 @@ async function saveEdition() {
     image_url: editImageUrl.value.trim() || null
   };
 
+  if (selectedAdminImageFile instanceof File && selectedAdminImageFile.size > 0) {
+    showToast("Upload de l’image en cours…");
+    payload.image_url = await uploadImage(selectedAdminImageFile);
+  }
+
   const { error } = await supabaseClient
     .from("events")
     .update(payload)
@@ -1160,9 +1036,119 @@ async function saveEdition() {
     return;
   }
 
+  selectedAdminImageFile = null;
   closeEditModal();
   await loadDashboard();
   showToast("Événement modifié");
+}
+
+async function uploadImage(file) {
+  const compressed = await compressImage(file);
+
+  if (shouldUseR2Upload()) {
+    try {
+      return await uploadImageToR2(compressed, "event-images");
+    } catch (error) {
+      console.warn("Upload R2 indisponible, fallback Supabase Storage :", error);
+    }
+  }
+
+  return uploadImageToSupabase(compressed, "event-images");
+}
+
+function shouldUseR2Upload() {
+  return (
+    config?.imageUploadProvider === "r2" &&
+    typeof config.imageUploadEndpoint === "string" &&
+    config.imageUploadEndpoint.trim().startsWith("http")
+  );
+}
+
+async function uploadImageToR2(file, folder) {
+  const formData = new FormData();
+  formData.append("file", file, file.name || "image.jpg");
+  formData.append("folder", folder);
+
+  const response = await fetch(config.imageUploadEndpoint, {
+    method: "POST",
+    body: formData
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok || !result.url) {
+    throw new Error(result.error || "Upload R2 impossible.");
+  }
+
+  return result.url;
+}
+
+async function uploadImageToSupabase(file, bucket) {
+  const fileName = `${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}.jpg`;
+
+  const { error } = await supabaseClient.storage
+    .from(bucket)
+    .upload(fileName, file, {
+      cacheControl: "2592000",
+      upsert: false
+    });
+
+  if (error) throw error;
+
+  const { data } = supabaseClient.storage
+    .from(bucket)
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
+}
+
+async function compressImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxWidth = 1200;
+      const ratio = Math.min(1, maxWidth / img.width);
+
+      canvas.width = Math.round(img.width * ratio);
+      canvas.height = Math.round(img.height * ratio);
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(objectUrl);
+
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+
+          resolve(
+            new File([blob], `${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2)}.jpg`, {
+              type: "image/jpeg"
+            })
+          );
+        },
+        "image/jpeg",
+        0.74
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+
+    img.src = objectUrl;
+  });
 }
 
 /* HELPERS */

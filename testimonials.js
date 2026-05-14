@@ -82,7 +82,7 @@
   function renderTestimonial(row) {
     return `
       <article class="testimonial-card">
-        ${row.image_url ? `<img class="testimonial-image" src="${escapeAttribute(row.image_url)}" alt="Nouvelle dédicace coup de cœur partagée par ${escapeAttribute(row.pseudo || "un lecteur")}" loading="lazy" decoding="async" />` : `<div class="testimonial-image-placeholder">📖</div>`}
+        ${row.image_url ? `<img class="testimonial-image" src="${escapeAttribute(row.image_url)}" alt="Nouvelle dédicace coup de cœur partagée par ${escapeAttribute(row.pseudo || "un lecteur")}" loading="lazy" />` : `<div class="testimonial-image-placeholder">📖</div>`}
         <div class="testimonial-card-body">
           <div class="card-tags">
             <span class="badge badge-price">Témoignage</span>
@@ -200,65 +200,117 @@
     });
   }
 
-  async function uploadImage(file) {
-    const compressed = await compressImage(file);
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
 
-    const { error } = await client.storage
-      .from("testimonial-images")
-      .upload(fileName, compressed, { cacheControl: "2592000", upsert: false });
+async function uploadImage(file) {
+  const compressed = await compressImage(file);
 
-    if (error) throw error;
-
-    const { data } = client.storage
-      .from("testimonial-images")
-      .getPublicUrl(fileName);
-
-    return data.publicUrl;
+  if (shouldUseR2Upload()) {
+    try {
+      return await uploadImageToR2(compressed, "testimonial-images");
+    } catch (error) {
+      console.warn("Upload R2 indisponible, fallback Supabase Storage :", error);
+    }
   }
 
-  async function compressImage(file) {
-    return new Promise((resolve) => {
-      const img = new Image();
+  return uploadImageToSupabase(compressed, "testimonial-images");
+}
 
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const maxWidth = 1200;
-        const ratio = Math.min(1, maxWidth / img.width);
+function shouldUseR2Upload() {
+  return (
+    config?.imageUploadProvider === "r2" &&
+    typeof config.imageUploadEndpoint === "string" &&
+    config.imageUploadEndpoint.trim().startsWith("http")
+  );
+}
 
-        canvas.width = Math.round(img.width * ratio);
-        canvas.height = Math.round(img.height * ratio);
+async function uploadImageToR2(file, folder) {
+  const formData = new FormData();
+  formData.append("file", file, file.name || "image.jpg");
+  formData.append("folder", folder);
 
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const response = await fetch(config.imageUploadEndpoint, {
+    method: "POST",
+    body: formData
+  });
 
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              resolve(file);
-              return;
-            }
+  const result = await response.json().catch(() => ({}));
 
-            resolve(
-              new File([blob], `${Date.now()}-${Math.random()
-                .toString(36)
-                .slice(2)}.jpg`, {
-                type: "image/jpeg"
-              })
-            );
-          },
-          "image/jpeg",
-          0.74
-        );
-      };
+  if (!response.ok || !result.url) {
+    throw new Error(result.error || "Upload R2 impossible.");
+  }
 
-      img.onerror = () => resolve(file);
-      img.src = URL.createObjectURL(file);
+  return result.url;
+}
+
+async function uploadImageToSupabase(file, bucket) {
+  const fileName = `${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}.jpg`;
+
+  const { error } = await client.storage
+    .from(bucket)
+    .upload(fileName, file, {
+      cacheControl: "2592000",
+      upsert: false
     });
-  }
 
+  if (error) throw error;
 
-  function setFeedback(message, type) {
+  const { data } = client.storage
+    .from(bucket)
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
+}
+
+async function compressImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxWidth = 1200;
+      const ratio = Math.min(1, maxWidth / img.width);
+
+      canvas.width = Math.round(img.width * ratio);
+      canvas.height = Math.round(img.height * ratio);
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(objectUrl);
+
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+
+          resolve(
+            new File([blob], `${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2)}.jpg`, {
+              type: "image/jpeg"
+            })
+          );
+        },
+        "image/jpeg",
+        0.74
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+
+    img.src = objectUrl;
+  });
+}
+
+function setFeedback(message, type) {
     if (!feedback) return;
     feedback.textContent = message;
     feedback.className = `form-feedback ${type || ""}`;

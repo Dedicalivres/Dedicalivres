@@ -208,13 +208,12 @@
 
     const { data, error } = await supabaseClient
       .from("events")
-      .select("id,title,type,region,city,price,start_date,end_date,website,description,lat,lng,image_url,featured,verified,validated,rejected")
+      .select("*")
       .eq("validated", true)
       .eq("rejected", false)
       .or(`end_date.is.null,end_date.gte.${today}`)
       .order("featured", { ascending: false })
-      .order("start_date", { ascending: true })
-      .limit(300);
+      .order("start_date", { ascending: true });
 
     if (error) {
       console.error(error);
@@ -314,8 +313,6 @@
                 class="card-image"
                 src="${escapeAttribute(image)}"
                 alt="${escapeAttribute(event.title || "Événement")}"
-                loading="lazy"
-                decoding="async"
               />
             `
             : `<div class="card-image"></div>`
@@ -679,70 +676,117 @@
     }
   }
 
-  async function uploadImage(file) {
-    const compressed = await compressImage(file);
 
-    const fileName = `${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}.jpg`;
+async function uploadImage(file) {
+  const compressed = await compressImage(file);
 
-    const { error } = await supabaseClient.storage
-      .from("event-images")
-      .upload(fileName, compressed, {
-        cacheControl: "2592000",
-        upsert: false
-      });
-
-    if (error) throw error;
-
-    const { data } = supabaseClient.storage
-      .from("event-images")
-      .getPublicUrl(fileName);
-
-    return data.publicUrl;
+  if (shouldUseR2Upload()) {
+    try {
+      return await uploadImageToR2(compressed, "event-images");
+    } catch (error) {
+      console.warn("Upload R2 indisponible, fallback Supabase Storage :", error);
+    }
   }
 
-  async function compressImage(file) {
-    return new Promise((resolve) => {
-      const img = new Image();
+  return uploadImageToSupabase(compressed, "event-images");
+}
 
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const maxWidth = 1200;
-        const ratio = Math.min(1, maxWidth / img.width);
+function shouldUseR2Upload() {
+  return (
+    config?.imageUploadProvider === "r2" &&
+    typeof config.imageUploadEndpoint === "string" &&
+    config.imageUploadEndpoint.trim().startsWith("http")
+  );
+}
 
-        canvas.width = img.width * ratio;
-        canvas.height = img.height * ratio;
+async function uploadImageToR2(file, folder) {
+  const formData = new FormData();
+  formData.append("file", file, file.name || "image.jpg");
+  formData.append("folder", folder);
 
-        const ctx = canvas.getContext("2d");
+  const response = await fetch(config.imageUploadEndpoint, {
+    method: "POST",
+    body: formData
+  });
 
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const result = await response.json().catch(() => ({}));
 
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              resolve(file);
-              return;
-            }
+  if (!response.ok || !result.url) {
+    throw new Error(result.error || "Upload R2 impossible.");
+  }
 
-            resolve(
-              new File([blob], `${Date.now()}-${Math.random()
-                .toString(36)
-                .slice(2)}.jpg`, {
-                type: "image/jpeg"
-              })
-            );
-          },
-          "image/jpeg",
-          0.74
-        );
-      };
+  return result.url;
+}
 
-      img.src = URL.createObjectURL(file);
+async function uploadImageToSupabase(file, bucket) {
+  const fileName = `${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}.jpg`;
+
+  const { error } = await supabaseClient.storage
+    .from(bucket)
+    .upload(fileName, file, {
+      cacheControl: "2592000",
+      upsert: false
     });
-  }
 
-  async function geocodeMunicipality(city) {
+  if (error) throw error;
+
+  const { data } = supabaseClient.storage
+    .from(bucket)
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
+}
+
+async function compressImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxWidth = 1200;
+      const ratio = Math.min(1, maxWidth / img.width);
+
+      canvas.width = Math.round(img.width * ratio);
+      canvas.height = Math.round(img.height * ratio);
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(objectUrl);
+
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+
+          resolve(
+            new File([blob], `${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2)}.jpg`, {
+              type: "image/jpeg"
+            })
+          );
+        },
+        "image/jpeg",
+        0.74
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+
+    img.src = objectUrl;
+  });
+}
+
+async function geocodeMunicipality(city) {
     try {
       const response = await fetch(
         `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(city)}&limit=1&type=municipality`
