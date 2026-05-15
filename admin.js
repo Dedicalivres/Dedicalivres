@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V8.3 / Auth robuste + upload hybride R2
+   DÉDICALIVRES — ADMIN V8.5 / Archives événements passés
 ========================================================= */
 
 "use strict";
@@ -30,6 +30,7 @@ const eventsCount = document.getElementById("events-count");
 
 const searchInput = document.getElementById("search-input");
 const filterStatus = document.getElementById("filter-status");
+const filterArchive = document.getElementById("filter-archive");
 const filterType = document.getElementById("filter-type");
 
 const statsEvents = document.getElementById("stats-events");
@@ -69,6 +70,7 @@ let map = null;
 let markersLayer = null;
 let selectedAdminImageFile = null;
 let adminMapRequested = false;
+let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
@@ -158,6 +160,7 @@ function bindEvents() {
 
   searchInput?.addEventListener("input", renderEvents);
   filterStatus?.addEventListener("change", renderEvents);
+  filterArchive?.addEventListener("change", handleArchiveFilterChange);
   filterType?.addEventListener("change", renderEvents);
 
   closeEditModalBtn?.addEventListener("click", closeEditModal);
@@ -472,11 +475,21 @@ function safeAdminStepSync(label, fn) {
 }
 
 async function loadEvents() {
-  const { data, error } = await supabaseClient
+  const archiveMode = getArchiveMode();
+  const includeArchives = archiveMode !== "current";
+  const today = new Date().toISOString().slice(0, 10);
+
+  let query = supabaseClient
     .from("events")
-    .select(ADMIN_EVENTS_COLUMNS)
+    .select(ADMIN_EVENTS_COLUMNS);
+
+  if (!includeArchives) {
+    query = query.or(`and(validated.eq.false,rejected.eq.false),start_date.gte.${today},end_date.gte.${today}`);
+  }
+
+  const { data, error } = await query
     .order("created_at", { ascending: false })
-    .limit(500);
+    .limit(includeArchives ? 500 : 250);
 
   if (error) {
     console.error(error);
@@ -485,7 +498,54 @@ async function loadEvents() {
     return;
   }
 
+  archiveEventsLoaded = includeArchives;
   allEvents = Array.isArray(data) ? data : [];
+}
+
+async function handleArchiveFilterChange() {
+  if (!(await ensureAdminSession())) return;
+
+  const archiveMode = getArchiveMode();
+  const needsArchives = archiveMode !== "current";
+
+  if (needsArchives !== archiveEventsLoaded) {
+    await safeAdminStep("chargement archives événements", loadEvents);
+    refreshAdminViews();
+
+    if (adminMapRequested) {
+      safeAdminStepSync("carte admin", initMap);
+    }
+
+    showToast(needsArchives ? "Archives événements chargées" : "Archives repliées");
+    return;
+  }
+
+  renderEvents();
+}
+
+function getArchiveMode() {
+  return filterArchive?.value || "current";
+}
+
+function isPendingEvent(event) {
+  return !event?.validated && !event?.rejected;
+}
+
+function isPastEvent(event) {
+  const dateValue = event?.end_date || event?.start_date || "";
+  if (!dateValue) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const eventDate = new Date(`${String(dateValue).slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(eventDate.getTime())) return false;
+
+  return eventDate < today;
+}
+
+function isCurrentAdminEvent(event) {
+  return isPendingEvent(event) || !isPastEvent(event);
 }
 
 async function loadNewsletterCount() {
@@ -686,6 +746,7 @@ function cleanLabel(value) {
 function getFilteredEvents() {
   const search = normalize(searchInput?.value || "");
   const status = filterStatus?.value || "";
+  const archiveMode = getArchiveMode();
   const type = filterType?.value || "";
 
   return allEvents.filter((event) => {
@@ -698,6 +759,9 @@ function getFilteredEvents() {
 
     if (search && !haystack.includes(search)) return false;
     if (type && event.type !== type) return false;
+
+    if (archiveMode === "current" && !isCurrentAdminEvent(event)) return false;
+    if (archiveMode === "past" && (!isPastEvent(event) || isPendingEvent(event))) return false;
 
     if (status === "pending") return !event.validated && !event.rejected;
     if (status === "validated") return !!event.validated;
@@ -716,7 +780,15 @@ function renderEvents() {
   if (!eventsContainer) return;
 
   const events = getFilteredEvents();
-  if (eventsCount) eventsCount.textContent = `${events.length} élément${events.length > 1 ? "s" : ""}`;
+  if (eventsCount) {
+    const archiveMode = getArchiveMode();
+    const archiveLabel = archiveMode === "all"
+      ? " · archives incluses"
+      : archiveMode === "past"
+        ? " · passés uniquement"
+        : " · actifs + en attente";
+    eventsCount.textContent = `${events.length} élément${events.length > 1 ? "s" : ""}${archiveLabel}`;
+  }
 
   if (!events.length) {
     eventsContainer.innerHTML = `
