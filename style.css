@@ -2413,23 +2413,71 @@ button:active,
 
 
 /* =========================================================
-   V8.8 - CORRECTION ANCRES HEADER STICKY
-   Évite que le bouton Soumettre arrive au mauvais endroit
+   V8.9 - LÉGENDE CARTE EN DIRECT
 ========================================================= */
 
-#agenda,
-#regions,
-#soumettre,
-#saved-events {
-  scroll-margin-top: 110px;
+.map-legend-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.86);
+  border: 1px solid rgba(58,28,113,.09);
+  box-shadow: 0 12px 28px rgba(58,28,113,.10);
+  color: var(--text);
+  font-weight: 900;
+}
+
+.map-legend-title {
+  color: var(--purple);
+  margin-right: 2px;
+}
+
+.map-legend-inline span:not(.map-legend-title) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: .92rem;
+  white-space: nowrap;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 3px solid #fff;
+  box-shadow:
+    0 5px 12px rgba(58,28,113,.20),
+    0 0 0 2px rgba(58,28,113,.08);
+}
+
+.legend-salon {
+  background: var(--purple);
+}
+
+.legend-festival {
+  background: var(--orange);
+}
+
+.legend-dedicace {
+  background: #16803c;
 }
 
 @media (max-width: 780px) {
-  #agenda,
-  #regions,
-  #soumettre,
-  #saved-events {
-    scroll-margin-top: 150px;
+  .map-legend-inline {
+    width: 100%;
+    justify-content: center;
+    border-radius: 22px;
+    padding: 12px 14px;
+  }
+
+  .map-legend-inline span:not(.map-legend-title) {
+    font-size: .86rem;
   }
 }
 
