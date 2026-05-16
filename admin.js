@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V8.5 / Archives événements passés
+   DÉDICALIVRES — ADMIN V9.1 / Observatoire territorial
 ========================================================= */
 
 "use strict";
@@ -70,6 +70,7 @@ let map = null;
 let markersLayer = null;
 let selectedAdminImageFile = null;
 let adminMapRequested = false;
+let adminMapMode = "pending";
 let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
@@ -114,6 +115,58 @@ const ADMIN_LOCATION_COLUMNS = [
 ].join(", ");
 
 init();
+ensureAdminObservatoryStyles();
+
+function ensureAdminObservatoryStyles() {
+  if (document.getElementById("admin-observatory-styles")) return;
+
+  const style = document.createElement("style");
+  style.id = "admin-observatory-styles";
+  style.textContent = `
+    .observatory-actions,
+    .admin-map-observatory-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .observatory-actions button,
+    .admin-map-observatory-controls select {
+      border: 1px solid rgba(25,255,156,.22);
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,.08);
+      color: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .admin-map-observatory-controls {
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .admin-map-observatory-controls label {
+      font-weight: 900;
+      opacity: .82;
+    }
+
+    .admin-map-observatory-controls select {
+      min-height: 42px;
+      color: #111;
+      background: #fff;
+    }
+
+    .observatory-region-list {
+      display: grid;
+      gap: 10px;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+
 
 async function init() {
   window.DEDICALIVRES_ADMIN_AUTHENTICATED = false;
@@ -428,7 +481,7 @@ async function loadDashboard() {
   await safeAdminStep("chargement événements", loadEvents);
   await safeAdminStep("chargement indicateur mise en avant", loadNewsletterCount);
   await safeAdminStep("chargement visites", loadVisitsCount);
-  // V9.0 : chargement sobre des zones prioritaires.
+  // V9.1 : chargement sobre des zones prioritaires.
   // Limité aux 100 dernières lignes pour éviter un tableau de bord coûteux.
   await safeAdminStep("chargement zones prioritaires", loadLocationTracking);
 
@@ -604,10 +657,224 @@ if (eventsCount) {
 /* PRIORITY ZONES */
 
 function renderPriorityZones() {
-  renderTopCities();
-  renderDevices();
-  renderTrend();
+  renderTerritorialCoverage();
+  renderEditorialPriorities();
+  renderVisitorSignals();
+  bindObservatoryActions();
 }
+
+
+function renderTerritorialCoverage() {
+  if (!priorityCities) return;
+
+  const regions = getKnownRegions();
+  const rows = regions.map((region) => {
+    const regionEvents = allEvents.filter((event) => cleanLabel(event.region) === region);
+    const upcoming = regionEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event));
+    const pending = regionEvents.filter((event) => isPendingEvent(event));
+    const missingImage = upcoming.filter((event) => !event.image_url);
+    const missingCoords = upcoming.filter((event) => !hasEventCoords(event));
+
+    return {
+      region,
+      upcoming: upcoming.length,
+      pending: pending.length,
+      missingImage: missingImage.length,
+      missingCoords: missingCoords.length,
+      score: upcoming.length + pending.length
+    };
+  }).sort((a, b) => {
+    if (a.score !== b.score) return a.score - b.score;
+    return a.region.localeCompare(b.region, "fr");
+  });
+
+  const empty = rows.filter((row) => row.upcoming === 0 && row.pending === 0);
+  const weak = rows.filter((row) => row.upcoming > 0 && row.upcoming <= 2);
+  const covered = rows.filter((row) => row.upcoming > 2);
+
+  priorityCities.innerHTML = `
+    <div class="priority-trend-box">
+      <strong>${covered.length}/${regions.length}</strong>
+      <span>régions bien couvertes</span>
+    </div>
+
+    <div class="priority-mini">
+      <b>${empty.length}</b> région(s) sans événement à venir ou en attente.
+    </div>
+
+    ${renderRegionTable(rows.slice(0, 7))}
+  `;
+}
+
+function renderEditorialPriorities() {
+  if (!priorityDevices) return;
+
+  const pending = allEvents.filter((event) => isPendingEvent(event));
+  const upcoming = allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event));
+  const missingImage = upcoming.filter((event) => !event.image_url);
+  const missingCoords = upcoming.filter((event) => !hasEventCoords(event));
+  const noWebsite = upcoming.filter((event) => !event.website);
+
+  priorityDevices.innerHTML = `
+    <div class="priority-trend-box">
+      <strong>${pending.length}</strong>
+      <span>événement(s) en attente</span>
+    </div>
+
+    <div class="priority-mini">
+      <b>${missingImage.length}</b> sans image ·
+      <b>${missingCoords.length}</b> sans coordonnées ·
+      <b>${noWebsite.length}</b> sans site officiel
+    </div>
+
+    <div class="observatory-actions">
+      <button type="button" data-observatory-map="pending">Carte des attentes</button>
+      <button type="button" data-observatory-map="missing-image">Sans image</button>
+      <button type="button" data-observatory-map="missing-coords">Sans coordonnées</button>
+    </div>
+  `;
+}
+
+function renderVisitorSignals() {
+  if (!priorityTrend) return;
+
+  const recent = getRecentLocationRows(7);
+  const topCities = countBy(
+    recent
+      .map((row) => cleanLabel(row.city || row.region || "Zone inconnue"))
+      .filter(Boolean)
+  );
+
+  const topCity = Object.entries(topCities)
+    .sort((a, b) => b[1] - a[1])[0];
+
+  const deviceCounts = countBy(
+    locationRows.map((row) => cleanLabel(row.device || "inconnu"))
+  );
+
+  const deviceSummary = Object.entries(deviceCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, count]) => `${escapeHtml(name)} : ${count}`)
+    .join(" · ");
+
+  priorityTrend.innerHTML = `
+    <div class="priority-trend-box">
+      <strong>${recent.length}</strong>
+      <span>localisation(s) sur 7 jours</span>
+    </div>
+
+    ${
+      topCity
+        ? `
+          <div class="priority-mini">
+            Zone visiteur la plus active :
+            <b>${escapeHtml(topCity[0])}</b>
+          </div>
+        `
+        : `
+          <div class="priority-mini">
+            Les signaux visiteurs apparaîtront après les clics sur “Me localiser”.
+          </div>
+        `
+    }
+
+    <div class="priority-mini">
+      ${deviceSummary || "Aucune donnée appareil exploitable pour le moment."}
+    </div>
+
+    <div class="observatory-actions">
+      <button type="button" data-observatory-map="visitors">Carte visiteurs</button>
+      <button type="button" data-observatory-map="upcoming">Carte événements à venir</button>
+    </div>
+  `;
+}
+
+function renderRegionTable(rows) {
+  if (!rows.length) {
+    return `<p class="priority-empty">Aucune région à analyser.</p>`;
+  }
+
+  return `
+    <div class="observatory-region-list">
+      ${rows.map((row) => `
+        <div class="priority-row">
+          <div class="priority-row-head">
+            <strong>${escapeHtml(row.region)}</strong>
+            <span>${row.upcoming} à venir</span>
+          </div>
+          <div class="priority-mini">
+            ${row.pending} en attente · ${row.missingImage} sans image · ${row.missingCoords} sans GPS
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function bindObservatoryActions() {
+  document.querySelectorAll("[data-observatory-map]").forEach((button) => {
+    button.addEventListener("click", () => {
+      adminMapMode = button.dataset.observatoryMap || "pending";
+
+      if (!adminMapRequested) {
+        expandAdminMap();
+      } else {
+        initMap();
+        if (adminMapStatus) adminMapStatus.textContent = getAdminMapModeLabel();
+      }
+
+      adminMapPanel?.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    });
+  });
+}
+
+function getKnownRegions() {
+  const defaults = [
+    "Auvergne-Rhône-Alpes",
+    "Bourgogne-Franche-Comté",
+    "Bretagne",
+    "Centre-Val de Loire",
+    "Corse",
+    "Grand Est",
+    "Hauts-de-France",
+    "Île-de-France",
+    "Normandie",
+    "Nouvelle-Aquitaine",
+    "Occitanie",
+    "Pays de la Loire",
+    "Provence-Alpes-Côte d’Azur"
+  ];
+
+  const fromEvents = allEvents
+    .map((event) => cleanLabel(event.region))
+    .filter(Boolean);
+
+  return Array.from(new Set([...defaults, ...fromEvents]))
+    .sort((a, b) => a.localeCompare(b, "fr"));
+}
+
+function hasEventCoords(event) {
+  return (
+    Number.isFinite(Number(event?.lat)) &&
+    Number.isFinite(Number(event?.lng))
+  );
+}
+
+function getRecentLocationRows(days = 7) {
+  const now = new Date();
+  const since = new Date(now);
+  since.setDate(now.getDate() - days);
+
+  return locationRows.filter((row) => {
+    if (!row.created_at) return false;
+    return new Date(row.created_at) >= since;
+  });
+}
+
 
 function renderLocationDisabledPanels() {
   const message = `<p class="priority-empty">Module localisation désactivé pour réduire la consommation Supabase.</p>`;
@@ -624,7 +891,7 @@ function renderTopCities() {
   if (!priorityCities) return;
 
   if (!locationRows.length) {
-    priorityCities.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant. Les zones apparaîtront après les premiers clics visiteurs sur “Me localiser”.</p>`;
+    priorityCities.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant.</p>`;
     return;
   }
 
@@ -641,7 +908,7 @@ function renderDevices() {
   if (!priorityDevices) return;
 
   if (!locationRows.length) {
-    priorityDevices.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant. Les zones apparaîtront après les premiers clics visiteurs sur “Me localiser”.</p>`;
+    priorityDevices.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant.</p>`;
     return;
   }
 
@@ -1011,6 +1278,86 @@ async function deleteRejectedEvent(id) {
 
 /* MAP */
 
+
+function ensureAdminMapControls() {
+  if (!adminMapPanel || document.getElementById("admin-map-mode")) return;
+
+  const controls = document.createElement("div");
+  controls.className = "admin-map-observatory-controls";
+  controls.innerHTML = `
+    <label for="admin-map-mode">Affichage carte</label>
+    <select id="admin-map-mode">
+      <option value="pending">Événements en attente</option>
+      <option value="missing-image">Événements sans image</option>
+      <option value="missing-coords">Événements sans coordonnées</option>
+      <option value="upcoming">Événements à venir</option>
+      <option value="visitors">Localisations visiteurs</option>
+      <option value="all">Tous les événements chargés</option>
+    </select>
+  `;
+
+  adminMapToggle?.insertAdjacentElement("afterend", controls);
+
+  const select = controls.querySelector("#admin-map-mode");
+  if (select) {
+    select.value = adminMapMode;
+    select.addEventListener("change", () => {
+      adminMapMode = select.value || "pending";
+      initMap();
+      if (adminMapStatus) adminMapStatus.textContent = getAdminMapModeLabel();
+    });
+  }
+}
+
+function getAdminMapModeLabel() {
+  const labels = {
+    pending: "Carte analytique · événements en attente",
+    "missing-image": "Carte analytique · événements sans image",
+    "missing-coords": "Carte analytique · événements sans coordonnées",
+    upcoming: "Carte analytique · événements à venir",
+    visitors: "Carte analytique · localisations visiteurs",
+    all: "Carte analytique · tous les événements chargés"
+  };
+
+  return labels[adminMapMode] || labels.pending;
+}
+
+function getAdminMapEvents() {
+  const upcoming = allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event));
+
+  if (adminMapMode === "pending") {
+    return allEvents.filter((event) => isPendingEvent(event) && hasEventCoords(event));
+  }
+
+  if (adminMapMode === "missing-image") {
+    return upcoming.filter((event) => !event.image_url && hasEventCoords(event));
+  }
+
+  if (adminMapMode === "missing-coords") {
+    return [];
+  }
+
+  if (adminMapMode === "upcoming") {
+    return upcoming.filter((event) => hasEventCoords(event));
+  }
+
+  if (adminMapMode === "all") {
+    return allEvents.filter((event) => hasEventCoords(event));
+  }
+
+  return [];
+}
+
+function getAdminMapColor(event) {
+  if (isPendingEvent(event)) return "#ffb020";
+  if (!event.image_url) return "#ff6b35";
+  if (event.type === "Dédicace") return "#16803c";
+  if (event.type === "Festival") return "#ff6b35";
+  if (event.type === "Salon") return "#3a1c71";
+  return "#2f6fed";
+}
+
+
 function collapseAdminMap() {
   adminMapRequested = false;
 
@@ -1027,7 +1374,7 @@ function collapseAdminMap() {
   }
 
   if (adminMapStatus) {
-    adminMapStatus.textContent = "Carte repliée par défaut pour limiter les chargements";
+    adminMapStatus.textContent = "Observatoire prioritaire · carte analytique chargée uniquement à la demande";
   }
 }
 
@@ -1047,9 +1394,10 @@ function expandAdminMap() {
   }
 
   if (adminMapStatus) {
-    adminMapStatus.textContent = "Carte chargée à la demande";
+    adminMapStatus.textContent = getAdminMapModeLabel();
   }
 
+  ensureAdminMapControls();
   initMap();
 
   setTimeout(() => {
@@ -1072,6 +1420,8 @@ function initMap() {
   if (!window.L) return;
   if (!adminMapRequested) return;
 
+  ensureAdminMapControls();
+
   const mapElement = adminMapElement || document.getElementById("admin-map");
   if (!mapElement) return;
 
@@ -1087,26 +1437,80 @@ function initMap() {
 
   markersLayer.clearLayers();
 
-  allEvents.forEach((event) => {
-    if (!event.lat || !event.lng) return;
+  if (adminMapStatus) {
+    adminMapStatus.textContent = getAdminMapModeLabel();
+  }
 
-    const marker = L.circleMarker([event.lat, event.lng], {
-      radius: 7,
-      color: "#19ff9c",
-      fillColor: "#19ff9c",
+  if (adminMapMode === "visitors") {
+    locationRows
+      .filter((row) => Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lng)))
+      .forEach((row) => {
+        const marker = L.circleMarker([Number(row.lat), Number(row.lng)], {
+          radius: 7,
+          color: "#19ff9c",
+          fillColor: "#19ff9c",
+          fillOpacity: 0.78
+        });
+
+        marker.bindPopup(`
+          <strong>${escapeHtml(row.city || row.region || "Localisation visiteur")}</strong>
+          <br>
+          ${escapeHtml(row.device || "Appareil inconnu")}
+          <br>
+          ${escapeHtml(formatDate(row.created_at))}
+        `);
+
+        marker.addTo(markersLayer);
+      });
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+
+    return;
+  }
+
+  if (adminMapMode === "missing-coords") {
+    const missing = allEvents
+      .filter((event) => event.validated && !event.rejected && !isPastEvent(event) && !hasEventCoords(event))
+      .slice(0, 12);
+
+    if (adminMapStatus) {
+      adminMapStatus.textContent =
+        missing.length
+          ? `${missing.length} événement(s) sans coordonnées à compléter dans la liste`
+          : "Aucun événement à venir sans coordonnées";
+    }
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+
+    return;
+  }
+
+  getAdminMapEvents().forEach((event) => {
+    const color = getAdminMapColor(event);
+
+    const marker = L.circleMarker([Number(event.lat), Number(event.lng)], {
+      radius: isPendingEvent(event) ? 9 : 7,
+      color,
+      fillColor: color,
       fillOpacity: 0.85
     });
 
     marker.bindPopup(`
       <strong>${escapeHtml(event.title)}</strong>
       <br>
-      ${escapeHtml(event.city || "")}
+      ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}
+      <br>
+      ${escapeHtml(event.type || "")}
+      <br>
+      <a href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer">Voir la fiche</a>
     `);
 
     marker.addTo(markersLayer);
   });
-
-  // Marqueurs de recherches utilisateurs désactivés pour réduire les requêtes localisation.
 
   setTimeout(() => {
     map.invalidateSize();
