@@ -40,11 +40,14 @@
   const cityLatInput = document.getElementById("city-lat");
   const cityLngInput = document.getElementById("city-lng");
   const cityHelp = document.getElementById("city-help");
+  const citySuggestions = document.getElementById("city-suggestions");
 
   let map;
   let markersLayer;
   let allEvents = [];
   let markerByEventId = {};
+  let cityAutocompleteTimer = null;
+  let citySuggestionCache = new Map();
   let userPosition = null;
   let selectedPreviewImage = null;
   let userMarker = null;
@@ -260,7 +263,7 @@
       ].join(" "));
 
       if (search && !haystack.includes(search)) return false;
-      if (region && event.region !== region) return false;
+      if (region && normalize(event.region) !== normalize(region)) return false;
       if (type && event.type !== type) return false;
       if (selectedMonth && !matchesMonth(event, selectedMonth)) return false;
 
@@ -269,8 +272,37 @@
   }
 
   function matchesMonth(event, selectedMonth) {
-    const start = event.start_date || "";
-    return start.startsWith(selectedMonth);
+    if (!selectedMonth) return true;
+
+    const monthStart = new Date(`${selectedMonth}-01T00:00:00`);
+    if (Number.isNaN(monthStart.getTime())) return true;
+
+    const monthEnd = new Date(
+      monthStart.getFullYear(),
+      monthStart.getMonth() + 1,
+      0,
+      23,
+      59,
+      59
+    );
+
+    const eventStart = parseLocalDate(event.start_date);
+    const eventEnd = parseLocalDate(event.end_date || event.start_date);
+
+    if (!eventStart && !eventEnd) return false;
+
+    const start = eventStart || eventEnd;
+    const end = eventEnd || eventStart;
+
+    return start <= monthEnd && end >= monthStart;
+  }
+
+  function parseLocalDate(value) {
+    if (!value) return null;
+
+    const date = new Date(`${value}T00:00:00`);
+
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   function renderEvents(events) {
@@ -313,6 +345,8 @@
                 class="card-image"
                 src="${escapeAttribute(image)}"
                 alt="${escapeAttribute(event.title || "Événement")}"
+                loading="lazy"
+                decoding="async"
               />
             `
             : `<div class="card-image"></div>`
@@ -676,133 +710,137 @@
     }
   }
 
+  async function uploadImage(file) {
+    const compressed = await compressImage(file);
 
-async function uploadImage(file) {
-  const compressed = await compressImage(file);
+    const extension = (compressed.name.split(".").pop() || "jpg").toLowerCase();
 
-  if (shouldUseR2Upload()) {
-    try {
-      return await uploadImageToR2(compressed, "event-images");
-    } catch (error) {
-      console.warn("Upload R2 indisponible, fallback Supabase Storage :", error);
-    }
+    const fileName = `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}.${extension}`;
+
+    const { error } = await supabaseClient.storage
+      .from("event-images")
+      .upload(fileName, compressed);
+
+    if (error) throw error;
+
+    const { data } = supabaseClient.storage
+      .from("event-images")
+      .getPublicUrl(fileName);
+
+    return data.publicUrl;
   }
 
-  return uploadImageToSupabase(compressed, "event-images");
-}
+  async function compressImage(file) {
+    return new Promise((resolve) => {
+      const img = new Image();
 
-function shouldUseR2Upload() {
-  return (
-    config?.imageUploadProvider === "r2" &&
-    typeof config.imageUploadEndpoint === "string" &&
-    config.imageUploadEndpoint.trim().startsWith("http")
-  );
-}
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxWidth = 1600;
+        const ratio = Math.min(1, maxWidth / img.width);
 
-async function uploadImageToR2(file, folder) {
-  const formData = new FormData();
-  formData.append("file", file, file.name || "image.jpg");
-  formData.append("folder", folder);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
 
-  const response = await fetch(config.imageUploadEndpoint, {
-    method: "POST",
-    body: formData
-  });
+        const ctx = canvas.getContext("2d");
 
-  const result = await response.json().catch(() => ({}));
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-  if (!response.ok || !result.url) {
-    throw new Error(result.error || "Upload R2 impossible.");
-  }
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
 
-  return result.url;
-}
+            resolve(
+              new File([blob], file.name, {
+                type: "image/jpeg"
+              })
+            );
+          },
+          "image/jpeg",
+          0.86
+        );
+      };
 
-async function uploadImageToSupabase(file, bucket) {
-  const fileName = `${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2)}.jpg`;
-
-  const { error } = await supabaseClient.storage
-    .from(bucket)
-    .upload(fileName, file, {
-      cacheControl: "2592000",
-      upsert: false
+      img.src = URL.createObjectURL(file);
     });
+  }
 
-  if (error) throw error;
+  async function geocodeMunicipality(city) {
+    const suggestions = await fetchCitySuggestions(city, 1);
 
-  const { data } = supabaseClient.storage
-    .from(bucket)
-    .getPublicUrl(fileName);
+    return suggestions[0] || null;
+  }
 
-  return data.publicUrl;
-}
+  async function fetchCitySuggestions(query, limit = 6) {
+    const value = String(query || "").trim();
 
-async function compressImage(file) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
+    if (value.length < 3) return [];
 
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const maxWidth = 1200;
-      const ratio = Math.min(1, maxWidth / img.width);
+    const cacheKey = `${value.toLowerCase()}::${limit}`;
 
-      canvas.width = Math.round(img.width * ratio);
-      canvas.height = Math.round(img.height * ratio);
+    if (citySuggestionCache.has(cacheKey)) {
+      return citySuggestionCache.get(cacheKey);
+    }
 
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      canvas.toBlob(
-        (blob) => {
-          URL.revokeObjectURL(objectUrl);
-
-          if (!blob) {
-            resolve(file);
-            return;
-          }
-
-          resolve(
-            new File([blob], `${Date.now()}-${Math.random()
-              .toString(36)
-              .slice(2)}.jpg`, {
-              type: "image/jpeg"
-            })
-          );
-        },
-        "image/jpeg",
-        0.74
-      );
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(file);
-    };
-
-    img.src = objectUrl;
-  });
-}
-
-async function geocodeMunicipality(city) {
     try {
       const response = await fetch(
-        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(city)}&limit=1&type=municipality`
+        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(value)}&limit=${limit}&type=municipality`
       );
 
+      if (!response.ok) return [];
+
       const data = await response.json();
-      const coords = data.features?.[0]?.geometry?.coordinates;
 
-      if (!coords) return null;
+      const suggestions = (data.features || [])
+        .map((feature) => {
+          const properties = feature.properties || {};
+          const coords = feature.geometry?.coordinates || [];
 
-      return {
-        lng: Number(coords[0]),
-        lat: Number(coords[1])
-      };
-    } catch {
-      return null;
+          const cityName =
+            properties.city ||
+            properties.municipality ||
+            properties.name ||
+            "";
+
+          const postcode = properties.postcode || "";
+          const context = properties.context || "";
+
+          const label = [
+            cityName,
+            postcode,
+            context
+          ]
+            .filter(Boolean)
+            .join(" — ");
+
+          return {
+            label,
+            city: cityName,
+            postcode,
+            context,
+            lng: Number(coords[0]),
+            lat: Number(coords[1])
+          };
+        })
+        .filter((item) => {
+          return (
+            item.city &&
+            Number.isFinite(item.lat) &&
+            Number.isFinite(item.lng)
+          );
+        });
+
+      citySuggestionCache.set(cacheKey, suggestions);
+
+      return suggestions;
+    } catch (error) {
+      console.warn("Autocomplétion ville indisponible :", error);
+      return [];
     }
   }
 
@@ -834,20 +872,149 @@ async function geocodeMunicipality(city) {
   function bindCityAutocomplete() {
     if (!cityInput) return;
 
-    cityInput.addEventListener("change", async () => {
-      const coords = await geocodeMunicipality(cityInput.value);
+    cityInput.addEventListener("input", () => {
+      const value = cityInput.value.trim();
 
-      if (!coords) return;
+      if (cityLatInput) cityLatInput.value = "";
+      if (cityLngInput) cityLngInput.value = "";
 
-      cityLatInput.value = coords.lat;
-      cityLngInput.value = coords.lng;
+      clearTimeout(cityAutocompleteTimer);
+
+      if (!citySuggestions || value.length < 3) {
+        clearCitySuggestions();
+
+        if (cityHelp) {
+          cityHelp.textContent =
+            value.length > 0
+              ? "Tapez au moins 3 caractères pour rechercher une commune."
+              : "Commencez à saisir une ville puis choisissez la bonne commune.";
+          cityHelp.classList.remove("success", "error");
+        }
+
+        return;
+      }
 
       if (cityHelp) {
-        cityHelp.textContent = "Ville validée ✔";
-        cityHelp.classList.remove("error");
-        cityHelp.classList.add("success");
+        cityHelp.textContent = "Recherche de communes…";
+        cityHelp.classList.remove("success", "error");
       }
+
+      cityInput.classList.add("loading");
+
+      cityAutocompleteTimer = setTimeout(async () => {
+        const suggestions = await fetchCitySuggestions(value, 8);
+
+        renderCitySuggestions(suggestions);
+
+        cityInput.classList.remove("loading");
+
+        if (cityHelp) {
+          if (suggestions.length) {
+            cityHelp.textContent =
+              "Choisissez une commune dans la liste pour valider sa position.";
+            cityHelp.classList.remove("error");
+          } else {
+            cityHelp.textContent = "Aucune commune trouvée pour cette saisie.";
+            cityHelp.classList.remove("success");
+            cityHelp.classList.add("error");
+          }
+        }
+      }, 300);
     });
+
+    cityInput.addEventListener("change", async () => {
+      const value = cityInput.value.trim();
+
+      if (!value) {
+        clearSelectedCity();
+        return;
+      }
+
+      const selected =
+        findCitySuggestion(value) ||
+        (await geocodeMunicipality(value));
+
+      if (!selected) {
+        clearSelectedCity();
+
+        if (cityHelp) {
+          cityHelp.textContent =
+            "Ville non reconnue. Choisissez une commune proposée dans la liste.";
+          cityHelp.classList.remove("success");
+          cityHelp.classList.add("error");
+        }
+
+        return;
+      }
+
+      applySelectedCity(selected);
+    });
+  }
+
+  function renderCitySuggestions(suggestions) {
+    if (!citySuggestions) return;
+
+    citySuggestions.innerHTML = "";
+
+    suggestions.forEach((suggestion) => {
+      const option = document.createElement("option");
+
+      option.value = suggestion.label;
+      option.dataset.city = suggestion.city;
+      option.dataset.lat = String(suggestion.lat);
+      option.dataset.lng = String(suggestion.lng);
+
+      citySuggestions.appendChild(option);
+    });
+  }
+
+  function clearCitySuggestions() {
+    if (citySuggestions) {
+      citySuggestions.innerHTML = "";
+    }
+  }
+
+  function findCitySuggestion(value) {
+    const normalizedValue = normalize(value);
+
+    if (!citySuggestions) return null;
+
+    const option = Array.from(citySuggestions.options || []).find((item) => {
+      return normalize(item.value) === normalizedValue;
+    });
+
+    if (!option) return null;
+
+    return {
+      label: option.value,
+      city: option.dataset.city || option.value,
+      lat: Number(option.dataset.lat),
+      lng: Number(option.dataset.lng)
+    };
+  }
+
+  function applySelectedCity(selected) {
+    if (!selected) return;
+
+    cityInput.value = selected.city || selected.label || cityInput.value;
+
+    if (cityLatInput) cityLatInput.value = selected.lat;
+    if (cityLngInput) cityLngInput.value = selected.lng;
+
+    if (cityHelp) {
+      cityHelp.textContent = "Ville validée ✔";
+      cityHelp.classList.remove("error");
+      cityHelp.classList.add("success");
+    }
+  }
+
+  function clearSelectedCity() {
+    if (cityLatInput) cityLatInput.value = "";
+    if (cityLngInput) cityLngInput.value = "";
+
+    if (cityHelp) {
+      cityHelp.classList.remove("success", "error");
+    }
   }
 
   function populateMonthFilter() {
