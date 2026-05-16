@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V9.1 / Observatoire territorial
+   DÉDICALIVRES — ADMIN V9.2 / Actions prioritaires
 ========================================================= */
 
 "use strict";
@@ -162,6 +162,94 @@ function ensureAdminObservatoryStyles() {
       display: grid;
       gap: 10px;
     }
+
+    .admin-action-priority-panel {
+      margin: 0 0 18px;
+      padding: 16px;
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at top left, rgba(25,255,156,.12), transparent 36%),
+        rgba(255,255,255,.06);
+      border: 1px solid rgba(25,255,156,.18);
+      box-shadow: 0 12px 28px rgba(0,0,0,.12);
+    }
+
+    .admin-action-priority-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .admin-action-priority-head strong {
+      font-size: 1.02rem;
+      letter-spacing: .03em;
+    }
+
+    .admin-action-priority-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .admin-action-priority-card {
+      min-height: 92px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      cursor: pointer;
+      color: inherit;
+      text-align: left;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+
+    .admin-action-priority-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(25,255,156,.34);
+      background: rgba(255,255,255,.12);
+    }
+
+    .admin-action-priority-card b {
+      display: block;
+      font-size: 1.7rem;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .admin-action-priority-card span {
+      display: block;
+      font-size: .78rem;
+      font-weight: 800;
+      opacity: .82;
+      line-height: 1.25;
+    }
+
+    .admin-action-priority-card.is-warning b {
+      color: #ffb020;
+    }
+
+    .admin-action-priority-card.is-danger b {
+      color: #ff6b6b;
+    }
+
+    .admin-action-priority-card.is-ok b {
+      color: #19ff9c;
+    }
+
+    @media (max-width: 980px) {
+      .admin-action-priority-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .admin-action-priority-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
   `;
   document.head.appendChild(style);
 }
@@ -506,6 +594,7 @@ async function loadDashboard() {
 
 function refreshAdminViews() {
   safeAdminStepSync("statistiques", updateStats);
+  safeAdminStepSync("actions prioritaires", renderPriorityActionPanel);
   safeAdminStepSync("liste événements", renderEvents);
   safeAdminStepSync("premium", renderPremiumDashboard);
   safeAdminStepSync("réseaux", renderSocialUpcoming);
@@ -653,6 +742,154 @@ if (eventsCount) {
     eventsCount.textContent = `${getFilteredEvents().length} éléments`;
   }
 }
+
+
+/* ACTIONS PRIORITAIRES */
+
+function renderPriorityActionPanel() {
+  const overviewPanel = document.getElementById("tab-overview");
+  const statsGrid = overviewPanel?.querySelector(".stats-grid");
+
+  if (!overviewPanel || !statsGrid) return;
+
+  let panel = document.getElementById("admin-action-priority-panel");
+
+  if (!panel) {
+    panel = document.createElement("section");
+    panel.id = "admin-action-priority-panel";
+    panel.className = "admin-action-priority-panel";
+    statsGrid.insertAdjacentElement("afterend", panel);
+  }
+
+  const pending = allEvents.filter((event) => isPendingEvent(event));
+  const upcoming = allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event));
+  const missingImage = upcoming.filter((event) => !event.image_url);
+  const missingCoords = upcoming.filter((event) => !hasEventCoords(event));
+  const soon = upcoming.filter((event) => isUpcomingWithinDays(event, 14));
+  const featuredPast = allEvents.filter((event) => event.featured && isPastEvent(event));
+
+  panel.innerHTML = `
+    <div class="admin-action-priority-head">
+      <strong>À traiter maintenant</strong>
+      <small>Raccourcis éditoriaux sans charger d’images</small>
+    </div>
+
+    <div class="admin-action-priority-grid">
+      ${renderPriorityActionCard("pending", pending.length, "Événements en attente", pending.length ? "is-warning" : "is-ok")}
+      ${renderPriorityActionCard("missing-image", missingImage.length, "Validés sans image", missingImage.length ? "is-warning" : "is-ok")}
+      ${renderPriorityActionCard("missing-coords", missingCoords.length, "Validés sans coordonnées", missingCoords.length ? "is-danger" : "is-ok")}
+      ${renderPriorityActionCard("soon", soon.length, "Dans les 14 jours", soon.length ? "is-warning" : "is-ok")}
+      ${renderPriorityActionCard("featured-past", featuredPast.length, "Mis en avant passés", featuredPast.length ? "is-danger" : "is-ok")}
+    </div>
+  `;
+
+  panel.querySelectorAll("[data-priority-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      applyPriorityAction(button.dataset.priorityAction);
+    });
+  });
+}
+
+function renderPriorityActionCard(action, count, label, className) {
+  return `
+    <button
+      type="button"
+      class="admin-action-priority-card ${className || ""}"
+      data-priority-action="${escapeHtml(action)}"
+    >
+      <b>${count}</b>
+      <span>${escapeHtml(label)}</span>
+    </button>
+  `;
+}
+
+function applyPriorityAction(action) {
+  const eventsTab = document.querySelector('.admin-tab[data-tab="events"]');
+  eventsTab?.click();
+
+  if (filterArchive) {
+    filterArchive.value = "current";
+  }
+
+  if (filterType) {
+    filterType.value = "";
+  }
+
+  if (searchInput) {
+    searchInput.value = "";
+  }
+
+  if (filterStatus) {
+    if (action === "pending") {
+      filterStatus.value = "pending";
+    } else if (action === "missing-image") {
+      filterStatus.value = "missing-image";
+    } else if (action === "featured-past") {
+      filterStatus.value = "featured";
+      if (filterArchive) filterArchive.value = "past";
+    } else {
+      filterStatus.value = "";
+    }
+  }
+
+  if (action === "missing-coords") {
+    renderCustomAdminEventList(
+      allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event) && !hasEventCoords(event)),
+      "Événements validés sans coordonnées"
+    );
+    return;
+  }
+
+  if (action === "soon") {
+    renderCustomAdminEventList(
+      allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event) && isUpcomingWithinDays(event, 14)),
+      "Événements dans les 14 prochains jours"
+    );
+    return;
+  }
+
+  if (action === "featured-past") {
+    renderCustomAdminEventList(
+      allEvents.filter((event) => event.featured && isPastEvent(event)),
+      "Événements mis en avant déjà passés"
+    );
+    return;
+  }
+
+  renderEvents();
+
+  document.getElementById("tab-events")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+function renderCustomAdminEventList(events, label) {
+  if (!eventsContainer) return;
+
+  if (eventsCount) {
+    eventsCount.textContent =
+      `${events.length} élément${events.length > 1 ? "s" : ""} · ${label}`;
+  }
+
+  if (!events.length) {
+    eventsContainer.innerHTML = `
+      <article class="event-card">
+        Aucun élément pour ce raccourci.
+      </article>
+    `;
+    return;
+  }
+
+  eventsContainer.innerHTML = events.map(renderEventCard).join("");
+  bindEventActions();
+
+  document.getElementById("tab-events")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
 
 /* PRIORITY ZONES */
 
