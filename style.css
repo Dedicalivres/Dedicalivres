@@ -2410,3 +2410,26 @@ button:active,
     font-size: .76rem !important;
   }
 }
+
+
+/* =========================================================
+   V8.8 - CORRECTION ANCRES HEADER STICKY
+   Évite que le bouton Soumettre arrive au mauvais endroit
+========================================================= */
+
+#agenda,
+#regions,
+#soumettre,
+#saved-events {
+  scroll-margin-top: 110px;
+}
+
+@media (max-width: 780px) {
+  #agenda,
+  #regions,
+  #soumettre,
+  #saved-events {
+    scroll-margin-top: 150px;
+  }
+}
+
