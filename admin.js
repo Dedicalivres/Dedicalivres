@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V9.2 / Actions prioritaires
+   DÉDICALIVRES — ADMIN V9.3 / Score qualité événement
 ========================================================= */
 
 "use strict";
@@ -189,7 +189,7 @@ function ensureAdminObservatoryStyles() {
 
     .admin-action-priority-grid {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 10px;
     }
 
@@ -237,6 +237,43 @@ function ensureAdminObservatoryStyles() {
     .admin-action-priority-card.is-ok b {
       color: #19ff9c;
     }
+
+    .quality-score {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: .72rem;
+      font-weight: 900;
+      letter-spacing: .02em;
+      border: 1px solid rgba(255,255,255,.12);
+    }
+
+    .quality-score.is-good {
+      background: rgba(25,255,156,.12);
+      color: #19ff9c;
+    }
+
+    .quality-score.is-medium {
+      background: rgba(255,176,32,.13);
+      color: #ffb020;
+    }
+
+    .quality-score.is-low {
+      background: rgba(255,107,107,.14);
+      color: #ff6b6b;
+    }
+
+    .quality-missing {
+      display: block;
+      margin-top: 7px;
+      font-size: .78rem;
+      line-height: 1.35;
+      opacity: .78;
+    }
+
 
     @media (max-width: 980px) {
       .admin-action-priority-grid {
@@ -780,6 +817,7 @@ function renderPriorityActionPanel() {
       ${renderPriorityActionCard("missing-coords", missingCoords.length, "Validés sans coordonnées", missingCoords.length ? "is-danger" : "is-ok")}
       ${renderPriorityActionCard("soon", soon.length, "Dans les 14 jours", soon.length ? "is-warning" : "is-ok")}
       ${renderPriorityActionCard("featured-past", featuredPast.length, "Mis en avant passés", featuredPast.length ? "is-danger" : "is-ok")}
+      ${renderPriorityActionCard("quality-low", upcoming.filter((event) => getEventQuality(event).score < 55).length, "Qualité faible", upcoming.filter((event) => getEventQuality(event).score < 55).length ? "is-danger" : "is-ok")}
     </div>
   `;
 
@@ -852,6 +890,14 @@ function applyPriorityAction(action) {
     renderCustomAdminEventList(
       allEvents.filter((event) => event.featured && isPastEvent(event)),
       "Événements mis en avant déjà passés"
+    );
+    return;
+  }
+
+  if (action === "quality-low") {
+    renderCustomAdminEventList(
+      allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event) && getEventQuality(event).score < 55),
+      "Événements à qualité faible"
     );
     return;
   }
@@ -1291,6 +1337,101 @@ function getFilteredEvents() {
   });
 }
 
+
+/* SCORE QUALITÉ ÉVÉNEMENT */
+
+function getEventQuality(event) {
+  const checks = [
+    {
+      key: "title",
+      label: "titre",
+      ok: String(event?.title || "").trim().length >= 5,
+      points: 15
+    },
+    {
+      key: "date",
+      label: "date",
+      ok: !!event?.start_date,
+      points: 15
+    },
+    {
+      key: "location",
+      label: "ville/région",
+      ok: !!event?.city && !!event?.region,
+      points: 15
+    },
+    {
+      key: "coords",
+      label: "coordonnées",
+      ok: hasEventCoords(event),
+      points: 15
+    },
+    {
+      key: "image",
+      label: "image",
+      ok: !!event?.image_url,
+      points: 15
+    },
+    {
+      key: "description",
+      label: "description",
+      ok: String(event?.description || "").trim().length >= 120,
+      points: 15
+    },
+    {
+      key: "website",
+      label: "site officiel",
+      ok: !!event?.website,
+      points: 10
+    }
+  ];
+
+  const score = checks.reduce((total, check) => {
+    return total + (check.ok ? check.points : 0);
+  }, 0);
+
+  const missing = checks
+    .filter((check) => !check.ok)
+    .map((check) => check.label);
+
+  const level =
+    score >= 80
+      ? "good"
+      : score >= 55
+        ? "medium"
+        : "low";
+
+  const label =
+    level === "good"
+      ? "Complet"
+      : level === "medium"
+        ? "À compléter"
+        : "Faible";
+
+  return {
+    score,
+    missing,
+    level,
+    label
+  };
+}
+
+function renderEventQuality(event) {
+  const quality = getEventQuality(event);
+
+  return `
+    <div class="quality-score is-${quality.level}">
+      Qualité ${quality.score}% · ${escapeHtml(quality.label)}
+    </div>
+    ${
+      quality.missing.length
+        ? `<small class="quality-missing">Manque : ${escapeHtml(quality.missing.join(", "))}</small>`
+        : ""
+    }
+  `;
+}
+
+
 /* RENDER EVENTS */
 
 function renderEvents() {
@@ -1376,6 +1517,8 @@ function renderEventCard(event) {
               : ""
           }
         </div>
+
+        ${renderEventQuality(event)}
       </div>
 
       <div class="event-actions">
