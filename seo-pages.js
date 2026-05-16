@@ -220,6 +220,8 @@
                 class="card-image"
                 src="${escapeAttribute(imageUrl)}"
                 alt="${escapeAttribute(event.title || "Événement littéraire")}"
+                loading="lazy"
+                decoding="async"
               />
             `
             : `<div class="card-image"></div>`

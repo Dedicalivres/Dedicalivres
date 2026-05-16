@@ -1,6 +1,16 @@
 User-agent: *
 Allow: /
+
 Disallow: /admin.html
 Disallow: /admin/
+Disallow: /admin.js
+Disallow: /admin.css
+Disallow: /admin-testimonials.js
+Disallow: /admin-social-generator.js
+Disallow: /admin-author-requests-robust.js
+Disallow: /admin-quality-control.js
+Disallow: /admin-visits-counter-fix.js
+Disallow: /config.js
+Disallow: /tracking-v4.js
 
 Sitemap: https://dedicalivres.fr/sitemap.xml
