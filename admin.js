@@ -428,8 +428,9 @@ async function loadDashboard() {
   await safeAdminStep("chargement événements", loadEvents);
   await safeAdminStep("chargement indicateur mise en avant", loadNewsletterCount);
   await safeAdminStep("chargement visites", loadVisitsCount);
-  // Anti-egress : le module localisation est désactivé par défaut car il ne remonte pas de données utiles actuellement.
-  locationRows = [];
+  // V9.0 : chargement sobre des zones prioritaires.
+  // Limité aux 100 dernières lignes pour éviter un tableau de bord coûteux.
+  await safeAdminStep("chargement zones prioritaires", loadLocationTracking);
 
   refreshAdminViews();
 
@@ -571,9 +572,20 @@ async function loadVisitsCount() {
 }
 
 async function loadLocationTracking() {
-  // Module volontairement neutralisé pour réduire les requêtes admin.
-  // À réactiver plus tard si les compteurs de localisation sont de nouveau utiles.
-  locationRows = [];
+  try {
+    const { data, error } = await supabaseClient
+      .from("location_tracking")
+      .select(ADMIN_LOCATION_COLUMNS)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+
+    locationRows = Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.warn("Zones prioritaires indisponibles :", error);
+    locationRows = [];
+  }
 }
 
 function updateStats() {
@@ -592,8 +604,9 @@ if (eventsCount) {
 /* PRIORITY ZONES */
 
 function renderPriorityZones() {
-  // Anti-egress : affichage neutre sans requête location_tracking.
-  renderLocationDisabledPanels();
+  renderTopCities();
+  renderDevices();
+  renderTrend();
 }
 
 function renderLocationDisabledPanels() {
@@ -611,7 +624,7 @@ function renderTopCities() {
   if (!priorityCities) return;
 
   if (!locationRows.length) {
-    priorityCities.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant.</p>`;
+    priorityCities.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant. Les zones apparaîtront après les premiers clics visiteurs sur “Me localiser”.</p>`;
     return;
   }
 
@@ -628,7 +641,7 @@ function renderDevices() {
   if (!priorityDevices) return;
 
   if (!locationRows.length) {
-    priorityDevices.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant.</p>`;
+    priorityDevices.innerHTML = `<p class="priority-empty">Aucune donnée pour l’instant. Les zones apparaîtront après les premiers clics visiteurs sur “Me localiser”.</p>`;
     return;
   }
 
