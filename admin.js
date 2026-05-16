@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V9.3 / Score qualité événement
+   DÉDICALIVRES — ADMIN V9.4 / Préparer communication
 ========================================================= */
 
 "use strict";
@@ -265,6 +265,13 @@ function ensureAdminObservatoryStyles() {
       background: rgba(255,107,107,.14);
       color: #ff6b6b;
     }
+
+    .event-action.social-copy {
+      background: linear-gradient(135deg, rgba(255,107,53,.95), rgba(255,155,98,.95));
+      color: #fff;
+      border-color: rgba(255,107,53,.35);
+    }
+
 
     .quality-missing {
       display: block;
@@ -818,6 +825,7 @@ function renderPriorityActionPanel() {
       ${renderPriorityActionCard("soon", soon.length, "Dans les 14 jours", soon.length ? "is-warning" : "is-ok")}
       ${renderPriorityActionCard("featured-past", featuredPast.length, "Mis en avant passés", featuredPast.length ? "is-danger" : "is-ok")}
       ${renderPriorityActionCard("quality-low", upcoming.filter((event) => getEventQuality(event).score < 55).length, "Qualité faible", upcoming.filter((event) => getEventQuality(event).score < 55).length ? "is-danger" : "is-ok")}
+      ${renderPriorityActionCard("communication", upcoming.filter((event) => isUpcomingWithinDays(event, 30) && getEventQuality(event).score >= 55).length, "Posts à préparer", upcoming.filter((event) => isUpcomingWithinDays(event, 30) && getEventQuality(event).score >= 55).length ? "is-warning" : "is-ok")}
     </div>
   `;
 
@@ -898,6 +906,14 @@ function applyPriorityAction(action) {
     renderCustomAdminEventList(
       allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event) && getEventQuality(event).score < 55),
       "Événements à qualité faible"
+    );
+    return;
+  }
+
+  if (action === "communication") {
+    renderCustomAdminEventList(
+      allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event) && isUpcomingWithinDays(event, 30) && getEventQuality(event).score >= 55),
+      "Posts réseaux à préparer"
     );
     return;
   }
@@ -1527,6 +1543,7 @@ function renderEventCard(event) {
         <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button" title="${event.featured ? "Retirer la mise en avant" : "Mettre en avant"}">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
         <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button" title="Modifier">✎ <span>Modifier</span></button>
         <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer" title="Voir la fiche">↗ <span>Voir</span></a>
+        <button class="event-action social-copy" data-action="copy-social" data-id="${event.id}" type="button" title="Copier un texte réseaux">📣 <span>Com.</span></button>
         ${event.image_url ? `<a class="event-action view" href="${escapeHtml(event.image_url)}" target="_blank" rel="noopener noreferrer" title="Voir l’image">🖼 <span>Image</span></a>` : ""}
         ${
           event.rejected
@@ -1551,10 +1568,84 @@ function bindEventActions() {
       if (action === "reject") await rejectEvent(id);
       if (action === "featured") await toggleFeatured(id);
       if (action === "edit") openEditModal(id);
+      if (action === "copy-social") await copySocialPost(id);
       if (action === "delete") await deleteRejectedEvent(id);
     });
   });
 }
+
+
+/* COMMUNICATION RÉSEAUX */
+
+async function copySocialPost(id) {
+  const event = allEvents.find((item) => String(item.id) === String(id));
+
+  if (!event) {
+    showToast("Événement introuvable");
+    return;
+  }
+
+  const text = buildSocialPostText(event);
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      showToast("Texte réseaux copié");
+      return;
+    }
+
+    fallbackCopyText(text);
+    showToast("Texte réseaux copié");
+  } catch (error) {
+    console.warn("Copie presse-papiers indisponible :", error);
+    fallbackCopyText(text);
+    showToast("Texte prêt à copier");
+  }
+}
+
+function buildSocialPostText(event) {
+  const title = cleanLabel(event.title || "Événement littéraire");
+  const city = cleanLabel(event.city || "");
+  const region = cleanLabel(event.region || "");
+  const type = cleanLabel(event.type || "Rencontre littéraire");
+  const date = formatDate(event.start_date);
+  const location = [city, region].filter(Boolean).join(", ");
+  const url = `https://dedicalivres.fr/event.html?id=${encodeURIComponent(event.id)}`;
+
+  const prefix =
+    event.type === "Dédicace"
+      ? "📚 Dédicace à venir"
+      : ["Salon", "Festival"].includes(event.type)
+        ? "📚 Rendez-vous littéraire à venir"
+        : "📚 Événement littéraire à venir";
+
+  return `${prefix}
+
+${title}
+
+${date ? `📅 ${date}` : ""}
+${location ? `📍 ${location}` : ""}
+${type ? `🏷️ ${type}` : ""}
+
+Retrouvez les informations complètes sur Dédicalivres :
+${url}
+
+#Dédicalivres #Livre #Lecture #AgendaLittéraire #Dédicace #SalonDuLivre`;
+}
+
+function fallbackCopyText(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "readonly");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
 
 /* ACTIONS */
 
@@ -2004,6 +2095,7 @@ function renderPremiumCard(event) {
         <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer">
           ↗ <span>Voir</span>
         </a>
+        <button class="event-action social-copy" data-action="copy-social" data-id="${event.id}" type="button" title="Copier un texte réseaux">📣 <span>Com.</span></button>
         ${event.image_url ? `<a class="event-action view" href="${escapeHtml(event.image_url)}" target="_blank" rel="noopener noreferrer" title="Voir l’image">🖼 <span>Image</span></a>` : ""}
       </div>
     </article>
