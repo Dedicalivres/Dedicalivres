@@ -2481,3 +2481,21 @@ button:active,
   }
 }
 
+
+/* =========================================================
+   V8.9.1 - CORRECTION LÉGENDE CARTE COMPLÈTE
+   Distingue Salon, Festival et Dédicace
+========================================================= */
+
+.legend-salon {
+  background: var(--purple);
+}
+
+.legend-festival {
+  background: var(--orange);
+}
+
+.legend-dedicace {
+  background: #16803c;
+}
+
