@@ -2499,3 +2499,72 @@ button:active,
   background: #16803c;
 }
 
+
+/* =========================================================
+   V9.5 - BORDURES LATÉRALES TRANCHE DE LIVRES
+   CSS pur : aucun fichier image, aucun JS, aucun egress
+========================================================= */
+
+@media (min-width: 1280px) {
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: .42;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(58,28,113,.10) 0 1px,
+        transparent 1px 100%
+      ) left top / 1px 100% no-repeat,
+      linear-gradient(
+        90deg,
+        rgba(255,247,239,.00) 0 calc(50% - 645px),
+        rgba(255,247,239,.72) calc(50% - 645px) calc(50% - 642px),
+        rgba(242,224,210,.70) calc(50% - 642px) calc(50% - 628px),
+        rgba(232,221,245,.72) calc(50% - 628px) calc(50% - 612px),
+        rgba(255,216,198,.62) calc(50% - 612px) calc(50% - 596px),
+        rgba(246,238,229,.78) calc(50% - 596px) calc(50% - 582px),
+        rgba(226,214,241,.68) calc(50% - 582px) calc(50% - 565px),
+        rgba(255,240,231,.76) calc(50% - 565px) calc(50% - 548px),
+        rgba(58,28,113,.07) calc(50% - 548px) calc(50% - 545px),
+        transparent calc(50% - 545px) calc(50% + 545px),
+        rgba(58,28,113,.07) calc(50% + 545px) calc(50% + 548px),
+        rgba(255,240,231,.76) calc(50% + 548px) calc(50% + 565px),
+        rgba(226,214,241,.68) calc(50% + 565px) calc(50% + 582px),
+        rgba(246,238,229,.78) calc(50% + 582px) calc(50% + 596px),
+        rgba(255,216,198,.62) calc(50% + 596px) calc(50% + 612px),
+        rgba(232,221,245,.72) calc(50% + 612px) calc(50% + 628px),
+        rgba(242,224,210,.70) calc(50% + 628px) calc(50% + 642px),
+        rgba(255,247,239,.72) calc(50% + 642px) calc(50% + 645px),
+        rgba(255,247,239,.00) calc(50% + 645px) 100%
+      );
+  }
+
+  body::before {
+    background-image:
+      linear-gradient(rgba(255,255,255,.45) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.35) 1px, transparent 1px),
+      repeating-linear-gradient(
+        90deg,
+        transparent 0 42px,
+        rgba(58,28,113,.055) 42px 43px,
+        transparent 43px 86px
+      );
+  }
+
+  .container,
+  .header-inner {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@media (max-width: 1279px) {
+  body::after {
+    display: none;
+  }
+}
+
