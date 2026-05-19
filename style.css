@@ -2568,3 +2568,94 @@ button:active,
   }
 }
 
+
+
+/* =========================================================
+   PATCH TÉMOIGNAGES IMAGE V1 — affichage sans déformation
+   Objectif : préserver les photos de livres/dédicaces sans recadrage brutal
+========================================================= */
+
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 22px;
+  align-items: stretch;
+}
+
+.testimonial-card {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border-radius: 26px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  box-shadow: 0 15px 36px rgba(58,28,113,.12);
+}
+
+.testimonial-image,
+.testimonial-image-placeholder {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: block;
+  border-bottom: 1px solid rgba(58,28,113,.08);
+}
+
+.testimonial-image {
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.08), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,.96), rgba(247,241,251,.92));
+}
+
+.testimonial-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  color: var(--purple);
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.14), transparent 38%),
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(241,232,251,.82));
+}
+
+.testimonial-card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.testimonial-card blockquote {
+  margin: 0;
+  color: #4f465f;
+  font-weight: 700;
+  line-height: 1.65;
+}
+
+.testimonial-author {
+  margin: auto 0 0;
+  color: var(--purple);
+  font-weight: 900;
+}
+
+.testimonial-form .image-preview img,
+#testimonial-image-preview img {
+  width: 100%;
+  max-height: min(420px, 70vh);
+  object-fit: contain;
+  background: white;
+}
+
+@media (max-width: 780px) {
+  .testimonials-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .testimonial-card-body {
+    padding: 17px;
+  }
+}

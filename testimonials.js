@@ -270,13 +270,21 @@ async function compressImage(file) {
 
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const maxWidth = 1200;
-      const ratio = Math.min(1, maxWidth / img.width);
+      const maxSize = 1400;
+      const ratio = Math.min(1, maxSize / img.width, maxSize / img.height);
 
-      canvas.width = Math.round(img.width * ratio);
-      canvas.height = Math.round(img.height * ratio);
+      canvas.width = Math.max(1, Math.round(img.width * ratio));
+      canvas.height = Math.max(1, Math.round(img.height * ratio));
 
       const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+        return;
+      }
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       canvas.toBlob(
@@ -297,7 +305,7 @@ async function compressImage(file) {
           );
         },
         "image/jpeg",
-        0.74
+        0.82
       );
     };
 
