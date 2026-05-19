@@ -1,0 +1,256 @@
+/* =========================================================
+   DÉDICALIVRES — GUIDE MASCOTTE OPTIONNEL V1
+   Module isolé : ne modifie pas la logique agenda/carte.
+========================================================= */
+
+.mascot-guide-widget {
+  --mg-purple: #3a1c71;
+  --mg-purple-dark: #261148;
+  --mg-orange: #ff6b35;
+  --mg-paper: rgba(255, 255, 255, 0.96);
+  --mg-text: #2a2438;
+  --mg-muted: #6b6178;
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 70;
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--mg-text);
+}
+
+.mascot-guide-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 10px 16px 10px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--mg-purple), #5b2aa0);
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow:
+    0 18px 38px rgba(58, 28, 113, 0.26),
+    0 0 0 4px rgba(255, 255, 255, 0.75);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.mascot-guide-button:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 24px 46px rgba(58, 28, 113, 0.32),
+    0 0 0 4px rgba(255, 255, 255, 0.82);
+}
+
+.mascot-guide-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  object-position: center bottom;
+  border-radius: 999px;
+  background: rgba(255,255,255,.95);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.75);
+}
+
+.mascot-guide-panel {
+  position: absolute;
+  right: 0;
+  bottom: 72px;
+  width: min(380px, calc(100vw - 28px));
+  border-radius: 28px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(255, 107, 53, .10), transparent 38%),
+    linear-gradient(135deg, rgba(255,255,255,.98), rgba(248,241,251,.96));
+  border: 1px solid rgba(58, 28, 113, .12);
+  box-shadow: 0 24px 60px rgba(38, 17, 72, .24);
+  transform: translateY(10px) scale(.98);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+.mascot-guide-widget.is-open .mascot-guide-panel {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.mascot-guide-head {
+  position: relative;
+  display: grid;
+  grid-template-columns: 86px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 18px 18px 14px;
+  background: linear-gradient(135deg, rgba(58,28,113,.96), rgba(91,42,160,.92));
+  color: white;
+}
+
+.mascot-guide-portrait {
+  align-self: end;
+  width: 86px;
+  height: 112px;
+  object-fit: contain;
+  object-position: center bottom;
+  margin-bottom: -16px;
+  filter: drop-shadow(0 12px 18px rgba(0,0,0,.25));
+}
+
+.mascot-guide-kicker {
+  display: inline-flex;
+  width: fit-content;
+  margin: 0 0 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.14);
+  font-size: .68rem;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.mascot-guide-title {
+  margin: 0;
+  font-family: "Playfair Display", serif;
+  font-size: 1.25rem;
+  line-height: 1.12;
+}
+
+.mascot-guide-close {
+  align-self: start;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,.16);
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mascot-guide-body {
+  padding: 18px;
+}
+
+.mascot-guide-message {
+  margin: 0 0 14px;
+  color: var(--mg-muted);
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.mascot-guide-choices,
+.mascot-guide-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.mascot-guide-choice,
+.mascot-guide-action,
+.mascot-guide-back {
+  width: 100%;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(58, 28, 113, .12);
+  background: #fff;
+  color: var(--mg-purple);
+  font-weight: 900;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.mascot-guide-choice:hover,
+.mascot-guide-action:hover,
+.mascot-guide-back:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 107, 53, .38);
+  box-shadow: 0 10px 22px rgba(58, 28, 113, .10);
+}
+
+.mascot-guide-action.primary {
+  background: linear-gradient(135deg, var(--mg-orange), #ff8a54);
+  border-color: transparent;
+  color: #fff;
+}
+
+.mascot-guide-action small,
+.mascot-guide-choice small {
+  display: block;
+  margin-top: 3px;
+  color: var(--mg-muted);
+  font-weight: 750;
+}
+
+.mascot-guide-action.primary small {
+  color: rgba(255,255,255,.88);
+}
+
+.mascot-guide-back {
+  justify-content: center;
+  min-height: 40px;
+  margin-top: 10px;
+  background: rgba(255,255,255,.76);
+}
+
+.mascot-guide-mini-note {
+  margin: 13px 0 0;
+  color: var(--mg-muted);
+  font-size: .82rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+@media (max-width: 780px) {
+  .mascot-guide-widget {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .mascot-guide-button {
+    min-height: 50px;
+    padding-right: 14px;
+  }
+
+  .mascot-guide-button-label {
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mascot-guide-panel {
+    bottom: 66px;
+    width: min(360px, calc(100vw - 24px));
+  }
+
+  .mascot-guide-head {
+    grid-template-columns: 70px 1fr auto;
+    padding: 15px;
+  }
+
+  .mascot-guide-portrait {
+    width: 70px;
+    height: 94px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot-guide-button,
+  .mascot-guide-panel,
+  .mascot-guide-choice,
+  .mascot-guide-action,
+  .mascot-guide-back {
+    transition: none;
+  }
+}
