@@ -117,7 +117,7 @@ nav a:hover::after {
   height: clamp(320px, 34vw, 520px);
   background:
     linear-gradient(180deg, rgba(58,28,113,.04), rgba(58,28,113,.14)),
-    url("banner.jpg") center center / cover no-repeat;
+    url("https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev/event-images/2026/05/42EA4595-FD0E-4227-9CAF-EE9BC74F6DDA.PNG") center center / cover no-repeat;
   margin-bottom: 56px;
   box-shadow: 0 25px 60px rgba(58,28,113,.18);
 }
