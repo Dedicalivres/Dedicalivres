@@ -51,6 +51,7 @@
           hint: "Rechercher l’événement et indiquer ma présence",
           className: "primary",
           keepOpen: true,
+          mode: "panel",
           run: () => renderExistingEventSearch()
         },
         {
@@ -222,17 +223,26 @@
       <button class="mascot-guide-back" type="button">Changer de profil</button>
     `;
 
-    body.querySelectorAll("[data-action-index]").forEach((button) => {
+        body.querySelectorAll("[data-action-index]").forEach((button) => {
       button.addEventListener("click", () => {
         const action = profile.actions[Number(button.dataset.actionIndex)];
-        if (action && typeof action.run === "function") {
-          closeGuide();
-          setTimeout(action.run, 90);
+
+        if (!action || typeof action.run !== "function") return;
+
+        // V10.1.1 : certaines actions ouvrent une sous-étape du guide.
+        // Elles doivent garder le panneau ouvert pour ne pas perdre l’utilisateur.
+        if (action.keepOpen === true || action.mode === "panel") {
+          openGuide();
+          action.run();
+          return;
         }
+
+        closeGuide();
+        setTimeout(action.run, 90);
       });
     });
 
-    body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
+body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
   }
 
 
