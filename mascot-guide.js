@@ -2,6 +2,12 @@
   "use strict";
 
   const config = window.DEDICALIVRES_CONFIG || {};
+  const supabaseClient =
+    config.supabaseUrl &&
+    config.supabaseAnonKey &&
+    window.supabase
+      ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey)
+      : null;
 
   // Interrupteur optionnel : ajouter enableMascotGuide: false dans config.js
   // ou window.DEDICALIVRES_CONFIG.enableMascotGuide = false avant ce script.
@@ -41,9 +47,15 @@
         "Dédicalivres peut vous aider à rendre vos séances de dédicace et rencontres plus visibles auprès des lecteurs.",
       actions: [
         {
+          label: "Je participe à un événement déjà inscrit",
+          hint: "Rechercher l’événement et indiquer ma présence",
+          className: "primary",
+          keepOpen: true,
+          run: () => renderExistingEventSearch()
+        },
+        {
           label: "Proposer mon événement",
           hint: "Aller au formulaire de soumission",
-          className: "primary",
           run: () => scrollToTarget("#soumettre")
         },
         {
@@ -222,6 +234,197 @@
 
     body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
   }
+
+
+  function renderExistingEventSearch() {
+    const body = widget.querySelector("#mascot-guide-body");
+    const title = widget.querySelector("#mascot-guide-title");
+
+    if (!body || !title) return;
+
+    title.textContent = "Retrouver un événement inscrit";
+
+    body.innerHTML = `
+      <p class="mascot-guide-message">
+        Recherchez le salon, festival ou rendez-vous déjà publié auquel vous participez,
+        puis ouvrez sa fiche pour indiquer votre présence.
+      </p>
+
+      <div class="mascot-guide-search">
+        <label for="mascot-event-search">Nom, ville ou région</label>
+        <input
+          id="mascot-event-search"
+          type="search"
+          placeholder="Ex. salon du livre, Nantes, Bretagne…"
+          autocomplete="off"
+        />
+      </div>
+
+      <div id="mascot-event-results" class="mascot-guide-results" aria-live="polite">
+        <article class="mascot-guide-result is-empty">
+          Tapez au moins 3 caractères pour rechercher un événement.
+        </article>
+      </div>
+
+      <button class="mascot-guide-back" type="button">Retour auteur</button>
+    `;
+
+    const input = body.querySelector("#mascot-event-search");
+    const results = body.querySelector("#mascot-event-results");
+    let timer = null;
+
+    input?.addEventListener("input", () => {
+      clearTimeout(timer);
+      const query = input.value.trim();
+
+      if (query.length < 3) {
+        results.innerHTML = `
+          <article class="mascot-guide-result is-empty">
+            Tapez au moins 3 caractères pour rechercher un événement.
+          </article>
+        `;
+        return;
+      }
+
+      results.innerHTML = `
+        <article class="mascot-guide-result is-empty">
+          Recherche en cours…
+        </article>
+      `;
+
+      timer = setTimeout(() => searchExistingEvents(query, results), 320);
+    });
+
+    body.querySelector(".mascot-guide-back")?.addEventListener("click", () => renderProfile("author"));
+  }
+
+  async function searchExistingEvents(query, resultsContainer) {
+    if (!resultsContainer) return;
+
+    if (!supabaseClient) {
+      resultsContainer.innerHTML = `
+        <article class="mascot-guide-result is-empty">
+          Recherche indisponible pour le moment.
+        </article>
+      `;
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const term = `%${query.replace(/[%_]/g, "")}%`;
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("events")
+        .select("id,title,city,region,type,start_date,end_date,validated,rejected")
+        .eq("validated", true)
+        .eq("rejected", false)
+        .or(`title.ilike.${term},city.ilike.${term},region.ilike.${term},type.ilike.${term}`)
+        .or(`end_date.is.null,end_date.gte.${today}`)
+        .order("start_date", { ascending: true })
+        .limit(8);
+
+      if (error) throw error;
+
+      const events = Array.isArray(data) ? data : [];
+
+      if (!events.length) {
+        resultsContainer.innerHTML = `
+          <article class="mascot-guide-result is-empty">
+            Aucun événement validé trouvé. Vous pouvez proposer l’événement s’il n’est pas encore référencé.
+          </article>
+
+          <button class="mascot-guide-action primary" type="button" data-guide-submit-event>
+            <span>
+              Proposer cet événement
+              <small>Aller au formulaire de soumission</small>
+            </span>
+            <span aria-hidden="true">→</span>
+          </button>
+        `;
+
+        resultsContainer.querySelector("[data-guide-submit-event]")?.addEventListener("click", () => {
+          closeGuide();
+          setTimeout(() => scrollToTarget("#soumettre"), 90);
+        });
+
+        return;
+      }
+
+      resultsContainer.innerHTML = events.map(renderExistingEventResult).join("");
+
+      resultsContainer.querySelectorAll("[data-guide-event-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const id = button.dataset.guideEventId;
+          if (!id) return;
+
+          window.location.href = `event.html?id=${encodeURIComponent(id)}#authors-presence-section`;
+        });
+      });
+    } catch (error) {
+      console.warn("Recherche événement guide indisponible :", error);
+
+      resultsContainer.innerHTML = `
+        <article class="mascot-guide-result is-empty">
+          Impossible de rechercher les événements pour le moment.
+        </article>
+      `;
+    }
+  }
+
+  function renderExistingEventResult(event) {
+    const location = [event.city, event.region].filter(Boolean).join(", ");
+    const date = formatGuideDateRange(event.start_date, event.end_date);
+
+    return `
+      <button
+        class="mascot-guide-result"
+        type="button"
+        data-guide-event-id="${escapeAttribute(event.id)}"
+      >
+        <strong>${escapeHtml(event.title || "Événement littéraire")}</strong>
+        <small>
+          ${escapeHtml([date, location, event.type].filter(Boolean).join(" · "))}
+        </small>
+        <span>Choisir cet événement →</span>
+      </button>
+    `;
+  }
+
+  function formatGuideDateRange(startDate, endDate) {
+    const start = formatGuideDate(startDate);
+    const end = endDate && endDate !== startDate ? formatGuideDate(endDate) : "";
+
+    return end ? `${start} → ${end}` : start;
+  }
+
+  function formatGuideDate(value) {
+    if (!value) return "";
+
+    try {
+      return new Intl.DateTimeFormat("fr-FR", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      }).format(new Date(`${String(value).slice(0, 10)}T00:00:00`));
+    } catch {
+      return value;
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeAttribute(value) {
+    return escapeHtml(value).replace(/`/g, "&#096;");
+  }
+
 
   function scrollToTarget(selector) {
     const target = document.querySelector(selector);
