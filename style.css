@@ -2659,3 +2659,117 @@ button:active,
     padding: 17px;
   }
 }
+
+
+/* =========================================================
+   V9.8 - FAVORIS PUBLICS
+   LocalStorage uniquement : aucune requête Supabase en plus
+========================================================= */
+
+.saved-events-section {
+  margin: 24px 0 34px;
+  padding: 24px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(58,28,113,.08), transparent 34%),
+    rgba(255,255,255,.72);
+  border: 1px solid rgba(58,28,113,.08);
+  box-shadow: 0 14px 34px rgba(58,28,113,.08);
+}
+
+.saved-events-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.saved-events-head h2 {
+  margin-bottom: 8px;
+}
+
+.saved-events-head p:not(.category-kicker) {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.favorites-list {
+  display: grid;
+  gap: 12px;
+}
+
+.favorite-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.78);
+  border: 1px solid rgba(58,28,113,.08);
+  box-shadow: 0 10px 24px rgba(58,28,113,.07);
+}
+
+.favorite-item strong {
+  display: block;
+  color: var(--purple);
+  font-family: "Playfair Display", serif;
+  font-size: 1.08rem;
+  line-height: 1.15;
+  margin-bottom: 5px;
+}
+
+.favorite-item span {
+  display: block;
+  color: var(--muted);
+  font-size: .9rem;
+  font-weight: 750;
+}
+
+.favorite-item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.favorite-btn {
+  border: 1px solid rgba(58,28,113,.18);
+  background: #fff;
+  color: var(--purple);
+  min-width: 112px;
+}
+
+.favorite-btn.is-active,
+.favorite-toggle.is-favorite {
+  background: #fff0e7;
+  color: var(--orange);
+  border-color: rgba(255,107,53,.30);
+  box-shadow: 0 10px 22px rgba(255,107,53,.14);
+}
+
+@media (max-width: 780px) {
+  .saved-events-section {
+    padding: 18px;
+  }
+
+  .saved-events-head,
+  .favorite-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .favorite-item-actions {
+    justify-content: stretch;
+  }
+
+  .favorite-item-actions .card-link,
+  .favorite-item-actions .favorite-btn {
+    width: 100%;
+  }
+}
+

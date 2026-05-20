@@ -5,6 +5,7 @@
   if (!config || !container) return;
 
   const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  const FAVORITES_KEY = "dedicalivres_favorites";
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
 
@@ -18,7 +19,7 @@
   async function loadEvent(id) {
     const { data, error } = await client
       .from("events")
-      .select("id,title,type,region,city,price,start_date,end_date,website,description,lat,lng,image_url,validated")
+      .select("*")
       .eq("id", id)
       .eq("validated", true)
       .maybeSingle();
@@ -32,7 +33,7 @@
     document.querySelector('meta[name="description"]')?.setAttribute("content", `${data.title || "Événement littéraire"} à ${data.city || "proximité"} — informations, dates et lien officiel.`);
 
     const image = data.image_url
-      ? `<img class="detail-image" src="${escapeAttribute(data.image_url)}" alt="${escapeAttribute(data.title || "Événement")}" loading="lazy" decoding="async" />`
+      ? `<img class="detail-image" src="${escapeAttribute(data.image_url)}" alt="${escapeAttribute(data.title || "Événement")}" />`
       : `<div class="detail-image detail-image-placeholder"></div>`;
 
     container.innerHTML = `
@@ -117,6 +118,7 @@
     if (!key) return;
     const next = ids.includes(key) ? ids.filter((item) => item !== key) : [...ids, key];
     localStorage.setItem(FAVORITES_KEY, JSON.stringify([...new Set(next)]));
+    window.dispatchEvent(new CustomEvent("dedicalivres:favorites-updated"));
   }
 
   function downloadICS(event) {

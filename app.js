@@ -18,8 +18,12 @@
     config.supabaseAnonKey
   );
 
+  const FAVORITES_KEY = "dedicalivres_favorites";
+
   const eventsGrid = document.getElementById("events-grid");
   const resultsCount = document.getElementById("results-count");
+  const favoritesList = document.getElementById("favorites-list");
+  const clearFavoritesButton = document.getElementById("clear-favorites");
 
   const form = document.getElementById("submission-form");
   const formFeedback = document.getElementById("form-feedback");
@@ -64,6 +68,7 @@
 
   function init() {
     bindEvents();
+    bindFavorites();
     bindImagePreview();
     populateMonthFilter();
     initMap();
@@ -227,6 +232,7 @@
 
     allEvents = Array.isArray(data) ? data : [];
     renderFilteredEvents();
+    renderSavedFavorites();
   }
 
   function renderFilteredEvents() {
@@ -322,6 +328,7 @@
     }
 
     eventsGrid.innerHTML = events.map(renderEventCard).join("");
+    refreshFavoriteButtons();
   }
 
   function renderEventCard(event) {
@@ -413,6 +420,15 @@
               Voir le détail
             </a>
 
+            <button
+              class="favorite-btn ${isFavorite(event.id) ? "is-active" : ""}"
+              type="button"
+              data-favorite-id="${escapeAttribute(event.id)}"
+              aria-pressed="${isFavorite(event.id) ? "true" : "false"}"
+            >
+              ${isFavorite(event.id) ? "♥ Favori" : "♡ Favori"}
+            </button>
+
             ${
               event.website
                 ? `
@@ -432,6 +448,135 @@
       </article>
     `;
   }
+
+
+  function bindFavorites() {
+    clearFavoritesButton?.addEventListener("click", () => {
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify([]));
+      refreshFavoriteButtons();
+      renderSavedFavorites();
+    });
+
+    eventsGrid?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-favorite-id]");
+
+      if (!button) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      toggleFavorite(button.dataset.favoriteId);
+      refreshFavoriteButtons();
+      renderSavedFavorites();
+    });
+
+    window.addEventListener("storage", (event) => {
+      if (event.key !== FAVORITES_KEY) return;
+
+      refreshFavoriteButtons();
+      renderSavedFavorites();
+    });
+  }
+
+  function getFavoriteIds() {
+    try {
+      const value = JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
+      return Array.isArray(value) ? value.map(String) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function setFavoriteIds(ids) {
+    localStorage.setItem(
+      FAVORITES_KEY,
+      JSON.stringify([...new Set(ids.map(String).filter(Boolean))])
+    );
+  }
+
+  function isFavorite(id) {
+    return getFavoriteIds().includes(String(id || ""));
+  }
+
+  function toggleFavorite(id) {
+    const key = String(id || "");
+
+    if (!key) return;
+
+    const ids = getFavoriteIds();
+    const next = ids.includes(key)
+      ? ids.filter((item) => item !== key)
+      : [...ids, key];
+
+    setFavoriteIds(next);
+  }
+
+  function refreshFavoriteButtons() {
+    document.querySelectorAll("[data-favorite-id]").forEach((button) => {
+      const active = isFavorite(button.dataset.favoriteId);
+
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+      button.textContent = active ? "♥ Favori" : "♡ Favori";
+    });
+  }
+
+  function renderSavedFavorites() {
+    if (!favoritesList) return;
+
+    const ids = getFavoriteIds();
+
+    if (!ids.length) {
+      favoritesList.innerHTML = `
+        <article class="empty-state">Aucun favori pour le moment.</article>
+      `;
+      return;
+    }
+
+    const events = ids
+      .map((id) => allEvents.find((event) => String(event.id) === String(id)))
+      .filter(Boolean);
+
+    if (!events.length) {
+      favoritesList.innerHTML = `
+        <article class="empty-state">
+          Vos favoris seront affichés ici lorsque les événements correspondants seront encore à venir.
+        </article>
+      `;
+      return;
+    }
+
+    favoritesList.innerHTML = events.map(renderFavoriteItem).join("");
+  }
+
+  function renderFavoriteItem(event) {
+    return `
+      <article class="favorite-item">
+        <div>
+          <strong>${escapeHtml(event.title || "Sans titre")}</strong>
+          <span>
+            ${escapeHtml(formatDateRange(event.start_date, event.end_date))}
+            ${event.city || event.region ? ` · ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}` : ""}
+          </span>
+        </div>
+
+        <div class="favorite-item-actions">
+          <a class="card-link" href="event.html?id=${encodeURIComponent(event.id)}">
+            Voir
+          </a>
+          <button
+            class="favorite-btn is-active"
+            type="button"
+            data-favorite-id="${escapeAttribute(event.id)}"
+            aria-pressed="true"
+          >
+            ♥ Favori
+          </button>
+        </div>
+      </article>
+    `;
+  }
+
 
   function renderMapMarkers(events) {
     if (!map || !markersLayer) return;
