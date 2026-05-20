@@ -1,13 +1,9 @@
 /* =========================================================
-  DÉDICALIVRES — AUTEURS PRÉSENTS
+  DÉDICALIVRES — AUTEURS PRÉSENTS V9.9
   Fichier : authors-presence.js
 
-  Rôle :
-  - Afficher le bloc "Auteurs présents" sur event.html.
-  - Permettre à un auteur de déclarer sa présence.
-  - Afficher publiquement les auteurs déclarés.
-
-  Ce fichier est volontairement isolé : il ne modifie pas event.js.
+  Compatible présence directe pseudo/website et présence reliée à authors.author_id.
+  Fichier isolé : ne modifie pas event.js.
 ========================================================= */
 
 (function () {
@@ -40,12 +36,11 @@
       .eq("id", eventId)
       .maybeSingle();
 
-    // Condition demandée : option visible uniquement pour événement validé et non rejeté.
     if (error || !event || !event.validated || event.rejected) return;
 
     createAuthorPresenceBlock();
     bindAuthorPresenceForm();
-    loadAuthorsPresence();
+    await loadAuthorsPresence();
   }
 
   function createAuthorPresenceBlock() {
@@ -111,11 +106,7 @@
         setButtonLoading(submitButton, true, "Envoi…");
         setFeedback(feedback, "", "Envoi de votre demande…");
 
-        const { error } = await supabaseClient
-          .from("event_authors_presence")
-          .insert([{ event_id: eventId, pseudo, website, validated: false }]);
-
-        if (error) throw error;
+        await submitAuthorPresenceRequest({ pseudo, website });
 
         form.reset();
         setFeedback(feedback, "success", "Merci, votre demande a bien été envoyée. Elle sera vérifiée avant affichage public.");
@@ -123,9 +114,49 @@
         console.error("Erreur auteur présent :", error);
         setFeedback(feedback, "error", error.message || "Une erreur est survenue.");
       } finally {
-        setButtonLoading(submitButton, false, "Demander à être associé");
+        setButtonLoading(submitButton, false, "Indiquer ma présence");
       }
     });
+  }
+
+  async function submitAuthorPresenceRequest(author) {
+    const directInsert = await supabaseClient
+      .from("event_authors_presence")
+      .insert([{ event_id: eventId, pseudo: author.pseudo, website: author.website, validated: false }]);
+
+    if (!directInsert.error) return;
+
+    console.warn("Insertion présence directe indisponible, tentative authors + author_id :", directInsert.error);
+
+    const createdAuthor = await createPendingAuthor(author);
+    if (!createdAuthor?.id) throw directInsert.error;
+
+    const relationInsert = await supabaseClient
+      .from("event_authors_presence")
+      .insert([{ event_id: eventId, author_id: createdAuthor.id, validated: false }]);
+
+    if (relationInsert.error) throw relationInsert.error;
+  }
+
+  async function createPendingAuthor(author) {
+    const payloads = [
+      { name: author.pseudo, website: author.website, validated: false },
+      { pseudo: author.pseudo, website: author.website, validated: false },
+      { author_name: author.pseudo, website: author.website, validated: false }
+    ];
+
+    for (const payload of payloads) {
+      const { data, error } = await supabaseClient
+        .from("authors")
+        .insert([payload])
+        .select("*")
+        .maybeSingle();
+
+      if (!error && data) return data;
+      console.warn("Création auteur tentative échouée :", error);
+    }
+
+    return null;
   }
 
   async function loadAuthorsPresence() {
@@ -134,21 +165,38 @@
 
     if (!list || !empty) return;
 
-    const { data, error } = await supabaseClient
+    list.innerHTML = `<p class="author-presence-empty">Chargement des auteurs présents…</p>`;
+    empty.hidden = true;
+
+    const { data: presences, error } = await supabaseClient
       .from("event_authors_presence")
-      .select("id, pseudo, website, created_at")
+      .select("*")
       .eq("event_id", eventId)
       .eq("validated", true)
       .order("created_at", { ascending: true });
 
     if (error) {
       console.error("Erreur chargement auteurs présents :", error);
+      list.innerHTML = "";
+      empty.hidden = false;
       return;
     }
 
-    const authors = Array.isArray(data) ? data : [];
+    const rows = Array.isArray(presences) ? presences : [];
+    if (!rows.length) {
+      list.innerHTML = "";
+      empty.hidden = false;
+      return;
+    }
 
-    if (!authors.length) {
+    const authorMap = await loadAuthorsByPresenceRows(rows);
+    const authors = rows
+      .map((row) => normalizePresenceAuthor(row, authorMap))
+      .filter((author) => author.name);
+
+    const uniqueAuthors = dedupeAuthors(authors);
+
+    if (!uniqueAuthors.length) {
       list.innerHTML = "";
       empty.hidden = false;
       return;
@@ -156,19 +204,75 @@
 
     empty.hidden = true;
 
-    list.innerHTML = authors.map(function (author) {
+    list.innerHTML = uniqueAuthors.map(function (author) {
       return `
         <article class="author-presence-card">
           <div>
-            <strong>${escapeHtml(author.pseudo)}</strong>
+            <strong>${escapeHtml(author.name)}</strong>
             <small>Auteur déclaré présent</small>
           </div>
-          <a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">
-            Voir le site
-          </a>
+          ${
+            author.website
+              ? `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">Voir le site</a>`
+              : ""
+          }
         </article>
       `;
     }).join("");
+  }
+
+  async function loadAuthorsByPresenceRows(rows) {
+    const ids = rows
+      .map((row) => row.author_id || row.authorId || row.author)
+      .filter(Boolean)
+      .map(String);
+
+    if (!ids.length) return new Map();
+
+    const { data, error } = await supabaseClient
+      .from("authors")
+      .select("*")
+      .in("id", [...new Set(ids)]);
+
+    if (error) {
+      console.warn("Chargement table authors indisponible :", error);
+      return new Map();
+    }
+
+    return new Map((Array.isArray(data) ? data : []).map((author) => [String(author.id), author]));
+  }
+
+  function normalizePresenceAuthor(row, authorMap) {
+    const linkedAuthorId = row.author_id || row.authorId || row.author;
+    const linkedAuthor = linkedAuthorId ? authorMap.get(String(linkedAuthorId)) : null;
+
+    const name =
+      cleanText(row.pseudo) ||
+      cleanText(row.author_name) ||
+      cleanText(row.name) ||
+      cleanText(linkedAuthor?.name) ||
+      cleanText(linkedAuthor?.pseudo) ||
+      cleanText(linkedAuthor?.author_name);
+
+    const website =
+      normalizeOptionalWebsite(row.website) ||
+      normalizeOptionalWebsite(row.url) ||
+      normalizeOptionalWebsite(row.link) ||
+      normalizeOptionalWebsite(linkedAuthor?.website) ||
+      normalizeOptionalWebsite(linkedAuthor?.url) ||
+      normalizeOptionalWebsite(linkedAuthor?.link);
+
+    return { id: row.id || linkedAuthor?.id || name, name, website };
+  }
+
+  function dedupeAuthors(authors) {
+    const seen = new Set();
+    return authors.filter((author) => {
+      const key = `${normalize(author.name)}::${normalize(author.website || "")}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   function cleanText(value) {
@@ -180,6 +284,11 @@
     if (!raw) return "";
     if (/^https?:\/\//i.test(raw)) return raw;
     return `https://${raw}`;
+  }
+
+  function normalizeOptionalWebsite(value) {
+    const url = normalizeWebsite(value);
+    return isValidUrl(url) ? url : "";
   }
 
   function isValidUrl(value) {
@@ -201,6 +310,10 @@
     if (!button) return;
     button.disabled = loading;
     button.textContent = text;
+  }
+
+  function normalize(value) {
+    return cleanText(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   }
 
   function escapeHtml(value) {
