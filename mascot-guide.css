@@ -254,3 +254,95 @@
     transition: none;
   }
 }
+
+
+/* =========================================================
+   V10.1 - GUIDE AUTEUR : RECHERCHE ÉVÉNEMENT EXISTANT
+========================================================= */
+
+.mascot-guide-search {
+  display: grid;
+  gap: 7px;
+  margin: 0 0 12px;
+}
+
+.mascot-guide-search label {
+  color: var(--mg-purple);
+  font-size: .82rem;
+  font-weight: 950;
+}
+
+.mascot-guide-search input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(58, 28, 113, .14);
+  border-radius: 16px;
+  padding: 11px 13px;
+  background: #fff;
+  color: var(--mg-text);
+  font: inherit;
+  font-weight: 800;
+  outline: none;
+}
+
+.mascot-guide-search input:focus {
+  border-color: rgba(255, 107, 53, .44);
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, .12);
+}
+
+.mascot-guide-results {
+  display: grid;
+  gap: 10px;
+  max-height: min(340px, 44vh);
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.mascot-guide-result {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(58, 28, 113, .12);
+  background: rgba(255,255,255,.88);
+  color: var(--mg-text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.mascot-guide-result:hover {
+  border-color: rgba(255, 107, 53, .38);
+  box-shadow: 0 10px 22px rgba(58, 28, 113, .10);
+}
+
+.mascot-guide-result strong {
+  color: var(--mg-purple);
+  font-weight: 950;
+  line-height: 1.2;
+}
+
+.mascot-guide-result small {
+  color: var(--mg-muted);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.mascot-guide-result span {
+  color: var(--mg-orange);
+  font-size: .82rem;
+  font-weight: 950;
+}
+
+.mascot-guide-result.is-empty {
+  cursor: default;
+  color: var(--mg-muted);
+  font-weight: 750;
+}
+
+.mascot-guide-result.is-empty:hover {
+  border-color: rgba(58, 28, 113, .12);
+  box-shadow: none;
+}
+
