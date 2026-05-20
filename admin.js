@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V9.6 / Swipe mobile désactivé
+   DÉDICALIVRES — ADMIN V10.0 / Correctif demandes auteurs
 ========================================================= */
 
 "use strict";
@@ -504,7 +504,7 @@ function loadAdminScript(src) {
     }
 
     const script = document.createElement("script");
-    script.src = `${src}?v=8.3`;
+    script.src = `${src}?v=10.0`;
     script.defer = true;
     script.dataset.protectedAdminModule = src;
     script.onload = () => resolve();

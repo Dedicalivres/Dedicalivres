@@ -1,15 +1,18 @@
 /* =========================================================
-   DÉDICALIVRES — V7.6.4
+   DÉDICALIVRES — ADMIN V10.0
    Correctif robuste modération auteurs admin
-   - Ne dépend pas de la jointure Supabase event_authors_presence -> events
-   - Charge les présences puis les événements séparément
-   - Affiche validated=false, validated=true et toutes les demandes
+
+   Objectif :
+   - Corriger le module chargé dynamiquement après connexion admin.
+   - Afficher les demandes auteurs même si DOMContentLoaded est déjà passé.
+   - Gérer les présences directes : pseudo / website.
+   - Gérer les présences liées : author_id -> authors.
 ========================================================= */
 
 (function () {
   "use strict";
 
-  const VERSION = "7.7.8b";
+  const VERSION = "10.0";
   const config = window.DEDICALIVRES_CONFIG;
 
   if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
@@ -24,22 +27,39 @@
 
   let rows = [];
   let eventMap = new Map();
+  let authorMap = new Map();
   let currentStatus = "pending";
   let currentSearch = "";
+  let initialized = false;
 
-  document.addEventListener("DOMContentLoaded", () => {
-    waitForDashboard();
-  });
+  bootAuthorRequestsModule();
+
+  function bootAuthorRequestsModule() {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => waitForDashboard());
+    } else {
+      waitForDashboard();
+    }
+
+    window.addEventListener("dedicalivres:admin-authenticated", () => {
+      waitForDashboard();
+    });
+
+    window.addEventListener("dedicalivres:admin-dashboard-refreshed", () => {
+      if (initialized) loadAuthorRequests();
+      else waitForDashboard();
+    });
+  }
 
   function waitForDashboard(attempt = 0) {
     const moderationPanel = document.getElementById("tab-moderation");
 
-    if (moderationPanel) {
+    if (moderationPanel && window.DEDICALIVRES_ADMIN_AUTHENTICATED === true) {
       initPanel(moderationPanel);
       return;
     }
 
-    if (attempt < 30) {
+    if (attempt < 40) {
       setTimeout(() => waitForDashboard(attempt + 1), 200);
     }
   }
@@ -48,6 +68,7 @@
     ensureCounterElements();
 
     if (document.getElementById("author-requests-robust-panel")) {
+      initialized = true;
       loadAuthorRequests();
       return;
     }
@@ -87,7 +108,7 @@
       </div>
 
       <p class="author-requests-debug" id="author-requests-robust-debug">
-        Chargement robuste : présences auteurs puis événements liés séparément.
+        Chargement robuste : présences auteurs puis événements/auteurs liés séparément.
       </p>
     `;
 
@@ -116,6 +137,7 @@
         renderAuthorRequests();
       });
 
+    initialized = true;
     loadAuthorRequests();
   }
 
@@ -163,37 +185,70 @@
     if (count) count.textContent = "Chargement…";
     if (debug) debug.textContent = "Lecture de event_authors_presence…";
 
-    const { data, error } = await client
-      .from("event_authors_presence")
-      .select("id,event_id,pseudo,website,author_slug,author_id,validated,created_at")
-      .order("created_at", { ascending: false });
+    const result = await readPresenceRows();
 
-    if (error) {
-      console.error("Erreur lecture event_authors_presence :", error);
+    if (result.error) {
+      console.error("Erreur lecture event_authors_presence :", result.error);
       if (list) {
         list.innerHTML = `
           <article class="event-card">
             Impossible de charger les demandes auteurs.<br>
-            <small>${escapeHtml(error.message || "Erreur Supabase")}</small>
+            <small>${escapeHtml(result.error.message || "Erreur Supabase")}</small>
           </article>
         `;
       }
       if (count) count.textContent = "Erreur";
       if (debug) {
-        debug.textContent = "Vérifie les policies SELECT pour authenticated sur event_authors_presence.";
+        debug.textContent = "Vérifie les policies SELECT admin sur event_authors_presence et les colonnes disponibles.";
       }
       return;
     }
 
-    rows = Array.isArray(data) ? data : [];
+    rows = result.rows;
     await loadLinkedEvents(rows);
+    await loadLinkedAuthors(rows);
 
     if (debug) {
-      debug.textContent = `${rows.length} présence(s) auteur chargée(s). Les événements sont récupérés séparément pour éviter les erreurs de jointure.`;
+      debug.textContent =
+        `${rows.length} présence(s) auteur chargée(s). ` +
+        `${eventMap.size} événement(s) lié(s), ${authorMap.size} auteur(s) lié(s).`;
     }
 
     renderAuthorRequests();
     updateAuthorCounters();
+  }
+
+  async function readPresenceRows() {
+    const selectors = [
+      "*",
+      "id,event_id,pseudo,website,author_slug,author_id,validated,created_at",
+      "id,event_id,author_id,validated,created_at",
+      "id,event_id,pseudo,website,validated,created_at"
+    ];
+
+    let lastError = null;
+
+    for (const selector of selectors) {
+      const { data, error } = await client
+        .from("event_authors_presence")
+        .select(selector)
+        .order("created_at", { ascending: false });
+
+      if (!error) {
+        return {
+          rows: Array.isArray(data) ? data : [],
+          error: null
+        };
+      }
+
+      lastError = error;
+      console.warn(`Lecture présences auteurs échouée avec select(${selector}) :`, error);
+    }
+
+    return {
+      rows: [],
+      error: lastError
+    };
   }
 
   async function loadLinkedEvents(authorRows) {
@@ -225,6 +280,35 @@
     });
   }
 
+  async function loadLinkedAuthors(authorRows) {
+    authorMap = new Map();
+
+    const ids = Array.from(
+      new Set(
+        authorRows
+          .map((row) => row.author_id || row.authorId || row.author)
+          .filter(Boolean)
+          .map(String)
+      )
+    );
+
+    if (!ids.length) return;
+
+    const { data, error } = await client
+      .from("authors")
+      .select("*")
+      .in("id", ids);
+
+    if (error) {
+      console.warn("Auteurs liés indisponibles, affichage sans jointure :", error);
+      return;
+    }
+
+    (Array.isArray(data) ? data : []).forEach((author) => {
+      if (author?.id) authorMap.set(String(author.id), author);
+    });
+  }
+
   function renderAuthorRequests() {
     const list = document.getElementById("author-requests-robust-list");
     const count = document.getElementById("author-requests-robust-count");
@@ -253,20 +337,25 @@
   function getFilteredRows() {
     return rows.filter((row) => {
       const event = eventMap.get(String(row.event_id)) || {};
+      const author = getLinkedAuthor(row);
       const isValidated = row.validated === true;
 
       if (currentStatus === "pending" && isValidated) return false;
       if (currentStatus === "validated" && !isValidated) return false;
 
+      const authorName = getAuthorName(row, author);
+      const authorWebsite = getAuthorWebsite(row, author);
+
       const haystack = normalize([
-        row.pseudo,
-        row.website,
+        authorName,
+        authorWebsite,
         row.author_slug,
         event.title,
         event.city,
         event.region,
         event.type,
-        row.event_id
+        row.event_id,
+        row.author_id
       ].filter(Boolean).join(" "));
 
       return !currentSearch || haystack.includes(currentSearch);
@@ -275,33 +364,37 @@
 
   function renderAuthorRow(row) {
     const event = eventMap.get(String(row.event_id)) || {};
+    const author = getLinkedAuthor(row);
     const isValidated = row.validated === true;
     const statusLabel = isValidated ? "Validé" : "En attente";
     const rowClass = isValidated ? "is-validated" : "is-pending";
     const dateLabel = event.start_date ? formatDateRange(event.start_date, event.end_date) : "Date non précisée";
     const locationLabel = [event.city, event.region].filter(Boolean).join(", ") || "Lieu non précisé";
+    const authorName = getAuthorName(row, author);
+    const authorWebsite = getAuthorWebsite(row, author);
 
     return `
       <article class="author-request-row ${rowClass}">
         <div class="author-request-main">
-          <strong>${escapeHtml(row.pseudo || "Auteur sans nom")}</strong>
+          <strong>${escapeHtml(authorName || "Auteur sans nom")}</strong>
           <small>
             ${escapeHtml(event.title || "Événement non retrouvé")}
             ${event.title ? ` · ${escapeHtml(locationLabel)} · ${escapeHtml(dateLabel)}` : ` · ID événement : ${escapeHtml(row.event_id || "—")}`}
           </small>
           <small>
-            ${row.website ? `Site auteur : ${escapeHtml(row.website)}` : "Aucun site auteur renseigné"}
+            ${authorWebsite ? `Site auteur : ${escapeHtml(authorWebsite)}` : "Aucun site auteur renseigné"}
           </small>
           <div class="author-request-badges">
             <span class="badge ${isValidated ? "" : "pending"}">${statusLabel}</span>
             ${event.type ? `<span class="badge featured">${escapeHtml(event.type)}</span>` : ""}
+            ${row.author_id ? `<span class="badge">author_id</span>` : ""}
             ${row.created_at ? `<span class="badge missing-image">${escapeHtml(formatDate(row.created_at))}</span>` : ""}
           </div>
         </div>
 
         <div class="author-request-actions">
           ${row.event_id ? `<a href="event.html?id=${encodeURIComponent(row.event_id)}" target="_blank" rel="noopener noreferrer">Événement</a>` : ""}
-          ${row.website ? `<a href="${escapeAttribute(row.website)}" target="_blank" rel="noopener noreferrer">Site auteur</a>` : ""}
+          ${authorWebsite ? `<a href="${escapeAttribute(authorWebsite)}" target="_blank" rel="noopener noreferrer">Site auteur</a>` : ""}
           ${!isValidated ? `<button class="approve" type="button" data-author-action="validate" data-id="${escapeAttribute(row.id)}">Valider</button>` : `<button class="pending" type="button" data-author-action="pending" data-id="${escapeAttribute(row.id)}">Remettre en attente</button>`}
           <button class="delete" type="button" data-author-action="delete" data-id="${escapeAttribute(row.id)}">Retirer / supprimer</button>
         </div>
@@ -331,23 +424,22 @@
       .eq("id", id);
 
     if (error) {
-      console.error("Erreur mise à jour auteur :", error);
-      alert(error.message || "Mise à jour impossible.");
+      console.error("Erreur validation auteur :", error);
+      alert("Erreur pendant la mise à jour de la demande auteur.");
       return;
     }
 
-    rows = rows.map((row) => (
-      String(row.id) === String(id) ? { ...row, validated } : row
-    ));
-
-    renderAuthorRequests();
-    updateAuthorCounters();
-    safeToast(validated ? "Auteur validé" : "Auteur remis en attente");
+    await loadAuthorRequests();
   }
 
   async function deleteAuthorPresence(id) {
-    const ok = confirm("Retirer définitivement cette présence auteur de la fiche événement ?");
-    if (!ok) return;
+    const row = rows.find((item) => String(item.id) === String(id));
+    const author = row ? getLinkedAuthor(row) : null;
+    const authorName = row ? getAuthorName(row, author) : "cette demande";
+
+    if (!window.confirm(`Retirer / supprimer la demande auteur : ${authorName || "auteur sans nom"} ?`)) {
+      return;
+    }
 
     const { error } = await client
       .from("event_authors_presence")
@@ -356,85 +448,84 @@
 
     if (error) {
       console.error("Erreur suppression auteur :", error);
-      alert(error.message || "Suppression impossible.");
+      alert("Erreur pendant la suppression de la demande auteur.");
       return;
     }
 
-    rows = rows.filter((row) => String(row.id) !== String(id));
-    renderAuthorRequests();
-    updateAuthorCounters();
-    safeToast("Demande auteur supprimée");
+    await loadAuthorRequests();
   }
 
   function updateAuthorCounters() {
-    ensureCounterElements();
-
     const pendingCount = rows.filter((row) => row.validated !== true).length;
     const stat = document.getElementById("stats-author-requests");
     const badge = document.getElementById("author-requests-tab-badge");
-    const card = document.getElementById("stat-card-author-requests") || stat?.closest(".stat-card");
 
     if (stat) stat.textContent = String(pendingCount);
 
     if (badge) {
       badge.textContent = String(pendingCount);
-      badge.hidden = pendingCount < 1;
-      badge.setAttribute("aria-label", `${pendingCount} demande(s) auteur en attente`);
+      badge.hidden = pendingCount === 0;
     }
-
-    if (card) {
-      card.classList.toggle("has-pending", pendingCount > 0);
-      card.setAttribute("title", `${pendingCount} demande(s) auteur en attente de validation.`);
-    }
-
-    window.dispatchEvent(new CustomEvent("dedicalivres:author-requests-count", {
-      detail: { pendingCount, total: rows.length }
-    }));
-
-    // Protection contre les mises à jour tardives d'admin.js : on réapplique le compteur
-    // brièvement après le chargement ou après une action.
-    clearTimeout(updateAuthorCounters._retryTimer);
-    updateAuthorCounters._retryTimer = setTimeout(() => {
-      const retryStat = document.getElementById("stats-author-requests");
-      const retryBadge = document.getElementById("author-requests-tab-badge");
-      if (retryStat) retryStat.textContent = String(pendingCount);
-      if (retryBadge) {
-        retryBadge.textContent = String(pendingCount);
-        retryBadge.hidden = pendingCount < 1;
-      }
-    }, 500);
   }
 
-  function safeToast(message) {
-    if (typeof window.showToast === "function") {
-      window.showToast(message);
-      return;
+  function getLinkedAuthor(row) {
+    const id = row.author_id || row.authorId || row.author;
+    return id ? authorMap.get(String(id)) : null;
+  }
+
+  function getAuthorName(row, author) {
+    return cleanText(
+      row.pseudo ||
+      row.name ||
+      row.author_name ||
+      row.author_slug ||
+      author?.name ||
+      author?.pseudo ||
+      author?.author_name ||
+      author?.slug ||
+      ""
+    );
+  }
+
+  function getAuthorWebsite(row, author) {
+    return normalizeOptionalWebsite(
+      row.website ||
+      row.url ||
+      row.link ||
+      author?.website ||
+      author?.url ||
+      author?.link ||
+      ""
+    );
+  }
+
+  function cleanText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function normalizeOptionalWebsite(value) {
+    const raw = cleanText(value);
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw)) return raw;
+
+    try {
+      return `https://${raw}`;
+    } catch {
+      return "";
     }
-
-    const container = document.getElementById("toast-container");
-    if (!container) return;
-
-    const toast = document.createElement("div");
-    toast.className = "toast";
-    toast.textContent = message;
-    container.appendChild(toast);
-
-    setTimeout(() => toast.remove(), 2600);
   }
 
   function normalize(value) {
-    return String(value || "")
+    return cleanText(value)
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[’']/g, " ")
-      .toLowerCase()
-      .trim();
+      .toLowerCase();
   }
 
-  function formatDateRange(startDate, endDate) {
-    const start = formatDate(startDate);
-    const end = endDate && endDate !== startDate ? formatDate(endDate) : "";
-    return end ? `${start} → ${end}` : start;
+  function formatDateRange(start, end) {
+    const startLabel = formatDate(start);
+    const endLabel = end && end !== start ? formatDate(end) : "";
+    return endLabel ? `${startLabel} → ${endLabel}` : startLabel;
   }
 
   function formatDate(value) {
