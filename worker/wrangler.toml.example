@@ -1,0 +1,27 @@
+name = "dedicalivres-daily-export"
+main = "dedicalivres-daily-export.js"
+compatibility_date = "2026-05-22"
+
+# Exécution quotidienne à 05:00 UTC.
+# En France : 06:00 en hiver, 07:00 en été.
+# Pour une heure locale Paris stricte, ajuster selon la saison ou déclencher côté planificateur externe.
+[triggers]
+crons = ["0 5 * * *"]
+
+[vars]
+PUBLIC_SITE_URL = "https://dedicalivres.fr"
+R2_PUBLIC_BASE_URL = "https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev"
+EVENTS_TABLE = "events"
+AUTHORS_TABLE = "authors"
+PRESENCE_TABLE = "event_authors_presence"
+EXPORT_PREFIX = "exports"
+
+# Binding R2 à adapter à ton compte Cloudflare.
+[[r2_buckets]]
+binding = "EXPORTS_BUCKET"
+bucket_name = "dedicalivres-images"
+
+# Secrets à ajouter avec wrangler, jamais dans ce fichier :
+# wrangler secret put SUPABASE_URL
+# wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+# wrangler secret put EXPORT_SECRET
