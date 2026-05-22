@@ -1,0 +1,13 @@
+{
+  "name": "dedicalivres-export-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tests automatisés pour le Worker d'export Dédicalivres",
+  "type": "commonjs",
+  "scripts": {
+    "test:export": "node test-export.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
