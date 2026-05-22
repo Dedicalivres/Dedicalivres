@@ -21,7 +21,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=7.7.8b" />
+  <link rel="stylesheet" href="admin.css?v=10.1-exports" />
 </head>
 
 <body class="cyber-admin">
@@ -110,6 +110,10 @@
 
     <button class="admin-tab" data-tab="premium" type="button">
       ⭐ Premium
+    </button>
+
+    <button class="admin-tab" data-tab="exports" type="button">
+      📤 Exports
     </button>
 
     <button class="admin-tab" data-tab="social" type="button">
@@ -335,6 +339,61 @@
       </section>
     </section>
 
+
+
+    <!-- ================================================= -->
+    <!-- EXPORTS -->
+    <!-- ================================================= -->
+
+    <section id="tab-exports" class="admin-tab-panel">
+      <section class="admin-panel admin-exports-panel">
+        <div class="section-head">
+          <h3>EXPORTS ÉVÉNEMENTS</h3>
+          <span id="admin-export-status">Chargement des exports…</span>
+        </div>
+
+        <div class="export-intro">
+          <strong>Fichiers générés automatiquement par le Worker quotidien</strong>
+          <small>
+            Télécharge les données événement par événement et les textes de publication prêts à copier.
+            Aucun secret Supabase, Cloudflare ou R2 n’est exposé dans cette interface.
+          </small>
+        </div>
+
+        <div class="export-kpi-grid">
+          <article class="export-kpi"><b id="admin-export-count">—</b><span>événements exportés</span></article>
+          <article class="export-kpi"><b id="admin-export-date">—</b><span>dernière génération</span></article>
+          <article class="export-kpi"><b id="admin-export-source">—</b><span>source</span></article>
+        </div>
+
+        <div class="export-actions">
+          <a id="admin-export-json" class="cyber-btn-secondary export-download-link" href="#" target="_blank" rel="noopener noreferrer" download>
+            Télécharger JSON
+          </a>
+          <a id="admin-export-csv" class="cyber-btn-secondary export-download-link" href="#" target="_blank" rel="noopener noreferrer" download>
+            Télécharger CSV
+          </a>
+          <a id="admin-export-md" class="cyber-btn-primary export-download-link" href="#" target="_blank" rel="noopener noreferrer" download>
+            Télécharger publications
+          </a>
+          <button id="admin-export-refresh" class="cyber-btn-secondary" type="button">
+            Vérifier les exports
+          </button>
+        </div>
+
+        <div id="admin-export-message" class="export-message priority-empty">
+          Connexion aux fichiers d’export…
+        </div>
+
+        <div class="export-preview-shell">
+          <div class="section-head export-preview-head">
+            <h3>APERÇU PUBLICATIONS</h3>
+            <span id="admin-export-preview-status">Aperçu des premières lignes</span>
+          </div>
+          <pre id="admin-export-preview" class="export-preview">Aucun aperçu chargé.</pre>
+        </div>
+      </section>
+    </section>
     <!-- ================================================= -->
     <!-- SOCIAL -->
     <!-- ================================================= -->
@@ -473,8 +532,8 @@
   crossorigin=""
 ></script>
 
-<script src="config.js?v=8.5"></script>
-<script src="admin.js?v=8.5"></script>
+<script src="config.js?v=10.1-exports"></script>
+<script src="admin.js?v=10.1-exports"></script>
 
 </body>
 </html>

@@ -47,6 +47,18 @@ const adminMapToggle = document.getElementById("admin-map-toggle");
 const adminMapStatus = document.getElementById("admin-map-status");
 const adminMapElement = document.getElementById("admin-map");
 
+const adminExportStatus = document.getElementById("admin-export-status");
+const adminExportCount = document.getElementById("admin-export-count");
+const adminExportDate = document.getElementById("admin-export-date");
+const adminExportSource = document.getElementById("admin-export-source");
+const adminExportJson = document.getElementById("admin-export-json");
+const adminExportCsv = document.getElementById("admin-export-csv");
+const adminExportMd = document.getElementById("admin-export-md");
+const adminExportRefresh = document.getElementById("admin-export-refresh");
+const adminExportMessage = document.getElementById("admin-export-message");
+const adminExportPreview = document.getElementById("admin-export-preview");
+const adminExportPreviewStatus = document.getElementById("admin-export-preview-status");
+
 const editModal = document.getElementById("edit-modal");
 const editId = document.getElementById("edit-id");
 const editTitle = document.getElementById("edit-title");
@@ -353,6 +365,10 @@ function bindEvents() {
   removeEditImageBtn?.addEventListener("click", removeEditImage);
   editImageFile?.addEventListener("change", handleAdminImagePreview);
   adminMapToggle?.addEventListener("click", toggleAdminMap);
+  adminExportRefresh?.addEventListener("click", async () => {
+    if (!(await ensureAdminSession())) return;
+    await loadExportDashboard(true);
+  });
 
   editModal?.addEventListener("click", (event) => {
     if (event.target === editModal) closeEditModal();
@@ -531,6 +547,9 @@ function clearAdminSensitiveState() {
   document.getElementById("testimonials-admin-panel")?.remove();
   document.getElementById("stats-testimonials-card")?.remove();
   document.getElementById("tab-social")?.replaceChildren();
+  if (adminExportStatus) adminExportStatus.textContent = "Connexion admin requise";
+  if (adminExportMessage) adminExportMessage.textContent = "Les exports seront disponibles après connexion.";
+  if (adminExportPreview) adminExportPreview.textContent = "Aucun aperçu chargé.";
 }
 
 /* TABS */
@@ -584,6 +603,7 @@ async function loadDashboard() {
   // V9.1 : chargement sobre des zones prioritaires.
   // Limité aux 100 dernières lignes pour éviter un tableau de bord coûteux.
   await safeAdminStep("chargement zones prioritaires", loadLocationTracking);
+  await safeAdminStep("chargement exports", loadExportDashboard);
 
   refreshAdminViews();
 
@@ -752,6 +772,148 @@ function updateStats() {
   if (statsFeatured) statsFeatured.textContent = String((allEvents || []).filter((event) => !!event.featured).length);
 if (eventsCount) {
     eventsCount.textContent = `${getFilteredEvents().length} éléments`;
+  }
+}
+
+
+/* EXPORTS ADMIN */
+
+function getExportsBaseUrl() {
+  return String(
+    config.exportsBaseUrl ||
+    config.exportBaseUrl ||
+    config.r2ExportsPublicBaseUrl ||
+    ""
+  ).replace(/\/+$/, "");
+}
+
+function getExportFileUrl(filename) {
+  const baseUrl = getExportsBaseUrl();
+  return baseUrl ? `${baseUrl}/${filename}` : "";
+}
+
+async function loadExportDashboard(forceToast = false) {
+  const baseUrl = getExportsBaseUrl();
+
+  if (!adminExportStatus && !adminExportMessage) return;
+
+  if (!baseUrl) {
+    setExportLinksDisabled();
+    if (adminExportStatus) adminExportStatus.textContent = "URL exports à configurer";
+    if (adminExportMessage) {
+      adminExportMessage.textContent =
+        "Ajoute exportsBaseUrl dans config.js pour activer les téléchargements depuis l’admin.";
+    }
+    if (adminExportPreview) adminExportPreview.textContent = "Aucun aperçu chargé.";
+    return;
+  }
+
+  const jsonUrl = getExportFileUrl("events-latest.json");
+  const csvUrl = getExportFileUrl("events-latest.csv");
+  const mdUrl = getExportFileUrl("publications-latest.md");
+
+  setExportLink(adminExportJson, jsonUrl, "events-latest.json");
+  setExportLink(adminExportCsv, csvUrl, "events-latest.csv");
+  setExportLink(adminExportMd, mdUrl, "publications-latest.md");
+
+  if (adminExportStatus) adminExportStatus.textContent = "Vérification des exports…";
+  if (adminExportMessage) adminExportMessage.textContent = "Lecture de events-latest.json…";
+
+  try {
+    const response = await fetch(`${jsonUrl}?t=${Date.now()}`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export JSON indisponible (${response.status})`);
+    }
+
+    const payload = await response.json();
+    const count = Number(payload.count ?? payload.events?.length ?? 0);
+    const generatedAt = payload.generated_at || payload.generatedAt || "";
+
+    if (adminExportCount) adminExportCount.textContent = String(count || 0);
+    if (adminExportDate) adminExportDate.textContent = generatedAt ? formatDateTime(generatedAt) : "—";
+    if (adminExportSource) adminExportSource.textContent = payload.source ? "dedicalivres.fr" : "export";
+    if (adminExportStatus) adminExportStatus.textContent = `${count || 0} événement${count > 1 ? "s" : ""} exporté${count > 1 ? "s" : ""}`;
+    if (adminExportMessage) {
+      adminExportMessage.textContent =
+        `Dernier export chargé. Utilise “Télécharger publications” pour préparer les posts dédiés.`;
+    }
+
+    await loadExportPublicationPreview(mdUrl);
+
+    if (forceToast) showToast("Exports vérifiés");
+  } catch (error) {
+    console.warn("Exports admin indisponibles :", error);
+    if (adminExportStatus) adminExportStatus.textContent = "Exports indisponibles";
+    if (adminExportMessage) {
+      adminExportMessage.textContent =
+        "Impossible de lire les fichiers. Vérifie que le Worker sert /exports/ ou que le bucket R2 exports est public.";
+    }
+    if (adminExportPreviewStatus) adminExportPreviewStatus.textContent = "Aperçu indisponible";
+    if (adminExportPreview) adminExportPreview.textContent = String(error.message || error);
+    if (forceToast) showToast("Exports indisponibles");
+  }
+}
+
+function setExportLinksDisabled() {
+  [adminExportJson, adminExportCsv, adminExportMd].forEach((link) => {
+    if (!link) return;
+    link.href = "#";
+    link.setAttribute("aria-disabled", "true");
+    link.classList.add("is-disabled");
+  });
+}
+
+function setExportLink(link, href, filename) {
+  if (!link) return;
+  link.href = href || "#";
+  link.download = filename;
+  link.setAttribute("aria-disabled", href ? "false" : "true");
+  link.classList.toggle("is-disabled", !href);
+}
+
+async function loadExportPublicationPreview(mdUrl) {
+  if (!adminExportPreview || !mdUrl) return;
+
+  try {
+    const response = await fetch(`${mdUrl}?t=${Date.now()}`, {
+      headers: { Accept: "text/markdown,text/plain,*/*" },
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(`Aperçu Markdown indisponible (${response.status})`);
+    }
+
+    const text = await response.text();
+    const preview = text.split("\n").slice(0, 90).join("\n");
+    adminExportPreview.textContent = preview || "Fichier vide.";
+    if (adminExportPreviewStatus) {
+      adminExportPreviewStatus.textContent = "Aperçu publications-latest.md";
+    }
+  } catch (error) {
+    console.warn("Aperçu publications indisponible :", error);
+    adminExportPreview.textContent = "Aperçu indisponible.";
+    if (adminExportPreviewStatus) adminExportPreviewStatus.textContent = "Aperçu indisponible";
+  }
+}
+
+function formatDateTime(value) {
+  if (!value) return "";
+
+  try {
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(new Date(value));
+  } catch {
+    return String(value);
   }
 }
 

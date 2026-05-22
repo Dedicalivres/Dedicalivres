@@ -1818,3 +1818,119 @@ button.pending[data-author-action="pending"] {
   text-decoration: none;
   cursor: pointer;
 }
+
+
+/* =========================================================
+   PACK 2 — EXPORTS ADMIN
+========================================================= */
+
+.export-intro {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(25,215,255,.07);
+  border: 1px solid rgba(25,215,255,.14);
+}
+
+.export-intro strong {
+  color: #86f0ff;
+  font-size: 1.05rem;
+}
+
+.export-intro small {
+  color: var(--cyber-muted);
+  line-height: 1.55;
+}
+
+.export-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  margin: 16px 0 20px;
+}
+
+.export-kpi {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+.export-kpi b {
+  display: block;
+  color: var(--cyber-cyan);
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.25rem;
+  word-break: break-word;
+}
+
+.export-kpi span {
+  color: var(--cyber-muted);
+  font-size: .86rem;
+  font-weight: 800;
+}
+
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.export-download-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.export-download-link.is-disabled {
+  opacity: .48;
+  pointer-events: none;
+}
+
+.export-message {
+  margin: 12px 0 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.07);
+}
+
+.export-preview-shell {
+  margin-top: 18px;
+}
+
+.export-preview-head {
+  margin-bottom: 12px;
+}
+
+.export-preview {
+  max-height: 520px;
+  overflow: auto;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.32);
+  border: 1px solid rgba(25,215,255,.12);
+  color: #eafff7;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: .92rem;
+}
+
+@media (max-width: 620px) {
+  .export-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .export-download-link,
+  .export-actions button {
+    width: 100%;
+  }
+}
