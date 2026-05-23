@@ -2425,7 +2425,11 @@ function hydrateAdminExportLinks() {
     "exports-salons-link": "salons-latest.md",
     "exports-autres-link": "autres-evenements-latest.md",
     "exports-planning-link": "planning-publication-latest.md",
-    "exports-weekend-link": "weekend-par-region-latest.md"
+    "exports-weekend-link": "weekend-par-region-latest.md",
+    "exports-instagram-all-link": "instagram/tous-evenements-latest.html",
+    "exports-instagram-dedicaces-link": "instagram/dedicaces-latest.html",
+    "exports-instagram-salons-link": "instagram/salons-latest.html",
+    "exports-instagram-weekend-link": "instagram/weekend-regions-latest.html"
   };
 
   for (const [id, filename] of Object.entries(links)) {

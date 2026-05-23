@@ -2024,3 +2024,98 @@ button.pending[data-author-action="pending"] {
     width: 100%;
   }
 }
+
+
+/* =========================================================
+   EXPORTS — Pack 4B : accès admin aux tuiles Instagram
+========================================================= */
+
+.exports-layout-section {
+  margin: 22px 0;
+  padding: 18px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(25,215,255,.12), transparent 34%),
+    rgba(255,255,255,.045);
+  border: 1px solid rgba(25,215,255,.18);
+}
+
+.exports-layout-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.exports-layout-head h4 {
+  margin: 0 0 7px;
+  font-family: "Orbitron", sans-serif;
+  letter-spacing: .09em;
+  color: var(--cyber-cyan);
+}
+
+.exports-layout-head p {
+  margin: 0;
+  color: var(--cyber-muted);
+  line-height: 1.45;
+}
+
+.exports-layout-badge {
+  flex: 0 0 auto;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: var(--cyber-green);
+  background: rgba(25,255,156,.10);
+  border: 1px solid rgba(25,255,156,.18);
+  font-weight: 900;
+  font-size: .76rem;
+}
+
+.exports-layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.exports-layout-card {
+  display: block;
+  min-height: 112px;
+  padding: 16px;
+  border-radius: 20px;
+  text-decoration: none;
+  color: var(--cyber-text);
+  background: rgba(4,12,18,.62);
+  border: 1px solid rgba(25,215,255,.16);
+  transition: transform .2s ease, border-color .2s ease, background .2s ease;
+}
+
+.exports-layout-card:hover {
+  transform: translateY(-2px);
+  background: rgba(25,215,255,.08);
+  border-color: rgba(25,215,255,.34);
+}
+
+.exports-layout-card strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--cyber-cyan);
+  font-size: 1rem;
+}
+
+.exports-layout-card span {
+  display: block;
+  color: var(--cyber-muted);
+  font-size: .88rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .exports-layout-head {
+    flex-direction: column;
+  }
+
+  .exports-layout-card {
+    min-height: auto;
+  }
+}
