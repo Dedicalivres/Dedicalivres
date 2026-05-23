@@ -47,18 +47,6 @@ const adminMapToggle = document.getElementById("admin-map-toggle");
 const adminMapStatus = document.getElementById("admin-map-status");
 const adminMapElement = document.getElementById("admin-map");
 
-const adminExportStatus = document.getElementById("admin-export-status");
-const adminExportCount = document.getElementById("admin-export-count");
-const adminExportDate = document.getElementById("admin-export-date");
-const adminExportSource = document.getElementById("admin-export-source");
-const adminExportJson = document.getElementById("admin-export-json");
-const adminExportCsv = document.getElementById("admin-export-csv");
-const adminExportMd = document.getElementById("admin-export-md");
-const adminExportRefresh = document.getElementById("admin-export-refresh");
-const adminExportMessage = document.getElementById("admin-export-message");
-const adminExportPreview = document.getElementById("admin-export-preview");
-const adminExportPreviewStatus = document.getElementById("admin-export-preview-status");
-
 const editModal = document.getElementById("edit-modal");
 const editId = document.getElementById("edit-id");
 const editTitle = document.getElementById("edit-title");
@@ -365,10 +353,7 @@ function bindEvents() {
   removeEditImageBtn?.addEventListener("click", removeEditImage);
   editImageFile?.addEventListener("change", handleAdminImagePreview);
   adminMapToggle?.addEventListener("click", toggleAdminMap);
-  adminExportRefresh?.addEventListener("click", async () => {
-    if (!(await ensureAdminSession())) return;
-    await loadExportDashboard(true);
-  });
+  bindAdminExportsPanel();
 
   editModal?.addEventListener("click", (event) => {
     if (event.target === editModal) closeEditModal();
@@ -547,9 +532,7 @@ function clearAdminSensitiveState() {
   document.getElementById("testimonials-admin-panel")?.remove();
   document.getElementById("stats-testimonials-card")?.remove();
   document.getElementById("tab-social")?.replaceChildren();
-  if (adminExportStatus) adminExportStatus.textContent = "Connexion admin requise";
-  if (adminExportMessage) adminExportMessage.textContent = "Les exports seront disponibles après connexion.";
-  if (adminExportPreview) adminExportPreview.textContent = "Aucun aperçu chargé.";
+  resetAdminExportsPanel();
 }
 
 /* TABS */
@@ -581,6 +564,10 @@ function bindTabs() {
         map?.invalidateSize();
       }, 250);
     }
+
+    if (target === "exports") {
+      loadAdminExportsDashboard();
+    }
   });
 }
 
@@ -603,7 +590,7 @@ async function loadDashboard() {
   // V9.1 : chargement sobre des zones prioritaires.
   // Limité aux 100 dernières lignes pour éviter un tableau de bord coûteux.
   await safeAdminStep("chargement zones prioritaires", loadLocationTracking);
-  await safeAdminStep("chargement exports", loadExportDashboard);
+  await safeAdminStep("chargement exports", loadAdminExportsDashboard);
 
   refreshAdminViews();
 
@@ -772,148 +759,6 @@ function updateStats() {
   if (statsFeatured) statsFeatured.textContent = String((allEvents || []).filter((event) => !!event.featured).length);
 if (eventsCount) {
     eventsCount.textContent = `${getFilteredEvents().length} éléments`;
-  }
-}
-
-
-/* EXPORTS ADMIN */
-
-function getExportsBaseUrl() {
-  return String(
-    config.exportsBaseUrl ||
-    config.exportBaseUrl ||
-    config.r2ExportsPublicBaseUrl ||
-    ""
-  ).replace(/\/+$/, "");
-}
-
-function getExportFileUrl(filename) {
-  const baseUrl = getExportsBaseUrl();
-  return baseUrl ? `${baseUrl}/${filename}` : "";
-}
-
-async function loadExportDashboard(forceToast = false) {
-  const baseUrl = getExportsBaseUrl();
-
-  if (!adminExportStatus && !adminExportMessage) return;
-
-  if (!baseUrl) {
-    setExportLinksDisabled();
-    if (adminExportStatus) adminExportStatus.textContent = "URL exports à configurer";
-    if (adminExportMessage) {
-      adminExportMessage.textContent =
-        "Ajoute exportsBaseUrl dans config.js pour activer les téléchargements depuis l’admin.";
-    }
-    if (adminExportPreview) adminExportPreview.textContent = "Aucun aperçu chargé.";
-    return;
-  }
-
-  const jsonUrl = getExportFileUrl("events-latest.json");
-  const csvUrl = getExportFileUrl("events-latest.csv");
-  const mdUrl = getExportFileUrl("publications-latest.md");
-
-  setExportLink(adminExportJson, jsonUrl, "events-latest.json");
-  setExportLink(adminExportCsv, csvUrl, "events-latest.csv");
-  setExportLink(adminExportMd, mdUrl, "publications-latest.md");
-
-  if (adminExportStatus) adminExportStatus.textContent = "Vérification des exports…";
-  if (adminExportMessage) adminExportMessage.textContent = "Lecture de events-latest.json…";
-
-  try {
-    const response = await fetch(`${jsonUrl}?t=${Date.now()}`, {
-      headers: { Accept: "application/json" },
-      cache: "no-store"
-    });
-
-    if (!response.ok) {
-      throw new Error(`Export JSON indisponible (${response.status})`);
-    }
-
-    const payload = await response.json();
-    const count = Number(payload.count ?? payload.events?.length ?? 0);
-    const generatedAt = payload.generated_at || payload.generatedAt || "";
-
-    if (adminExportCount) adminExportCount.textContent = String(count || 0);
-    if (adminExportDate) adminExportDate.textContent = generatedAt ? formatDateTime(generatedAt) : "—";
-    if (adminExportSource) adminExportSource.textContent = payload.source ? "dedicalivres.fr" : "export";
-    if (adminExportStatus) adminExportStatus.textContent = `${count || 0} événement${count > 1 ? "s" : ""} exporté${count > 1 ? "s" : ""}`;
-    if (adminExportMessage) {
-      adminExportMessage.textContent =
-        `Dernier export chargé. Utilise “Télécharger publications” pour préparer les posts dédiés.`;
-    }
-
-    await loadExportPublicationPreview(mdUrl);
-
-    if (forceToast) showToast("Exports vérifiés");
-  } catch (error) {
-    console.warn("Exports admin indisponibles :", error);
-    if (adminExportStatus) adminExportStatus.textContent = "Exports indisponibles";
-    if (adminExportMessage) {
-      adminExportMessage.textContent =
-        "Impossible de lire les fichiers. Vérifie que le Worker sert /exports/ ou que le bucket R2 exports est public.";
-    }
-    if (adminExportPreviewStatus) adminExportPreviewStatus.textContent = "Aperçu indisponible";
-    if (adminExportPreview) adminExportPreview.textContent = String(error.message || error);
-    if (forceToast) showToast("Exports indisponibles");
-  }
-}
-
-function setExportLinksDisabled() {
-  [adminExportJson, adminExportCsv, adminExportMd].forEach((link) => {
-    if (!link) return;
-    link.href = "#";
-    link.setAttribute("aria-disabled", "true");
-    link.classList.add("is-disabled");
-  });
-}
-
-function setExportLink(link, href, filename) {
-  if (!link) return;
-  link.href = href || "#";
-  link.download = filename;
-  link.setAttribute("aria-disabled", href ? "false" : "true");
-  link.classList.toggle("is-disabled", !href);
-}
-
-async function loadExportPublicationPreview(mdUrl) {
-  if (!adminExportPreview || !mdUrl) return;
-
-  try {
-    const response = await fetch(`${mdUrl}?t=${Date.now()}`, {
-      headers: { Accept: "text/markdown,text/plain,*/*" },
-      cache: "no-store"
-    });
-
-    if (!response.ok) {
-      throw new Error(`Aperçu Markdown indisponible (${response.status})`);
-    }
-
-    const text = await response.text();
-    const preview = text.split("\n").slice(0, 90).join("\n");
-    adminExportPreview.textContent = preview || "Fichier vide.";
-    if (adminExportPreviewStatus) {
-      adminExportPreviewStatus.textContent = "Aperçu publications-latest.md";
-    }
-  } catch (error) {
-    console.warn("Aperçu publications indisponible :", error);
-    adminExportPreview.textContent = "Aperçu indisponible.";
-    if (adminExportPreviewStatus) adminExportPreviewStatus.textContent = "Aperçu indisponible";
-  }
-}
-
-function formatDateTime(value) {
-  if (!value) return "";
-
-  try {
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    }).format(new Date(value));
-  } catch {
-    return String(value);
   }
 }
 
@@ -2516,4 +2361,317 @@ function formatDate(value) {
   } catch {
     return value;
   }
+}
+
+
+/* =========================================================
+   EXPORTS — Pack 3B : exploitation des fichiers classés
+========================================================= */
+
+const DEFAULT_EXPORTS_BASE_URL = "https://dedicalivres-daily-export.dedicalivres.workers.dev/exports";
+
+let adminExportsLoadedAt = null;
+let adminExportsLastPreview = "";
+let adminExportsCache = {
+  global: null,
+  dedicaces: null,
+  salons: null,
+  autres: null
+};
+
+function getExportsBaseUrl() {
+  return String(config.exportsBaseUrl || DEFAULT_EXPORTS_BASE_URL).replace(/\/+$/, "");
+}
+
+function getExportFileUrl(filename) {
+  return `${getExportsBaseUrl()}/${String(filename).replace(/^\/+/, "")}`;
+}
+
+function bindAdminExportsPanel() {
+  document.getElementById("exports-refresh-btn")?.addEventListener("click", async () => {
+    if (!(await ensureAdminSession())) return;
+    await loadAdminExportsDashboard(true);
+  });
+
+  document.getElementById("exports-preview-select")?.addEventListener("change", async () => {
+    if (!(await ensureAdminSession())) return;
+    await loadAdminExportPreview();
+  });
+
+  document.getElementById("exports-copy-preview-btn")?.addEventListener("click", async () => {
+    if (!adminExportsLastPreview) {
+      showToast("Aucun aperçu à copier");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(adminExportsLastPreview);
+      showToast("Aperçu copié");
+    } catch (error) {
+      fallbackCopyText(adminExportsLastPreview);
+      showToast("Aperçu copié");
+    }
+  });
+
+  hydrateAdminExportLinks();
+}
+
+function hydrateAdminExportLinks() {
+  const links = {
+    "exports-json-link": "events-latest.json",
+    "exports-csv-link": "events-latest.csv",
+    "exports-publications-link": "publications-latest.md",
+    "exports-dedicaces-link": "dedicaces-latest.md",
+    "exports-salons-link": "salons-latest.md",
+    "exports-autres-link": "autres-evenements-latest.md",
+    "exports-planning-link": "planning-publication-latest.md",
+    "exports-weekend-link": "weekend-par-region-latest.md"
+  };
+
+  for (const [id, filename] of Object.entries(links)) {
+    const element = document.getElementById(id);
+    if (element) element.href = getExportFileUrl(filename);
+  }
+}
+
+function resetAdminExportsPanel() {
+  adminExportsLoadedAt = null;
+  adminExportsLastPreview = "";
+  adminExportsCache = {
+    global: null,
+    dedicaces: null,
+    salons: null,
+    autres: null
+  };
+
+  const ids = [
+    "exports-total-count",
+    "exports-dedicaces-count",
+    "exports-salons-count",
+    "exports-autres-count"
+  ];
+
+  ids.forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = "—";
+  });
+
+  const generated = document.getElementById("exports-generated-at");
+  if (generated) generated.textContent = "—";
+
+  const status = document.getElementById("exports-status");
+  if (status) status.textContent = "En attente de vérification";
+
+  const preview = document.getElementById("exports-preview");
+  if (preview) preview.textContent = "Sélectionne “Vérifier les exports” pour charger l’aperçu.";
+}
+
+async function loadAdminExportsDashboard(force = false) {
+  if (!window.DEDICALIVRES_ADMIN_AUTHENTICATED) return;
+  if (adminExportsLoadedAt && !force && Date.now() - adminExportsLoadedAt < 60000) return;
+
+  hydrateAdminExportLinks();
+
+  const status = document.getElementById("exports-status");
+  const refreshButton = document.getElementById("exports-refresh-btn");
+
+  if (status) status.textContent = "Chargement des exports...";
+  if (refreshButton) refreshButton.disabled = true;
+
+  try {
+    const [global, dedicaces, salons, autres] = await Promise.all([
+      fetchAdminExportJson("events-latest.json"),
+      fetchAdminExportJson("dedicaces-latest.json"),
+      fetchAdminExportJson("salons-latest.json"),
+      fetchAdminExportJson("autres-evenements-latest.json")
+    ]);
+
+    adminExportsCache = { global, dedicaces, salons, autres };
+    adminExportsLoadedAt = Date.now();
+
+    renderAdminExportsDashboard();
+    await loadAdminExportPreview();
+
+    if (status) status.textContent = "Exports disponibles";
+    showToast("Exports chargés");
+  } catch (error) {
+    console.warn("Exports indisponibles", error);
+    if (status) status.textContent = "Exports indisponibles";
+    const preview = document.getElementById("exports-preview");
+    if (preview) {
+      preview.textContent = `Chargement impossible.\n\nVérifie que le Worker sert bien les fichiers /exports/*.\n\nDétail : ${error.message || error}`;
+    }
+    showToast("Erreur chargement exports");
+  } finally {
+    if (refreshButton) refreshButton.disabled = false;
+  }
+}
+
+async function fetchAdminExportJson(filename) {
+  const response = await fetch(`${getExportFileUrl(filename)}?t=${Date.now()}`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(`${filename} : HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function fetchAdminExportText(filename) {
+  const response = await fetch(`${getExportFileUrl(filename)}?t=${Date.now()}`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(`${filename} : HTTP ${response.status}`);
+  }
+
+  return response.text();
+}
+
+function getExportEvents(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload.events)) return payload.events;
+  if (Array.isArray(payload.items)) return payload.items;
+  if (Array.isArray(payload.data)) return payload.data;
+  return [];
+}
+
+function renderAdminExportsDashboard() {
+  const globalEvents = getExportEvents(adminExportsCache.global);
+  const dedicaces = getExportEvents(adminExportsCache.dedicaces);
+  const salons = getExportEvents(adminExportsCache.salons);
+  const autres = getExportEvents(adminExportsCache.autres);
+
+  setText("exports-total-count", String(adminExportsCache.global?.count ?? globalEvents.length));
+  setText("exports-dedicaces-count", String(adminExportsCache.dedicaces?.count ?? dedicaces.length));
+  setText("exports-salons-count", String(adminExportsCache.salons?.count ?? salons.length));
+  setText("exports-autres-count", String(adminExportsCache.autres?.count ?? autres.length));
+  setText("exports-dedicaces-mini", `${dedicaces.length} éléments`);
+  setText("exports-salons-mini", `${salons.length} éléments`);
+
+  const generated = adminExportsCache.global?.generated_at || adminExportsCache.global?.generatedAt;
+  setText("exports-generated-at", generated ? formatExportDateTime(generated) : "—");
+
+  const filter = adminExportsCache.global?.filter || "future_or_current_only";
+  setText("exports-filter-label", filter === "future_or_current_only" ? "événements à venir uniquement" : filter);
+
+  renderAdminExportMiniList("exports-dedicaces-list", dedicaces.slice(0, 8));
+  renderAdminExportMiniList("exports-salons-list", salons.slice(0, 8));
+  renderAdminExportPriorityList(globalEvents);
+}
+
+function renderAdminExportMiniList(containerId, events) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!events.length) {
+    container.innerHTML = `<p class="priority-empty">Aucun élément.</p>`;
+    return;
+  }
+
+  container.innerHTML = events.map((event) => {
+    const date = event.date ? formatDate(event.date) : "Date à préciser";
+    const title = escapeHtml(event.title || "Sans titre");
+    const city = escapeHtml(event.city || "Ville non précisée");
+    const url = event.event_url || event.url || "#";
+
+    return `
+      <a class="exports-mini-item" href="${escapeAttr(url)}" target="_blank" rel="noopener">
+        <strong>${title}</strong>
+        <span>${date} · ${city}</span>
+      </a>
+    `;
+  }).join("");
+}
+
+function renderAdminExportPriorityList(events) {
+  const container = document.getElementById("exports-priority-list");
+  if (!container) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const prioritized = events
+    .map((event) => ({
+      ...event,
+      daysUntil: getDaysUntil(event.date, today)
+    }))
+    .filter((event) => Number.isFinite(event.daysUntil) && event.daysUntil >= 0 && event.daysUntil <= 21)
+    .sort((a, b) => a.daysUntil - b.daysUntil || String(a.title || "").localeCompare(String(b.title || "")))
+    .slice(0, 10);
+
+  if (!prioritized.length) {
+    container.innerHTML = `<p class="priority-empty">Aucune priorité J-21.</p>`;
+    return;
+  }
+
+  container.innerHTML = prioritized.map((event) => {
+    const badge = event.daysUntil <= 3 ? "Priorité haute" : event.daysUntil <= 7 ? "Cette semaine" : "À préparer";
+    const title = escapeHtml(event.title || "Sans titre");
+    const city = escapeHtml(event.city || "Ville non précisée");
+    const url = event.event_url || event.url || "#";
+
+    return `
+      <a class="exports-mini-item exports-priority-item" href="${escapeAttr(url)}" target="_blank" rel="noopener">
+        <strong>${title}</strong>
+        <span>J-${event.daysUntil} · ${city} · ${badge}</span>
+      </a>
+    `;
+  }).join("");
+}
+
+async function loadAdminExportPreview() {
+  const select = document.getElementById("exports-preview-select");
+  const preview = document.getElementById("exports-preview");
+  if (!select || !preview) return;
+
+  const filename = select.value || "publications-par-categorie-latest.md";
+  preview.textContent = "Chargement de l’aperçu...";
+
+  try {
+    const text = await fetchAdminExportText(filename);
+    adminExportsLastPreview = text;
+    preview.textContent = text.slice(0, 16000) + (text.length > 16000 ? "\n\n… Aperçu tronqué. Ouvre le fichier complet pour la suite." : "");
+  } catch (error) {
+    adminExportsLastPreview = "";
+    preview.textContent = `Aperçu indisponible : ${error.message || error}`;
+  }
+}
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
+}
+
+function formatExportDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(date);
+}
+
+function getDaysUntil(dateValue, today) {
+  if (!dateValue) return Number.NaN;
+  const eventDate = new Date(`${String(dateValue).slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(eventDate.getTime())) return Number.NaN;
+  return Math.round((eventDate.getTime() - today.getTime()) / 86400000);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/`/g, "&#096;");
 }

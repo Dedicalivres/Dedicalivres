@@ -21,7 +21,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=10.1-exports" />
+  <link rel="stylesheet" href="admin.css?v=8.6" />
 </head>
 
 <body class="cyber-admin">
@@ -32,7 +32,7 @@
 
     <h1>ADMIN CONTROL</h1>
     <p class="login-subtitle">
-      Tableau de bord • Événements • Modération • Premium • Réseaux
+      Tableau de bord • Événements • Exports • Premium • Réseaux
     </p>
 
     <form id="login-form" class="login-form">
@@ -340,7 +340,6 @@
     </section>
 
 
-
     <!-- ================================================= -->
     <!-- EXPORTS -->
     <!-- ================================================= -->
@@ -348,52 +347,79 @@
     <section id="tab-exports" class="admin-tab-panel">
       <section class="admin-panel admin-exports-panel">
         <div class="section-head">
-          <h3>EXPORTS ÉVÉNEMENTS</h3>
-          <span id="admin-export-status">Chargement des exports…</span>
+          <h3>EXPORTS & PUBLICATIONS</h3>
+          <span id="exports-status">En attente de vérification</span>
         </div>
 
-        <div class="export-intro">
-          <strong>Fichiers générés automatiquement par le Worker quotidien</strong>
-          <small>
-            Télécharge les données événement par événement et les textes de publication prêts à copier.
-            Aucun secret Supabase, Cloudflare ou R2 n’est exposé dans cette interface.
-          </small>
+        <div class="exports-kpi-grid">
+          <article class="exports-kpi"><span>Total à venir</span><b id="exports-total-count">—</b></article>
+          <article class="exports-kpi"><span>Dédicaces</span><b id="exports-dedicaces-count">—</b></article>
+          <article class="exports-kpi"><span>Salons / Festivals</span><b id="exports-salons-count">—</b></article>
+          <article class="exports-kpi"><span>Autres</span><b id="exports-autres-count">—</b></article>
         </div>
 
-        <div class="export-kpi-grid">
-          <article class="export-kpi"><b id="admin-export-count">—</b><span>événements exportés</span></article>
-          <article class="export-kpi"><b id="admin-export-date">—</b><span>dernière génération</span></article>
-          <article class="export-kpi"><b id="admin-export-source">—</b><span>source</span></article>
+        <div class="exports-meta">
+          <span>Dernière génération : <strong id="exports-generated-at">—</strong></span>
+          <span>Filtre : <strong id="exports-filter-label">événements à venir uniquement</strong></span>
         </div>
 
-        <div class="export-actions">
-          <a id="admin-export-json" class="cyber-btn-secondary export-download-link" href="#" target="_blank" rel="noopener noreferrer" download>
-            Télécharger JSON
-          </a>
-          <a id="admin-export-csv" class="cyber-btn-secondary export-download-link" href="#" target="_blank" rel="noopener noreferrer" download>
-            Télécharger CSV
-          </a>
-          <a id="admin-export-md" class="cyber-btn-primary export-download-link" href="#" target="_blank" rel="noopener noreferrer" download>
-            Télécharger publications
-          </a>
-          <button id="admin-export-refresh" class="cyber-btn-secondary" type="button">
-            Vérifier les exports
-          </button>
+        <div class="exports-actions">
+          <button id="exports-refresh-btn" class="cyber-btn-primary" type="button">Vérifier les exports</button>
+          <a id="exports-json-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">JSON global</a>
+          <a id="exports-csv-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">CSV global</a>
+          <a id="exports-publications-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Publications globales</a>
         </div>
 
-        <div id="admin-export-message" class="export-message priority-empty">
-          Connexion aux fichiers d’export…
+        <div class="exports-actions exports-actions-secondary">
+          <a id="exports-dedicaces-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Dédicaces</a>
+          <a id="exports-salons-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Salons / Festivals</a>
+          <a id="exports-autres-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Autres</a>
+          <a id="exports-planning-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Planning publication</a>
+          <a id="exports-weekend-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Week-end par région</a>
         </div>
 
-        <div class="export-preview-shell">
-          <div class="section-head export-preview-head">
-            <h3>APERÇU PUBLICATIONS</h3>
-            <span id="admin-export-preview-status">Aperçu des premières lignes</span>
-          </div>
-          <pre id="admin-export-preview" class="export-preview">Aucun aperçu chargé.</pre>
+        <div class="exports-grid">
+          <article class="exports-card">
+            <div class="exports-card-head">
+              <strong>Dédicaces à traiter</strong>
+              <span id="exports-dedicaces-mini">—</span>
+            </div>
+            <div id="exports-dedicaces-list" class="exports-mini-list">Chargement...</div>
+          </article>
+
+          <article class="exports-card">
+            <div class="exports-card-head">
+              <strong>Salons / Festivals</strong>
+              <span id="exports-salons-mini">—</span>
+            </div>
+            <div id="exports-salons-list" class="exports-mini-list">Chargement...</div>
+          </article>
+
+          <article class="exports-card">
+            <div class="exports-card-head">
+              <strong>Priorités publication</strong>
+              <span>J-1 à J-21</span>
+            </div>
+            <div id="exports-priority-list" class="exports-mini-list">Chargement...</div>
+          </article>
         </div>
+
+        <div class="exports-preview-toolbar">
+          <label for="exports-preview-select">Aperçu rapide</label>
+          <select id="exports-preview-select">
+            <option value="publications-par-categorie-latest.md">Publications par catégorie</option>
+            <option value="dedicaces-latest.md">Dédicaces</option>
+            <option value="salons-latest.md">Salons / Festivals</option>
+            <option value="planning-publication-latest.md">Planning publication</option>
+            <option value="weekend-par-region-latest.md">Week-end par région</option>
+          </select>
+          <button id="exports-copy-preview-btn" class="cyber-btn-secondary" type="button">Copier l’aperçu</button>
+        </div>
+
+        <pre id="exports-preview" class="exports-preview">Sélectionne “Vérifier les exports” pour charger l’aperçu.</pre>
       </section>
     </section>
+
     <!-- ================================================= -->
     <!-- SOCIAL -->
     <!-- ================================================= -->
@@ -532,8 +558,8 @@
   crossorigin=""
 ></script>
 
-<script src="config.js?v=10.1-exports"></script>
-<script src="admin.js?v=10.1-exports"></script>
+<script src="config.js?v=8.6"></script>
+<script src="admin.js?v=8.6"></script>
 
 </body>
 </html>
