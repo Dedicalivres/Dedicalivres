@@ -2370,6 +2370,13 @@ function formatDate(value) {
 
 const DEFAULT_EXPORTS_BASE_URL = "https://dedicalivres-daily-export.dedicalivres.workers.dev/exports";
 
+const ADMIN_INSTAGRAM_TILE_LINKS = {
+  "exports-instagram-all-link": "instagram/tous-evenements-latest.html",
+  "exports-instagram-dedicaces-link": "instagram/dedicaces-latest.html",
+  "exports-instagram-salons-link": "instagram/salons-latest.html",
+  "exports-instagram-weekend-link": "instagram/weekend-regions-latest.html"
+};
+
 let adminExportsLoadedAt = null;
 let adminExportsLastPreview = "";
 let adminExportsCache = {
@@ -2414,6 +2421,7 @@ function bindAdminExportsPanel() {
   });
 
   hydrateAdminExportLinks();
+  bindAdminInstagramTileLinks();
 }
 
 function hydrateAdminExportLinks() {
@@ -2426,15 +2434,36 @@ function hydrateAdminExportLinks() {
     "exports-autres-link": "autres-evenements-latest.md",
     "exports-planning-link": "planning-publication-latest.md",
     "exports-weekend-link": "weekend-par-region-latest.md",
-    "exports-instagram-all-link": "instagram/tous-evenements-latest.html",
-    "exports-instagram-dedicaces-link": "instagram/dedicaces-latest.html",
-    "exports-instagram-salons-link": "instagram/salons-latest.html",
-    "exports-instagram-weekend-link": "instagram/weekend-regions-latest.html"
+    ...ADMIN_INSTAGRAM_TILE_LINKS
   };
 
   for (const [id, filename] of Object.entries(links)) {
     const element = document.getElementById(id);
     if (element) element.href = getExportFileUrl(filename);
+  }
+}
+
+
+function bindAdminInstagramTileLinks() {
+  for (const [id, filename] of Object.entries(ADMIN_INSTAGRAM_TILE_LINKS)) {
+    const element = document.getElementById(id);
+    if (!element) continue;
+
+    const url = getExportFileUrl(filename);
+
+    element.href = url;
+    element.target = "_blank";
+    element.rel = "noopener noreferrer";
+    element.dataset.tileUrl = url;
+
+    // Sécurité : évite qu'un clic sur la carte soit interprété par l'admin comme un changement d'onglet.
+    element.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const targetUrl = element.dataset.tileUrl || element.href || url;
+      window.open(targetUrl, "_blank", "noopener,noreferrer");
+    });
   }
 }
 
