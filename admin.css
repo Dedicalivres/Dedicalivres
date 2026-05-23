@@ -2122,60 +2122,31 @@ button.pending[data-author-action="pending"] {
 
 
 /* =========================================================
-   PACK 4B-2 — Correctif mobile tuiles Instagram
-   Objectif : rendre les tuiles entièrement cliquables sur iOS/Android
+   EXPORTS — Pack 5B : accès admin aux maquettes visuelles
 ========================================================= */
 
-.exports-layout-grid {
-  align-items: stretch;
+.exports-designs-section {
+  background:
+    radial-gradient(circle at top left, rgba(245,130,20,.14), transparent 34%),
+    rgba(255,255,255,.045);
+  border-color: rgba(245,130,20,.22);
 }
 
-.exports-layout-card {
-  position: relative;
-  display: flex !important;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: rgba(25,215,255,.18);
-  touch-action: manipulation;
-  cursor: pointer;
+.exports-designs-section .exports-layout-card {
+  border-color: rgba(245,130,20,.18);
 }
 
-.exports-layout-card strong,
-.exports-layout-card span {
-  pointer-events: none;
+.exports-designs-section .exports-layout-card:hover {
+  background: rgba(245,130,20,.08);
+  border-color: rgba(245,130,20,.36);
 }
 
-.exports-layout-card:active {
-  transform: scale(.985);
-  border-color: rgba(25,255,156,.38);
-  background: rgba(25,215,255,.12);
+.exports-designs-section .exports-layout-card strong {
+  color: #ffb15a;
 }
 
-@media (max-width: 760px) {
-  .exports-layout-section {
-    padding: 14px;
-    margin: 18px 0;
-  }
-
-  .exports-layout-grid {
-    display: grid;
-    grid-template-columns: 1fr !important;
-    gap: 12px;
-  }
-
-  .exports-layout-card {
-    min-height: 88px;
-    padding: 18px 16px;
-    border-radius: 18px;
-  }
-
-  .exports-layout-card strong {
-    font-size: 1.02rem;
-  }
-
-  .exports-layout-card span {
-    font-size: .88rem;
-  }
+.exports-designs-section .exports-layout-badge {
+  color: #ffb15a;
+  background: rgba(245,130,20,.10);
+  border-color: rgba(245,130,20,.20);
 }

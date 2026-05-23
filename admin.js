@@ -2414,7 +2414,7 @@ function bindAdminExportsPanel() {
   });
 
   hydrateAdminExportLinks();
-  bindInstagramExportTileLinks();
+  bindAdminExternalExportLinks();
 }
 
 function hydrateAdminExportLinks() {
@@ -2430,59 +2430,39 @@ function hydrateAdminExportLinks() {
     "exports-instagram-all-link": "instagram/tous-evenements-latest.html",
     "exports-instagram-dedicaces-link": "instagram/dedicaces-latest.html",
     "exports-instagram-salons-link": "instagram/salons-latest.html",
-    "exports-instagram-weekend-link": "instagram/weekend-regions-latest.html"
+    "exports-instagram-weekend-link": "instagram/weekend-regions-latest.html",
+    "exports-design-story-dedicaces-link": "designs/story-dedicaces-latest.html",
+    "exports-design-story-salons-link": "designs/story-salons-latest.html",
+    "exports-design-square-dedicaces-link": "designs/square-dedicaces-latest.html",
+    "exports-design-square-salons-link": "designs/square-salons-latest.html",
+    "exports-design-wide-link": "designs/wide-evenements-latest.html"
   };
 
   for (const [id, filename] of Object.entries(links)) {
     const element = document.getElementById(id);
-    if (element) element.href = getExportFileUrl(filename);
+    if (element) {
+      element.href = getExportFileUrl(filename);
+      element.target = "_blank";
+      element.rel = "noopener noreferrer";
+      element.dataset.externalExportLink = "true";
+    }
   }
 }
 
 
-function getInstagramTileLinks() {
-  return {
-    "exports-instagram-all-link": "instagram/tous-evenements-latest.html",
-    "exports-instagram-dedicaces-link": "instagram/dedicaces-latest.html",
-    "exports-instagram-salons-link": "instagram/salons-latest.html",
-    "exports-instagram-weekend-link": "instagram/weekend-regions-latest.html"
-  };
-}
+function bindAdminExternalExportLinks() {
+  document.querySelectorAll('[data-external-export-link="true"]').forEach((link) => {
+    if (link.dataset.exportClickBound === "true") return;
+    link.dataset.exportClickBound = "true";
 
-function bindInstagramExportTileLinks() {
-  const links = getInstagramTileLinks();
-
-  for (const [id, filename] of Object.entries(links)) {
-    const element = document.getElementById(id);
-    if (!element) continue;
-
-    const url = getExportFileUrl(filename);
-
-    element.href = url;
-    element.setAttribute("target", "_blank");
-    element.setAttribute("rel", "noopener noreferrer");
-    element.dataset.exportTileUrl = url;
-
-    if (element.dataset.tileClickBound === "1") continue;
-    element.dataset.tileClickBound = "1";
-
-    element.addEventListener("click", (event) => {
-      const directUrl = element.dataset.exportTileUrl || element.href || url;
-
-      if (!directUrl || directUrl.endsWith("#")) {
-        return;
-      }
-
+    link.addEventListener("click", (event) => {
+      const href = link.getAttribute("href") || "";
+      if (!href || href === "#") return;
       event.preventDefault();
       event.stopPropagation();
-
-      const opened = window.open(directUrl, "_blank", "noopener,noreferrer");
-
-      if (!opened) {
-        window.location.href = directUrl;
-      }
+      window.open(href, "_blank", "noopener,noreferrer");
     });
-  }
+  });
 }
 
 function resetAdminExportsPanel() {
@@ -2522,7 +2502,6 @@ async function loadAdminExportsDashboard(force = false) {
   if (adminExportsLoadedAt && !force && Date.now() - adminExportsLoadedAt < 60000) return;
 
   hydrateAdminExportLinks();
-  bindInstagramExportTileLinks();
 
   const status = document.getElementById("exports-status");
   const refreshButton = document.getElementById("exports-refresh-btn");
