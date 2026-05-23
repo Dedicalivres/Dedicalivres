@@ -2122,91 +2122,60 @@ button.pending[data-author-action="pending"] {
 
 
 /* =========================================================
-   PACK 4B-1 — Correctif liens tuiles Instagram admin
+   PACK 4B-2 — Correctif mobile tuiles Instagram
+   Objectif : rendre les tuiles entièrement cliquables sur iOS/Android
 ========================================================= */
 
 .exports-layout-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
-  margin-top: 16px;
+  align-items: stretch;
 }
 
-.exports-layout-card,
-.exports-layout-card:visited {
-  display: block;
-  min-height: 112px;
-  padding: 18px;
-  border-radius: 20px;
-  text-decoration: none;
-  color: var(--cyber-text);
-  background:
-    radial-gradient(circle at top left, rgba(25,215,255,.14), transparent 42%),
-    rgba(10,24,22,.92);
-  border: 1px solid rgba(25,215,255,.18);
-  box-shadow: 0 14px 34px rgba(0,0,0,.20);
+.exports-layout-card {
+  position: relative;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: rgba(25,215,255,.18);
+  touch-action: manipulation;
+  cursor: pointer;
 }
 
-.exports-layout-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(25,255,156,.38);
-  background:
-    radial-gradient(circle at top left, rgba(25,255,156,.16), transparent 44%),
-    rgba(12,28,24,.96);
-}
-
-.exports-layout-card strong {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--cyber-cyan);
-  font-size: 1.02rem;
-}
-
+.exports-layout-card strong,
 .exports-layout-card span {
-  display: block;
-  color: var(--cyber-muted);
-  line-height: 1.45;
-  font-size: .9rem;
+  pointer-events: none;
 }
 
-.exports-layout-section {
-  margin-top: 24px;
-}
-
-.exports-layout-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.exports-layout-head h4 {
-  margin: 0 0 8px;
-  font-family: "Orbitron", sans-serif;
-  letter-spacing: .08em;
-  color: var(--cyber-text);
-}
-
-.exports-layout-head p {
-  margin: 0;
-  color: var(--cyber-muted);
-}
-
-.exports-layout-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 7px 11px;
-  font-size: .78rem;
-  font-weight: 900;
-  color: var(--cyber-green);
-  background: rgba(25,255,156,.10);
-  border: 1px solid rgba(25,255,156,.18);
-  white-space: nowrap;
+.exports-layout-card:active {
+  transform: scale(.985);
+  border-color: rgba(25,255,156,.38);
+  background: rgba(25,215,255,.12);
 }
 
 @media (max-width: 760px) {
-  .exports-layout-head {
-    flex-direction: column;
+  .exports-layout-section {
+    padding: 14px;
+    margin: 18px 0;
+  }
+
+  .exports-layout-grid {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .exports-layout-card {
+    min-height: 88px;
+    padding: 18px 16px;
+    border-radius: 18px;
+  }
+
+  .exports-layout-card strong {
+    font-size: 1.02rem;
+  }
+
+  .exports-layout-card span {
+    font-size: .88rem;
   }
 }

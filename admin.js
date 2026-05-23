@@ -2370,13 +2370,6 @@ function formatDate(value) {
 
 const DEFAULT_EXPORTS_BASE_URL = "https://dedicalivres-daily-export.dedicalivres.workers.dev/exports";
 
-const ADMIN_INSTAGRAM_TILE_LINKS = {
-  "exports-instagram-all-link": "instagram/tous-evenements-latest.html",
-  "exports-instagram-dedicaces-link": "instagram/dedicaces-latest.html",
-  "exports-instagram-salons-link": "instagram/salons-latest.html",
-  "exports-instagram-weekend-link": "instagram/weekend-regions-latest.html"
-};
-
 let adminExportsLoadedAt = null;
 let adminExportsLastPreview = "";
 let adminExportsCache = {
@@ -2421,7 +2414,7 @@ function bindAdminExportsPanel() {
   });
 
   hydrateAdminExportLinks();
-  bindAdminInstagramTileLinks();
+  bindInstagramExportTileLinks();
 }
 
 function hydrateAdminExportLinks() {
@@ -2434,7 +2427,10 @@ function hydrateAdminExportLinks() {
     "exports-autres-link": "autres-evenements-latest.md",
     "exports-planning-link": "planning-publication-latest.md",
     "exports-weekend-link": "weekend-par-region-latest.md",
-    ...ADMIN_INSTAGRAM_TILE_LINKS
+    "exports-instagram-all-link": "instagram/tous-evenements-latest.html",
+    "exports-instagram-dedicaces-link": "instagram/dedicaces-latest.html",
+    "exports-instagram-salons-link": "instagram/salons-latest.html",
+    "exports-instagram-weekend-link": "instagram/weekend-regions-latest.html"
   };
 
   for (const [id, filename] of Object.entries(links)) {
@@ -2444,25 +2440,47 @@ function hydrateAdminExportLinks() {
 }
 
 
-function bindAdminInstagramTileLinks() {
-  for (const [id, filename] of Object.entries(ADMIN_INSTAGRAM_TILE_LINKS)) {
+function getInstagramTileLinks() {
+  return {
+    "exports-instagram-all-link": "instagram/tous-evenements-latest.html",
+    "exports-instagram-dedicaces-link": "instagram/dedicaces-latest.html",
+    "exports-instagram-salons-link": "instagram/salons-latest.html",
+    "exports-instagram-weekend-link": "instagram/weekend-regions-latest.html"
+  };
+}
+
+function bindInstagramExportTileLinks() {
+  const links = getInstagramTileLinks();
+
+  for (const [id, filename] of Object.entries(links)) {
     const element = document.getElementById(id);
     if (!element) continue;
 
     const url = getExportFileUrl(filename);
 
     element.href = url;
-    element.target = "_blank";
-    element.rel = "noopener noreferrer";
-    element.dataset.tileUrl = url;
+    element.setAttribute("target", "_blank");
+    element.setAttribute("rel", "noopener noreferrer");
+    element.dataset.exportTileUrl = url;
 
-    // Sécurité : évite qu'un clic sur la carte soit interprété par l'admin comme un changement d'onglet.
+    if (element.dataset.tileClickBound === "1") continue;
+    element.dataset.tileClickBound = "1";
+
     element.addEventListener("click", (event) => {
+      const directUrl = element.dataset.exportTileUrl || element.href || url;
+
+      if (!directUrl || directUrl.endsWith("#")) {
+        return;
+      }
+
       event.preventDefault();
       event.stopPropagation();
 
-      const targetUrl = element.dataset.tileUrl || element.href || url;
-      window.open(targetUrl, "_blank", "noopener,noreferrer");
+      const opened = window.open(directUrl, "_blank", "noopener,noreferrer");
+
+      if (!opened) {
+        window.location.href = directUrl;
+      }
     });
   }
 }
@@ -2504,6 +2522,7 @@ async function loadAdminExportsDashboard(force = false) {
   if (adminExportsLoadedAt && !force && Date.now() - adminExportsLoadedAt < 60000) return;
 
   hydrateAdminExportLinks();
+  bindInstagramExportTileLinks();
 
   const status = document.getElementById("exports-status");
   const refreshButton = document.getElementById("exports-refresh-btn");
