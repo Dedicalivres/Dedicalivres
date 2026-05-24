@@ -209,6 +209,7 @@
 
     markersLayer = L.layerGroup().addTo(map);
     ensureMapFloatingPanel();
+    installMapControlCleanup();
 
     map.on("click", () => {
       closeMapFloatingPanel();
@@ -840,6 +841,59 @@
       iconAnchor: [14, 28]
     });
   }
+
+  function installMapControlCleanup() {
+    if (!mapPanel) return;
+
+    cleanupMapControls();
+
+    const observer = new MutationObserver(() => {
+      cleanupMapControls();
+    });
+
+    observer.observe(mapPanel, {
+      childList: true,
+      subtree: true
+    });
+
+    setTimeout(cleanupMapControls, 250);
+    setTimeout(cleanupMapControls, 1000);
+    setTimeout(cleanupMapControls, 2500);
+  }
+
+  function cleanupMapControls() {
+    const mapElement = document.getElementById("map");
+    if (!mapElement) return;
+
+    mapElement
+      .querySelectorAll(".leaflet-control")
+      .forEach((control) => {
+        if (
+          control.classList.contains("leaflet-control-zoom") ||
+          control.classList.contains("leaflet-control-attribution")
+        ) {
+          return;
+        }
+
+        const text = normalize(control.textContent || "");
+        const aria = normalize(control.getAttribute("aria-label") || "");
+        const title = normalize(control.getAttribute("title") || "");
+
+        if (
+          text.includes("plein ecran") ||
+          text === "carte" ||
+          aria.includes("plein ecran") ||
+          aria.includes("fullscreen") ||
+          title.includes("plein ecran") ||
+          title.includes("fullscreen") ||
+          control.className.includes("fullscreen") ||
+          control.className.includes("layers")
+        ) {
+          control.remove();
+        }
+      });
+  }
+
 
   function focusEventFromMap(eventId, eventType) {
     if (typeFilter && eventType && typeFilter.value !== eventType) {

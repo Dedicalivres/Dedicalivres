@@ -2913,19 +2913,15 @@ button:active,
 
 
 /* =========================================================
-   PACK CARTE-1 — Panneau flottant événement
-   Remplace l'ancienne popup Leaflet intrusive.
+   PACK CARTE-2B — Nettoyage forcé des contrôles carte
+   Objectif : supprimer réellement "Plein écran" et "Carte".
 ========================================================= */
 
 .map-panel {
   position: relative;
 }
 
-.leaflet-popup.premium-map-popup,
-.premium-popup {
-  display: none;
-}
-
+/* Panneau flottant Carte-1, conservé si déjà présent. */
 .map-floating-panel {
   position: absolute;
   top: 18px;
@@ -2947,7 +2943,7 @@ button:active,
 }
 
 .map-floating-panel[hidden] {
-  display: none;
+  display: none !important;
 }
 
 .map-floating-close {
@@ -3060,74 +3056,30 @@ button:active,
   font-size: .88rem;
 }
 
-.map-floating-empty {
-  color: var(--muted);
-  font-weight: 800;
-}
-
 .event-marker-v5 {
   cursor: pointer;
 }
 
-@media (max-width: 780px) {
-  .map-floating-panel {
-    top: auto;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    width: auto;
-    max-height: 62%;
-    padding: 16px;
-    border-radius: 24px 24px 20px 20px;
-  }
-
-  .map-floating-image,
-  .map-floating-image-placeholder {
-    height: 110px;
-  }
-
-  .map-floating-actions {
-    flex-direction: column;
-  }
-
-  .map-floating-actions .btn-primary,
-  .map-floating-actions .btn-secondary {
-    width: 100%;
-  }
+/* Supprime visuellement tout contrôle Leaflet non essentiel. 
+   On garde uniquement zoom + attribution.
+*/
+#map .leaflet-control:not(.leaflet-control-zoom):not(.leaflet-control-attribution) {
+  display: none !important;
 }
 
-
-
-/* =========================================================
-   PACK CARTE-2 — Interface carte épurée
-   Retire les boutons Leaflet inutiles et rend la légende compacte.
-========================================================= */
-
-/* Masque les contrôles Leaflet natifs inutiles dans ton usage actuel :
-   - "Plein écran" qui ne déclenche rien
-   - bouton/couche "Carte" qui referme ou perturbe l'expérience
-   Les marqueurs, le zoom et le panneau flottant restent actifs.
-*/
+/* Cas particuliers de plugins fullscreen/layers. */
 #map .leaflet-control-fullscreen,
 #map .leaflet-control-layers,
 #map .leaflet-control-layers-toggle,
 #map .leaflet-control-layers-expanded,
-#map .leaflet-control button[title="Plein écran"],
-#map .leaflet-control a[title="Plein écran"],
-#map .leaflet-control button[aria-label="Plein écran"],
-#map .leaflet-control a[aria-label="Plein écran"] {
+#map .leaflet-bar a[title*="Plein"],
+#map .leaflet-bar a[title*="plein"],
+#map .leaflet-bar a[aria-label*="Plein"],
+#map .leaflet-bar a[aria-label*="plein"] {
   display: none !important;
 }
 
-/* Si un plugin génère de simples boutons texte "Plein écran" / "Carte",
-   on neutralise la zone de contrôle concernée sans toucher à l'attribution.
-*/
-#map .leaflet-top.leaflet-left .leaflet-control:not(.leaflet-control-zoom),
-#map .leaflet-top.leaflet-right .leaflet-control:not(.leaflet-control-zoom) {
-  display: none !important;
-}
-
-/* Attribution plus discrète pour éviter qu'elle ressemble à un contrôle principal. */
+/* Attribution plus discrète. */
 #map .leaflet-control-attribution {
   max-width: calc(100% - 18px);
   padding: 3px 7px;
@@ -3137,7 +3089,7 @@ button:active,
   font-size: .72rem;
 }
 
-/* Légende compacte et moins envahissante. */
+/* Légende compacte. */
 .map-legend-inline {
   display: inline-flex;
   align-items: center;
@@ -3169,6 +3121,7 @@ button:active,
   height: 10px;
   border-radius: 999px;
   display: inline-block;
+  border: 0;
   box-shadow: 0 0 0 3px rgba(255,255,255,.7);
 }
 
@@ -3185,6 +3138,31 @@ button:active,
 }
 
 @media (max-width: 780px) {
+  .map-floating-panel {
+    top: auto;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: auto;
+    max-height: 62%;
+    padding: 16px;
+    border-radius: 24px 24px 20px 20px;
+  }
+
+  .map-floating-image,
+  .map-floating-image-placeholder {
+    height: 110px;
+  }
+
+  .map-floating-actions {
+    flex-direction: column;
+  }
+
+  .map-floating-actions .btn-primary,
+  .map-floating-actions .btn-secondary {
+    width: 100%;
+  }
+
   .map-legend-inline {
     width: 100%;
     justify-content: center;
