@@ -50,7 +50,7 @@
   let markersLayer;
   let allEvents = [];
   let markerByEventId = {};
-  let mapFloatingPanel = null;
+  let mapEventPanel = document.getElementById("map-event-panel");
   let cityAutocompleteTimer = null;
   let citySuggestionCache = new Map();
   let userPosition = null;
@@ -130,7 +130,26 @@
 
     searchInput?.addEventListener("input", renderFilteredEvents);
 
+    bindMapEventPanelGlobalClose();
     bindCityAutocomplete();
+  }
+
+  function bindMapEventPanelGlobalClose() {
+    document.addEventListener("click", (event) => {
+      const panel = ensureMapEventPanel();
+
+      if (!panel || panel.hidden) return;
+      if (panel.contains(event.target)) return;
+      if (event.target.closest(".leaflet-marker-icon")) return;
+
+      closeMapEventPanel();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeMapEventPanel();
+      }
+    });
   }
 
   function toggleMobileMap() {
@@ -209,7 +228,6 @@
     }).addTo(map);
 
     markersLayer = L.layerGroup().addTo(map);
-    ensureMapFloatingPanel();
     installMapPremiumToolbarCleanupSafe();
   }
 
@@ -586,7 +604,7 @@
 
     markersLayer.clearLayers();
     markerByEventId = {};
-    closeMapFloatingPanel();
+    closeMapEventPanel();
 
     const grouped = {};
 
@@ -622,7 +640,7 @@
       });
 
       marker.on("click", () => {
-        openMapFloatingPanel(group);
+        openMapEventPanel(group);
       });
 
       marker.addTo(markersLayer);
@@ -633,71 +651,76 @@
     });
   }
 
-  function ensureMapFloatingPanel() {
-    if (mapFloatingPanel || !mapPanel) return mapFloatingPanel;
+  function ensureMapEventPanel() {
+    if (!mapEventPanel) {
+      mapEventPanel = document.getElementById("map-event-panel");
+    }
 
-    mapFloatingPanel = document.createElement("aside");
-    mapFloatingPanel.id = "map-floating-panel";
-    mapFloatingPanel.className = "map-floating-panel";
-    mapFloatingPanel.setAttribute("aria-live", "polite");
-    mapFloatingPanel.setAttribute("aria-label", "Détails de l’événement sélectionné sur la carte");
-    mapFloatingPanel.hidden = true;
-    mapFloatingPanel.innerHTML = `
-      <button
-        type="button"
-        class="map-floating-close"
-        aria-label="Fermer le panneau événement"
-      >
-        ×
-      </button>
-      <div id="map-floating-content" class="map-floating-content"></div>
-    `;
+    if (!mapEventPanel) return null;
 
-    mapPanel.appendChild(mapFloatingPanel);
+    if (!mapEventPanel.dataset.bound) {
+      mapEventPanel.dataset.bound = "true";
 
-    mapFloatingPanel
-      .querySelector(".map-floating-close")
-      ?.addEventListener("click", closeMapFloatingPanel);
+      mapEventPanel.addEventListener("click", (event) => {
+        event.stopPropagation();
 
-    mapFloatingPanel.addEventListener("click", (event) => {
-      const focusButton = event.target.closest("[data-map-focus-id]");
-      if (focusButton) {
-        focusEventFromMap(
-          focusButton.dataset.mapFocusId,
-          focusButton.dataset.mapFocusType || ""
-        );
-      }
-    });
+        const closeButton = event.target.closest("[data-map-panel-close]");
+        if (closeButton) {
+          closeMapEventPanel();
+          return;
+        }
 
-    return mapFloatingPanel;
+        const focusButton = event.target.closest("[data-map-focus-id]");
+        if (focusButton) {
+          focusEventFromMap(
+            focusButton.dataset.mapFocusId,
+            focusButton.dataset.mapFocusType || ""
+          );
+          closeMapEventPanel();
+        }
+      });
+    }
+
+    return mapEventPanel;
   }
 
-  function openMapFloatingPanel(group) {
-    const panel = ensureMapFloatingPanel();
-    const content = document.getElementById("map-floating-content");
+  function openMapEventPanel(group) {
+    const panel = ensureMapEventPanel();
 
-    if (!panel || !content) return;
+    if (!panel) return;
 
     const events = Array.isArray(group) ? group : [];
 
-    content.innerHTML = renderMapFloatingContent(events);
+    panel.innerHTML = renderMapEventPanelContent(events);
     panel.hidden = false;
     panel.classList.add("is-open");
+
+    requestAnimationFrame(() => {
+      panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   }
 
-  function closeMapFloatingPanel() {
-    if (!mapFloatingPanel) return;
+  function closeMapEventPanel() {
+    const panel = ensureMapEventPanel();
 
-    mapFloatingPanel.classList.remove("is-open");
-    mapFloatingPanel.hidden = true;
+    if (!panel) return;
 
-    const content = document.getElementById("map-floating-content");
-    if (content) content.innerHTML = "";
+    panel.classList.remove("is-open");
+    panel.hidden = true;
+    panel.innerHTML = "";
   }
 
-  function renderMapFloatingContent(events) {
+  function renderMapEventPanelContent(events) {
     if (!events.length) {
-      return `<div class="map-floating-empty">Aucun événement sélectionné.</div>`;
+      return `
+        <button
+          type="button"
+          class="map-event-panel-close"
+          data-map-panel-close
+          aria-label="Fermer le panneau événement"
+        >×</button>
+        <div class="map-event-panel-empty">Aucun événement sélectionné.</div>
+      `;
     }
 
     const title = events.length > 1
@@ -705,35 +728,41 @@
       : "1 événement sélectionné";
 
     return `
-      <div class="map-floating-head">
-        <span class="map-floating-kicker">Carte en direct</span>
+      <button
+        type="button"
+        class="map-event-panel-close"
+        data-map-panel-close
+        aria-label="Fermer le panneau événement"
+      >×</button>
+
+      <div class="map-event-panel-head">
+        <span class="map-event-panel-kicker">Carte en direct</span>
         <strong>${escapeHtml(title)}</strong>
       </div>
 
-      <div class="map-floating-list">
-        ${events.map(renderMapFloatingEvent).join("")}
+      <div class="map-event-panel-list">
+        ${events.map(renderMapEventPanelEvent).join("")}
       </div>
     `;
   }
 
-  function renderMapFloatingEvent(event) {
+  function renderMapEventPanelEvent(event) {
     const typeMeta = TYPE_META[event.type] || TYPE_META.Autre;
     const image = resolveImageUrl(event.image_url);
     const place = [event.city, event.region].filter(Boolean).join(" — ") || "Lieu non précisé";
     const date = event.start_date
       ? formatDateRange(event.start_date, event.end_date)
       : "Date à préciser";
-    const description = truncateText(event.description || "", 135);
     const detailUrl = `event.html?id=${encodeURIComponent(event.id)}`;
 
     return `
-      <article class="map-floating-event">
+      <article class="map-event-panel-event">
         ${
           image
             ? `
-              <a class="map-floating-image-link" href="${detailUrl}">
+              <a class="map-event-panel-image-link" href="${detailUrl}">
                 <img
-                  class="map-floating-image"
+                  class="map-event-panel-image"
                   src="${escapeAttribute(image)}"
                   alt="${escapeAttribute(event.title || "Événement")}"
                   loading="lazy"
@@ -741,11 +770,11 @@
                 />
               </a>
             `
-            : `<div class="map-floating-image map-floating-image-placeholder"></div>`
+            : `<div class="map-event-panel-image map-event-panel-image-placeholder"></div>`
         }
 
-        <div class="map-floating-event-body">
-          <div class="map-floating-badges">
+        <div class="map-event-panel-event-body">
+          <div class="map-event-panel-badges">
             ${
               event.type
                 ? `
@@ -765,16 +794,10 @@
 
           <h3>${escapeHtml(event.title || "Sans titre")}</h3>
 
-          <p class="map-floating-meta">📅 ${escapeHtml(date)}</p>
-          <p class="map-floating-meta">📍 ${escapeHtml(place)}</p>
+          <p class="map-event-panel-meta">📅 ${escapeHtml(date)}</p>
+          <p class="map-event-panel-meta">📍 ${escapeHtml(place)}</p>
 
-          ${
-            description
-              ? `<p class="map-floating-description">${escapeHtml(description)}</p>`
-              : ""
-          }
-
-          <div class="map-floating-actions">
+          <div class="map-event-panel-actions">
             <a class="btn-primary" href="${detailUrl}">
               Voir la fiche
             </a>
@@ -787,25 +810,23 @@
             >
               Voir dans la liste
             </button>
-
-            ${
-              event.website
-                ? `
-                  <a
-                    class="btn-secondary"
-                    href="${escapeAttribute(event.website)}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Site officiel
-                  </a>
-                `
-                : ""
-            }
           </div>
         </div>
       </article>
     `;
+  }
+
+  // Compatibilité interne : les anciens noms Carte-2F ne réinjectent plus rien dans .map-panel.
+  function ensureMapFloatingPanel() {
+    return ensureMapEventPanel();
+  }
+
+  function openMapFloatingPanel(group) {
+    openMapEventPanel(group);
+  }
+
+  function closeMapFloatingPanel() {
+    closeMapEventPanel();
   }
 
   function truncateText(value, maxLength) {
