@@ -3044,3 +3044,160 @@ body.cyber-admin {
     height: 145px;
   }
 }
+
+
+/* =========================================================
+   ADMIN MODULES COHERENCE 1
+   Clarifie les modules actifs et les anciens modules V4.
+========================================================= */
+
+.admin-modules-coherence-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-modules-coherence-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(25,215,255,.10), transparent 34%),
+    radial-gradient(circle at 95% 10%, rgba(25,255,156,.08), transparent 30%);
+}
+
+.admin-modules-coherence-panel > * {
+  position: relative;
+}
+
+.admin-modules-coherence-head {
+  align-items: flex-start;
+}
+
+.admin-modules-coherence-head > div {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-module-version {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--cyber-cyan);
+  background: rgba(25,215,255,.10);
+  border: 1px solid rgba(25,215,255,.16);
+  font-size: .76rem;
+  font-weight: 900;
+}
+
+.admin-modules-grid,
+.admin-legacy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.admin-module-card,
+.admin-legacy-card {
+  display: grid;
+  gap: 8px;
+  min-height: 124px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(8,18,14,.72);
+  border: 1px solid rgba(255,255,255,.07);
+}
+
+.admin-module-card strong,
+.admin-legacy-card strong {
+  display: block;
+  font-size: .96rem;
+}
+
+.admin-module-card small,
+.admin-legacy-card small {
+  display: block;
+  margin-top: 4px;
+  color: var(--cyber-muted);
+  font-size: .76rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.admin-module-card > span {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+.admin-module-card p,
+.admin-legacy-card p {
+  margin: 0;
+  color: var(--cyber-muted);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
+.admin-module-card.is-active {
+  border-color: rgba(25,255,156,.20);
+}
+
+.admin-module-card.is-active > span {
+  color: var(--cyber-green);
+  background: rgba(25,255,156,.12);
+}
+
+.admin-module-card.is-pending > span {
+  color: var(--cyber-orange);
+  background: rgba(255,158,68,.12);
+}
+
+.admin-module-card.is-error {
+  border-color: rgba(255,95,115,.24);
+}
+
+.admin-module-card.is-error > span {
+  color: var(--cyber-red);
+  background: rgba(255,95,115,.14);
+}
+
+.admin-legacy-modules {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.035);
+  border: 1px dashed rgba(255,255,255,.10);
+}
+
+.admin-legacy-modules summary {
+  cursor: pointer;
+  color: var(--cyber-muted);
+  font-weight: 900;
+}
+
+.admin-legacy-grid {
+  margin-top: 12px;
+}
+
+.admin-legacy-card {
+  min-height: 96px;
+  opacity: .86;
+}
+
+@media (max-width: 760px) {
+  .admin-modules-coherence-head {
+    gap: 10px;
+  }
+
+  .admin-module-version {
+    align-self: flex-start;
+  }
+}

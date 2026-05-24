@@ -75,6 +75,8 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
+const ADMIN_MODULE_VERSION = "admin-modules-coherence-1";
+
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",
   "admin-author-requests-robust.js",
@@ -82,6 +84,26 @@ const PROTECTED_ADMIN_MODULES = [
   "admin-quality-control.js",
   "admin-social-generator.js"
 ];
+
+const ADMIN_MODULE_REGISTRY = [
+  { file: "admin-visits-counter-fix.js", label: "Visites", area: "Tableau de bord", role: "Compteur site_visits, top pages et statistiques trafic." },
+  { file: "admin-author-requests-robust.js", label: "Demandes auteurs", area: "Modération", role: "Validation, refus, masquage et enrichissement des demandes auteurs." },
+  { file: "admin-testimonials.js", label: "Témoignages", area: "Modération", role: "Validation, refus, suppression et compteur des témoignages visiteurs." },
+  { file: "admin-quality-control.js", label: "Qualité contenu", area: "Événements", role: "Radar éditorial : images, coordonnées, sites, descriptions et urgence." },
+  { file: "admin-social-generator.js", label: "Réseaux", area: "Réseaux", role: "Générateur de textes Instagram et sélections éditoriales." }
+];
+
+const LEGACY_ADMIN_MODULES = [
+  { file: "admin-v4.js", label: "Stats V4", status: "Non chargé par l’admin actuel", replacement: "admin-visits-counter-fix.js" },
+  { file: "admin-v4-authors.js", label: "Auteurs V4", status: "Non chargé par l’admin actuel", replacement: "admin-author-requests-robust.js" }
+];
+
+const adminModuleStatus = new Map(
+  ADMIN_MODULE_REGISTRY.map((module) => [
+    module.file,
+    { ...module, status: "En attente", loaded: false, error: false }
+  ])
+);
 
 const ADMIN_EVENTS_COLUMNS = [
   "id",
@@ -498,23 +520,118 @@ async function loadProtectedAdminModules() {
 }
 
 function loadAdminScript(src) {
+  setAdminModuleStatus(src, "Chargement…", false, false);
+
   return new Promise((resolve) => {
     if (document.querySelector(`script[data-protected-admin-module="${src}"]`)) {
+      setAdminModuleStatus(src, "Déjà chargé", true, false);
       resolve();
       return;
     }
 
     const script = document.createElement("script");
-    script.src = `${src}?v=admin-refactor-layout-1`;
+    script.src = `${src}?v=${ADMIN_MODULE_VERSION}`;
     script.defer = true;
     script.dataset.protectedAdminModule = src;
-    script.onload = () => resolve();
+    script.onload = () => {
+      setAdminModuleStatus(src, "Actif", true, false);
+      resolve();
+    };
     script.onerror = () => {
       console.warn(`Module admin non chargé : ${src}`);
+      setAdminModuleStatus(src, "Erreur de chargement", false, true);
       resolve();
     };
     document.body.appendChild(script);
   });
+}
+
+function setAdminModuleStatus(src, status, loaded, error) {
+  const current = adminModuleStatus.get(src);
+
+  if (!current) return;
+
+  adminModuleStatus.set(src, {
+    ...current,
+    status,
+    loaded: !!loaded,
+    error: !!error
+  });
+
+  renderAdminModulesStatusPanel();
+}
+
+function renderAdminModulesStatusPanel() {
+  const overviewPanel = document.getElementById("tab-overview");
+  const priorityPanel = document.getElementById("admin-editorial-cockpit");
+
+  if (!overviewPanel) return;
+
+  let panel = document.getElementById("admin-modules-coherence-panel");
+
+  if (!panel) {
+    panel = document.createElement("section");
+    panel.id = "admin-modules-coherence-panel";
+    panel.className = "admin-panel admin-modules-coherence-panel";
+
+    if (priorityPanel) {
+      priorityPanel.insertAdjacentElement("afterend", panel);
+    } else {
+      const statsGrid = overviewPanel.querySelector(".stats-grid");
+      if (statsGrid) statsGrid.insertAdjacentElement("afterend", panel);
+      else overviewPanel.prepend(panel);
+    }
+  }
+
+  const modules = Array.from(adminModuleStatus.values());
+  const loadedCount = modules.filter((module) => module.loaded).length;
+  const errorCount = modules.filter((module) => module.error).length;
+
+  panel.innerHTML = `
+    <div class="section-head admin-modules-coherence-head">
+      <div>
+        <h3>COHÉRENCE MODULES</h3>
+        <span>${loadedCount}/${modules.length} module${modules.length > 1 ? "s" : ""} actif${loadedCount > 1 ? "s" : ""}${errorCount ? ` · ${errorCount} erreur${errorCount > 1 ? "s" : ""}` : ""}</span>
+      </div>
+      <span class="admin-module-version">${escapeHtml(ADMIN_MODULE_VERSION)}</span>
+    </div>
+
+    <div class="admin-modules-grid">
+      ${modules.map(renderAdminModuleCard).join("")}
+    </div>
+
+    <details class="admin-legacy-modules">
+      <summary>Modules historiques non chargés automatiquement</summary>
+      <div class="admin-legacy-grid">
+        ${LEGACY_ADMIN_MODULES.map(renderLegacyAdminModuleCard).join("")}
+      </div>
+    </details>
+  `;
+}
+
+function renderAdminModuleCard(module) {
+  const stateClass = module.error ? "is-error" : module.loaded ? "is-active" : "is-pending";
+
+  return `
+    <article class="admin-module-card ${stateClass}">
+      <div>
+        <strong>${escapeHtml(module.label)}</strong>
+        <small>${escapeHtml(module.area)} · ${escapeHtml(module.file)}</small>
+      </div>
+      <span>${escapeHtml(module.status)}</span>
+      <p>${escapeHtml(module.role)}</p>
+    </article>
+  `;
+}
+
+function renderLegacyAdminModuleCard(module) {
+  return `
+    <article class="admin-legacy-card">
+      <strong>${escapeHtml(module.label)}</strong>
+      <small>${escapeHtml(module.file)}</small>
+      <p>${escapeHtml(module.status)} · Remplacé par ${escapeHtml(module.replacement)}.</p>
+    </article>
+  `;
 }
 
 function clearAdminSensitiveState() {
@@ -614,6 +731,7 @@ async function loadDashboard() {
 function refreshAdminViews() {
   safeAdminStepSync("statistiques", updateStats);
   safeAdminStepSync("actions prioritaires", renderPriorityActionPanel);
+  safeAdminStepSync("cohérence modules", renderAdminModulesStatusPanel);
   safeAdminStepSync("liste événements", renderEvents);
   safeAdminStepSync("premium", renderPremiumDashboard);
   safeAdminStepSync("réseaux", renderSocialUpcoming);
