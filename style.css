@@ -3198,13 +3198,20 @@ button:active,
 
 
 /* =========================================================
-   PACK SOUMETTRE-1 — Ancre formulaire précise
+   PACK SOUMETTRE-1B — Scroll direct formulaire
 ========================================================= */
 
 #submission-form {
-  scroll-margin-top: 120px;
+  scroll-margin-top: 130px;
 }
 
 #soumettre {
   scroll-margin-top: 96px;
+}
+
+#submission-form:focus-within {
+  outline: 4px solid rgba(255,107,53,.18);
+  box-shadow:
+    var(--shadow),
+    0 0 0 8px rgba(255,107,53,.08);
 }

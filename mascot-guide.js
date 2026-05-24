@@ -462,8 +462,15 @@ body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
 
     target.scrollIntoView({
       behavior: "smooth",
-      block: "start"
+      block: selector === "#submission-form" ? "center" : "start"
     });
+
+    if (selector === "#submission-form") {
+      setTimeout(() => {
+        const firstField = target.querySelector("input, select, textarea");
+        if (firstField) firstField.focus({ preventScroll: true });
+      }, 420);
+    }
   }
 
   function clickOrScroll(buttonSelector, fallbackSelector) {

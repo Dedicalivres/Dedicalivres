@@ -44,8 +44,8 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="style.css?v=soumettre-1" />
-  <link rel="stylesheet" href="mascot-guide.css?v=soumettre-1" />
+  <link rel="stylesheet" href="style.css?v=soumettre-1b" />
+  <link rel="stylesheet" href="mascot-guide.css?v=soumettre-1b" />
 </head>
 
 <body data-agenda-mode="global">
@@ -62,7 +62,7 @@
       <a href="salons-du-livre.html">Salons & Festivals</a>
       <a href="dedicaces.html">Dédicaces</a>
       <a href="temoignages.html">Témoignages</a>
-      <a href="index.html#submission-form" class="nav-submit-link">Soumettre</a>
+      <a href="#submission-form" class="nav-submit-link">Soumettre</a>
     </nav>
 
   </div>
@@ -433,13 +433,65 @@
 
 <script src="config.js?v=8.7"></script>
 <script src="app.js?v=carte-2f"></script>
-<script src="mascot-guide.js?v=soumettre-1"></script>
+<script src="mascot-guide.js?v=soumettre-1b"></script>
 
 <script src="tracking-v4.js?v=7.7.5"></script>
 <script src="author-search-index.js?v=7.7.5"></script>
 <script src="ui-effects-v6.js?v=7.7.5"></script>
 <script src="regional-map.js?v=7.6.7f"></script>
 <script src="custom-cursor.js?v=7.7.5"></script>
+
+
+<script>
+(function () {
+  "use strict";
+
+  function getSubmissionForm() {
+    return document.getElementById("submission-form");
+  }
+
+  function scrollToSubmissionForm(updateHash) {
+    const form = getSubmissionForm();
+    if (!form) return false;
+
+    if (updateHash) {
+      history.replaceState(null, "", "#submission-form");
+    }
+
+    form.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+
+    setTimeout(function () {
+      const firstField = form.querySelector("input, select, textarea");
+      if (firstField) firstField.focus({ preventScroll: true });
+    }, 420);
+
+    return true;
+  }
+
+  document.addEventListener("click", function (event) {
+    const link = event.target.closest('a[href="#soumettre"], a[href="#submission-form"], a[href$="index.html#soumettre"], a[href$="index.html#submission-form"]');
+    if (!link) return;
+
+    const samePage = !link.href || link.href.split("#")[0] === window.location.href.split("#")[0];
+
+    if (samePage && getSubmissionForm()) {
+      event.preventDefault();
+      scrollToSubmissionForm(true);
+    }
+  });
+
+  window.addEventListener("DOMContentLoaded", function () {
+    if (window.location.hash === "#soumettre" || window.location.hash === "#submission-form") {
+      setTimeout(function () {
+        scrollToSubmissionForm(false);
+      }, 180);
+    }
+  });
+})();
+</script>
 
 </body>
 </html>
