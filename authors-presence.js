@@ -64,33 +64,34 @@
 
     section.innerHTML = `
       <div class="authors-presence-header">
-        <p class="authors-presence-eyebrow">Présences auteurs</p>
-        <h2>Auteurs et liens utiles</h2>
+        <p class="authors-presence-eyebrow">Participation auteurs</p>
+        <h2>Auteurs présents</h2>
         <p class="authors-presence-seo-intro">
-          Retrouvez ici les présences validées, les liens auteur ou réseau social,
-          ainsi que les liens livre, boutique ou maison d’édition associés à ${escapeHtml(eventTitle)}.
+          Retrouvez ici les auteurs déclarés présents, leurs liens officiels et, lorsque disponible,
+          la page du livre, de la boutique ou de la maison d’édition associée à ${escapeHtml(eventTitle)}.
         </p>
       </div>
 
       <div id="authors-presence-list" class="author-presence-list"></div>
 
       <p id="authors-presence-empty" class="author-presence-empty" hidden>
-        Aucune présence auteur validée n’est encore affichée pour cet événement.
+        Aucun auteur ne s’est encore déclaré présent pour cet événement.
       </p>
 
       <div id="authors-presence-value-box" class="authors-presence-value-box" hidden>
         <strong>Pourquoi ces liens sont utiles ?</strong>
         <p>
-          Les liens validés permettent aux visiteurs de découvrir l’auteur, son livre, sa boutique
-          ou sa maison d’édition directement depuis la fiche événement Dédicalivres.
+          Les liens validés permettent aux visiteurs de découvrir l’auteur, son livre ou sa maison d’édition
+          directement depuis la fiche événement Dédicalivres. Les visuels restent volontairement simples ;
+          la fiche, elle, rassemble les informations cliquables et vérifiées.
         </p>
       </div>
 
       <div class="authors-presence-share-box">
         <div>
-          <strong>Auteur, libraire, maison d’édition ou organisateur ?</strong>
+          <strong>Auteur, libraire ou maison d’édition ?</strong>
           <p>
-            Partagez cette fiche : elle centralise la date, le lieu,
+            Partagez cette fiche à votre lectorat : elle centralise la date, le lieu,
             les informations pratiques et les liens utiles autour de l’événement.
           </p>
         </div>
@@ -99,20 +100,20 @@
             Copier le lien de la fiche
           </button>
           <a class="btn-secondary" href="#author-presence-form">
-            Ajouter ou corriger une présence
+            Ajouter / corriger une présence
           </a>
         </div>
       </div>
 
       <p class="author-presence-note">
-        Les présences indiquées ici ont été déclarées via Dédicalivres puis validées avant affichage.
+        Les auteurs indiqués ici se sont déclarés présents via Dédicalivres.
         Cette information est participative et concerne uniquement les auteurs s’étant enregistrés sur Dédicalivres.
         Pour une information officielle à jour, notamment en cas d’annulation ou de modification,
         consultez toujours le site de l’événement.
       </p>
 
       <form id="author-presence-form" class="author-presence-form">
-        <h3>Vous participez à cet événement comme auteur ?</h3>
+        <h3>Vous êtes auteur et vous participez à cet événement ?</h3>
 
         <div class="author-presence-grid author-presence-grid-extended">
           <label>
@@ -131,8 +132,8 @@
           </label>
 
           <label>
-            <span>Lien auteur ou réseau social</span>
-            <input name="author_profile_url" type="text" inputmode="url" autocapitalize="off" autocomplete="url" placeholder="www.monsite.fr ou instagram.com/moncompte" required />
+            <span>Lien auteur / réseau social</span>
+            <input name="author_profile_url" type="url" placeholder="Site auteur, Instagram, Facebook, Linktree…" required />
           </label>
 
           <label>
@@ -147,8 +148,8 @@
           </label>
 
           <label>
-            <span>Lien livre, boutique ou maison d’édition</span>
-            <input name="book_or_publisher_url" type="text" inputmode="url" autocapitalize="off" autocomplete="url" placeholder="www.editeur.fr, boutique auteur ou page du livre" />
+            <span>Lien livre / boutique / maison d’édition</span>
+            <input name="book_or_publisher_url" type="url" placeholder="Page du livre, boutique auteur, éditeur, librairie…" />
           </label>
 
           <label>
@@ -164,17 +165,17 @@
           </label>
 
           <label class="author-presence-field-wide">
-            <span>Nom de la maison d’édition, boutique ou librairie</span>
+            <span>Nom de la maison d’édition ou de la boutique</span>
             <input name="publisher_name" type="text" placeholder="Optionnel : nom de l’éditeur, boutique ou librairie" />
           </label>
         </div>
 
         <p class="author-presence-form-help">
-          Vous pouvez saisir un lien avec ou sans https:// : Dédicalivres l’adapte automatiquement. Ces liens ne sont pas intégrés aux visuels PNG : ils sont affichés sur la fiche événement,
+          Ces liens ne sont pas intégrés aux visuels PNG : ils sont affichés sur la fiche événement,
           où ils restent cliquables, utiles aux visiteurs et vérifiés avant publication.
         </p>
 
-        <button class="btn-primary" type="submit">Envoyer ma demande de présence</button>
+        <button class="btn-primary" type="submit">Indiquer ma présence</button>
         <p id="author-presence-feedback" aria-live="polite"></p>
       </form>
     `;
@@ -196,10 +197,10 @@
       const pseudo = cleanText(formData.get("pseudo"));
       const publicationMode = cleanSelectValue(formData.get("publication_mode"), ["self_published", "publisher", "hybrid", "unknown"], "unknown");
 
-      const authorProfileUrl = normalizeWebsite(formData.get("author_profile_url"), formData.get("author_profile_url_type"));
+      const authorProfileUrl = normalizeWebsite(formData.get("author_profile_url"));
       const authorProfileUrlType = cleanSelectValue(formData.get("author_profile_url_type"), ["site_officiel", "instagram", "facebook", "linktree", "autre"], "autre");
 
-      const bookOrPublisherUrl = normalizeOptionalWebsite(formData.get("book_or_publisher_url"), formData.get("book_or_publisher_url_type"));
+      const bookOrPublisherUrl = normalizeOptionalWebsite(formData.get("book_or_publisher_url"));
       const bookOrPublisherUrlType = cleanSelectValue(formData.get("book_or_publisher_url_type"), ["boutique_auteur", "page_livre", "maison_edition", "librairie", "amazon", "autre"], "autre");
 
       const publisherName = cleanText(formData.get("publisher_name")).slice(0, 120);
@@ -245,7 +246,7 @@
         console.error("Erreur auteur présent :", error);
         setFeedback(feedback, "error", error.message || "Une erreur est survenue.");
       } finally {
-        setButtonLoading(submitButton, false, "Envoyer ma demande de présence");
+        setButtonLoading(submitButton, false, "Indiquer ma présence");
       }
     });
   }
@@ -279,7 +280,6 @@
   async function loadAuthorsPresence(event) {
     const list = document.getElementById("authors-presence-list");
     const empty = document.getElementById("authors-presence-empty");
-    const valueBox = document.getElementById("authors-presence-value-box");
 
     if (!list || !empty) return [];
 
@@ -293,16 +293,6 @@
       "book_or_publisher_url",
       "book_or_publisher_url_type",
       "publisher_name",
-      "validated",
-      "is_validated",
-      "approved",
-      "is_approved",
-      "published",
-      "is_published",
-      "rejected",
-      "is_rejected",
-      "status",
-      "state",
       "created_at"
     ].join(", ");
 
@@ -310,23 +300,17 @@
       .from("event_authors_presence")
       .select(selectExtended)
       .eq("event_id", eventId)
+      .eq("validated", true)
+      .or("rejected.is.null,rejected.eq.false")
       .order("created_at", { ascending: true });
-
-    if (response.error) {
-      // Fallback si certaines colonnes de statut n'existent pas encore.
-      response = await supabaseClient
-        .from("event_authors_presence")
-        .select("id, pseudo, website, author_profile_url, author_profile_url_type, publication_mode, book_or_publisher_url, book_or_publisher_url_type, publisher_name, validated, rejected, created_at")
-        .eq("event_id", eventId)
-        .order("created_at", { ascending: true });
-    }
 
     if (response.error) {
       // Fallback ancien schéma.
       response = await supabaseClient
         .from("event_authors_presence")
-        .select("id, pseudo, website, validated, rejected, created_at")
+        .select("id, pseudo, website, created_at")
         .eq("event_id", eventId)
+        .eq("validated", true)
         .order("created_at", { ascending: true });
     }
 
@@ -335,9 +319,7 @@
       return [];
     }
 
-    const authors = (Array.isArray(response.data) ? response.data : [])
-      .filter(isPresencePublic)
-      .map(normalizeAuthorPresenceRow);
+    const authors = Array.isArray(response.data) ? response.data : [];
 
     if (!authors.length) {
       list.innerHTML = "";
@@ -351,52 +333,6 @@
 
     list.innerHTML = authors.map((author) => renderAuthorPresenceCard(author, event)).join("");
     return authors;
-  }
-
-
-  function isPresencePublic(author) {
-    if (!author) return false;
-
-    if (author.rejected === true || author.is_rejected === true) return false;
-
-    const status = normalizeStatus(author.status || author.state || "");
-
-    if (["rejected", "refusé", "refuse", "deleted", "archived"].includes(status)) {
-      return false;
-    }
-
-    if (
-      author.validated === true ||
-      author.is_validated === true ||
-      author.approved === true ||
-      author.is_approved === true ||
-      author.published === true ||
-      author.is_published === true
-    ) {
-      return true;
-    }
-
-    return ["validated", "validé", "valide", "approved", "published", "publié", "online", "active"].includes(status);
-  }
-
-  function normalizeAuthorPresenceRow(author) {
-    const authorUrl = normalizeOptionalWebsite(author.author_profile_url || author.website || "", author.author_profile_url_type);
-    const secondUrl = normalizeOptionalWebsite(author.book_or_publisher_url || "", author.book_or_publisher_url_type);
-
-    return {
-      ...author,
-      website: authorUrl || author.website || "",
-      author_profile_url: authorUrl,
-      book_or_publisher_url: secondUrl
-    };
-  }
-
-  function normalizeStatus(value) {
-    return String(value || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
   }
 
   function renderAuthorPresenceCard(author, event) {
@@ -662,63 +598,26 @@
     return allowed.includes(cleaned) ? cleaned : fallback;
   }
 
-  function normalizeWebsite(value, type = "") {
-    return normalizeExternalUrl(value, type);
-  }
-
-  function normalizeOptionalWebsite(value, type = "") {
+  function normalizeWebsite(value) {
     const raw = cleanText(value);
     if (!raw) return "";
-    return normalizeExternalUrl(raw, type);
-  }
-
-  function normalizeExternalUrl(value, type = "") {
-    let raw = cleanText(value)
-      .replace(/\s+/g, "")
-      .replace(/[“”]/g, '"')
-      .replace(/[‘’]/g, "'");
-
-    if (!raw) return "";
-
-    // La personne a mis http:// ou https:// : on respecte son choix.
     if (/^https?:\/\//i.test(raw)) return raw;
-
-    // Saisie fréquente : @compte en choisissant Instagram.
-    if (type === "instagram" && raw.startsWith("@")) {
-      return `https://www.instagram.com/${raw.slice(1).replace(/^\/+/, "")}`;
-    }
-
-    if (type === "facebook" && raw.startsWith("@")) {
-      return `https://www.facebook.com/${raw.slice(1).replace(/^\/+/, "")}`;
-    }
-
-    // www.site.fr, instagram.com/auteur, maison-edition.fr, etc.
-    if (/^www\./i.test(raw) || looksLikeDomain(raw)) {
-      return `https://${raw}`;
-    }
-
-    // Cas tolérant : la personne a oublié le domaine complet mais a collé une URL sans protocole avec slash.
-    if (/^[a-z0-9-]+(\.[a-z0-9-]+)+\//i.test(raw)) {
-      return `https://${raw}`;
-    }
-
-    return raw;
+    return `https://${raw}`;
   }
 
-  function looksLikeDomain(value) {
-    return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+(?:[/:?#].*)?$/i.test(value);
+  function normalizeOptionalWebsite(value) {
+    const raw = cleanText(value);
+    if (!raw) return "";
+    return normalizeWebsite(raw);
   }
 
   function isValidUrl(value) {
     try {
       const url = new URL(value);
-      if (!["http:", "https:"].includes(url.protocol)) return false;
-      if (!url.hostname || !url.hostname.includes(".")) return false;
-      return true;
+      return ["http:", "https:"].includes(url.protocol);
     } catch {
       return false;
     }
-  }
   }
 
   function setFeedback(element, kind, message) {
