@@ -75,7 +75,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "admin-exports-clarte-1";
+const ADMIN_MODULE_VERSION = "admin-moderation-ux-2";
 
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",

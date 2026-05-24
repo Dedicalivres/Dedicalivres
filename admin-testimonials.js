@@ -66,19 +66,28 @@
     panel.className = "admin-panel testimonials-admin-panel";
 
     panel.innerHTML = `
-      <div class="section-head">
-        <h3>TÉMOIGNAGES</h3>
+      <div class="section-head moderation-section-head">
+        <div>
+          <h3>TÉMOIGNAGES</h3>
+          <p class="moderation-panel-intro">Relire les retours visiteurs, vérifier les photos et publier uniquement les témoignages utiles.</p>
+        </div>
         <span id="testimonials-admin-count">Chargement…</span>
       </div>
 
-      <div class="author-admin-toolbar testimonials-admin-toolbar">
+      <div class="moderation-kpi-row" id="testimonials-admin-kpis" aria-label="Résumé témoignages">
+        <span>Chargement du résumé…</span>
+      </div>
+
+      <div class="author-admin-toolbar testimonials-admin-toolbar moderation-toolbar">
         <input id="testimonials-admin-search" type="search" placeholder="Rechercher pseudo, message, événement…" />
         <select id="testimonials-admin-filter">
           <option value="pending">En attente</option>
           <option value="validated">Validés</option>
           <option value="rejected">Refusés</option>
+          <option value="with-image">Avec photo</option>
           <option value="all">Tous</option>
         </select>
+        <button id="testimonials-admin-compact" class="cyber-btn-secondary" type="button" aria-pressed="false">Mode compact</button>
         <button id="testimonials-admin-refresh" class="cyber-btn-secondary" type="button">Rafraîchir</button>
       </div>
 
@@ -104,6 +113,12 @@
     document.getElementById("testimonials-admin-filter")?.addEventListener("change", (event) => {
       currentFilter = event.target.value || "pending";
       render();
+    });
+    document.getElementById("testimonials-admin-compact")?.addEventListener("click", (event) => {
+      const isCompact = !panel.classList.contains("is-compact");
+      panel.classList.toggle("is-compact", isCompact);
+      event.currentTarget.setAttribute("aria-pressed", isCompact ? "true" : "false");
+      event.currentTarget.textContent = isCompact ? "Mode détaillé" : "Mode compact";
     });
     document.getElementById("testimonials-admin-refresh")?.addEventListener("click", loadTestimonials);
   }
@@ -148,10 +163,13 @@
       if (currentFilter === "pending" && (row.validated || row.rejected)) return false;
       if (currentFilter === "validated" && !row.validated) return false;
       if (currentFilter === "rejected" && !row.rejected) return false;
+      if (currentFilter === "with-image" && !row.image_url) return false;
 
       const haystack = normalize([row.pseudo, row.email, row.message, row.event_title].join(" "));
       return !search || haystack.includes(search);
     });
+
+    updateTestimonialsSummary();
 
     if (count) count.textContent = `${filtered.length} témoignage${filtered.length > 1 ? "s" : ""}`;
 
@@ -164,12 +182,29 @@
     bindActions(list);
   }
 
+
+  function updateTestimonialsSummary() {
+    const pending = rows.filter((row) => !row.validated && !row.rejected).length;
+    const validated = rows.filter((row) => row.validated).length;
+    const rejected = rows.filter((row) => row.rejected).length;
+    const withImage = rows.filter((row) => row.image_url).length;
+    const kpis = document.getElementById("testimonials-admin-kpis");
+    if (!kpis) return;
+
+    kpis.innerHTML = `
+      <span><b>${pending}</b> en attente</span>
+      <span><b>${validated}</b> validé${validated > 1 ? "s" : ""}</span>
+      <span><b>${rejected}</b> refusé${rejected > 1 ? "s" : ""}</span>
+      <span><b>${withImage}</b> avec photo</span>
+    `;
+  }
+
   function renderCard(row) {
     const status = row.validated ? "VALIDÉ" : row.rejected ? "REFUSÉ" : "EN ATTENTE";
 
     return `
       <article class="event-card testimonial-admin-card">
-        ${row.image_url ? `<div class="event-admin-thumb-placeholder" title="Photo disponible, non chargée automatiquement pour économiser Supabase">PHOTO DISPONIBLE</div>` : `<div class="event-admin-thumb-placeholder">SANS PHOTO</div>`}
+        ${row.image_url ? `<a class="testimonial-admin-thumb-link" href="${escapeAttribute(row.image_url)}" target="_blank" rel="noopener noreferrer" title="Ouvrir la photo"><img class="event-admin-thumb testimonial-admin-thumb" src="${escapeAttribute(row.image_url)}" alt="" loading="lazy" decoding="async" /></a>` : `<div class="event-admin-thumb-placeholder">SANS PHOTO</div>`}
 
         <div>
           <div class="event-title">${escapeHtml(row.pseudo || "Témoignage")}</div>
@@ -223,7 +258,7 @@
 
   async function deleteRow(id) {
     if (!isAdminAuthenticated()) return;
-    if (!confirm("Supprimer définitivement ce témoignage ?")) return;
+    if (!confirm("Supprimer définitivement ce témoignage ? Cette action ne peut pas être annulée.")) return;
     const { error } = await client.from("testimonials").delete().eq("id", id);
     if (error) {
       alert("Suppression impossible. Vérifie les règles RLS de la table testimonials.");

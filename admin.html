@@ -21,7 +21,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=admin-exports-clarte-1" />
+  <link rel="stylesheet" href="admin.css?v=admin-moderation-ux-2" />
 </head>
 
 <body class="cyber-admin">
@@ -299,13 +299,23 @@
     <!-- ================================================= -->
 
     <section id="tab-moderation" class="admin-tab-panel">
-      <section class="admin-panel admin-empty-panel admin-module-helper-panel">
+      <section class="admin-panel admin-empty-panel admin-module-helper-panel moderation-helper-panel">
         <div class="section-head">
-          <h3>MODÉRATION</h3>
+          <h3>REPÈRES MODÉRATION</h3>
           <span>Demandes visiteurs</span>
         </div>
+        <div class="moderation-helper-grid">
+          <a href="#author-requests-admin-panel" class="moderation-helper-card">
+            <strong>Demandes auteurs</strong>
+            <span>Vérifier le profil, les liens et la situation éditoriale avant validation.</span>
+          </a>
+          <a href="#testimonials-admin-panel" class="moderation-helper-card">
+            <strong>Témoignages</strong>
+            <span>Relire, valider, refuser ou supprimer les retours visiteurs.</span>
+          </a>
+        </div>
         <p class="priority-empty">
-          Les modules de modération se chargent automatiquement après connexion : demandes auteurs, témoignages et files d’attente. Ce bloc reste un repère si un module met quelques secondes à apparaître.
+          Les modules se chargent automatiquement après connexion. Ce bloc reste un repère si une file d’attente met quelques secondes à apparaître.
         </p>
       </section>
     </section>
@@ -709,7 +719,7 @@
 ></script>
 
 <script src="config.js?v=8.6"></script>
-<script src="admin.js?v=admin-exports-clarte-1"></script>
+<script src="admin.js?v=admin-moderation-ux-2"></script>
 
 </body>
 </html>
