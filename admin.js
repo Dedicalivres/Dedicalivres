@@ -75,7 +75,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "admin-workflow-1";
+const ADMIN_MODULE_VERSION = "admin-coherence-remove-1";
 
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",
@@ -558,185 +558,11 @@ function setAdminModuleStatus(src, status, loaded, error) {
     error: !!error
   });
 
-  renderAdminModulesStatusPanel();
 }
 
-function renderAdminModulesStatusPanel() {
-  const overviewPanel = document.getElementById("tab-overview");
-  const priorityPanel = document.getElementById("admin-editorial-cockpit");
-
-  if (!overviewPanel) return;
-
-  let panel = document.getElementById("admin-modules-coherence-panel");
-
-  if (!panel) {
-    panel = document.createElement("section");
-    panel.id = "admin-modules-coherence-panel";
-    panel.className = "admin-panel admin-modules-coherence-panel";
-
-    if (priorityPanel) {
-      priorityPanel.insertAdjacentElement("afterend", panel);
-    } else {
-      const statsGrid = overviewPanel.querySelector(".stats-grid");
-      if (statsGrid) statsGrid.insertAdjacentElement("afterend", panel);
-      else overviewPanel.prepend(panel);
-    }
-  }
-
-  const modules = ADMIN_MODULE_REGISTRY.map((module) => {
-    const status = adminModuleStatus.get(module.file) || {};
-
-    return {
-      ...module,
-      status: status.status || "En attente",
-      loaded: status.loaded === true,
-      error: status.error === true
-    };
-  });
-
-  const loadedCount = modules.filter((module) => module.loaded).length;
-  const errorCount = modules.filter((module) => module.error).length;
-
-  panel.innerHTML = `
-    <div class="section-head admin-modules-coherence-head">
-      <div>
-        <h3>COHÉRENCE MODULES</h3>
-        <span>${loadedCount}/${modules.length} module${modules.length > 1 ? "s" : ""} actif${loadedCount > 1 ? "s" : ""}${errorCount ? ` · ${errorCount} erreur${errorCount > 1 ? "s" : ""}` : ""}</span>
-      </div>
-      <span class="admin-module-version">${escapeHtml(ADMIN_MODULE_VERSION)}</span>
-    </div>
-
-    <div class="admin-modules-grid">
-      ${modules.map(renderAdminCoherenceModuleCard).join("")}
-    </div>
-
-    <details class="admin-legacy-modules">
-      <summary>Modules historiques non chargés automatiquement</summary>
-      <div class="admin-legacy-grid">
-        ${LEGACY_ADMIN_MODULES.map(renderLegacyAdminModuleCard).join("")}
-      </div>
-    </details>
-  `;
+function removeAdminModulesStatusPanel() {
+  document.getElementById("admin-modules-coherence-panel")?.remove();
 }
-
-function normalizeAdminModule(module) {
-  if (module && typeof module === "object" && !Array.isArray(module)) {
-    return module;
-  }
-
-  if (Array.isArray(module) && module[1] && typeof module[1] === "object") {
-    return module[1];
-  }
-
-  return {
-    label: "Module admin",
-    area: "Admin",
-    file: "module inconnu",
-    role: "Statut du module indisponible.",
-    status: "À vérifier",
-    loaded: false,
-    error: true
-  };
-}
-
-function renderAdminCoherenceModuleCard(module) {
-  const item = normalizeAdminModule(module);
-  const stateClass = item.error ? "is-error" : item.loaded ? "is-active" : "is-pending";
-  const label = cleanAdminModuleText(item.label, "Module admin");
-  const area = cleanAdminModuleText(item.area, "Admin");
-  const file = cleanAdminModuleText(item.file, "module inconnu");
-  const status = cleanAdminModuleText(item.status, item.loaded ? "Actif" : "En attente");
-  const role = cleanAdminModuleText(item.role, "Module admin Dédicalivres.");
-
-  return `
-    <article class="admin-module-card ${stateClass}">
-      <div>
-        <strong>${escapeHtml(label)}</strong>
-        <small>${escapeHtml(area)} · ${escapeHtml(file)}</small>
-      </div>
-      <span>${escapeHtml(status)}</span>
-      <p>${escapeHtml(role)}</p>
-    </article>
-  `;
-}
-
-function cleanAdminModuleText(value, fallback) {
-  if (typeof value === "string" && value.trim()) return value.trim();
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  return fallback;
-}
-
-function renderLegacyAdminModuleCard(module) {
-  const item = normalizeAdminModule(module);
-  const label = item.label || item.file || "Module historique";
-  const file = item.file || "module inconnu";
-  const status = item.status || "Non chargé automatiquement";
-  const replacement = item.replacement || "module moderne";
-
-  return `
-    <article class="admin-legacy-card">
-      <strong>${escapeHtml(label)}</strong>
-      <small>${escapeHtml(file)}</small>
-      <p>${escapeHtml(status)} · Remplacé par ${escapeHtml(replacement)}.</p>
-    </article>
-  `;
-}
-
-function clearAdminSensitiveState() {
-  allEvents = [];
-  locationRows = [];
-
-  if (eventsContainer) eventsContainer.innerHTML = "";
-  if (eventsCount) eventsCount.textContent = "0 élément";
-  if (statsEvents) statsEvents.textContent = "0";
-  if (statsPending) statsPending.textContent = "0";
-  if (statsNewsletter) statsNewsletter.textContent = "0";
-  if (statsVisits) statsVisits.textContent = "0";
-
-  document.getElementById("premium-container")?.replaceChildren();
-  document.getElementById("testimonials-admin-panel")?.remove();
-  document.getElementById("stats-testimonials-card")?.remove();
-  document.getElementById("tab-social")?.replaceChildren();
-  resetAdminExportsPanel();
-}
-
-/* TABS */
-
-function bindTabs() {
-  document.addEventListener("click", (event) => {
-    const tab = event.target.closest(".admin-tab");
-
-    if (!tab) return;
-
-    const target = tab.dataset.tab;
-
-    document.querySelectorAll(".admin-tab").forEach((item) => {
-      item.classList.remove("active");
-    });
-
-    document.querySelectorAll(".admin-tab-panel").forEach((panel) => {
-      panel.classList.remove("active");
-    });
-
-    tab.classList.add("active");
-
-    document
-      .getElementById(`tab-${target}`)
-      ?.classList.add("active");
-
-    if (target === "overview") {
-      setTimeout(() => {
-        map?.invalidateSize();
-      }, 250);
-    }
-
-    if (target === "exports") {
-      loadAdminExportsDashboard();
-    }
-  });
-}
-
-
 
 function bindMobileSwipeTabs() {
   // V9.6 : swipe mobile désactivé.
@@ -779,7 +605,6 @@ async function loadDashboard() {
 function refreshAdminViews() {
   safeAdminStepSync("statistiques", updateStats);
   safeAdminStepSync("actions prioritaires", renderPriorityActionPanel);
-  safeAdminStepSync("cohérence modules", renderAdminModulesStatusPanel);
   safeAdminStepSync("liste événements", renderEvents);
   safeAdminStepSync("premium", renderPremiumDashboard);
   safeAdminStepSync("réseaux", renderSocialUpcoming);
