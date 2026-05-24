@@ -1,545 +1,500 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN V10.0
-   Correctif robuste modération auteurs admin
+   DÉDICALIVRES — ADMIN AUTEURS PRÉSENTS
+   Pack SEO-Auteurs-1
+   Fichier : admin-author-requests-robust.js
 
-   Objectif :
-   - Corriger le module chargé dynamiquement après connexion admin.
-   - Afficher les demandes auteurs même si DOMContentLoaded est déjà passé.
-   - Gérer les présences directes : pseudo / website.
-   - Gérer les présences liées : author_id -> authors.
+   Rôle :
+   - Modérer les demandes auteurs liées aux événements.
+   - Gérer le statut AE / ME / Hybride.
+   - Gérer les deux liens : auteur/réseau + livre/boutique/éditeur.
 ========================================================= */
 
 (function () {
   "use strict";
 
-  const VERSION = "10.0";
   const config = window.DEDICALIVRES_CONFIG;
 
   if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
-    console.warn("Admin auteurs robuste désactivé : configuration Supabase manquante.");
+    console.warn("Admin auteurs : configuration Supabase indisponible.");
     return;
   }
 
-  const client = window.supabase.createClient(
+  const supabaseClient = window.supabase.createClient(
     config.supabaseUrl,
     config.supabaseAnonKey
   );
 
   let rows = [];
-  let eventMap = new Map();
-  let authorMap = new Map();
-  let currentStatus = "pending";
-  let currentSearch = "";
-  let initialized = false;
+  let currentFilter = "pending";
 
-  bootAuthorRequestsModule();
+  ensureStyles();
+  bindAuthEvents();
 
-  function bootAuthorRequestsModule() {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => waitForDashboard());
-    } else {
-      waitForDashboard();
-    }
+  function bindAuthEvents() {
+    window.addEventListener("dedicalivres:admin-authenticated", init);
+    window.addEventListener("dedicalivres:admin-dashboard-refreshed", refreshIfVisible);
 
-    window.addEventListener("dedicalivres:admin-authenticated", () => {
-      waitForDashboard();
-    });
-
-    window.addEventListener("dedicalivres:admin-dashboard-refreshed", () => {
-      if (initialized) loadAuthorRequests();
-      else waitForDashboard();
-    });
-  }
-
-  function waitForDashboard(attempt = 0) {
-    const moderationPanel = document.getElementById("tab-moderation");
-
-    if (moderationPanel && window.DEDICALIVRES_ADMIN_AUTHENTICATED === true) {
-      initPanel(moderationPanel);
-      return;
-    }
-
-    if (attempt < 40) {
-      setTimeout(() => waitForDashboard(attempt + 1), 200);
+    if (window.DEDICALIVRES_ADMIN_AUTHENTICATED) {
+      init();
     }
   }
 
-  function initPanel(moderationPanel) {
-    ensureCounterElements();
+  async function init() {
+    ensurePanel();
+    await loadRows();
+    render();
+  }
 
-    if (document.getElementById("author-requests-robust-panel")) {
-      initialized = true;
-      loadAuthorRequests();
-      return;
-    }
+  async function refreshIfVisible() {
+    if (!document.getElementById("author-requests-admin-panel")) return;
+    await loadRows();
+    render();
+  }
+
+  function ensurePanel() {
+    const moderationTab = document.getElementById("tab-moderation");
+    if (!moderationTab || document.getElementById("author-requests-admin-panel")) return;
 
     const panel = document.createElement("section");
-    panel.id = "author-requests-robust-panel";
-    panel.className = "admin-panel author-requests-robust-panel";
-
+    panel.id = "author-requests-admin-panel";
+    panel.className = "admin-panel author-requests-admin-panel";
     panel.innerHTML = `
       <div class="section-head">
-        <h3>MODÉRATION AUTEURS</h3>
-        <span id="author-requests-robust-count">Chargement…</span>
+        <h3>DEMANDES AUTEURS</h3>
+        <span id="author-requests-count">Chargement…</span>
       </div>
 
-      <div class="author-requests-tools">
-        <input
-          id="author-requests-robust-search"
-          type="search"
-          placeholder="Rechercher auteur, événement, ville…"
-        />
-
-        <select id="author-requests-robust-status">
-          <option value="pending">En attente</option>
-          <option value="validated">Validées</option>
-          <option value="all">Toutes</option>
-        </select>
-
-        <button id="author-requests-robust-refresh" class="cyber-btn-secondary" type="button">
-          Rafraîchir
-        </button>
-
-        <span class="badge pending" id="author-requests-robust-version">V${VERSION}</span>
+      <div class="author-requests-toolbar">
+        <button type="button" class="cyber-btn-secondary is-active" data-author-filter="pending">En attente</button>
+        <button type="button" class="cyber-btn-secondary" data-author-filter="validated">Validées</button>
+        <button type="button" class="cyber-btn-secondary" data-author-filter="rejected">Refusées</button>
+        <button type="button" class="cyber-btn-secondary" data-author-filter="all">Toutes</button>
+        <button type="button" class="cyber-btn-primary" id="author-requests-refresh">Actualiser</button>
       </div>
 
-      <div id="author-requests-robust-list" class="author-requests-list">
-        <article class="event-card">Chargement des demandes auteurs…</article>
+      <div id="author-requests-list" class="author-requests-list">
+        Chargement…
       </div>
-
-      <p class="author-requests-debug" id="author-requests-robust-debug">
-        Chargement robuste : présences auteurs puis événements/auteurs liés séparément.
-      </p>
     `;
 
-    const firstAdminPanel = moderationPanel.querySelector(".admin-panel");
-    if (firstAdminPanel) {
-      moderationPanel.insertBefore(panel, firstAdminPanel);
-    } else {
-      moderationPanel.appendChild(panel);
-    }
+    moderationTab.prepend(panel);
 
-    document
-      .getElementById("author-requests-robust-refresh")
-      ?.addEventListener("click", loadAuthorRequests);
-
-    document
-      .getElementById("author-requests-robust-search")
-      ?.addEventListener("input", (event) => {
-        currentSearch = normalize(event.target.value || "");
-        renderAuthorRequests();
-      });
-
-    document
-      .getElementById("author-requests-robust-status")
-      ?.addEventListener("change", (event) => {
-        currentStatus = event.target.value || "pending";
-        renderAuthorRequests();
-      });
-
-    initialized = true;
-    loadAuthorRequests();
+    panel.addEventListener("click", handlePanelClick);
+    panel.addEventListener("change", handlePanelChange);
   }
 
-  function ensureCounterElements() {
-    const adminTab = document.querySelector('.admin-tab[data-tab="moderation"]');
+  async function loadRows() {
+    const selectExtended = [
+      "id",
+      "event_id",
+      "pseudo",
+      "website",
+      "author_profile_url",
+      "author_profile_url_type",
+      "publication_mode",
+      "book_or_publisher_url",
+      "book_or_publisher_url_type",
+      "publisher_name",
+      "admin_note",
+      "validated",
+      "rejected",
+      "created_at",
+      "events(title, city, region, start_date)"
+    ].join(", ");
 
-    if (adminTab && !document.getElementById("author-requests-tab-badge")) {
-      const badge = document.createElement("span");
-      badge.id = "author-requests-tab-badge";
-      badge.className = "admin-tab-badge";
-      badge.hidden = true;
-      badge.textContent = "0";
-      adminTab.appendChild(badge);
-    }
+    let response = await supabaseClient
+      .from("event_authors_presence")
+      .select(selectExtended)
+      .order("created_at", { ascending: false })
+      .limit(200);
 
-    const statsGrid = document.querySelector("#tab-overview .stats-grid");
-
-    if (statsGrid && !document.getElementById("stats-author-requests")) {
-      const card = document.createElement("article");
-      card.id = "stat-card-author-requests";
-      card.className = "stat-card glow-red stat-card-author-requests";
-      card.innerHTML = `
-        <span class="stat-label">DEMANDES AUTEURS</span>
-        <strong id="stats-author-requests">0</strong>
-      `;
-
-      const pendingCard = document.getElementById("stats-pending")?.closest(".stat-card");
-
-      if (pendingCard?.nextSibling) {
-        statsGrid.insertBefore(card, pendingCard.nextSibling);
-      } else {
-        statsGrid.appendChild(card);
-      }
-    }
-  }
-
-  async function loadAuthorRequests() {
-    const list = document.getElementById("author-requests-robust-list");
-    const count = document.getElementById("author-requests-robust-count");
-    const debug = document.getElementById("author-requests-robust-debug");
-
-    if (list) {
-      list.innerHTML = `<article class="event-card">Chargement des demandes auteurs…</article>`;
-    }
-    if (count) count.textContent = "Chargement…";
-    if (debug) debug.textContent = "Lecture de event_authors_presence…";
-
-    const result = await readPresenceRows();
-
-    if (result.error) {
-      console.error("Erreur lecture event_authors_presence :", result.error);
-      if (list) {
-        list.innerHTML = `
-          <article class="event-card">
-            Impossible de charger les demandes auteurs.<br>
-            <small>${escapeHtml(result.error.message || "Erreur Supabase")}</small>
-          </article>
-        `;
-      }
-      if (count) count.textContent = "Erreur";
-      if (debug) {
-        debug.textContent = "Vérifie les policies SELECT admin sur event_authors_presence et les colonnes disponibles.";
-      }
-      return;
-    }
-
-    rows = result.rows;
-    await loadLinkedEvents(rows);
-    await loadLinkedAuthors(rows);
-
-    if (debug) {
-      debug.textContent =
-        `${rows.length} présence(s) auteur chargée(s). ` +
-        `${eventMap.size} événement(s) lié(s), ${authorMap.size} auteur(s) lié(s).`;
-    }
-
-    renderAuthorRequests();
-    updateAuthorCounters();
-  }
-
-  async function readPresenceRows() {
-    const selectors = [
-      "*",
-      "id,event_id,pseudo,website,author_slug,author_id,validated,created_at",
-      "id,event_id,author_id,validated,created_at",
-      "id,event_id,pseudo,website,validated,created_at"
-    ];
-
-    let lastError = null;
-
-    for (const selector of selectors) {
-      const { data, error } = await client
+    if (response.error) {
+      // Fallback si la relation events ou les nouvelles colonnes ne sont pas encore disponibles.
+      response = await supabaseClient
         .from("event_authors_presence")
-        .select(selector)
-        .order("created_at", { ascending: false });
-
-      if (!error) {
-        return {
-          rows: Array.isArray(data) ? data : [],
-          error: null
-        };
-      }
-
-      lastError = error;
-      console.warn(`Lecture présences auteurs échouée avec select(${selector}) :`, error);
+        .select("id, event_id, pseudo, website, validated, rejected, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
     }
 
-    return {
-      rows: [],
-      error: lastError
-    };
-  }
-
-  async function loadLinkedEvents(authorRows) {
-    eventMap = new Map();
-
-    const ids = Array.from(
-      new Set(
-        authorRows
-          .map((row) => row.event_id)
-          .filter(Boolean)
-          .map(String)
-      )
-    );
-
-    if (!ids.length) return;
-
-    const { data, error } = await client
-      .from("events")
-      .select("id,title,city,region,start_date,end_date,type,validated,rejected")
-      .in("id", ids);
-
-    if (error) {
-      console.warn("Événements liés indisponibles, affichage sans jointure :", error);
+    if (response.error) {
+      console.warn("Admin auteurs : chargement impossible", response.error);
+      rows = [];
+      showListError(response.error.message || "Chargement impossible.");
       return;
     }
 
-    (Array.isArray(data) ? data : []).forEach((event) => {
-      if (event?.id) eventMap.set(String(event.id), event);
-    });
+    rows = Array.isArray(response.data) ? response.data : [];
   }
 
-  async function loadLinkedAuthors(authorRows) {
-    authorMap = new Map();
+  function render() {
+    const count = document.getElementById("author-requests-count");
+    const list = document.getElementById("author-requests-list");
 
-    const ids = Array.from(
-      new Set(
-        authorRows
-          .map((row) => row.author_id || row.authorId || row.author)
-          .filter(Boolean)
-          .map(String)
-      )
-    );
+    if (!list) return;
 
-    if (!ids.length) return;
+    const filtered = filterRows(rows, currentFilter);
 
-    const { data, error } = await client
-      .from("authors")
-      .select("*")
-      .in("id", ids);
-
-    if (error) {
-      console.warn("Auteurs liés indisponibles, affichage sans jointure :", error);
-      return;
+    if (count) {
+      const pending = rows.filter(isPending).length;
+      count.textContent = `${filtered.length} affichée(s) · ${pending} en attente`;
     }
-
-    (Array.isArray(data) ? data : []).forEach((author) => {
-      if (author?.id) authorMap.set(String(author.id), author);
-    });
-  }
-
-  function renderAuthorRequests() {
-    const list = document.getElementById("author-requests-robust-list");
-    const count = document.getElementById("author-requests-robust-count");
-
-    if (!list || !count) return;
-
-    const filtered = getFilteredRows();
-    const pendingCount = rows.filter((row) => row.validated !== true).length;
-    const validatedCount = rows.filter((row) => row.validated === true).length;
-
-    count.textContent = `${pendingCount} en attente · ${validatedCount} validée(s) · ${rows.length} total`;
 
     if (!filtered.length) {
-      list.innerHTML = `
-        <article class="event-card">
-          Aucune demande auteur pour ce filtre.
-        </article>
-      `;
+      list.innerHTML = `<p class="priority-empty">Aucune demande auteur pour ce filtre.</p>`;
       return;
     }
 
-    list.innerHTML = filtered.map(renderAuthorRow).join("");
-    bindAuthorActions(list);
+    list.innerHTML = filtered.map(renderCard).join("");
   }
 
-  function getFilteredRows() {
-    return rows.filter((row) => {
-      const event = eventMap.get(String(row.event_id)) || {};
-      const author = getLinkedAuthor(row);
-      const isValidated = row.validated === true;
-
-      if (currentStatus === "pending" && isValidated) return false;
-      if (currentStatus === "validated" && !isValidated) return false;
-
-      const authorName = getAuthorName(row, author);
-      const authorWebsite = getAuthorWebsite(row, author);
-
-      const haystack = normalize([
-        authorName,
-        authorWebsite,
-        row.author_slug,
-        event.title,
-        event.city,
-        event.region,
-        event.type,
-        row.event_id,
-        row.author_id
-      ].filter(Boolean).join(" "));
-
-      return !currentSearch || haystack.includes(currentSearch);
-    });
-  }
-
-  function renderAuthorRow(row) {
-    const event = eventMap.get(String(row.event_id)) || {};
-    const author = getLinkedAuthor(row);
-    const isValidated = row.validated === true;
-    const statusLabel = isValidated ? "Validé" : "En attente";
-    const rowClass = isValidated ? "is-validated" : "is-pending";
-    const dateLabel = event.start_date ? formatDateRange(event.start_date, event.end_date) : "Date non précisée";
-    const locationLabel = [event.city, event.region].filter(Boolean).join(", ") || "Lieu non précisé";
-    const authorName = getAuthorName(row, author);
-    const authorWebsite = getAuthorWebsite(row, author);
+  function renderCard(row) {
+    const event = row.events || {};
+    const eventTitle = event.title || `Événement ${row.event_id || ""}`;
+    const eventMeta = [event.start_date, event.city, event.region].filter(Boolean).join(" · ");
+    const status = row.validated ? "validée" : row.rejected ? "refusée" : "en attente";
 
     return `
-      <article class="author-request-row ${rowClass}">
-        <div class="author-request-main">
-          <strong>${escapeHtml(authorName || "Auteur sans nom")}</strong>
-          <small>
-            ${escapeHtml(event.title || "Événement non retrouvé")}
-            ${event.title ? ` · ${escapeHtml(locationLabel)} · ${escapeHtml(dateLabel)}` : ` · ID événement : ${escapeHtml(row.event_id || "—")}`}
-          </small>
-          <small>
-            ${authorWebsite ? `Site auteur : ${escapeHtml(authorWebsite)}` : "Aucun site auteur renseigné"}
-          </small>
-          <div class="author-request-badges">
-            <span class="badge ${isValidated ? "" : "pending"}">${statusLabel}</span>
-            ${event.type ? `<span class="badge featured">${escapeHtml(event.type)}</span>` : ""}
-            ${row.author_id ? `<span class="badge">author_id</span>` : ""}
-            ${row.created_at ? `<span class="badge missing-image">${escapeHtml(formatDate(row.created_at))}</span>` : ""}
+      <article class="author-request-card" data-request-id="${escapeAttribute(row.id)}">
+        <div class="author-request-head">
+          <div>
+            <strong>${escapeHtml(row.pseudo || "Auteur sans nom")}</strong>
+            <small>${escapeHtml(eventTitle)}${eventMeta ? ` — ${escapeHtml(eventMeta)}` : ""}</small>
           </div>
+          <span class="author-request-status is-${statusToClass(status)}">${escapeHtml(status)}</span>
+        </div>
+
+        <div class="author-request-grid">
+          <label>
+            <span>Nom / pseudo</span>
+            <input data-field="pseudo" value="${escapeAttribute(row.pseudo || "")}" />
+          </label>
+
+          <label>
+            <span>Situation éditoriale</span>
+            <select data-field="publication_mode">
+              ${option("unknown", "Non précisé", row.publication_mode)}
+              ${option("self_published", "Autoédition", row.publication_mode)}
+              ${option("publisher", "Maison d’édition", row.publication_mode)}
+              ${option("hybrid", "Hybride", row.publication_mode)}
+            </select>
+          </label>
+
+          <label>
+            <span>Lien auteur / réseau</span>
+            <input data-field="author_profile_url" value="${escapeAttribute(row.author_profile_url || row.website || "")}" placeholder="https://..." />
+          </label>
+
+          <label>
+            <span>Type lien auteur</span>
+            <select data-field="author_profile_url_type">
+              ${option("site_officiel", "Site officiel", row.author_profile_url_type)}
+              ${option("instagram", "Instagram", row.author_profile_url_type)}
+              ${option("facebook", "Facebook", row.author_profile_url_type)}
+              ${option("linktree", "Linktree", row.author_profile_url_type)}
+              ${option("autre", "Autre", row.author_profile_url_type)}
+            </select>
+          </label>
+
+          <label>
+            <span>Lien livre / boutique / éditeur</span>
+            <input data-field="book_or_publisher_url" value="${escapeAttribute(row.book_or_publisher_url || "")}" placeholder="https://..." />
+          </label>
+
+          <label>
+            <span>Type second lien</span>
+            <select data-field="book_or_publisher_url_type">
+              ${option("page_livre", "Page du livre", row.book_or_publisher_url_type)}
+              ${option("maison_edition", "Maison d’édition", row.book_or_publisher_url_type)}
+              ${option("boutique_auteur", "Boutique auteur", row.book_or_publisher_url_type)}
+              ${option("librairie", "Librairie", row.book_or_publisher_url_type)}
+              ${option("amazon", "Amazon", row.book_or_publisher_url_type)}
+              ${option("autre", "Autre", row.book_or_publisher_url_type)}
+            </select>
+          </label>
+
+          <label>
+            <span>Nom éditeur / boutique</span>
+            <input data-field="publisher_name" value="${escapeAttribute(row.publisher_name || "")}" />
+          </label>
+
+          <label>
+            <span>Note admin</span>
+            <input data-field="admin_note" value="${escapeAttribute(row.admin_note || "")}" />
+          </label>
+        </div>
+
+        <div class="author-request-links">
+          ${renderCheckLink("Lien auteur", row.author_profile_url || row.website)}
+          ${renderCheckLink("Lien livre/éditeur", row.book_or_publisher_url)}
         </div>
 
         <div class="author-request-actions">
-          ${row.event_id ? `<a href="event.html?id=${encodeURIComponent(row.event_id)}" target="_blank" rel="noopener noreferrer">Événement</a>` : ""}
-          ${authorWebsite ? `<a href="${escapeAttribute(authorWebsite)}" target="_blank" rel="noopener noreferrer">Site auteur</a>` : ""}
-          ${!isValidated ? `<button class="approve" type="button" data-author-action="validate" data-id="${escapeAttribute(row.id)}">Valider</button>` : `<button class="pending" type="button" data-author-action="pending" data-id="${escapeAttribute(row.id)}">Remettre en attente</button>`}
-          <button class="delete" type="button" data-author-action="delete" data-id="${escapeAttribute(row.id)}">Retirer / supprimer</button>
+          <button type="button" class="cyber-btn-secondary" data-action="save">Enregistrer</button>
+          <button type="button" class="cyber-btn-primary" data-action="validate">Valider</button>
+          <button type="button" class="cyber-btn-danger" data-action="reject">Refuser</button>
+          <button type="button" class="cyber-btn-secondary" data-action="hide">Masquer</button>
         </div>
       </article>
     `;
   }
 
-  function bindAuthorActions(container) {
-    container.querySelectorAll("[data-author-action]").forEach((button) => {
-      button.addEventListener("click", async () => {
-        const id = button.dataset.id;
-        const action = button.dataset.authorAction;
-
-        if (!id || !action) return;
-
-        if (action === "validate") await updateAuthorPresence(id, true);
-        if (action === "pending") await updateAuthorPresence(id, false);
-        if (action === "delete") await deleteAuthorPresence(id);
+  async function handlePanelClick(event) {
+    const filterButton = event.target.closest("[data-author-filter]");
+    if (filterButton) {
+      currentFilter = filterButton.dataset.authorFilter || "pending";
+      document.querySelectorAll("[data-author-filter]").forEach((button) => {
+        button.classList.toggle("is-active", button === filterButton);
       });
+      render();
+      return;
+    }
+
+    if (event.target.closest("#author-requests-refresh")) {
+      await loadRows();
+      render();
+      toast("Demandes auteurs actualisées");
+      return;
+    }
+
+    const actionButton = event.target.closest("[data-action]");
+    if (!actionButton) return;
+
+    const card = actionButton.closest(".author-request-card");
+    if (!card) return;
+
+    const id = card.dataset.requestId;
+    const action = actionButton.dataset.action;
+
+    await updateRequestFromCard(id, card, action);
+  }
+
+  function handlePanelChange(event) {
+    const select = event.target.closest("select[data-field]");
+    if (!select) return;
+    // Réservé : changement immédiat possible plus tard.
+  }
+
+  async function updateRequestFromCard(id, card, action) {
+    const payload = readPayload(card);
+
+    if (action === "validate") {
+      payload.validated = true;
+      payload.rejected = false;
+    } else if (action === "reject") {
+      payload.validated = false;
+      payload.rejected = true;
+    } else if (action === "hide") {
+      payload.validated = false;
+      payload.rejected = false;
+    }
+
+    payload.updated_at = new Date().toISOString();
+
+    const { error } = await supabaseClient
+      .from("event_authors_presence")
+      .update(payload)
+      .eq("id", id);
+
+    if (error) {
+      console.warn("Admin auteurs : update impossible", error);
+      toast("Erreur mise à jour demande auteur");
+      return;
+    }
+
+    await loadRows();
+    render();
+    toast("Demande auteur mise à jour");
+  }
+
+  function readPayload(card) {
+    const payload = {};
+
+    card.querySelectorAll("[data-field]").forEach((field) => {
+      const key = field.dataset.field;
+      let value = field.value || "";
+
+      if (["author_profile_url", "book_or_publisher_url"].includes(key)) {
+        value = normalizeOptionalUrl(value);
+      }
+
+      if (key === "author_profile_url") {
+        payload.website = value || null; // compatibilité ancien champ
+      }
+
+      payload[key] = value || null;
     });
+
+    return payload;
   }
 
-  async function updateAuthorPresence(id, validated) {
-    const { error } = await client
-      .from("event_authors_presence")
-      .update({ validated })
-      .eq("id", id);
-
-    if (error) {
-      console.error("Erreur validation auteur :", error);
-      alert("Erreur pendant la mise à jour de la demande auteur.");
-      return;
-    }
-
-    await loadAuthorRequests();
+  function filterRows(items, filter) {
+    if (filter === "validated") return items.filter((row) => row.validated === true);
+    if (filter === "rejected") return items.filter((row) => row.rejected === true);
+    if (filter === "pending") return items.filter(isPending);
+    return items;
   }
 
-  async function deleteAuthorPresence(id) {
-    const row = rows.find((item) => String(item.id) === String(id));
-    const author = row ? getLinkedAuthor(row) : null;
-    const authorName = row ? getAuthorName(row, author) : "cette demande";
-
-    if (!window.confirm(`Retirer / supprimer la demande auteur : ${authorName || "auteur sans nom"} ?`)) {
-      return;
-    }
-
-    const { error } = await client
-      .from("event_authors_presence")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      console.error("Erreur suppression auteur :", error);
-      alert("Erreur pendant la suppression de la demande auteur.");
-      return;
-    }
-
-    await loadAuthorRequests();
+  function isPending(row) {
+    return row.validated !== true && row.rejected !== true;
   }
 
-  function updateAuthorCounters() {
-    const pendingCount = rows.filter((row) => row.validated !== true).length;
-    const stat = document.getElementById("stats-author-requests");
-    const badge = document.getElementById("author-requests-tab-badge");
-
-    if (stat) stat.textContent = String(pendingCount);
-
-    if (badge) {
-      badge.textContent = String(pendingCount);
-      badge.hidden = pendingCount === 0;
-    }
+  function renderCheckLink(label, url) {
+    if (!url) return "";
+    return `<a href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
   }
 
-  function getLinkedAuthor(row) {
-    const id = row.author_id || row.authorId || row.author;
-    return id ? authorMap.get(String(id)) : null;
+  function option(value, label, current) {
+    return `<option value="${escapeAttribute(value)}" ${current === value ? "selected" : ""}>${escapeHtml(label)}</option>`;
   }
 
-  function getAuthorName(row, author) {
-    return cleanText(
-      row.pseudo ||
-      row.name ||
-      row.author_name ||
-      row.author_slug ||
-      author?.name ||
-      author?.pseudo ||
-      author?.author_name ||
-      author?.slug ||
-      ""
-    );
+  function statusToClass(status) {
+    if (status === "validée") return "validated";
+    if (status === "refusée") return "rejected";
+    return "pending";
   }
 
-  function getAuthorWebsite(row, author) {
-    return normalizeOptionalWebsite(
-      row.website ||
-      row.url ||
-      row.link ||
-      author?.website ||
-      author?.url ||
-      author?.link ||
-      ""
-    );
-  }
-
-  function cleanText(value) {
-    return String(value || "").replace(/\s+/g, " ").trim();
-  }
-
-  function normalizeOptionalWebsite(value) {
-    const raw = cleanText(value);
+  function normalizeOptionalUrl(value) {
+    const raw = String(value || "").trim();
     if (!raw) return "";
     if (/^https?:\/\//i.test(raw)) return raw;
+    return `https://${raw}`;
+  }
 
-    try {
-      return `https://${raw}`;
-    } catch {
-      return "";
+  function showListError(message) {
+    const list = document.getElementById("author-requests-list");
+    if (list) list.innerHTML = `<p class="priority-empty">${escapeHtml(message)}</p>`;
+  }
+
+  function toast(message) {
+    if (typeof window.showToast === "function") {
+      window.showToast(message);
+    } else {
+      console.log(message);
     }
   }
 
-  function normalize(value) {
-    return cleanText(value)
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-  }
+  function ensureStyles() {
+    if (document.getElementById("admin-author-requests-seo-styles")) return;
 
-  function formatDateRange(start, end) {
-    const startLabel = formatDate(start);
-    const endLabel = end && end !== start ? formatDate(end) : "";
-    return endLabel ? `${startLabel} → ${endLabel}` : startLabel;
-  }
+    const style = document.createElement("style");
+    style.id = "admin-author-requests-seo-styles";
+    style.textContent = `
+      .author-requests-toolbar,
+      .author-request-actions,
+      .author-request-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 14px 0;
+      }
 
-  function formatDate(value) {
-    if (!value) return "";
+      .author-requests-toolbar .is-active {
+        outline: 2px solid rgba(25,255,156,.42);
+        color: var(--cyber-green);
+      }
 
-    try {
-      return new Intl.DateTimeFormat("fr-FR", {
-        day: "numeric",
-        month: "short",
-        year: "numeric"
-      }).format(new Date(value));
-    } catch {
-      return value;
-    }
+      .author-requests-list {
+        display: grid;
+        gap: 16px;
+      }
+
+      .author-request-card {
+        padding: 16px;
+        border-radius: 22px;
+        background: rgba(8,18,14,.92);
+        border: 1px solid rgba(25,255,156,.12);
+      }
+
+      .author-request-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .author-request-head strong {
+        display: block;
+        font-size: 1rem;
+      }
+
+      .author-request-head small {
+        display: block;
+        margin-top: 4px;
+        color: var(--cyber-muted);
+        line-height: 1.35;
+      }
+
+      .author-request-status {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .author-request-status.is-pending {
+        color: var(--cyber-orange);
+        background: rgba(255,158,68,.12);
+      }
+
+      .author-request-status.is-validated {
+        color: var(--cyber-green);
+        background: rgba(25,255,156,.12);
+      }
+
+      .author-request-status.is-rejected {
+        color: var(--cyber-red);
+        background: rgba(255,95,115,.12);
+      }
+
+      .author-request-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .author-request-grid label {
+        display: grid;
+        gap: 6px;
+      }
+
+      .author-request-grid span {
+        color: var(--cyber-muted);
+        font-weight: 900;
+        font-size: .78rem;
+      }
+
+      .author-request-grid input,
+      .author-request-grid select {
+        width: 100%;
+        min-height: 42px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,.14);
+        padding: 10px 12px;
+        background: rgba(255,255,255,.94);
+        color: #111;
+        font: inherit;
+      }
+
+      .author-request-links a {
+        color: var(--cyber-cyan);
+        font-weight: 900;
+      }
+
+      @media (max-width: 760px) {
+        .author-request-head {
+          flex-direction: column;
+        }
+
+        .author-request-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   function escapeHtml(value) {
