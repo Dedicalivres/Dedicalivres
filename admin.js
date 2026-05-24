@@ -75,7 +75,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "admin-social-workflow-2";
+const ADMIN_MODULE_VERSION = "admin-premium-scoring-1";
 
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",
@@ -2244,12 +2244,11 @@ function initMap() {
 function isPremiumCandidate(event) {
   if (!event || event.rejected) return false;
 
-  const hasCore = !!event.validated && !!event.start_date;
-  const hasPublicValue = !!event.website || !!event.image_url || String(event.description || "").length > 160;
+  const score = getPremiumScore(event).score;
+  const hasCore = !!event.validated && !isPastEvent(event);
   const premiumType = ["Salon", "Festival", "Dédicace"].includes(event.type);
-  const upcomingSoon = isUpcomingWithinDays(event, 60);
 
-  return hasCore && premiumType && (hasPublicValue || upcomingSoon);
+  return hasCore && premiumType && score >= 60;
 }
 
 function isUpcomingWithinDays(event, days) {
@@ -2267,32 +2266,140 @@ function isUpcomingWithinDays(event, days) {
   return start >= today && start <= limit;
 }
 
-function renderPremiumDashboard() {
-  if (!premiumContainer) return;
+function getPremiumScore(event) {
+  const descriptionLength = String(event?.description || "").trim().length;
+  const hasImage = !!resolveAdminImageUrl(event?.image_url);
+  const hasCoordinates = hasEventCoords(event);
+  const hasWebsite = !!String(event?.website || "").trim();
+  const hasGoodDescription = descriptionLength >= 140;
+  const isValidated = event?.validated === true && event?.rejected !== true;
+  const isUpcoming = !!event?.start_date && !isPastEvent(event);
+  const isSoon = isUpcomingWithinDays(event, 30);
+  const isGoodType = ["Salon", "Festival", "Dédicace"].includes(event?.type);
 
-  const featured = (allEvents || []).filter((event) => !!event.featured && !event.rejected);
-  const candidates = (allEvents || []).filter((event) => isPremiumCandidate(event) && !event.featured);
-  const missingImage = (allEvents || []).filter((event) => event.validated && !event.rejected && !event.image_url);
+  let score = 0;
+  const strengths = [];
+  const missing = [];
 
-  if (premiumFeaturedCount) premiumFeaturedCount.textContent = String(featured.length);
-  if (premiumCandidatesCount) premiumCandidatesCount.textContent = String(candidates.length);
-  if (premiumMissingImageCount) premiumMissingImageCount.textContent = String(missingImage.length);
-  if (premiumCount) {
-    premiumCount.textContent =
-      `${featured.length} mis en avant · ${candidates.length} potentiel${candidates.length > 1 ? "s" : ""}`;
+  if (isValidated) {
+    score += 20;
+    strengths.push("validé");
+  } else {
+    missing.push("validation");
   }
 
-  const rows = [...featured, ...candidates]
-    .filter(Boolean)
-    .filter((event, index, arr) => arr.findIndex((item) => String(item.id) === String(event.id)) === index)
-    .sort((a, b) => {
-      if (!!b.featured !== !!a.featured) return Number(!!b.featured) - Number(!!a.featured);
-      return new Date(a.start_date || "2999-12-31") - new Date(b.start_date || "2999-12-31");
-    })
-    .slice(0, 40);
+  if (isUpcoming) {
+    score += 15;
+    strengths.push("à venir");
+  } else {
+    missing.push("date à venir");
+  }
+
+  if (hasImage) {
+    score += 20;
+    strengths.push("image");
+  } else {
+    missing.push("image");
+  }
+
+  if (hasCoordinates) {
+    score += 15;
+    strengths.push("coordonnées");
+  } else {
+    missing.push("coordonnées");
+  }
+
+  if (hasGoodDescription) {
+    score += 15;
+    strengths.push("description solide");
+  } else {
+    missing.push("description courte");
+  }
+
+  if (hasWebsite) {
+    score += 10;
+    strengths.push("site officiel");
+  } else {
+    missing.push("site officiel");
+  }
+
+  if (isGoodType) score += 5;
+  if (isSoon) strengths.push("proche");
+
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    strengths,
+    missing,
+    hasImage,
+    hasCoordinates,
+    hasWebsite,
+    hasGoodDescription,
+    isValidated,
+    isUpcoming,
+    isSoon
+  };
+}
+
+function getPremiumRecommendation(event) {
+  const quality = getPremiumScore(event);
+
+  if (event?.featured && isPastEvent(event)) {
+    return { key: "featured-past", label: "Mis en avant passé", tone: "danger", text: "À retirer ou archiver de la sélection." };
+  }
+
+  if (event?.featured && quality.score < 75) {
+    return { key: "featured-incomplete", label: "Mis en avant incomplet", tone: "warning", text: "À compléter pour protéger la qualité de la mise en avant." };
+  }
+
+  if (event?.featured) {
+    return { key: "featured-ok", label: "Mis en avant prêt", tone: "ok", text: "Fiche solide actuellement mise en avant." };
+  }
+
+  if (quality.score >= 85) {
+    return { key: "ready", label: "Prêt à pousser", tone: "ok", text: "Bon candidat premium ou sélection éditoriale." };
+  }
+
+  if (quality.isSoon && quality.score >= 65) {
+    return { key: "soon-ready", label: "Proche à vérifier", tone: "warning", text: "Événement proche avec potentiel, à relire vite." };
+  }
+
+  if (quality.score >= 60) {
+    return { key: "potential", label: "Potentiel", tone: "neutral", text: "Peut devenir premium après quelques compléments." };
+  }
+
+  return { key: "needs-work", label: "À compléter", tone: "danger", text: "Pas encore prêt pour une mise en avant." };
+}
+
+function renderPremiumDashboard() {
+  const premiumContainerElement = document.getElementById("premium-container");
+  if (!premiumContainerElement) return;
+
+  const source = (allEvents || []).filter((event) => event && event.rejected !== true);
+  const featured = source.filter((event) => !!event.featured);
+  const scored = source
+    .map((event) => ({ event, quality: getPremiumScore(event), recommendation: getPremiumRecommendation(event) }))
+    .filter((item) => item.event.featured || item.quality.score >= 50 || item.quality.isSoon)
+    .sort(sortPremiumItems);
+
+  const ready = scored.filter((item) => !item.event.featured && ["ready", "soon-ready"].includes(item.recommendation.key));
+  const toComplete = scored.filter((item) => ["needs-work", "potential", "featured-incomplete"].includes(item.recommendation.key));
+  const watch = scored.filter((item) => ["featured-past", "featured-incomplete", "soon-ready"].includes(item.recommendation.key));
+
+  document.getElementById("premium-featured-count") && (document.getElementById("premium-featured-count").textContent = String(featured.length));
+  document.getElementById("premium-candidates-count") && (document.getElementById("premium-candidates-count").textContent = String(ready.length));
+  document.getElementById("premium-missing-image-count") && (document.getElementById("premium-missing-image-count").textContent = String(toComplete.length));
+
+  const premiumCountElement = document.getElementById("premium-count");
+  if (premiumCountElement) {
+    premiumCountElement.textContent = `${featured.length} mis en avant · ${ready.length} prêt${ready.length > 1 ? "s" : ""} · ${watch.length} à surveiller`;
+  }
+
+  renderPremiumSummary({ featured, ready, toComplete, watch });
+
+  const rows = scored.slice(0, 60);
 
   if (!rows.length) {
-    premiumContainer.innerHTML = `
+    premiumContainerElement.innerHTML = `
       <article class="event-card">
         Aucun événement premium ou potentiel premium pour le moment.
       </article>
@@ -2300,52 +2407,92 @@ function renderPremiumDashboard() {
     return;
   }
 
-  premiumContainer.innerHTML = rows.map(renderPremiumCard).join("");
+  premiumContainerElement.innerHTML = `
+    ${renderPremiumSection("Mis en avant à surveiller", rows.filter((item) => item.event.featured || item.recommendation.key.startsWith("featured")))}
+    ${renderPremiumSection("Candidats prêts à pousser", rows.filter((item) => !item.event.featured && ["ready", "soon-ready"].includes(item.recommendation.key)))}
+    ${renderPremiumSection("À compléter avant mise en avant", rows.filter((item) => !item.event.featured && !["ready", "soon-ready"].includes(item.recommendation.key)))}
+  `;
+
   bindEventActions();
 }
 
-function renderPremiumCard(event) {
-  const reason = event.featured
-    ? "Mis en avant actif"
-    : !event.image_url
-      ? "Potentiel à compléter : image manquante"
-      : isUpcomingWithinDays(event, 60)
-        ? "Événement proche à valoriser"
-        : "Potentiel éditorial";
+function sortPremiumItems(a, b) {
+  const rank = { "featured-past": 0, "featured-incomplete": 1, "soon-ready": 2, ready: 3, "featured-ok": 4, potential: 5, "needs-work": 6 };
+  const rankA = rank[a.recommendation.key] ?? 9;
+  const rankB = rank[b.recommendation.key] ?? 9;
+  if (rankA !== rankB) return rankA - rankB;
+  if (a.quality.score !== b.quality.score) return b.quality.score - a.quality.score;
+  return new Date(a.event.start_date || "2999-12-31") - new Date(b.event.start_date || "2999-12-31");
+}
+
+function renderPremiumSummary({ featured, ready, toComplete, watch }) {
+  const summary = document.getElementById("premium-score-summary");
+  if (!summary) return;
+
+  summary.innerHTML = `
+    <article class="premium-score-card is-ok"><b>${ready.length}</b><span>candidat${ready.length > 1 ? "s" : ""} prêt${ready.length > 1 ? "s" : ""}</span></article>
+    <article class="premium-score-card is-warning"><b>${watch.length}</b><span>à surveiller</span></article>
+    <article class="premium-score-card is-danger"><b>${toComplete.length}</b><span>à compléter</span></article>
+    <article class="premium-score-card"><b>${featured.length}</b><span>mis en avant actifs</span></article>
+  `;
+}
+
+function renderPremiumSection(title, items) {
+  if (!items.length) return "";
 
   return `
-    <article class="event-card event-card-with-image premium-admin-card">
-      ${
-        event.image_url
-          ? `<div class="event-admin-thumb-placeholder" title="Image disponible, non chargée automatiquement pour économiser Supabase">IMAGE DISPONIBLE</div>`
-          : `<div class="event-admin-thumb-placeholder">PAS D’IMAGE</div>`
-      }
+    <section class="premium-scoring-section">
+      <div class="premium-scoring-head">
+        <strong>${escapeHtml(title)}</strong>
+        <span>${items.length} élément${items.length > 1 ? "s" : ""}</span>
+      </div>
+      <div class="premium-scoring-list">
+        ${items.map(renderPremiumCard).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderPremiumCard(item) {
+  const event = item.event || item;
+  const quality = item.quality || getPremiumScore(event);
+  const recommendation = item.recommendation || getPremiumRecommendation(event);
+  const adminImage = resolveAdminImageUrl(event.image_url);
+  const missing = quality.missing.slice(0, 4);
+  const strengths = quality.strengths.slice(0, 4);
+
+  return `
+    <article class="event-card event-card-with-image premium-admin-card premium-score-${escapeAttribute(recommendation.tone)}">
+      ${adminImage ? `
+        <a class="event-admin-thumb-link" href="${escapeAttribute(adminImage)}" target="_blank" rel="noopener noreferrer" title="Ouvrir l’image">
+          <img class="event-admin-thumb" src="${escapeAttribute(adminImage)}" alt="${escapeAttribute(event.title || "Image événement")}" loading="lazy" decoding="async" />
+        </a>
+      ` : `<div class="event-admin-thumb-placeholder">PAS D’IMAGE</div>`}
 
       <div>
         <div class="event-title">${escapeHtml(event.title || "")}</div>
         <div class="event-meta">
-          <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}</span>
+          <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", ") || "Lieu non précisé")}</span>
           <span>📅 ${formatDate(event.start_date)}</span>
           <span>🏷️ ${escapeHtml(event.type || "")}</span>
         </div>
-        <div class="event-badges">
-          ${event.featured ? `<span class="badge featured">MIS EN AVANT</span>` : `<span class="badge pending">POTENTIEL PREMIUM</span>`}
-          ${!event.image_url ? `<span class="badge missing-image">SANS IMAGE</span>` : ""}
-          <span class="badge">${escapeHtml(reason)}</span>
+        <div class="premium-score-line">
+          <span class="premium-score-pill is-${escapeAttribute(recommendation.tone)}">${quality.score}/100</span>
+          <strong>${escapeHtml(recommendation.label)}</strong>
+          <small>${escapeHtml(recommendation.text)}</small>
+        </div>
+        <div class="event-badges premium-badges">
+          ${event.featured ? `<span class="badge featured">MIS EN AVANT</span>` : `<span class="badge pending">SUGGESTION</span>`}
+          ${missing.map((label) => `<span class="badge missing-image">À compléter : ${escapeHtml(label)}</span>`).join("")}
+          ${strengths.map((label) => `<span class="badge">OK : ${escapeHtml(label)}</span>`).join("")}
         </div>
       </div>
 
       <div class="event-actions">
-        <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button">
-          ★ <span>${event.featured ? "Retirer" : "Avant"}</span>
-        </button>
-        <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button">
-          ✎ <span>Modifier</span>
-        </button>
-        <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer">
-          ↗ <span>Voir</span>
-        </a>
-        <button class="event-action social-copy" data-action="copy-social" data-id="${event.id}" type="button" title="Copier un texte réseaux">📣 <span>Com.</span></button>
+        <button class="event-action featured" data-action="featured" data-id="${escapeAttribute(event.id)}" type="button">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
+        <button class="event-action edit" data-action="edit" data-id="${escapeAttribute(event.id)}" type="button">✎ <span>Modifier</span></button>
+        <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer">↗ <span>Voir</span></a>
+        <button class="event-action social-copy" data-action="copy-social" data-id="${escapeAttribute(event.id)}" type="button" title="Copier un texte réseaux">📣 <span>Com.</span></button>
         ${adminImage ? `<a class="event-action view" href="${escapeAttribute(adminImage)}" target="_blank" rel="noopener noreferrer" title="Voir l’image">🖼 <span>Image</span></a>` : ""}
       </div>
     </article>
