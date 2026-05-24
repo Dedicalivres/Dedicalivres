@@ -2150,3 +2150,131 @@ button.pending[data-author-action="pending"] {
   background: rgba(245,130,20,.10);
   border-color: rgba(245,130,20,.20);
 }
+
+/* =========================================================
+   ADMIN-MODERATION-LAYOUT-1 — Correctif grille modération
+   Objectif : empêcher le chevauchement des champs générés
+   par les modules protégés de modération, sans toucher à la
+   logique de validation / refus / masquage.
+========================================================= */
+
+#tab-moderation,
+#tab-moderation * {
+  box-sizing: border-box;
+}
+
+#tab-moderation .admin-panel {
+  overflow: hidden;
+}
+
+#tab-moderation article,
+#tab-moderation section,
+#tab-moderation form,
+#tab-moderation label,
+#tab-moderation div {
+  min-width: 0;
+}
+
+#tab-moderation input,
+#tab-moderation select,
+#tab-moderation textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+#tab-moderation input[type="url"],
+#tab-moderation input[type="text"],
+#tab-moderation input[type="email"],
+#tab-moderation textarea,
+#tab-moderation a {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#tab-moderation .author-requests-tools,
+#tab-moderation .testimonials-admin-toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+#tab-moderation .author-request-card,
+#tab-moderation .author-request-item,
+#tab-moderation .author-request-row,
+#tab-moderation .testimonial-admin-card,
+#tab-moderation .testimonial-admin-item,
+#tab-moderation [data-author-request-id],
+#tab-moderation [data-testimonial-id] {
+  overflow: hidden;
+}
+
+#tab-moderation .author-request-grid,
+#tab-moderation .author-request-fields,
+#tab-moderation .author-request-form,
+#tab-moderation .testimonial-admin-grid,
+#tab-moderation .testimonial-admin-fields,
+#tab-moderation .testimonial-admin-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+#tab-moderation .author-request-grid > *,
+#tab-moderation .author-request-fields > *,
+#tab-moderation .author-request-form > *,
+#tab-moderation .testimonial-admin-grid > *,
+#tab-moderation .testimonial-admin-fields > *,
+#tab-moderation .testimonial-admin-form > * {
+  min-width: 0;
+}
+
+#tab-moderation label {
+  display: grid;
+  gap: 7px;
+  color: var(--cyber-muted);
+  font-weight: 800;
+}
+
+#tab-moderation .author-request-actions,
+#tab-moderation .testimonial-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  #tab-moderation .author-request-grid,
+  #tab-moderation .author-request-fields,
+  #tab-moderation .author-request-form,
+  #tab-moderation .testimonial-admin-grid,
+  #tab-moderation .testimonial-admin-fields,
+  #tab-moderation .testimonial-admin-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  #tab-moderation .admin-panel {
+    margin-left: 12px;
+    margin-right: 12px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  #tab-moderation .author-requests-tools,
+  #tab-moderation .testimonials-admin-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  #tab-moderation .author-request-actions button,
+  #tab-moderation .author-request-actions a,
+  #tab-moderation .testimonial-admin-actions button,
+  #tab-moderation .testimonial-admin-actions a {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
