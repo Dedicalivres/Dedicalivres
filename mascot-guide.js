@@ -95,6 +95,26 @@
           run: () => scrollToTarget("#agenda")
         }
       ]
+    },
+    contact: {
+      label: "Contact / partenariat",
+      subtitle: "Question, correction ou proposition",
+      title: "Contactez Dédicalivres.",
+      message:
+        "Une question, une correction à signaler ou une proposition de partenariat ? Vous pouvez contacter Dédicalivres simplement.",
+      actions: [
+        {
+          label: "Envoyer un email",
+          hint: "dedicalivres@gmail.com",
+          className: "primary",
+          run: () => goTo("mailto:dedicalivres@gmail.com?subject=Contact%20D%C3%A9dicalivres")
+        },
+        {
+          label: "Suivre sur Instagram",
+          hint: "@dedicalivres",
+          run: () => goTo("https://www.instagram.com/dedicalivres/")
+        }
+      ]
     }
   };
 

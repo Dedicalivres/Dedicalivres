@@ -3114,3 +3114,83 @@ button:active,
     max-width: 76%;
   }
 }
+
+
+
+/* =========================================================
+   PACK CONTACT-1 — Contact léger + Instagram
+========================================================= */
+
+.contact-light-section {
+  padding-top: 28px;
+}
+
+.contact-light-card,
+.event-contact-light {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: clamp(22px, 4vw, 32px);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.12), transparent 36%),
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(241,232,251,.78));
+  border: 1px solid rgba(58,28,113,.10);
+  box-shadow: 0 16px 38px rgba(58,28,113,.10);
+}
+
+.contact-light-card h2 {
+  margin-bottom: 10px;
+}
+
+.contact-light-card p,
+.event-contact-light p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.6;
+}
+
+.contact-light-actions,
+.event-contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.event-contact-light {
+  max-width: 980px;
+  margin: 26px auto 0;
+}
+
+.event-contact-light strong {
+  display: block;
+  color: var(--purple);
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  line-height: 1.15;
+}
+
+@media (max-width: 780px) {
+  .contact-light-card,
+  .event-contact-light {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .contact-light-actions,
+  .event-contact-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .contact-light-actions .btn-primary,
+  .contact-light-actions .btn-secondary,
+  .event-contact-actions .btn-primary,
+  .event-contact-actions .btn-secondary {
+    width: 100%;
+  }
+}
