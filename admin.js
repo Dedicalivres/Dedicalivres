@@ -75,7 +75,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "admin-modules-coherence-1c";
+const ADMIN_MODULE_VERSION = "admin-modules-coherence-1d";
 
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",
@@ -607,7 +607,7 @@ function renderAdminModulesStatusPanel() {
     </div>
 
     <div class="admin-modules-grid">
-      ${modules.map(renderAdminModuleCard).join("")}
+      ${modules.map(renderAdminCoherenceModuleCard).join("")}
     </div>
 
     <details class="admin-legacy-modules">
@@ -639,7 +639,7 @@ function normalizeAdminModule(module) {
   };
 }
 
-function renderAdminModuleCard(module) {
+function renderAdminCoherenceModuleCard(module) {
   const item = normalizeAdminModule(module);
   const stateClass = item.error ? "is-error" : item.loaded ? "is-active" : "is-pending";
   const label = cleanAdminModuleText(item.label, "Module admin");
