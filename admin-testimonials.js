@@ -87,9 +87,18 @@
       </div>
     `;
 
-    const firstAdminPanel = moderation.querySelector(".admin-panel");
-    if (firstAdminPanel) moderation.insertBefore(panel, firstAdminPanel);
-    else moderation.appendChild(panel);
+    const authorPanel = document.getElementById("author-requests-admin-panel");
+    const helperPanel = moderation.querySelector(".admin-module-helper-panel");
+
+    if (authorPanel) {
+      authorPanel.insertAdjacentElement("afterend", panel);
+    } else if (helperPanel) {
+      moderation.insertBefore(panel, helperPanel);
+    } else {
+      const firstAdminPanel = moderation.querySelector(".admin-panel");
+      if (firstAdminPanel) moderation.insertBefore(panel, firstAdminPanel);
+      else moderation.appendChild(panel);
+    }
 
     document.getElementById("testimonials-admin-search")?.addEventListener("input", render);
     document.getElementById("testimonials-admin-filter")?.addEventListener("change", (event) => {

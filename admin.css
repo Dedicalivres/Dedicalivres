@@ -2677,3 +2677,370 @@ button.pending[data-author-action="pending"] {
     height: 150px;
   }
 }
+
+
+/* =========================================================
+   ADMIN REFACTOR LAYOUT 1 — cohérence cockpit
+   Objectif : clarifier l'admin sans changer la logique métier.
+========================================================= */
+
+body.cyber-admin {
+  min-width: 0;
+}
+
+.dashboard {
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.tabs-wrapper {
+  display: block;
+  padding-bottom: 34px;
+}
+
+.admin-tab-panel.active {
+  animation-duration: .18s;
+}
+
+.admin-panel,
+.stat-card,
+.priority-card,
+.event-card,
+.social-card,
+.premium-kpi,
+.exports-kpi,
+.exports-layout-card,
+.quality-kpi,
+.author-request-card {
+  overflow-wrap: anywhere;
+}
+
+.admin-panel {
+  scroll-margin-top: 96px;
+}
+
+.admin-cockpit-panel {
+  margin: 0 18px 22px;
+  padding: clamp(16px, 2vw, 22px);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(25,255,156,.13), transparent 34%),
+    radial-gradient(circle at 90% 10%, rgba(25,215,255,.10), transparent 32%),
+    rgba(10,22,18,.92);
+  border: 1px solid rgba(25,255,156,.18);
+  box-shadow: 0 24px 60px rgba(0,0,0,.30);
+}
+
+.admin-cockpit-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-cockpit-head strong {
+  display: block;
+  margin: 4px 0 6px;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  letter-spacing: .08em;
+  color: var(--cyber-text);
+}
+
+.admin-cockpit-head small {
+  display: block;
+  max-width: 760px;
+  color: var(--cyber-muted);
+  line-height: 1.45;
+}
+
+.admin-cockpit-kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(25,255,156,.10);
+  color: var(--cyber-green);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.admin-cockpit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-cockpit-actions .cyber-btn-secondary {
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 999px;
+}
+
+.admin-cockpit-grid {
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+}
+
+.admin-cockpit-grid .admin-action-priority-card {
+  min-height: 86px;
+  padding: 12px;
+  border-radius: 18px;
+}
+
+.admin-cockpit-grid .admin-action-priority-card b {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.admin-module-priority-card {
+  border-style: dashed;
+}
+
+.admin-module-helper-panel {
+  opacity: .72;
+  border-style: dashed;
+}
+
+.admin-module-helper-panel .section-head {
+  margin-bottom: 10px;
+}
+
+.admin-module-helper-panel p {
+  max-width: 780px;
+  line-height: 1.55;
+}
+
+.section-head {
+  min-width: 0;
+}
+
+.section-head h3,
+.section-head span {
+  min-width: 0;
+}
+
+.admin-toolbar-events,
+.toolbar,
+.author-admin-toolbar,
+.author-requests-toolbar,
+.quality-toolbar,
+.testimonials-admin-toolbar,
+.social-generator-controls,
+.exports-actions {
+  align-items: stretch;
+}
+
+.admin-toolbar-events,
+.toolbar {
+  grid-template-columns: minmax(260px, 1.5fr) repeat(3, minmax(150px, .65fr));
+}
+
+.event-card {
+  grid-template-columns: 104px minmax(0, 1fr) minmax(150px, auto);
+  align-items: stretch;
+}
+
+.event-card > div:not(.event-actions) {
+  min-width: 0;
+}
+
+.event-title {
+  line-height: 1.25;
+}
+
+.event-meta,
+.event-badges,
+.quality-badges {
+  align-items: flex-start;
+}
+
+.event-actions {
+  align-content: center;
+  align-items: center;
+}
+
+.event-admin-thumb,
+.event-admin-thumb-placeholder,
+.event-admin-thumb-link {
+  width: 104px;
+  height: 104px;
+}
+
+.event-admin-thumb-link {
+  display: block;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+#author-requests-admin-panel,
+#testimonials-admin-panel,
+#quality-control-panel,
+.premium-control-panel,
+.admin-exports-panel {
+  position: relative;
+}
+
+#author-requests-admin-panel::before,
+#testimonials-admin-panel::before,
+#quality-control-panel::before,
+.premium-control-panel::before,
+.admin-exports-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,.025), transparent 46%);
+}
+
+.author-request-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.author-request-card,
+.testimonial-admin-card,
+.quality-row {
+  border-color: rgba(25,255,156,.13);
+}
+
+.exports-layout-section {
+  margin-top: 20px;
+}
+
+.exports-layout-grid,
+.exports-kpi-grid,
+.premium-kpi-grid,
+.quality-kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.social-generator-shell {
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .admin-toolbar-events,
+  .toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .event-card {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .event-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard {
+    max-width: none;
+  }
+
+  .topbar,
+  .admin-panel,
+  .admin-cockpit-panel,
+  .stats-grid,
+  .toolbar,
+  .admin-toolbar-events,
+  .social-grid {
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+
+  .admin-tabs {
+    top: 0;
+    padding: 10px 12px;
+  }
+
+  .admin-tab {
+    min-height: 42px;
+    padding: 10px 13px;
+    border-radius: 14px;
+    font-size: .88rem;
+  }
+
+  .admin-cockpit-head {
+    display: grid;
+  }
+
+  .admin-cockpit-actions {
+    justify-content: flex-start;
+  }
+
+  .admin-cockpit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-toolbar-events,
+  .toolbar,
+  .quality-toolbar,
+  .testimonials-admin-toolbar,
+  .author-admin-toolbar {
+    grid-template-columns: 1fr !important;
+  }
+
+  .section-head {
+    display: grid;
+    align-items: start;
+    gap: 8px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .event-card {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 12px;
+    text-align: left;
+  }
+
+  .event-admin-thumb,
+  .event-admin-thumb-placeholder,
+  .event-admin-thumb-link {
+    width: 82px;
+    height: 82px;
+    border-radius: 14px;
+  }
+
+  .event-actions {
+    justify-content: flex-start;
+  }
+
+  .event-action {
+    min-width: 58px;
+    min-height: 42px;
+  }
+}
+
+@media (max-width: 460px) {
+  .admin-cockpit-grid,
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .event-card {
+    grid-template-columns: 1fr;
+  }
+
+  .event-admin-thumb,
+  .event-admin-thumb-placeholder,
+  .event-admin-thumb-link {
+    width: 100%;
+    height: 145px;
+  }
+}

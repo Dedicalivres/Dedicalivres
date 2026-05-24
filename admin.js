@@ -505,7 +505,7 @@ function loadAdminScript(src) {
     }
 
     const script = document.createElement("script");
-    script.src = `${src}?v=10.0`;
+    script.src = `${src}?v=admin-refactor-layout-1`;
     script.defer = true;
     script.dataset.protectedAdminModule = src;
     script.onload = () => resolve();
@@ -776,7 +776,7 @@ function renderPriorityActionPanel() {
   if (!panel) {
     panel = document.createElement("section");
     panel.id = "admin-action-priority-panel";
-    panel.className = "admin-action-priority-panel";
+    panel.className = "admin-action-priority-panel admin-cockpit-panel";
     statsGrid.insertAdjacentElement("afterend", panel);
   }
 
@@ -785,22 +785,41 @@ function renderPriorityActionPanel() {
   const missingImage = upcoming.filter((event) => !event.image_url);
   const missingCoords = upcoming.filter((event) => !hasEventCoords(event));
   const soon = upcoming.filter((event) => isUpcomingWithinDays(event, 14));
+  const soonIncomplete = soon.filter((event) => !event.image_url || !hasEventCoords(event));
   const featuredPast = allEvents.filter((event) => event.featured && isPastEvent(event));
+  const qualityLow = upcoming.filter((event) => getEventQuality(event).score < 55);
+  const communicationReady = upcoming.filter((event) => isUpcomingWithinDays(event, 30) && getEventQuality(event).score >= 55);
+
+  const authorPendingText = document.getElementById("author-requests-count")?.textContent || "";
+  const testimonialPendingText = document.getElementById("stats-testimonials-pending")?.textContent || "0";
+  const authorPending = extractFirstNumber(authorPendingText, 0);
+  const testimonialPending = extractFirstNumber(testimonialPendingText, 0);
 
   panel.innerHTML = `
-    <div class="admin-action-priority-head">
-      <strong>À traiter maintenant</strong>
-      <small>Raccourcis éditoriaux sans charger d’images</small>
+    <div class="admin-cockpit-head">
+      <div>
+        <span class="admin-cockpit-kicker">Cockpit éditorial</span>
+        <strong>À traiter maintenant</strong>
+        <small>Vue synthèse sans nouvelle table : événements, qualité, modération et publications.</small>
+      </div>
+      <div class="admin-cockpit-actions">
+        <button type="button" class="cyber-btn-secondary" data-admin-jump-tab="events">Événements</button>
+        <button type="button" class="cyber-btn-secondary" data-admin-jump-tab="moderation">Modération</button>
+        <button type="button" class="cyber-btn-secondary" data-admin-jump-tab="social">Réseaux</button>
+      </div>
     </div>
 
-    <div class="admin-action-priority-grid">
+    <div class="admin-action-priority-grid admin-cockpit-grid">
       ${renderPriorityActionCard("pending", pending.length, "Événements en attente", pending.length ? "is-warning" : "is-ok")}
       ${renderPriorityActionCard("missing-image", missingImage.length, "Validés sans image", missingImage.length ? "is-warning" : "is-ok")}
       ${renderPriorityActionCard("missing-coords", missingCoords.length, "Validés sans coordonnées", missingCoords.length ? "is-danger" : "is-ok")}
       ${renderPriorityActionCard("soon", soon.length, "Dans les 14 jours", soon.length ? "is-warning" : "is-ok")}
+      ${renderPriorityActionCard("soon-incomplete", soonIncomplete.length, "Urgents incomplets", soonIncomplete.length ? "is-danger" : "is-ok")}
       ${renderPriorityActionCard("featured-past", featuredPast.length, "Mis en avant passés", featuredPast.length ? "is-danger" : "is-ok")}
-      ${renderPriorityActionCard("quality-low", upcoming.filter((event) => getEventQuality(event).score < 55).length, "Qualité faible", upcoming.filter((event) => getEventQuality(event).score < 55).length ? "is-danger" : "is-ok")}
-      ${renderPriorityActionCard("communication", upcoming.filter((event) => isUpcomingWithinDays(event, 30) && getEventQuality(event).score >= 55).length, "Posts à préparer", upcoming.filter((event) => isUpcomingWithinDays(event, 30) && getEventQuality(event).score >= 55).length ? "is-warning" : "is-ok")}
+      ${renderPriorityActionCard("quality-low", qualityLow.length, "Qualité faible", qualityLow.length ? "is-danger" : "is-ok")}
+      ${renderPriorityActionCard("communication", communicationReady.length, "Posts à préparer", communicationReady.length ? "is-warning" : "is-ok")}
+      ${renderAdminModuleCard("moderation", authorPending, "Demandes auteurs", authorPending ? "is-warning" : "is-ok")}
+      ${renderAdminModuleCard("moderation", testimonialPending, "Témoignages", testimonialPending ? "is-warning" : "is-ok")}
     </div>
   `;
 
@@ -809,7 +828,14 @@ function renderPriorityActionPanel() {
       applyPriorityAction(button.dataset.priorityAction);
     });
   });
+
+  panel.querySelectorAll("[data-admin-jump-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      jumpToAdminTab(button.dataset.adminJumpTab);
+    });
+  });
 }
+
 
 function renderPriorityActionCard(action, count, label, className) {
   return `
@@ -822,6 +848,34 @@ function renderPriorityActionCard(action, count, label, className) {
       <span>${escapeHtml(label)}</span>
     </button>
   `;
+}
+
+function renderAdminModuleCard(tab, count, label, className) {
+  return `
+    <button
+      type="button"
+      class="admin-action-priority-card admin-module-priority-card ${className || ""}"
+      data-admin-jump-tab="${escapeHtml(tab)}"
+    >
+      <b>${count}</b>
+      <span>${escapeHtml(label)}</span>
+    </button>
+  `;
+}
+
+function jumpToAdminTab(tabName) {
+  const tab = document.querySelector(`.admin-tab[data-tab="${CSS.escape(tabName || "")}"]`);
+  tab?.click();
+
+  document.getElementById(`tab-${tabName}`)?.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+function extractFirstNumber(value, fallback = 0) {
+  const match = String(value || "").match(/\d+/);
+  return match ? Number(match[0]) : fallback;
 }
 
 function applyPriorityAction(action) {
@@ -857,6 +911,14 @@ function applyPriorityAction(action) {
     renderCustomAdminEventList(
       allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event) && !hasEventCoords(event)),
       "Événements validés sans coordonnées"
+    );
+    return;
+  }
+
+  if (action === "soon-incomplete") {
+    renderCustomAdminEventList(
+      allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event) && isUpcomingWithinDays(event, 14) && (!event.image_url || !hasEventCoords(event))),
+      "Événements urgents incomplets"
     );
     return;
   }
