@@ -2913,173 +2913,29 @@ button:active,
 
 
 /* =========================================================
-   PACK CARTE-2B — Nettoyage forcé des contrôles carte
-   Objectif : supprimer réellement "Plein écran" et "Carte".
+   PACK CARTE-2C — Suppression ciblée toolbar premium
+   Cible confirmée :
+   - #map-fullscreen-toggle
+   - #map-close-mobile
+   - .map-premium-toolbar
 ========================================================= */
 
-.map-panel {
-  position: relative;
-}
-
-/* Panneau flottant Carte-1, conservé si déjà présent. */
-.map-floating-panel {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  z-index: 700;
-  width: min(380px, calc(100% - 36px));
-  max-height: calc(100% - 36px);
-  overflow: auto;
-  padding: 18px;
-  border-radius: 26px;
-  background:
-    radial-gradient(circle at top left, rgba(255,107,53,.10), transparent 34%),
-    rgba(255,255,255,.94);
-  border: 1px solid rgba(58,28,113,.13);
-  box-shadow:
-    0 22px 58px rgba(38,17,72,.22),
-    0 0 0 1px rgba(255,255,255,.42) inset;
-  backdrop-filter: blur(16px);
-}
-
-.map-floating-panel[hidden] {
+#map-fullscreen-toggle,
+#map-close-mobile,
+.map-premium-toolbar {
   display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
-.map-floating-close {
-  position: sticky;
-  top: 0;
-  float: right;
-  z-index: 2;
-  width: 36px;
-  height: 36px;
-  margin: -6px -6px 8px 8px;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(38,17,72,.10);
-  color: var(--purple);
-  font-size: 1.7rem;
-  line-height: 1;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.map-floating-head {
-  display: grid;
-  gap: 4px;
-  margin-bottom: 14px;
-  padding-right: 36px;
-}
-
-.map-floating-kicker {
-  color: var(--orange);
-  font-size: .78rem;
-  font-weight: 950;
-  letter-spacing: .10em;
-  text-transform: uppercase;
-}
-
-.map-floating-head strong {
-  color: var(--purple);
-  font-family: "Playfair Display", serif;
-  font-size: clamp(1.25rem, 2vw, 1.7rem);
-  line-height: 1.1;
-}
-
-.map-floating-list {
-  display: grid;
-  gap: 14px;
-}
-
-.map-floating-event {
-  overflow: hidden;
-  border-radius: 22px;
-  background: rgba(255,255,255,.88);
-  border: 1px solid rgba(58,28,113,.09);
-  box-shadow: 0 12px 28px rgba(58,28,113,.10);
-}
-
-.map-floating-image,
-.map-floating-image-placeholder {
-  display: block;
-  width: 100%;
-  height: 132px;
-  object-fit: cover;
-  background: linear-gradient(135deg, var(--orange), var(--purple));
-}
-
-.map-floating-event-body {
-  padding: 14px;
-}
-
-.map-floating-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-bottom: 10px;
-}
-
-.map-floating-event h3 {
-  margin: 0 0 10px;
-  color: var(--purple-dark);
-  font-family: "Playfair Display", serif;
-  font-size: 1.25rem;
-  line-height: 1.15;
-}
-
-.map-floating-meta {
-  margin: 0 0 7px;
-  color: var(--text);
-  font-weight: 850;
-  line-height: 1.35;
-}
-
-.map-floating-description {
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: .93rem;
-  font-weight: 700;
-  line-height: 1.5;
-}
-
-.map-floating-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.map-floating-actions .btn-primary,
-.map-floating-actions .btn-secondary {
-  min-height: 38px;
-  padding: 9px 12px;
-  font-size: .88rem;
-}
-
-.event-marker-v5 {
-  cursor: pointer;
-}
-
-/* Supprime visuellement tout contrôle Leaflet non essentiel. 
-   On garde uniquement zoom + attribution.
+/* Conserve uniquement la vraie zone d'actions au-dessus de la carte :
+   Carte en direct / Me localiser / Légende.
 */
-#map .leaflet-control:not(.leaflet-control-zoom):not(.leaflet-control-attribution) {
-  display: none !important;
+.ux-actions {
+  align-items: center;
 }
 
-/* Cas particuliers de plugins fullscreen/layers. */
-#map .leaflet-control-fullscreen,
-#map .leaflet-control-layers,
-#map .leaflet-control-layers-toggle,
-#map .leaflet-control-layers-expanded,
-#map .leaflet-bar a[title*="Plein"],
-#map .leaflet-bar a[title*="plein"],
-#map .leaflet-bar a[aria-label*="Plein"],
-#map .leaflet-bar a[aria-label*="plein"] {
-  display: none !important;
-}
-
-/* Attribution plus discrète. */
+/* Garde l'attribution Leaflet/OpenStreetMap discrète. */
 #map .leaflet-control-attribution {
   max-width: calc(100% - 18px);
   padding: 3px 7px;
@@ -3089,89 +2945,7 @@ button:active,
   font-size: .72rem;
 }
 
-/* Légende compacte. */
-.map-legend-inline {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-height: 40px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.72);
-  border: 1px solid rgba(58,28,113,.08);
-  color: var(--muted);
-  font-size: .84rem;
-  font-weight: 850;
-}
-
-.map-legend-title {
-  color: var(--purple);
-  font-weight: 950;
-}
-
-.map-legend-inline span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  display: inline-block;
-  border: 0;
-  box-shadow: 0 0 0 3px rgba(255,255,255,.7);
-}
-
-.legend-salon {
-  background: #3a1c71;
-}
-
-.legend-festival {
-  background: #ff6b35;
-}
-
-.legend-dedicace {
-  background: #16803c;
-}
-
-@media (max-width: 780px) {
-  .map-floating-panel {
-    top: auto;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    width: auto;
-    max-height: 62%;
-    padding: 16px;
-    border-radius: 24px 24px 20px 20px;
-  }
-
-  .map-floating-image,
-  .map-floating-image-placeholder {
-    height: 110px;
-  }
-
-  .map-floating-actions {
-    flex-direction: column;
-  }
-
-  .map-floating-actions .btn-primary,
-  .map-floating-actions .btn-secondary {
-    width: 100%;
-  }
-
-  .map-legend-inline {
-    width: 100%;
-    justify-content: center;
-    border-radius: 18px;
-    font-size: .8rem;
-  }
-
-  #map .leaflet-control-attribution {
-    font-size: .62rem;
-    max-width: 76%;
-  }
+/* Sécurité : aucun contrôle Leaflet non essentiel en dehors du zoom et de l'attribution. */
+#map .leaflet-control:not(.leaflet-control-zoom):not(.leaflet-control-attribution) {
+  display: none !important;
 }

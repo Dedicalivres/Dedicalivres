@@ -209,7 +209,7 @@
 
     markersLayer = L.layerGroup().addTo(map);
     ensureMapFloatingPanel();
-    installMapControlCleanup();
+    installMapPremiumToolbarCleanup();
 
     map.on("click", () => {
       closeMapFloatingPanel();
@@ -842,56 +842,38 @@
     });
   }
 
-  function installMapControlCleanup() {
-    if (!mapPanel) return;
+  function installMapPremiumToolbarCleanup() {
+    removeMapPremiumToolbarButtons();
 
-    cleanupMapControls();
+    const target = mapPanel || document.body;
 
     const observer = new MutationObserver(() => {
-      cleanupMapControls();
+      removeMapPremiumToolbarButtons();
     });
 
-    observer.observe(mapPanel, {
+    observer.observe(target, {
       childList: true,
       subtree: true
     });
 
-    setTimeout(cleanupMapControls, 250);
-    setTimeout(cleanupMapControls, 1000);
-    setTimeout(cleanupMapControls, 2500);
+    setTimeout(removeMapPremiumToolbarButtons, 100);
+    setTimeout(removeMapPremiumToolbarButtons, 500);
+    setTimeout(removeMapPremiumToolbarButtons, 1500);
   }
 
-  function cleanupMapControls() {
-    const mapElement = document.getElementById("map");
-    if (!mapElement) return;
+  function removeMapPremiumToolbarButtons() {
+    [
+      document.getElementById("map-fullscreen-toggle"),
+      document.getElementById("map-close-mobile")
+    ].forEach((element) => {
+      if (element) element.remove();
+    });
 
-    mapElement
-      .querySelectorAll(".leaflet-control")
-      .forEach((control) => {
-        if (
-          control.classList.contains("leaflet-control-zoom") ||
-          control.classList.contains("leaflet-control-attribution")
-        ) {
-          return;
-        }
+    const toolbar = document.querySelector(".map-premium-toolbar");
 
-        const text = normalize(control.textContent || "");
-        const aria = normalize(control.getAttribute("aria-label") || "");
-        const title = normalize(control.getAttribute("title") || "");
-
-        if (
-          text.includes("plein ecran") ||
-          text === "carte" ||
-          aria.includes("plein ecran") ||
-          aria.includes("fullscreen") ||
-          title.includes("plein ecran") ||
-          title.includes("fullscreen") ||
-          control.className.includes("fullscreen") ||
-          control.className.includes("layers")
-        ) {
-          control.remove();
-        }
-      });
+    if (toolbar && !toolbar.querySelector("button, a")) {
+      toolbar.remove();
+    }
   }
 
 
