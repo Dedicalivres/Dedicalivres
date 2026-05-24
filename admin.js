@@ -75,7 +75,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "admin-modules-coherence-1";
+const ADMIN_MODULE_VERSION = "admin-modules-coherence-1b";
 
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",
@@ -597,39 +597,71 @@ function renderAdminModulesStatusPanel() {
     </div>
 
     <div class="admin-modules-grid">
-      ${modules.map(renderAdminModuleCard).join("")}
+      ${modules.map((module) => renderAdminModuleCard(module)).join("")}
     </div>
 
     <details class="admin-legacy-modules">
       <summary>Modules historiques non chargés automatiquement</summary>
       <div class="admin-legacy-grid">
-        ${LEGACY_ADMIN_MODULES.map(renderLegacyAdminModuleCard).join("")}
+        ${LEGACY_ADMIN_MODULES.map((module) => renderLegacyAdminModuleCard(module)).join("")}
       </div>
     </details>
   `;
 }
 
+function normalizeAdminModule(module) {
+  if (module && typeof module === "object" && !Array.isArray(module)) {
+    return module;
+  }
+
+  if (Array.isArray(module) && module[1] && typeof module[1] === "object") {
+    return module[1];
+  }
+
+  return {
+    label: "Module admin",
+    area: "Admin",
+    file: "module inconnu",
+    role: "Statut du module indisponible.",
+    status: "À vérifier",
+    loaded: false,
+    error: true
+  };
+}
+
 function renderAdminModuleCard(module) {
-  const stateClass = module.error ? "is-error" : module.loaded ? "is-active" : "is-pending";
+  const item = normalizeAdminModule(module);
+  const stateClass = item.error ? "is-error" : item.loaded ? "is-active" : "is-pending";
+  const label = item.label || item.file || "Module admin";
+  const area = item.area || "Admin";
+  const file = item.file || "module inconnu";
+  const status = item.status || (item.loaded ? "Actif" : "En attente");
+  const role = item.role || "Module admin Dédicalivres.";
 
   return `
     <article class="admin-module-card ${stateClass}">
       <div>
-        <strong>${escapeHtml(module.label)}</strong>
-        <small>${escapeHtml(module.area)} · ${escapeHtml(module.file)}</small>
+        <strong>${escapeHtml(label)}</strong>
+        <small>${escapeHtml(area)} · ${escapeHtml(file)}</small>
       </div>
-      <span>${escapeHtml(module.status)}</span>
-      <p>${escapeHtml(module.role)}</p>
+      <span>${escapeHtml(status)}</span>
+      <p>${escapeHtml(role)}</p>
     </article>
   `;
 }
 
 function renderLegacyAdminModuleCard(module) {
+  const item = normalizeAdminModule(module);
+  const label = item.label || item.file || "Module historique";
+  const file = item.file || "module inconnu";
+  const status = item.status || "Non chargé automatiquement";
+  const replacement = item.replacement || "module moderne";
+
   return `
     <article class="admin-legacy-card">
-      <strong>${escapeHtml(module.label)}</strong>
-      <small>${escapeHtml(module.file)}</small>
-      <p>${escapeHtml(module.status)} · Remplacé par ${escapeHtml(module.replacement)}.</p>
+      <strong>${escapeHtml(label)}</strong>
+      <small>${escapeHtml(file)}</small>
+      <p>${escapeHtml(status)} · Remplacé par ${escapeHtml(replacement)}.</p>
     </article>
   `;
 }
