@@ -133,7 +133,7 @@
 
           <label>
             <span>Lien auteur / réseau social</span>
-            <input name="author_profile_url" type="url" placeholder="Site auteur, Instagram, Facebook, Linktree…" required />
+            <input name="author_profile_url" type="text" inputmode="url" autocapitalize="off" autocomplete="url" placeholder="www.monsite.fr ou instagram.com/moncompte" required />
           </label>
 
           <label>
@@ -149,7 +149,7 @@
 
           <label>
             <span>Lien livre / boutique / maison d’édition</span>
-            <input name="book_or_publisher_url" type="url" placeholder="Page du livre, boutique auteur, éditeur, librairie…" />
+            <input name="book_or_publisher_url" type="text" inputmode="url" autocapitalize="off" autocomplete="url" placeholder="www.editeur.fr, boutique auteur ou page du livre" />
           </label>
 
           <label>
@@ -171,7 +171,7 @@
         </div>
 
         <p class="author-presence-form-help">
-          Ces liens ne sont pas intégrés aux visuels PNG : ils sont affichés sur la fiche événement,
+          Vous pouvez saisir un lien avec ou sans https:// : Dédicalivres l’adapte automatiquement. Ces liens ne sont pas intégrés aux visuels PNG : ils sont affichés sur la fiche événement,
           où ils restent cliquables, utiles aux visiteurs et vérifiés avant publication.
         </p>
 
@@ -197,10 +197,10 @@
       const pseudo = cleanText(formData.get("pseudo"));
       const publicationMode = cleanSelectValue(formData.get("publication_mode"), ["self_published", "publisher", "hybrid", "unknown"], "unknown");
 
-      const authorProfileUrl = normalizeWebsite(formData.get("author_profile_url"));
+      const authorProfileUrl = normalizeWebsite(formData.get("author_profile_url"), formData.get("author_profile_url_type"));
       const authorProfileUrlType = cleanSelectValue(formData.get("author_profile_url_type"), ["site_officiel", "instagram", "facebook", "linktree", "autre"], "autre");
 
-      const bookOrPublisherUrl = normalizeOptionalWebsite(formData.get("book_or_publisher_url"));
+      const bookOrPublisherUrl = normalizeOptionalWebsite(formData.get("book_or_publisher_url"), formData.get("book_or_publisher_url_type"));
       const bookOrPublisherUrlType = cleanSelectValue(formData.get("book_or_publisher_url_type"), ["boutique_auteur", "page_livre", "maison_edition", "librairie", "amazon", "autre"], "autre");
 
       const publisherName = cleanText(formData.get("publisher_name")).slice(0, 120);
@@ -280,6 +280,7 @@
   async function loadAuthorsPresence(event) {
     const list = document.getElementById("authors-presence-list");
     const empty = document.getElementById("authors-presence-empty");
+    const valueBox = document.getElementById("authors-presence-value-box");
 
     if (!list || !empty) return [];
 
@@ -293,6 +294,16 @@
       "book_or_publisher_url",
       "book_or_publisher_url_type",
       "publisher_name",
+      "validated",
+      "is_validated",
+      "approved",
+      "is_approved",
+      "published",
+      "is_published",
+      "rejected",
+      "is_rejected",
+      "status",
+      "state",
       "created_at"
     ].join(", ");
 
@@ -300,17 +311,23 @@
       .from("event_authors_presence")
       .select(selectExtended)
       .eq("event_id", eventId)
-      .eq("validated", true)
-      .or("rejected.is.null,rejected.eq.false")
       .order("created_at", { ascending: true });
+
+    if (response.error) {
+      // Fallback si certaines colonnes de statut n'existent pas encore.
+      response = await supabaseClient
+        .from("event_authors_presence")
+        .select("id, pseudo, website, author_profile_url, author_profile_url_type, publication_mode, book_or_publisher_url, book_or_publisher_url_type, publisher_name, validated, rejected, created_at")
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: true });
+    }
 
     if (response.error) {
       // Fallback ancien schéma.
       response = await supabaseClient
         .from("event_authors_presence")
-        .select("id, pseudo, website, created_at")
+        .select("id, pseudo, website, validated, rejected, created_at")
         .eq("event_id", eventId)
-        .eq("validated", true)
         .order("created_at", { ascending: true });
     }
 
@@ -319,7 +336,9 @@
       return [];
     }
 
-    const authors = Array.isArray(response.data) ? response.data : [];
+    const authors = (Array.isArray(response.data) ? response.data : [])
+      .filter(isPresencePublic)
+      .map(normalizeAuthorPresenceRow);
 
     if (!authors.length) {
       list.innerHTML = "";
@@ -333,6 +352,52 @@
 
     list.innerHTML = authors.map((author) => renderAuthorPresenceCard(author, event)).join("");
     return authors;
+  }
+
+
+  function isPresencePublic(author) {
+    if (!author) return false;
+
+    if (author.rejected === true || author.is_rejected === true) return false;
+
+    const status = normalizeStatus(author.status || author.state || "");
+
+    if (["rejected", "refusé", "refuse", "deleted", "archived"].includes(status)) {
+      return false;
+    }
+
+    if (
+      author.validated === true ||
+      author.is_validated === true ||
+      author.approved === true ||
+      author.is_approved === true ||
+      author.published === true ||
+      author.is_published === true
+    ) {
+      return true;
+    }
+
+    return ["validated", "validé", "valide", "approved", "published", "publié", "online", "active"].includes(status);
+  }
+
+  function normalizeAuthorPresenceRow(author) {
+    const authorUrl = normalizeOptionalWebsite(author.author_profile_url || author.website || "", author.author_profile_url_type);
+    const secondUrl = normalizeOptionalWebsite(author.book_or_publisher_url || "", author.book_or_publisher_url_type);
+
+    return {
+      ...author,
+      website: authorUrl || author.website || "",
+      author_profile_url: authorUrl,
+      book_or_publisher_url: secondUrl
+    };
+  }
+
+  function normalizeStatus(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
   }
 
   function renderAuthorPresenceCard(author, event) {
@@ -598,26 +663,63 @@
     return allowed.includes(cleaned) ? cleaned : fallback;
   }
 
-  function normalizeWebsite(value) {
-    const raw = cleanText(value);
-    if (!raw) return "";
-    if (/^https?:\/\//i.test(raw)) return raw;
-    return `https://${raw}`;
+  function normalizeWebsite(value, type = "") {
+    return normalizeExternalUrl(value, type);
   }
 
-  function normalizeOptionalWebsite(value) {
+  function normalizeOptionalWebsite(value, type = "") {
     const raw = cleanText(value);
     if (!raw) return "";
-    return normalizeWebsite(raw);
+    return normalizeExternalUrl(raw, type);
+  }
+
+  function normalizeExternalUrl(value, type = "") {
+    let raw = cleanText(value)
+      .replace(/\s+/g, "")
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'");
+
+    if (!raw) return "";
+
+    // La personne a mis http:// ou https:// : on respecte son choix.
+    if (/^https?:\/\//i.test(raw)) return raw;
+
+    // Saisie fréquente : @compte en choisissant Instagram.
+    if (type === "instagram" && raw.startsWith("@")) {
+      return `https://www.instagram.com/${raw.slice(1).replace(/^\/+/, "")}`;
+    }
+
+    if (type === "facebook" && raw.startsWith("@")) {
+      return `https://www.facebook.com/${raw.slice(1).replace(/^\/+/, "")}`;
+    }
+
+    // www.site.fr, instagram.com/auteur, maison-edition.fr, etc.
+    if (/^www\./i.test(raw) || looksLikeDomain(raw)) {
+      return `https://${raw}`;
+    }
+
+    // Cas tolérant : la personne a oublié le domaine complet mais a collé une URL sans protocole avec slash.
+    if (/^[a-z0-9-]+(\.[a-z0-9-]+)+\//i.test(raw)) {
+      return `https://${raw}`;
+    }
+
+    return raw;
+  }
+
+  function looksLikeDomain(value) {
+    return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+(?:[/:?#].*)?$/i.test(value);
   }
 
   function isValidUrl(value) {
     try {
       const url = new URL(value);
-      return ["http:", "https:"].includes(url.protocol);
+      if (!["http:", "https:"].includes(url.protocol)) return false;
+      if (!url.hostname || !url.hostname.includes(".")) return false;
+      return true;
     } catch {
       return false;
     }
+  }
   }
 
   function setFeedback(element, kind, message) {
