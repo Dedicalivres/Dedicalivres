@@ -50,6 +50,7 @@
   let markersLayer;
   let allEvents = [];
   let markerByEventId = {};
+  let mapFloatingPanel = null;
   let cityAutocompleteTimer = null;
   let citySuggestionCache = new Map();
   let userPosition = null;
@@ -208,6 +209,7 @@
     }).addTo(map);
 
     markersLayer = L.layerGroup().addTo(map);
+    ensureMapFloatingPanel();
     installMapPremiumToolbarCleanupSafe();
   }
 
@@ -584,6 +586,7 @@
 
     markersLayer.clearLayers();
     markerByEventId = {};
+    closeMapFloatingPanel();
 
     const grouped = {};
 
@@ -611,53 +614,15 @@
       const typeMeta = TYPE_META[first.type] || TYPE_META.Autre;
 
       const marker = L.marker([lat, lng], {
-        icon: createTypeIcon(typeMeta)
+        icon: createTypeIcon(typeMeta),
+        keyboard: true,
+        title: group.length > 1
+          ? `${group.length} événements`
+          : first.title || "Événement"
       });
 
-      marker.bindPopup(`
-        <div class="premium-popup premium-popup-click">
-          <strong>${group.length} événement(s)</strong>
-
-          ${group.map((event) => `
-            <article class="premium-popup-event">
-              <div class="premium-popup-meta">
-                ${event.type ? `<span>${escapeHtml(event.type)}</span>` : ""}
-                ${event.start_date ? `<span>📅 ${escapeHtml(formatDateRange(event.start_date, event.end_date))}</span>` : ""}
-              </div>
-
-              <button
-                class="popup-focus-btn"
-                type="button"
-                data-event-id="${escapeAttribute(event.id)}"
-                data-event-type="${escapeAttribute(event.type || "")}"
-              >
-                ${escapeHtml(event.title || "Sans titre")}
-              </button>
-
-              <small>
-                📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(" — ") || "Lieu non précisé")}
-              </small>
-
-              <a
-                class="popup-detail-link"
-                href="event.html?id=${encodeURIComponent(event.id)}"
-              >
-                Voir la fiche
-              </a>
-            </article>
-          `).join("")}
-        </div>
-      `);
-
-      marker.on("popupopen", () => {
-        document.querySelectorAll(".popup-focus-btn").forEach((button) => {
-          button.addEventListener("click", () => {
-            focusEventFromMap(
-              button.dataset.eventId,
-              button.dataset.eventType
-            );
-          });
-        });
+      marker.on("click", () => {
+        openMapFloatingPanel(group);
       });
 
       marker.addTo(markersLayer);
@@ -666,6 +631,189 @@
         markerByEventId[event.id] = marker;
       });
     });
+  }
+
+  function ensureMapFloatingPanel() {
+    if (mapFloatingPanel || !mapPanel) return mapFloatingPanel;
+
+    mapFloatingPanel = document.createElement("aside");
+    mapFloatingPanel.id = "map-floating-panel";
+    mapFloatingPanel.className = "map-floating-panel";
+    mapFloatingPanel.setAttribute("aria-live", "polite");
+    mapFloatingPanel.setAttribute("aria-label", "Détails de l’événement sélectionné sur la carte");
+    mapFloatingPanel.hidden = true;
+    mapFloatingPanel.innerHTML = `
+      <button
+        type="button"
+        class="map-floating-close"
+        aria-label="Fermer le panneau événement"
+      >
+        ×
+      </button>
+      <div id="map-floating-content" class="map-floating-content"></div>
+    `;
+
+    mapPanel.appendChild(mapFloatingPanel);
+
+    mapFloatingPanel
+      .querySelector(".map-floating-close")
+      ?.addEventListener("click", closeMapFloatingPanel);
+
+    mapFloatingPanel.addEventListener("click", (event) => {
+      const focusButton = event.target.closest("[data-map-focus-id]");
+      if (focusButton) {
+        focusEventFromMap(
+          focusButton.dataset.mapFocusId,
+          focusButton.dataset.mapFocusType || ""
+        );
+      }
+    });
+
+    return mapFloatingPanel;
+  }
+
+  function openMapFloatingPanel(group) {
+    const panel = ensureMapFloatingPanel();
+    const content = document.getElementById("map-floating-content");
+
+    if (!panel || !content) return;
+
+    const events = Array.isArray(group) ? group : [];
+
+    content.innerHTML = renderMapFloatingContent(events);
+    panel.hidden = false;
+    panel.classList.add("is-open");
+  }
+
+  function closeMapFloatingPanel() {
+    if (!mapFloatingPanel) return;
+
+    mapFloatingPanel.classList.remove("is-open");
+    mapFloatingPanel.hidden = true;
+
+    const content = document.getElementById("map-floating-content");
+    if (content) content.innerHTML = "";
+  }
+
+  function renderMapFloatingContent(events) {
+    if (!events.length) {
+      return `<div class="map-floating-empty">Aucun événement sélectionné.</div>`;
+    }
+
+    const title = events.length > 1
+      ? `${events.length} événements à cet endroit`
+      : "1 événement sélectionné";
+
+    return `
+      <div class="map-floating-head">
+        <span class="map-floating-kicker">Carte en direct</span>
+        <strong>${escapeHtml(title)}</strong>
+      </div>
+
+      <div class="map-floating-list">
+        ${events.map(renderMapFloatingEvent).join("")}
+      </div>
+    `;
+  }
+
+  function renderMapFloatingEvent(event) {
+    const typeMeta = TYPE_META[event.type] || TYPE_META.Autre;
+    const image = resolveImageUrl(event.image_url);
+    const place = [event.city, event.region].filter(Boolean).join(" — ") || "Lieu non précisé";
+    const date = event.start_date
+      ? formatDateRange(event.start_date, event.end_date)
+      : "Date à préciser";
+    const description = truncateText(event.description || "", 135);
+    const detailUrl = `event.html?id=${encodeURIComponent(event.id)}`;
+
+    return `
+      <article class="map-floating-event">
+        ${
+          image
+            ? `
+              <a class="map-floating-image-link" href="${detailUrl}">
+                <img
+                  class="map-floating-image"
+                  src="${escapeAttribute(image)}"
+                  alt="${escapeAttribute(event.title || "Événement")}"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </a>
+            `
+            : `<div class="map-floating-image map-floating-image-placeholder"></div>`
+        }
+
+        <div class="map-floating-event-body">
+          <div class="map-floating-badges">
+            ${
+              event.type
+                ? `
+                  <span class="badge badge-type ${typeMeta.className}">
+                    ${escapeHtml(event.type)}
+                  </span>
+                `
+                : ""
+            }
+
+            ${
+              event.featured
+                ? `<span class="badge badge-featured">Sélection</span>`
+                : ""
+            }
+          </div>
+
+          <h3>${escapeHtml(event.title || "Sans titre")}</h3>
+
+          <p class="map-floating-meta">📅 ${escapeHtml(date)}</p>
+          <p class="map-floating-meta">📍 ${escapeHtml(place)}</p>
+
+          ${
+            description
+              ? `<p class="map-floating-description">${escapeHtml(description)}</p>`
+              : ""
+          }
+
+          <div class="map-floating-actions">
+            <a class="btn-primary" href="${detailUrl}">
+              Voir la fiche
+            </a>
+
+            <button
+              type="button"
+              class="btn-secondary"
+              data-map-focus-id="${escapeAttribute(event.id)}"
+              data-map-focus-type="${escapeAttribute(event.type || "")}"
+            >
+              Voir dans la liste
+            </button>
+
+            ${
+              event.website
+                ? `
+                  <a
+                    class="btn-secondary"
+                    href="${escapeAttribute(event.website)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Site officiel
+                  </a>
+                `
+                : ""
+            }
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function truncateText(value, maxLength) {
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+
+    if (text.length <= maxLength) return text;
+
+    return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
   }
 
   function createTypeIcon(typeMeta) {
@@ -718,10 +866,8 @@
 
 
   /* =========================================================
-     PACK CARTE-2E — clics safe + suppression toolbar
-     - garde les popups Leaflet au clic
-     - supprime le survol
-     - supprime uniquement la toolbar maison identifiée
+     PACK CARTE-2F — suppression toolbar maison identifiée
+     Ne touche pas aux clics des cartes événements.
   ========================================================= */
 
   function installMapPremiumToolbarCleanupSafe() {
