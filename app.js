@@ -50,7 +50,6 @@
   let markersLayer;
   let allEvents = [];
   let markerByEventId = {};
-  let mapPopupHoverTimer = null;
   let mapFloatingPanel = null;
   let cityAutocompleteTimer = null;
   let citySuggestionCache = new Map();
@@ -675,11 +674,6 @@
         );
         return;
       }
-
-      const closeButton = event.target.closest("[data-map-panel-close]");
-      if (closeButton) {
-        closeMapFloatingPanel();
-      }
     });
 
     return mapFloatingPanel;
@@ -719,11 +713,7 @@
 
   function renderMapFloatingContent(events) {
     if (!events.length) {
-      return `
-        <div class="map-floating-empty">
-          Aucun événement sélectionné.
-        </div>
-      `;
+      return `<div class="map-floating-empty">Aucun événement sélectionné.</div>`;
     }
 
     const title = events.length > 1

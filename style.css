@@ -3095,3 +3095,105 @@ button:active,
     width: 100%;
   }
 }
+
+
+
+/* =========================================================
+   PACK CARTE-2 — Interface carte épurée
+   Retire les boutons Leaflet inutiles et rend la légende compacte.
+========================================================= */
+
+/* Masque les contrôles Leaflet natifs inutiles dans ton usage actuel :
+   - "Plein écran" qui ne déclenche rien
+   - bouton/couche "Carte" qui referme ou perturbe l'expérience
+   Les marqueurs, le zoom et le panneau flottant restent actifs.
+*/
+#map .leaflet-control-fullscreen,
+#map .leaflet-control-layers,
+#map .leaflet-control-layers-toggle,
+#map .leaflet-control-layers-expanded,
+#map .leaflet-control button[title="Plein écran"],
+#map .leaflet-control a[title="Plein écran"],
+#map .leaflet-control button[aria-label="Plein écran"],
+#map .leaflet-control a[aria-label="Plein écran"] {
+  display: none !important;
+}
+
+/* Si un plugin génère de simples boutons texte "Plein écran" / "Carte",
+   on neutralise la zone de contrôle concernée sans toucher à l'attribution.
+*/
+#map .leaflet-top.leaflet-left .leaflet-control:not(.leaflet-control-zoom),
+#map .leaflet-top.leaflet-right .leaflet-control:not(.leaflet-control-zoom) {
+  display: none !important;
+}
+
+/* Attribution plus discrète pour éviter qu'elle ressemble à un contrôle principal. */
+#map .leaflet-control-attribution {
+  max-width: calc(100% - 18px);
+  padding: 3px 7px;
+  border-radius: 999px 0 0 0;
+  background: rgba(255,255,255,.82);
+  color: rgba(42,36,56,.72);
+  font-size: .72rem;
+}
+
+/* Légende compacte et moins envahissante. */
+.map-legend-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(58,28,113,.08);
+  color: var(--muted);
+  font-size: .84rem;
+  font-weight: 850;
+}
+
+.map-legend-title {
+  color: var(--purple);
+  font-weight: 950;
+}
+
+.map-legend-inline span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.7);
+}
+
+.legend-salon {
+  background: #3a1c71;
+}
+
+.legend-festival {
+  background: #ff6b35;
+}
+
+.legend-dedicace {
+  background: #16803c;
+}
+
+@media (max-width: 780px) {
+  .map-legend-inline {
+    width: 100%;
+    justify-content: center;
+    border-radius: 18px;
+    font-size: .8rem;
+  }
+
+  #map .leaflet-control-attribution {
+    font-size: .62rem;
+    max-width: 76%;
+  }
+}
