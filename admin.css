@@ -3460,3 +3460,142 @@ body.cyber-admin {
     flex-direction: column;
   }
 }
+
+
+/* =========================================================
+   ADMIN EXPORTS CLARTÉ 1 — organisation lisible des exports
+========================================================= */
+
+.exports-clarity-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.exports-control-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, rgba(25,255,156,.10), transparent 34%),
+    rgba(255,255,255,.045);
+  border: 1px solid rgba(25,255,156,.15);
+}
+
+.exports-control-strip strong,
+.exports-control-strip span {
+  display: block;
+}
+
+.exports-control-strip strong {
+  color: var(--cyber-green);
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.exports-control-strip span {
+  color: var(--cyber-muted);
+  line-height: 1.45;
+}
+
+.exports-clarity-guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.exports-clarity-guide article {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(4,12,18,.62);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.exports-clarity-guide b,
+.exports-clarity-guide span {
+  display: block;
+}
+
+.exports-clarity-guide b {
+  color: var(--cyber-cyan);
+  margin-bottom: 6px;
+  font-weight: 950;
+}
+
+.exports-clarity-guide span {
+  color: var(--cyber-muted);
+  font-size: .88rem;
+  line-height: 1.4;
+}
+
+.exports-clarity-grid.compact {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.exports-data-section {
+  border-color: rgba(25,215,255,.22);
+}
+
+.exports-publications-section {
+  border-color: rgba(25,255,156,.18);
+}
+
+.exports-instagram-section {
+  border-color: rgba(255,158,68,.20);
+}
+
+.exports-worklist-section {
+  border-color: rgba(194,107,255,.18);
+}
+
+.exports-preview-section {
+  border-color: rgba(255,255,255,.10);
+}
+
+.exports-publications-section .exports-layout-badge,
+.exports-worklist-section .exports-layout-badge {
+  color: var(--cyber-green);
+  background: rgba(25,255,156,.10);
+  border-color: rgba(25,255,156,.18);
+}
+
+.exports-instagram-section .exports-layout-badge {
+  color: var(--cyber-orange);
+  background: rgba(255,158,68,.12);
+  border-color: rgba(255,158,68,.20);
+}
+
+.exports-preview-section .exports-layout-badge {
+  color: var(--cyber-text);
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.12);
+}
+
+.exports-clarity-panel .exports-layout-section {
+  margin: 0;
+}
+
+.exports-clarity-panel .exports-layout-card {
+  min-height: 104px;
+}
+
+.exports-clarity-panel .exports-preview-toolbar {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .exports-control-strip {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .exports-control-strip button {
+    width: 100%;
+  }
+
+  .exports-clarity-guide {
+    grid-template-columns: 1fr;
+  }
+}

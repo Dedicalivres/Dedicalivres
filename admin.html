@@ -21,7 +21,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=admin-premium-scoring-1" />
+  <link rel="stylesheet" href="admin.css?v=admin-exports-clarte-1" />
 </head>
 
 <body class="cyber-admin">
@@ -347,7 +347,7 @@
     <!-- ================================================= -->
 
     <section id="tab-exports" class="admin-tab-panel">
-      <section class="admin-panel admin-exports-panel">
+      <section class="admin-panel admin-exports-panel exports-clarity-panel">
         <div class="section-head">
           <h3>EXPORTS & PUBLICATIONS</h3>
           <span id="exports-status">En attente de vérification</span>
@@ -365,49 +365,112 @@
           <span>Filtre : <strong id="exports-filter-label">événements à venir uniquement</strong></span>
         </div>
 
-        <div class="exports-actions">
+        <div class="exports-control-strip">
+          <div>
+            <strong>Vérification des fichiers</strong>
+            <span>Recharge les compteurs, les liens publics et l’aperçu rapide.</span>
+          </div>
           <button id="exports-refresh-btn" class="cyber-btn-primary" type="button">Vérifier les exports</button>
-          <a id="exports-json-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">JSON global</a>
-          <a id="exports-csv-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">CSV global</a>
-          <a id="exports-publications-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Publications globales</a>
         </div>
 
-        <div class="exports-actions exports-actions-secondary">
-          <a id="exports-dedicaces-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Dédicaces</a>
-          <a id="exports-salons-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Salons / Festivals</a>
-          <a id="exports-autres-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Autres</a>
-          <a id="exports-planning-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Planning publication</a>
-          <a id="exports-weekend-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Week-end par région</a>
+        <div class="exports-clarity-guide" aria-label="Aide exports Dédicalivres">
+          <article>
+            <b>Données</b>
+            <span>Pour sauvegarder, analyser ou réutiliser les événements.</span>
+          </article>
+          <article>
+            <b>Publications</b>
+            <span>Pour préparer les textes, plannings et sélections éditoriales.</span>
+          </article>
+          <article>
+            <b>Visuels</b>
+            <span>Pour ouvrir les tuiles et maquettes prêtes à exploiter.</span>
+          </article>
         </div>
 
-        <section class="exports-layout-section" aria-labelledby="exports-instagram-title">
+        <section class="exports-layout-section exports-data-section" aria-labelledby="exports-data-title">
+          <div class="exports-layout-head">
+            <div>
+              <h4 id="exports-data-title">DONNÉES TECHNIQUES</h4>
+              <p>Fichiers globaux pour archivage, analyse, reprise ou synchronisation externe.</p>
+            </div>
+            <span class="exports-layout-badge">Export</span>
+          </div>
+
+          <div class="exports-layout-grid exports-clarity-grid compact">
+            <a id="exports-json-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
+              <strong>JSON global</strong>
+              <span>Données structurées complètes des événements exportés.</span>
+            </a>
+            <a id="exports-csv-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
+              <strong>CSV global</strong>
+              <span>Tableur simple pour tri, contrôle ou archivage.</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="exports-layout-section exports-publications-section" aria-labelledby="exports-publications-title">
+          <div class="exports-layout-head">
+            <div>
+              <h4 id="exports-publications-title">PUBLICATIONS PRÊTES</h4>
+              <p>Textes Markdown et sélections éditoriales pour préparer les communications.</p>
+            </div>
+            <span class="exports-layout-badge">Publication</span>
+          </div>
+
+          <div class="exports-layout-grid exports-clarity-grid">
+            <a id="exports-publications-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
+              <strong>Publications globales</strong>
+              <span>Base texte complète pour publications et reprises éditoriales.</span>
+            </a>
+            <a id="exports-dedicaces-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
+              <strong>Dédicaces</strong>
+              <span>Sélection dédiée aux rencontres et signatures.</span>
+            </a>
+            <a id="exports-salons-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
+              <strong>Salons / Festivals</strong>
+              <span>Événements collectifs prêts à communiquer.</span>
+            </a>
+            <a id="exports-autres-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
+              <strong>Autres événements</strong>
+              <span>Rencontres et formats complémentaires.</span>
+            </a>
+            <a id="exports-planning-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
+              <strong>Planning publication</strong>
+              <span>Priorités temporelles pour organiser les posts.</span>
+            </a>
+            <a id="exports-weekend-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
+              <strong>Week-end par région</strong>
+              <span>Sélection rapide pour les publications locales.</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="exports-layout-section exports-instagram-section" aria-labelledby="exports-instagram-title">
           <div class="exports-layout-head">
             <div>
               <h4 id="exports-instagram-title">TUILES INSTAGRAM</h4>
               <p>Pages HTML générées automatiquement avec image, texte prêt à copier et lien fiche événement.</p>
             </div>
-            <span class="exports-layout-badge">Pack 4A</span>
+            <span class="exports-layout-badge">Instagram</span>
           </div>
 
-          <div class="exports-layout-grid">
+          <div class="exports-layout-grid exports-clarity-grid">
             <a id="exports-instagram-all-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
               <strong>Toutes les tuiles</strong>
-              <span>Tous les événements à venir classés pour Instagram</span>
+              <span>Tous les événements à venir classés pour Instagram.</span>
             </a>
-
             <a id="exports-instagram-dedicaces-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
               <strong>Dédicaces</strong>
-              <span>Cartes prêtes à copier pour les rencontres et dédicaces</span>
+              <span>Cartes prêtes à copier pour les rencontres et dédicaces.</span>
             </a>
-
             <a id="exports-instagram-salons-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
               <strong>Salons / Festivals</strong>
-              <span>Cartes dédiées aux événements collectifs</span>
+              <span>Cartes dédiées aux événements collectifs.</span>
             </a>
-
             <a id="exports-instagram-weekend-link" class="exports-layout-card" href="#" target="_blank" rel="noopener">
               <strong>Week-end par région</strong>
-              <span>Regroupements rapides pour publications régionales</span>
+              <span>Regroupements rapides pour publications régionales.</span>
             </a>
           </div>
         </section>
@@ -418,30 +481,26 @@
               <h4 id="exports-designs-title">MAQUETTES VISUELLES</h4>
               <p>Pages HTML générées avec le fond Dédicalivres, image événement, date, ville et boutons d’exploitation.</p>
             </div>
-            <span class="exports-layout-badge">Pack 5A-2</span>
+            <span class="exports-layout-badge">Maquette</span>
           </div>
 
-          <div class="exports-layout-grid">
+          <div class="exports-layout-grid exports-clarity-grid">
             <a id="exports-design-story-dedicaces-link" class="exports-layout-card" href="#" target="_blank" rel="noopener noreferrer">
               <strong>Story Dédicaces</strong>
               <span>Format vertical validé pour les dédicaces et rencontres auteur.</span>
             </a>
-
             <a id="exports-design-story-salons-link" class="exports-layout-card" href="#" target="_blank" rel="noopener noreferrer">
               <strong>Story Salons</strong>
               <span>Format vertical pour salons, festivals et événements collectifs.</span>
             </a>
-
             <a id="exports-design-square-dedicaces-link" class="exports-layout-card" href="#" target="_blank" rel="noopener noreferrer">
               <strong>Carré Dédicaces</strong>
               <span>Format carré 1:1 pour publication Instagram.</span>
             </a>
-
             <a id="exports-design-square-salons-link" class="exports-layout-card" href="#" target="_blank" rel="noopener noreferrer">
               <strong>Carré Salons</strong>
               <span>Format carré 1:1 pour salons et festivals.</span>
             </a>
-
             <a id="exports-design-wide-link" class="exports-layout-card" href="#" target="_blank" rel="noopener noreferrer">
               <strong>Large tous événements</strong>
               <span>Format paysage pour Facebook, site ou visuel large.</span>
@@ -449,45 +508,65 @@
           </div>
         </section>
 
-        <div class="exports-grid">
-          <article class="exports-card">
-            <div class="exports-card-head">
-              <strong>Dédicaces à traiter</strong>
-              <span id="exports-dedicaces-mini">—</span>
+        <section class="exports-layout-section exports-worklist-section" aria-labelledby="exports-worklist-title">
+          <div class="exports-layout-head">
+            <div>
+              <h4 id="exports-worklist-title">À TRAITER</h4>
+              <p>Listes rapides alimentées par les exports pour préparer les contenus prioritaires.</p>
             </div>
-            <div id="exports-dedicaces-list" class="exports-mini-list">Chargement...</div>
-          </article>
+            <span class="exports-layout-badge">Suivi</span>
+          </div>
 
-          <article class="exports-card">
-            <div class="exports-card-head">
-              <strong>Salons / Festivals</strong>
-              <span id="exports-salons-mini">—</span>
+          <div class="exports-grid">
+            <article class="exports-card">
+              <div class="exports-card-head">
+                <strong>Dédicaces à traiter</strong>
+                <span id="exports-dedicaces-mini">—</span>
+              </div>
+              <div id="exports-dedicaces-list" class="exports-mini-list">Chargement...</div>
+            </article>
+
+            <article class="exports-card">
+              <div class="exports-card-head">
+                <strong>Salons / Festivals</strong>
+                <span id="exports-salons-mini">—</span>
+              </div>
+              <div id="exports-salons-list" class="exports-mini-list">Chargement...</div>
+            </article>
+
+            <article class="exports-card">
+              <div class="exports-card-head">
+                <strong>Priorités publication</strong>
+                <span>J-1 à J-21</span>
+              </div>
+              <div id="exports-priority-list" class="exports-mini-list">Chargement...</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="exports-layout-section exports-preview-section" aria-labelledby="exports-preview-title">
+          <div class="exports-layout-head">
+            <div>
+              <h4 id="exports-preview-title">APERÇU RAPIDE</h4>
+              <p>Charge un extrait Markdown pour vérifier ou copier rapidement une publication.</p>
             </div>
-            <div id="exports-salons-list" class="exports-mini-list">Chargement...</div>
-          </article>
+            <span class="exports-layout-badge">Aperçu</span>
+          </div>
 
-          <article class="exports-card">
-            <div class="exports-card-head">
-              <strong>Priorités publication</strong>
-              <span>J-1 à J-21</span>
-            </div>
-            <div id="exports-priority-list" class="exports-mini-list">Chargement...</div>
-          </article>
-        </div>
+          <div class="exports-preview-toolbar">
+            <label for="exports-preview-select">Fichier à prévisualiser</label>
+            <select id="exports-preview-select">
+              <option value="publications-par-categorie-latest.md">Publications par catégorie</option>
+              <option value="dedicaces-latest.md">Dédicaces</option>
+              <option value="salons-latest.md">Salons / Festivals</option>
+              <option value="planning-publication-latest.md">Planning publication</option>
+              <option value="weekend-par-region-latest.md">Week-end par région</option>
+            </select>
+            <button id="exports-copy-preview-btn" class="cyber-btn-secondary" type="button">Copier l’aperçu</button>
+          </div>
 
-        <div class="exports-preview-toolbar">
-          <label for="exports-preview-select">Aperçu rapide</label>
-          <select id="exports-preview-select">
-            <option value="publications-par-categorie-latest.md">Publications par catégorie</option>
-            <option value="dedicaces-latest.md">Dédicaces</option>
-            <option value="salons-latest.md">Salons / Festivals</option>
-            <option value="planning-publication-latest.md">Planning publication</option>
-            <option value="weekend-par-region-latest.md">Week-end par région</option>
-          </select>
-          <button id="exports-copy-preview-btn" class="cyber-btn-secondary" type="button">Copier l’aperçu</button>
-        </div>
-
-        <pre id="exports-preview" class="exports-preview">Sélectionne “Vérifier les exports” pour charger l’aperçu.</pre>
+          <pre id="exports-preview" class="exports-preview">Sélectionne “Vérifier les exports” pour charger l’aperçu.</pre>
+        </section>
       </section>
     </section>
 
@@ -630,7 +709,7 @@
 ></script>
 
 <script src="config.js?v=8.6"></script>
-<script src="admin.js?v=admin-premium-scoring-1"></script>
+<script src="admin.js?v=admin-exports-clarte-1"></script>
 
 </body>
 </html>
