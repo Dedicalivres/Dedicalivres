@@ -2913,9 +2913,9 @@ button:active,
 
 
 /* =========================================================
-   PACK CARTE-2D — Rollback safe clics
-   Masque uniquement la toolbar maison identifiée.
-   Ne touche pas aux marqueurs ni aux popups Leaflet.
+   PACK CARTE-2E — clics safe sans survol
+   - supprime la toolbar maison identifiée
+   - garde les popups Leaflet ouvertes au clic
 ========================================================= */
 
 #map-fullscreen-toggle,
@@ -2926,7 +2926,61 @@ button:active,
   pointer-events: none !important;
 }
 
-/* Attribution Leaflet/OpenStreetMap conservée, juste plus discrète. */
+/* Popup Leaflet enrichie mais compacte */
+.premium-popup-click {
+  display: grid;
+  gap: 12px;
+  min-width: 240px;
+  max-width: 320px;
+}
+
+.premium-popup-event {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(58,28,113,.10);
+}
+
+.premium-popup-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.premium-popup-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f1e8fb;
+  color: var(--purple);
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+.premium-popup-event small {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.popup-detail-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: white;
+  color: var(--purple);
+  border: 1px solid rgba(58,28,113,.18);
+  text-decoration: none;
+  font-weight: 900;
+}
+
 #map .leaflet-control-attribution {
   max-width: calc(100% - 18px);
   padding: 3px 7px;

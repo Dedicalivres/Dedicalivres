@@ -50,7 +50,6 @@
   let markersLayer;
   let allEvents = [];
   let markerByEventId = {};
-  let mapPopupHoverTimer = null;
   let cityAutocompleteTimer = null;
   let citySuggestionCache = new Map();
   let userPosition = null;
@@ -616,24 +615,39 @@
       });
 
       marker.bindPopup(`
-        <div class="premium-popup">
+        <div class="premium-popup premium-popup-click">
           <strong>${group.length} événement(s)</strong>
-          <br><br>
 
           ${group.map((event) => `
-            <button
-              class="popup-focus-btn"
-              type="button"
-              data-event-id="${escapeAttribute(event.id)}"
-              data-event-type="${escapeAttribute(event.type || "")}"
-            >
-              ${escapeHtml(event.title || "Sans titre")}
-            </button>
+            <article class="premium-popup-event">
+              <div class="premium-popup-meta">
+                ${event.type ? `<span>${escapeHtml(event.type)}</span>` : ""}
+                ${event.start_date ? `<span>📅 ${escapeHtml(formatDateRange(event.start_date, event.end_date))}</span>` : ""}
+              </div>
+
+              <button
+                class="popup-focus-btn"
+                type="button"
+                data-event-id="${escapeAttribute(event.id)}"
+                data-event-type="${escapeAttribute(event.type || "")}"
+              >
+                ${escapeHtml(event.title || "Sans titre")}
+              </button>
+
+              <small>
+                📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(" — ") || "Lieu non précisé")}
+              </small>
+
+              <a
+                class="popup-detail-link"
+                href="event.html?id=${encodeURIComponent(event.id)}"
+              >
+                Voir la fiche
+              </a>
+            </article>
           `).join("")}
         </div>
       `);
-
-      bindMarkerHover(marker);
 
       marker.on("popupopen", () => {
         document.querySelectorAll(".popup-focus-btn").forEach((button) => {
@@ -650,45 +664,6 @@
 
       group.forEach((event) => {
         markerByEventId[event.id] = marker;
-      });
-    });
-  }
-
-  function bindMarkerHover(marker) {
-    if (!marker || !window.matchMedia) return;
-
-    const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-
-    if (!canHover) return;
-
-    marker.on("mouseover", () => {
-      clearTimeout(mapPopupHoverTimer);
-      marker.openPopup();
-    });
-
-    marker.on("mouseout", () => {
-      clearTimeout(mapPopupHoverTimer);
-
-      mapPopupHoverTimer = setTimeout(() => {
-        marker.closePopup();
-      }, 500);
-    });
-
-    marker.on("popupopen", () => {
-      const popupElement = marker.getPopup()?.getElement?.();
-
-      if (!popupElement) return;
-
-      popupElement.addEventListener("mouseenter", () => {
-        clearTimeout(mapPopupHoverTimer);
-      });
-
-      popupElement.addEventListener("mouseleave", () => {
-        clearTimeout(mapPopupHoverTimer);
-
-        mapPopupHoverTimer = setTimeout(() => {
-          marker.closePopup();
-        }, 500);
       });
     });
   }
@@ -743,11 +718,10 @@
 
 
   /* =========================================================
-     PACK CARTE-2D — Nettoyage toolbar sans toucher aux clics
-     Supprime uniquement les boutons maison identifiés :
-     - #map-fullscreen-toggle
-     - #map-close-mobile
-     - .map-premium-toolbar
+     PACK CARTE-2E — clics safe + suppression toolbar
+     - garde les popups Leaflet au clic
+     - supprime le survol
+     - supprime uniquement la toolbar maison identifiée
   ========================================================= */
 
   function installMapPremiumToolbarCleanupSafe() {
