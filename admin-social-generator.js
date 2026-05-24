@@ -6,7 +6,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "7.6.3-secure";
+  const VERSION = "social-workflow-2";
   const REGIONS = [
     "Auvergne-Rhône-Alpes",
     "Bourgogne-Franche-Comté",
@@ -106,9 +106,9 @@
         <article class="social-card instagram-generator-card">
           <div class="social-card-head">
             <div>
-              <h3>Générateur Instagram</h3>
+              <h3>Générateur réseaux</h3>
               <p>
-                Sélectionne des événements à venir, choisis un angle, puis copie une publication prête à adapter sur mobile ou PC.
+                Sélectionne des événements à venir, choisis un canal, puis copie une publication prête à adapter sur mobile ou PC.
               </p>
             </div>
             <span class="social-pill">V${VERSION}</span>
@@ -123,6 +123,9 @@
                 <option value="multi">Multi-régions</option>
                 <option value="story">Story courte</option>
                 <option value="carousel">Carousel Instagram</option>
+                <option value="facebook">Facebook</option>
+                <option value="newsletter">Newsletter</option>
+                <option value="weekend">Ce week-end</option>
               </select>
             </label>
 
@@ -164,7 +167,8 @@
 
           <div class="social-generator-actions mobile-sticky-actions">
             <button id="social-generate-post" class="cyber-btn-primary" type="button">Générer</button>
-            <button id="social-copy-post" class="cyber-btn-secondary" type="button">Copier</button>
+            <button id="social-copy-post" class="cyber-btn-secondary" type="button">Copier texte</button>
+            <button id="social-copy-hashtags" class="cyber-btn-secondary" type="button">Copier hashtags</button>
             <button id="social-clear-selection" class="cyber-btn-danger" type="button">Effacer</button>
           </div>
 
@@ -184,6 +188,15 @@
               placeholder="Choisis un mode, sélectionne quelques événements, puis clique sur Générer."
             ></textarea>
           </label>
+
+          <label class="instagram-caption-wrap social-hashtags-wrap">
+            <span>Hashtags séparés</span>
+            <textarea
+              id="instagram-hashtags"
+              rows="3"
+              placeholder="Les hashtags apparaissent ici pour pouvoir les copier séparément."
+            ></textarea>
+          </label>
         </article>
 
         <article class="social-card social-help-card">
@@ -194,6 +207,9 @@
             <li><strong>Multi-régions</strong> : sélection nationale regroupée par territoire.</li>
             <li><strong>Story courte</strong> : texte rapide à utiliser en story ou post bref.</li>
             <li><strong>Carousel</strong> : plan de slides + légende associée.</li>
+            <li><strong>Facebook</strong> : texte plus narratif avec appel à consulter l’agenda.</li>
+            <li><strong>Newsletter</strong> : bloc prêt à intégrer dans une lettre hebdomadaire.</li>
+            <li><strong>Ce week-end</strong> : sélection rapide des événements du vendredi au dimanche.</li>
           </ul>
         </article>
       </section>
@@ -212,6 +228,7 @@
     document.getElementById("social-post-mode")?.addEventListener("change", generatePost);
     document.getElementById("social-generate-post")?.addEventListener("click", generatePost);
     document.getElementById("social-copy-post")?.addEventListener("click", copyPost);
+    document.getElementById("social-copy-hashtags")?.addEventListener("click", copyHashtags);
     document.getElementById("social-clear-selection")?.addEventListener("click", clearSelection);
   }
 
@@ -341,10 +358,21 @@
       regional: renderRegionalPost,
       multi: renderMultiRegionPost,
       story: renderStoryPost,
-      carousel: renderCarouselPost
+      carousel: renderCarouselPost,
+      facebook: renderFacebookPost,
+      newsletter: renderNewsletterPost,
+      weekend: renderWeekendPost
     };
 
-    caption.value = (renderers[mode] || renderers.central)(chosen);
+    const selectedForMode = mode === "weekend" ? getWeekendSelection(chosen) : chosen;
+    const text = (renderers[mode] || renderers.central)(selectedForMode);
+    caption.value = text;
+
+    const hashtags = document.getElementById("instagram-hashtags");
+    if (hashtags) {
+      hashtags.value = renderHashtags(selectedForMode, mode !== "newsletter");
+    }
+
     caption.focus();
   }
 
@@ -434,6 +462,68 @@
     ].join("\n");
   }
 
+
+  function renderFacebookPost(chosen) {
+    return [
+      "📚 Des rendez-vous littéraires à découvrir avec Dédicalivres",
+      "",
+      "Cette sélection rassemble des salons du livre, dédicaces, festivals et rencontres autour du livre à venir en France.",
+      "",
+      renderBullets(chosen),
+      "",
+      "Retrouvez le détail des événements, les dates, les villes et les liens utiles sur l’agenda Dédicalivres :",
+      "https://dedicalivres.fr",
+      "",
+      renderHashtags(chosen, true)
+    ].join("\n");
+  }
+
+  function renderNewsletterPost(chosen) {
+    const title = chosen.length > 1
+      ? "Les prochains rendez-vous littéraires à suivre"
+      : "Un rendez-vous littéraire à suivre";
+
+    return [
+      title,
+      "",
+      "Bonjour,",
+      "",
+      "Voici une sélection d’événements à venir repérés sur Dédicalivres :",
+      "",
+      renderBullets(chosen),
+      "",
+      "L’agenda complet est disponible sur dedicalivres.fr pour retrouver les fiches détaillées et les informations pratiques.",
+      "",
+      "Bonne découverte littéraire !"
+    ].join("\n");
+  }
+
+  function renderWeekendPost(chosen) {
+    const weekend = getWeekendSelection(chosen);
+
+    if (!weekend.length) {
+      return [
+        "📚 Ce week-end avec Dédicalivres",
+        "",
+        "Aucun événement du vendredi au dimanche n’apparaît dans la sélection actuelle.",
+        "",
+        "Change les filtres ou sélectionne manuellement des événements, puis génère à nouveau."
+      ].join("\n");
+    }
+
+    return [
+      "📚 Ce week-end, les livres donnent rendez-vous",
+      "",
+      "Voici quelques salons, dédicaces, festivals ou rencontres littéraires à découvrir ce week-end :",
+      "",
+      renderBullets(weekend),
+      "",
+      "Toutes les informations pratiques sont sur dedicalivres.fr",
+      "",
+      renderHashtags(weekend, true)
+    ].join("\n");
+  }
+
   function renderBullets(items) {
     return items.map((event) => {
       const place = [event.city, event.region].filter(Boolean).join(" — ");
@@ -452,6 +542,22 @@
     }
 
     return unique(tags).slice(0, 28).join(" ");
+  }
+
+  async function copyHashtags() {
+    const hashtags = document.getElementById("instagram-hashtags");
+    if (!hashtags) return;
+
+    if (!hashtags.value.trim()) generatePost();
+
+    try {
+      await navigator.clipboard.writeText(hashtags.value);
+      showLocalNotice("Hashtags copiés ✔");
+    } catch {
+      hashtags.select();
+      document.execCommand("copy");
+      showLocalNotice("Hashtags sélectionnés / copiés ✔");
+    }
   }
 
   async function copyPost() {
@@ -473,6 +579,8 @@
   function clearSelection() {
     selectedIds.clear();
     document.getElementById("instagram-caption").value = "";
+    const hashtags = document.getElementById("instagram-hashtags");
+    if (hashtags) hashtags.value = "";
     renderSelector();
     updateSummary();
   }
@@ -483,6 +591,19 @@
     const previous = summary.textContent;
     summary.textContent = message;
     setTimeout(() => updateSummary(previous && previous !== message ? previous : undefined), 1600);
+  }
+
+  function getWeekendSelection(items) {
+    const source = Array.isArray(items) ? items : [];
+    const weekend = source.filter((event) => {
+      if (!event.start_date) return false;
+      const date = new Date(`${event.start_date}T00:00:00`);
+      if (Number.isNaN(date.getTime())) return false;
+      const day = date.getDay();
+      return day === 5 || day === 6 || day === 0;
+    });
+
+    return weekend.length ? weekend : source.slice(0, 5);
   }
 
   function groupByRegion(items) {

@@ -3297,3 +3297,31 @@ body.cyber-admin {
 .cyber-admin .admin-tab-panel.active {
   display: block;
 }
+
+
+/* =========================================================
+   ADMIN SOCIAL WORKFLOW 2 — Réseaux multi-canaux
+========================================================= */
+
+.social-hashtags-wrap textarea {
+  min-height: 86px;
+}
+
+.social-generator-actions {
+  align-items: center;
+}
+
+.social-generator-actions #social-copy-hashtags {
+  color: var(--cyber-green);
+}
+
+.social-tips-list li {
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .social-generator-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
