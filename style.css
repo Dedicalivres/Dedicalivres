@@ -4461,3 +4461,58 @@ button,
     padding: 12px;
   }
 }
+
+
+/* =========================================================
+   PACK CARTE-3B — Ordre mobile : carte plus haute
+   - desktop inchangé
+   - le panneau global reste hors carte
+   - le scroll principal mobile reste celui de la page
+========================================================= */
+
+@media (max-width: 780px) {
+  #agenda {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #agenda > h2 { order: 1; }
+  #agenda > .section-intro { order: 2; }
+  #agenda > .editorial-hook { order: 3; }
+
+  #agenda > .map-teaser {
+    order: 4;
+    margin-top: 4px;
+  }
+
+  #agenda > .ux-actions {
+    order: 5;
+    margin-bottom: 14px;
+  }
+
+  #agenda > .agenda-layout {
+    display: contents;
+  }
+
+  #agenda .map-panel {
+    order: 6;
+    margin-bottom: 14px;
+  }
+
+  #agenda .map-event-panel {
+    order: 7;
+  }
+
+  #agenda > .saved-events-section {
+    order: 8;
+    margin-top: 18px;
+  }
+
+  #agenda > #results-count { order: 9; }
+  #agenda > .filters { order: 10; }
+
+  #agenda .events-list-wrap {
+    order: 11;
+    min-width: 0;
+  }
+}
