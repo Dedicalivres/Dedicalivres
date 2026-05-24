@@ -75,7 +75,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "admin-modules-coherence-1d";
+const ADMIN_MODULE_VERSION = "admin-workflow-1";
 
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",
@@ -975,6 +975,15 @@ function renderPriorityActionPanel() {
       </div>
     </div>
 
+    <div class="admin-workflow-strip" aria-label="Parcours rapides admin">
+      ${renderAdminWorkflowButton("moderation-authors", "Traiter auteurs", authorPending, "Demandes auteurs en attente", "moderation")}
+      ${renderAdminWorkflowButton("moderation-testimonials", "Traiter témoignages", testimonialPending, "Témoignages à modérer", "moderation")}
+      ${renderAdminWorkflowButton("quality-urgent", "Corriger urgences", soonIncomplete.length, "Sous 14 jours sans image/GPS", "events")}
+      ${renderAdminWorkflowButton("social-week", "Préparer réseaux", communicationReady.length, "Événements prêts à publier", "social")}
+      ${renderAdminWorkflowButton("premium-review", "Revoir premium", featuredPast.length + qualityLow.length, "Mises en avant et fiches faibles", "premium")}
+      ${renderAdminWorkflowButton("exports", "Ouvrir exports", 0, "JSON, CSV, publications et maquettes", "exports")}
+    </div>
+
     <div class="admin-action-priority-grid admin-cockpit-grid">
       ${renderPriorityActionCard("pending", pending.length, "Événements en attente", pending.length ? "is-warning" : "is-ok")}
       ${renderPriorityActionCard("missing-image", missingImage.length, "Validés sans image", missingImage.length ? "is-warning" : "is-ok")}
@@ -1000,8 +1009,36 @@ function renderPriorityActionPanel() {
       jumpToAdminTab(button.dataset.adminJumpTab);
     });
   });
+
+  panel.querySelectorAll("[data-admin-workflow-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      handleAdminWorkflowAction(
+        button.dataset.adminWorkflowAction,
+        button.dataset.adminWorkflowTab
+      );
+    });
+  });
 }
 
+
+function renderAdminWorkflowButton(action, label, count, help, targetTab) {
+  const numericCount = Number(count || 0);
+  const countLabel = action === "exports" ? "→" : String(numericCount);
+  const stateClass = numericCount > 0 ? "has-items" : "is-calm";
+
+  return `
+    <button
+      type="button"
+      class="admin-workflow-button ${stateClass}"
+      data-admin-workflow-action="${escapeHtml(action)}"
+      data-admin-workflow-tab="${escapeHtml(targetTab || "overview")}"
+    >
+      <b>${escapeHtml(countLabel)}</b>
+      <span>${escapeHtml(label)}</span>
+      <small>${escapeHtml(help || "")}</small>
+    </button>
+  `;
+}
 
 function renderPriorityActionCard(action, count, label, className) {
   return `
@@ -1027,6 +1064,56 @@ function renderAdminModuleCard(tab, count, label, className) {
       <span>${escapeHtml(label)}</span>
     </button>
   `;
+}
+
+function handleAdminWorkflowAction(action, targetTab) {
+  if (action === "quality-urgent") {
+    applyPriorityAction("soon-incomplete");
+    scrollToAdminElement("quality-control-panel");
+    return;
+  }
+
+  if (action === "social-week") {
+    jumpToAdminTab("social");
+    scrollToAdminElement("tab-social");
+    return;
+  }
+
+  if (action === "moderation-authors") {
+    jumpToAdminTab("moderation");
+    scrollToAdminElement("author-requests-admin-panel");
+    return;
+  }
+
+  if (action === "moderation-testimonials") {
+    jumpToAdminTab("moderation");
+    scrollToAdminElement("testimonials-admin-panel");
+    return;
+  }
+
+  if (action === "premium-review") {
+    jumpToAdminTab("premium");
+    scrollToAdminElement("tab-premium");
+    return;
+  }
+
+  if (action === "exports") {
+    jumpToAdminTab("exports");
+    scrollToAdminElement("tab-exports");
+    return;
+  }
+
+  jumpToAdminTab(targetTab || "overview");
+}
+
+function scrollToAdminElement(id) {
+  window.setTimeout(() => {
+    const element = document.getElementById(id);
+    element?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }, 160);
 }
 
 function jumpToAdminTab(tabName) {

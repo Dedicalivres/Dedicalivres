@@ -3201,3 +3201,83 @@ body.cyber-admin {
     align-self: flex-start;
   }
 }
+
+/* =========================================================
+   ADMIN WORKFLOW 1 — PARCOURS RAPIDES
+========================================================= */
+
+.admin-workflow-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin: 16px 0 18px;
+}
+
+.admin-workflow-button {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "count label"
+    "count help";
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 84px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(25,215,255,.14);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
+  color: var(--cyber-text);
+  text-align: left;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.admin-workflow-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(25,255,156,.34);
+  background: rgba(255,255,255,.09);
+}
+
+.admin-workflow-button b {
+  grid-area: count;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: rgba(25,215,255,.11);
+  color: var(--cyber-cyan);
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.05rem;
+}
+
+.admin-workflow-button.has-items b {
+  background: rgba(255,158,68,.14);
+  color: var(--cyber-orange);
+}
+
+.admin-workflow-button span {
+  grid-area: label;
+  font-weight: 950;
+  line-height: 1.2;
+}
+
+.admin-workflow-button small {
+  grid-area: help;
+  color: var(--cyber-muted);
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+@media (max-width: 760px) {
+  .admin-workflow-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-workflow-button {
+    min-height: 74px;
+  }
+}
