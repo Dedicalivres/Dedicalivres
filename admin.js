@@ -1453,15 +1453,29 @@ function renderEvents() {
 }
 
 function renderEventCard(event) {
+  const adminImage = resolveAdminImageUrl(event.image_url);
+
   return `
     <article class="event-card event-card-with-image">
 
       ${
-        event.image_url
+        adminImage
           ? `
-          <div class="event-admin-thumb-placeholder" title="Image disponible, non chargée automatiquement pour économiser Supabase">
-            IMAGE DISPONIBLE
-          </div>
+          <a
+            class="event-admin-thumb-link"
+            href="${escapeAttribute(adminImage)}"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Ouvrir l’image"
+          >
+            <img
+              class="event-admin-thumb"
+              src="${escapeAttribute(adminImage)}"
+              alt="${escapeAttribute(event.title || "Image événement")}"
+              loading="lazy"
+              decoding="async"
+            />
+          </a>
         `
           : `
           <div class="event-admin-thumb-placeholder">
@@ -1519,7 +1533,7 @@ function renderEventCard(event) {
         <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button" title="Modifier">✎ <span>Modifier</span></button>
         <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer" title="Voir la fiche">↗ <span>Voir</span></a>
         <button class="event-action social-copy" data-action="copy-social" data-id="${event.id}" type="button" title="Copier un texte réseaux">📣 <span>Com.</span></button>
-        ${event.image_url ? `<a class="event-action view" href="${escapeHtml(event.image_url)}" target="_blank" rel="noopener noreferrer" title="Voir l’image">🖼 <span>Image</span></a>` : ""}
+        ${adminImage ? `<a class="event-action view" href="${escapeAttribute(adminImage)}" target="_blank" rel="noopener noreferrer" title="Voir l’image">🖼 <span>Image</span></a>` : ""}
         ${
           event.rejected
             ? `<button class="event-action delete" data-action="delete" data-id="${event.id}" type="button" title="Supprimer définitivement">🗑 <span>Suppr.</span></button>`
@@ -2071,7 +2085,7 @@ function renderPremiumCard(event) {
           ↗ <span>Voir</span>
         </a>
         <button class="event-action social-copy" data-action="copy-social" data-id="${event.id}" type="button" title="Copier un texte réseaux">📣 <span>Com.</span></button>
-        ${event.image_url ? `<a class="event-action view" href="${escapeHtml(event.image_url)}" target="_blank" rel="noopener noreferrer" title="Voir l’image">🖼 <span>Image</span></a>` : ""}
+        ${adminImage ? `<a class="event-action view" href="${escapeAttribute(adminImage)}" target="_blank" rel="noopener noreferrer" title="Voir l’image">🖼 <span>Image</span></a>` : ""}
       </div>
     </article>
   `;
@@ -2339,6 +2353,37 @@ function normalize(value) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function resolveAdminImageUrl(value) {
+  const raw = (value || "").toString().trim();
+
+  if (!raw) return "";
+
+  if (/^(https?:|data:|blob:)/i.test(raw)) {
+    return raw;
+  }
+
+  if (raw.startsWith("/")) {
+    return raw;
+  }
+
+  const base =
+    config?.r2PublicBaseUrl ||
+    config?.assetsBaseUrl ||
+    "";
+
+  if (!base) {
+    return raw;
+  }
+
+  return `${base.replace(/\/$/, "")}/${raw.replace(/^\//, "")}`;
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value)
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function escapeHtml(value) {

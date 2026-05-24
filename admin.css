@@ -2621,3 +2621,59 @@ button.pending[data-author-action="pending"] {
     height: 150px;
   }
 }
+
+
+/* =========================================================
+   ADMIN-IMAGES-1 — Réactivation sobre des images admin
+   Objectif : afficher les miniatures sans casser les tuiles compactes
+========================================================= */
+
+.cyber-admin .event-admin-thumb-link {
+  display: block;
+  width: clamp(76px, 8vw, 112px);
+  height: clamp(76px, 8vw, 112px);
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow: 0 10px 24px rgba(0,0,0,.22);
+}
+
+.cyber-admin .event-admin-thumb-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(25,215,255,.28);
+}
+
+.cyber-admin .event-admin-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.cyber-admin .event-admin-thumb-placeholder {
+  width: clamp(76px, 8vw, 112px);
+  height: clamp(76px, 8vw, 112px);
+  text-align: center;
+  line-height: 1.25;
+}
+
+@media (max-width: 760px) {
+  .cyber-admin .event-admin-thumb-link,
+  .cyber-admin .event-admin-thumb,
+  .cyber-admin .event-admin-thumb-placeholder {
+    width: 76px;
+    height: 76px;
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cyber-admin .event-admin-thumb-link,
+  .cyber-admin .event-admin-thumb,
+  .cyber-admin .event-admin-thumb-placeholder {
+    width: 100%;
+    height: 150px;
+  }
+}
