@@ -64,34 +64,33 @@
 
     section.innerHTML = `
       <div class="authors-presence-header">
-        <p class="authors-presence-eyebrow">Participation auteurs</p>
-        <h2>Auteurs présents</h2>
+        <p class="authors-presence-eyebrow">Présences auteurs</p>
+        <h2>Auteurs et liens utiles</h2>
         <p class="authors-presence-seo-intro">
-          Retrouvez ici les auteurs déclarés présents, leurs liens officiels et, lorsque disponible,
-          la page du livre, de la boutique ou de la maison d’édition associée à ${escapeHtml(eventTitle)}.
+          Retrouvez ici les présences validées, les liens auteur ou réseau social,
+          ainsi que les liens livre, boutique ou maison d’édition associés à ${escapeHtml(eventTitle)}.
         </p>
       </div>
 
       <div id="authors-presence-list" class="author-presence-list"></div>
 
       <p id="authors-presence-empty" class="author-presence-empty" hidden>
-        Aucun auteur ne s’est encore déclaré présent pour cet événement.
+        Aucune présence auteur validée n’est encore affichée pour cet événement.
       </p>
 
       <div id="authors-presence-value-box" class="authors-presence-value-box" hidden>
         <strong>Pourquoi ces liens sont utiles ?</strong>
         <p>
-          Les liens validés permettent aux visiteurs de découvrir l’auteur, son livre ou sa maison d’édition
-          directement depuis la fiche événement Dédicalivres. Les visuels restent volontairement simples ;
-          la fiche, elle, rassemble les informations cliquables et vérifiées.
+          Les liens validés permettent aux visiteurs de découvrir l’auteur, son livre, sa boutique
+          ou sa maison d’édition directement depuis la fiche événement Dédicalivres.
         </p>
       </div>
 
       <div class="authors-presence-share-box">
         <div>
-          <strong>Auteur, libraire ou maison d’édition ?</strong>
+          <strong>Auteur, libraire, maison d’édition ou organisateur ?</strong>
           <p>
-            Partagez cette fiche à votre lectorat : elle centralise la date, le lieu,
+            Partagez cette fiche : elle centralise la date, le lieu,
             les informations pratiques et les liens utiles autour de l’événement.
           </p>
         </div>
@@ -100,20 +99,20 @@
             Copier le lien de la fiche
           </button>
           <a class="btn-secondary" href="#author-presence-form">
-            Ajouter / corriger une présence
+            Ajouter ou corriger une présence
           </a>
         </div>
       </div>
 
       <p class="author-presence-note">
-        Les auteurs indiqués ici se sont déclarés présents via Dédicalivres.
+        Les présences indiquées ici ont été déclarées via Dédicalivres puis validées avant affichage.
         Cette information est participative et concerne uniquement les auteurs s’étant enregistrés sur Dédicalivres.
         Pour une information officielle à jour, notamment en cas d’annulation ou de modification,
         consultez toujours le site de l’événement.
       </p>
 
       <form id="author-presence-form" class="author-presence-form">
-        <h3>Vous êtes auteur et vous participez à cet événement ?</h3>
+        <h3>Vous participez à cet événement comme auteur ?</h3>
 
         <div class="author-presence-grid author-presence-grid-extended">
           <label>
@@ -132,7 +131,7 @@
           </label>
 
           <label>
-            <span>Lien auteur / réseau social</span>
+            <span>Lien auteur ou réseau social</span>
             <input name="author_profile_url" type="text" inputmode="url" autocapitalize="off" autocomplete="url" placeholder="www.monsite.fr ou instagram.com/moncompte" required />
           </label>
 
@@ -148,7 +147,7 @@
           </label>
 
           <label>
-            <span>Lien livre / boutique / maison d’édition</span>
+            <span>Lien livre, boutique ou maison d’édition</span>
             <input name="book_or_publisher_url" type="text" inputmode="url" autocapitalize="off" autocomplete="url" placeholder="www.editeur.fr, boutique auteur ou page du livre" />
           </label>
 
@@ -165,7 +164,7 @@
           </label>
 
           <label class="author-presence-field-wide">
-            <span>Nom de la maison d’édition ou de la boutique</span>
+            <span>Nom de la maison d’édition, boutique ou librairie</span>
             <input name="publisher_name" type="text" placeholder="Optionnel : nom de l’éditeur, boutique ou librairie" />
           </label>
         </div>
@@ -175,7 +174,7 @@
           où ils restent cliquables, utiles aux visiteurs et vérifiés avant publication.
         </p>
 
-        <button class="btn-primary" type="submit">Indiquer ma présence</button>
+        <button class="btn-primary" type="submit">Envoyer ma demande de présence</button>
         <p id="author-presence-feedback" aria-live="polite"></p>
       </form>
     `;
@@ -246,7 +245,7 @@
         console.error("Erreur auteur présent :", error);
         setFeedback(feedback, "error", error.message || "Une erreur est survenue.");
       } finally {
-        setButtonLoading(submitButton, false, "Indiquer ma présence");
+        setButtonLoading(submitButton, false, "Envoyer ma demande de présence");
       }
     });
   }
