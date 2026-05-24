@@ -3700,3 +3700,228 @@ button:active,
     font-size: 2rem;
   }
 }
+
+
+
+/* =========================================================
+   PACK VISUEL-6 — Micro-finitions sobres
+   Objectif : ajouter du relief et de la clarté sans alourdir.
+   Aucun changement JS.
+========================================================= */
+
+/* Focus visible et propre pour accessibilité */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 4px solid rgba(255,107,53,.28);
+  outline-offset: 3px;
+}
+
+/* Transitions unifiées, sans animation excessive */
+a,
+button,
+.btn-primary,
+.btn-secondary,
+.card-link,
+.favorite-btn,
+.event-card,
+.home-magazine-tile,
+.site-footer-nav a {
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease,
+    background .18s ease,
+    color .18s ease,
+    opacity .18s ease;
+}
+
+/* Boutons : sensation plus nette au clic */
+.btn-primary:active,
+.btn-secondary:active,
+.card-link:active,
+.favorite-btn:active,
+.home-magazine-tile:active,
+.site-footer-nav a:active {
+  transform: scale(.985);
+}
+
+/* Petites entrées visuelles progressives */
+.home-magazine-card,
+.editorial-hook,
+.map-teaser,
+.filters,
+.event-card,
+.newsletter-section,
+.submit-trust-panel,
+.contact-light-card,
+.site-footer-card,
+.event-detail,
+.event-trust-panel,
+.authors-presence,
+.event-contact-light {
+  animation: dedicalivresSoftReveal .48s ease both;
+}
+
+.event-card:nth-child(2n) {
+  animation-delay: .035s;
+}
+
+.event-card:nth-child(3n) {
+  animation-delay: .07s;
+}
+
+/* Cartes : lecture plus douce au survol desktop */
+@media (hover: hover) and (pointer: fine) {
+  .event-card:hover .card-image,
+  .home-magazine-tile:hover,
+  .site-footer-nav a:hover {
+    will-change: transform;
+  }
+
+  .event-card:hover .card-image {
+    transform: scale(1.025);
+  }
+
+  .card-image {
+    transition: transform .28s ease, filter .28s ease;
+  }
+
+  .card-link:hover,
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .favorite-btn:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Badges : plus stables visuellement */
+.badge,
+.featured-ribbon,
+.map-legend-inline,
+.home-magazine-kicker {
+  user-select: none;
+}
+
+/* Formulaires : zone active plus lisible */
+#submission-form input:hover,
+#submission-form select:hover,
+#submission-form textarea:hover,
+.filters input:hover,
+.filters select:hover,
+.newsletter-form input:hover,
+.newsletter-form select:hover {
+  border-color: rgba(58,28,113,.24);
+}
+
+#submission-form input:focus,
+#submission-form select:focus,
+#submission-form textarea:focus,
+.filters input:focus,
+.filters select:focus,
+.newsletter-form input:focus,
+.newsletter-form select:focus {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,1), rgba(255,250,245,.96));
+}
+
+/* Carte : attribution moins envahissante mais conservée */
+#map .leaflet-control-attribution,
+#detail-map .leaflet-control-attribution {
+  opacity: .72;
+  transition: opacity .18s ease;
+}
+
+#map .leaflet-control-attribution:hover,
+#detail-map .leaflet-control-attribution:hover {
+  opacity: 1;
+}
+
+/* Guide : bouton moins agressif quand fermé, clair au survol */
+.mascot-guide-button {
+  box-shadow:
+    0 14px 30px rgba(58,28,113,.22),
+    0 0 0 4px rgba(255,255,255,.72);
+}
+
+.mascot-guide-widget:not(.is-open) .mascot-guide-button {
+  animation: mascotSoftPulse 5.8s ease-in-out infinite;
+}
+
+/* Footer : lien Instagram/email plus lisible */
+.site-footer-contact .btn-primary,
+.site-footer-contact .btn-secondary {
+  min-height: 46px;
+}
+
+/* Petites animations */
+@keyframes dedicalivresSoftReveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mascotSoftPulse {
+  0%, 72%, 100% {
+    transform: translateY(0);
+  }
+
+  82% {
+    transform: translateY(-3px);
+  }
+
+  90% {
+    transform: translateY(0);
+  }
+}
+
+/* Respect des utilisateurs sensibles aux animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* Mobile : micro-finitions sans mouvement excessif */
+@media (max-width: 780px) {
+  .home-magazine-card,
+  .editorial-hook,
+  .map-teaser,
+  .filters,
+  .event-card,
+  .newsletter-section,
+  .submit-trust-panel,
+  .contact-light-card,
+  .site-footer-card,
+  .event-detail,
+  .event-trust-panel,
+  .authors-presence,
+  .event-contact-light {
+    animation: none;
+  }
+
+  .mascot-guide-widget:not(.is-open) .mascot-guide-button {
+    animation: none;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline-offset: 2px;
+  }
+}
