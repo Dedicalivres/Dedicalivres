@@ -4008,3 +4008,219 @@ button,
     border-radius: 21px;
   }
 }
+
+
+
+/* =========================================================
+   PACK CARTE-2G — Mobile panneau flottant apaisé
+   Objectif : éviter les scrolls imbriqués chaotiques sur mobile.
+   Aucun JavaScript modifié.
+========================================================= */
+
+@media (max-width: 780px) {
+  .map-panel {
+    position: relative;
+    height: min(390px, 58vh);
+    max-height: 58vh;
+    margin-bottom: 22px;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  #map {
+    min-height: 300px;
+    height: 100%;
+  }
+
+  /*
+    Le panneau devient une bottom-sheet compacte.
+    Il ne prend plus toute la carte et limite l'effet "plusieurs ascenseurs".
+  */
+  .map-floating-panel {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: 10px;
+    width: auto;
+    max-height: min(245px, 42vh);
+    padding: 14px;
+    border-radius: 24px;
+    overflow: hidden;
+    overscroll-behavior: contain;
+    box-shadow:
+      0 18px 44px rgba(38,17,72,.24),
+      0 0 0 1px rgba(255,255,255,.58) inset;
+  }
+
+  .map-floating-content {
+    max-height: calc(min(245px, 42vh) - 28px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-right: 2px;
+    scrollbar-width: thin;
+  }
+
+  .map-floating-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: -2px -2px 10px;
+    padding: 2px 44px 8px 2px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.86));
+    backdrop-filter: blur(8px);
+  }
+
+  .map-floating-kicker {
+    font-size: .70rem;
+    letter-spacing: .12em;
+  }
+
+  .map-floating-head strong {
+    font-size: clamp(1.18rem, 5vw, 1.45rem);
+    line-height: 1.08;
+  }
+
+  .map-floating-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    float: none;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    background: rgba(58,28,113,.10);
+    color: var(--purple);
+  }
+
+  .map-floating-list {
+    gap: 10px;
+  }
+
+  .map-floating-event {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: stretch;
+    gap: 10px;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .map-floating-image-link,
+  .map-floating-image,
+  .map-floating-image-placeholder {
+    width: 88px;
+    height: 100%;
+    min-height: 108px;
+    max-height: 136px;
+    border-radius: 0;
+    object-fit: cover;
+  }
+
+  .map-floating-event-body {
+    min-width: 0;
+    padding: 11px 10px 11px 0;
+  }
+
+  .map-floating-badges {
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+
+  .map-floating-badges .badge {
+    min-height: 24px;
+    padding: 5px 8px;
+    font-size: .62rem;
+  }
+
+  .map-floating-event h3 {
+    margin-bottom: 6px;
+    font-size: clamp(1.02rem, 4.6vw, 1.18rem);
+    line-height: 1.12;
+  }
+
+  .map-floating-meta {
+    margin-bottom: 4px;
+    font-size: .82rem;
+    line-height: 1.28;
+  }
+
+  .map-floating-description {
+    display: none;
+  }
+
+  .map-floating-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    margin-top: 9px;
+  }
+
+  .map-floating-actions .btn-primary,
+  .map-floating-actions .btn-secondary {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: .78rem;
+  }
+
+  /*
+    Le guide reste accessible mais passe légèrement plus bas et moins dominant
+    lorsque le panneau carte est ouvert visuellement.
+  */
+  .mascot-guide-widget {
+    z-index: 680;
+  }
+
+  .map-floating-panel {
+    z-index: 720;
+  }
+
+  #map .leaflet-control-attribution {
+    max-width: 70%;
+    font-size: .58rem;
+    opacity: .68;
+  }
+}
+
+@media (max-width: 430px) {
+  .map-panel {
+    height: min(360px, 55vh);
+    max-height: 55vh;
+    padding: 7px;
+  }
+
+  #map {
+    min-height: 285px;
+  }
+
+  .map-floating-panel {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    max-height: min(230px, 40vh);
+    padding: 12px;
+    border-radius: 22px;
+  }
+
+  .map-floating-content {
+    max-height: calc(min(230px, 40vh) - 24px);
+  }
+
+  .map-floating-event {
+    grid-template-columns: 78px minmax(0, 1fr);
+  }
+
+  .map-floating-image-link,
+  .map-floating-image,
+  .map-floating-image-placeholder {
+    width: 78px;
+    min-height: 104px;
+    max-height: 128px;
+  }
+
+  .map-floating-actions .btn-primary,
+  .map-floating-actions .btn-secondary {
+    font-size: .74rem;
+  }
+}
