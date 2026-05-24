@@ -21,7 +21,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=admin-coherence-remove-1" />
+  <link rel="stylesheet" href="admin.css?v=admin-traffic-1c" />
 </head>
 
 <body class="cyber-admin">
@@ -156,11 +156,75 @@
         </article>
 
         <article class="stat-card glow-purple">
-          <span class="stat-label">VISITES</span>
+          <span class="stat-label" id="stats-visits-label">VISITES</span>
           <strong id="stats-visits">0</strong>
         </article>
 
       </section>
+
+
+      <!-- ============================================= -->
+      <!-- TRAFIC LECTEURS -->
+      <!-- ============================================= -->
+
+      <section class="admin-panel admin-traffic-panel" id="admin-traffic-panel">
+        <div class="section-head">
+          <h3>TRAFIC & INTÉRÊT LECTEURS</h3>
+          <span id="traffic-stats-status">Chargement des visites…</span>
+        </div>
+
+        <div class="traffic-kpi-grid">
+          <article class="traffic-kpi">
+            <span>Aujourd’hui</span>
+            <strong id="traffic-today">0</strong>
+          </article>
+          <article class="traffic-kpi">
+            <span>7 jours</span>
+            <strong id="traffic-week">0</strong>
+          </article>
+          <article class="traffic-kpi">
+            <span>Pages analysées</span>
+            <strong id="traffic-rows-count">0</strong>
+          </article>
+          <article class="traffic-kpi">
+            <span>Fiches vues</span>
+            <strong id="traffic-event-views-count">0</strong>
+          </article>
+        </div>
+
+        <div class="traffic-insights-grid">
+          <article class="traffic-insight-card">
+            <div class="traffic-insight-head">
+              <strong>Pages les plus vues</strong>
+              <small>Dernières visites enregistrées</small>
+            </div>
+            <div id="top-site-pages-list" class="traffic-list">
+              <p class="priority-empty">Chargement…</p>
+            </div>
+          </article>
+
+          <article class="traffic-insight-card">
+            <div class="traffic-insight-head">
+              <strong>Fiches événements les plus vues</strong>
+              <small>Signaux d’intérêt lecteurs</small>
+            </div>
+            <div id="top-event-pages-list" class="traffic-list">
+              <p class="priority-empty">Chargement…</p>
+            </div>
+          </article>
+
+          <article class="traffic-insight-card">
+            <div class="traffic-insight-head">
+              <strong>Sources principales</strong>
+              <small>Referrers récents</small>
+            </div>
+            <div id="top-referrers-list" class="traffic-list">
+              <p class="priority-empty">Chargement…</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
 
       <!-- ============================================= -->
       <!-- MAP -->
@@ -628,7 +692,7 @@
 ></script>
 
 <script src="config.js?v=8.6"></script>
-<script src="admin.js?v=admin-coherence-remove-1"></script>
+<script src="admin.js?v=admin-traffic-1c"></script>
 
 </body>
 </html>
