@@ -1,7 +1,7 @@
 /* =========================================================
   DÉDICALIVRES — AUTEURS PRÉSENTS
   Fichier : authors-presence.js
-  Pack SEO-Auteurs-1
+  Pack SEO-Auteurs-2 — valorisation fiche événement
 
   Rôle :
   - Afficher le bloc "Auteurs présents" sur event.html.
@@ -46,16 +46,18 @@
     // Option visible uniquement pour événement validé et non rejeté.
     if (error || !event || !event.validated || event.rejected) return;
 
-    createAuthorPresenceBlock();
+    createAuthorPresenceBlock(event);
     bindAuthorPresenceForm(event);
-    const authors = await loadAuthorsPresence();
+    bindShareButtons(event);
+    const authors = await loadAuthorsPresence(event);
     injectAuthorsPresenceSchema(event, authors);
     scrollToAuthorPresenceIfRequested();
   }
 
-  function createAuthorPresenceBlock() {
+  function createAuthorPresenceBlock(event) {
     if (document.getElementById("authors-presence-section")) return;
 
+    const eventTitle = event?.title || "cet événement";
     const section = document.createElement("section");
     section.id = "authors-presence-section";
     section.className = "authors-presence";
@@ -64,6 +66,10 @@
       <div class="authors-presence-header">
         <p class="authors-presence-eyebrow">Participation auteurs</p>
         <h2>Auteurs présents</h2>
+        <p class="authors-presence-seo-intro">
+          Retrouvez ici les auteurs déclarés présents, leurs liens officiels et, lorsque disponible,
+          la page du livre, de la boutique ou de la maison d’édition associée à ${escapeHtml(eventTitle)}.
+        </p>
       </div>
 
       <div id="authors-presence-list" class="author-presence-list"></div>
@@ -71,6 +77,33 @@
       <p id="authors-presence-empty" class="author-presence-empty" hidden>
         Aucun auteur ne s’est encore déclaré présent pour cet événement.
       </p>
+
+      <div id="authors-presence-value-box" class="authors-presence-value-box" hidden>
+        <strong>Pourquoi ces liens sont utiles ?</strong>
+        <p>
+          Les liens validés permettent aux visiteurs de découvrir l’auteur, son livre ou sa maison d’édition
+          directement depuis la fiche événement Dédicalivres. Les visuels restent volontairement simples ;
+          la fiche, elle, rassemble les informations cliquables et vérifiées.
+        </p>
+      </div>
+
+      <div class="authors-presence-share-box">
+        <div>
+          <strong>Auteur, libraire ou maison d’édition ?</strong>
+          <p>
+            Partagez cette fiche à votre lectorat : elle centralise la date, le lieu,
+            les informations pratiques et les liens utiles autour de l’événement.
+          </p>
+        </div>
+        <div class="authors-presence-share-actions">
+          <button type="button" class="btn-secondary" id="author-presence-copy-page">
+            Copier le lien de la fiche
+          </button>
+          <a class="btn-secondary" href="#author-presence-form">
+            Ajouter / corriger une présence
+          </a>
+        </div>
+      </div>
 
       <p class="author-presence-note">
         Les auteurs indiqués ici se sont déclarés présents via Dédicalivres.
@@ -138,8 +171,8 @@
         </div>
 
         <p class="author-presence-form-help">
-          Ces liens permettent aux visiteurs d’en savoir plus sur l’auteur, le livre présenté ou la maison d’édition.
-          Ils seront affichés après validation.
+          Ces liens ne sont pas intégrés aux visuels PNG : ils sont affichés sur la fiche événement,
+          où ils restent cliquables, utiles aux visiteurs et vérifiés avant publication.
         </p>
 
         <button class="btn-primary" type="submit">Indiquer ma présence</button>
@@ -218,7 +251,33 @@
     });
   }
 
-  async function loadAuthorsPresence() {
+  function bindShareButtons(event) {
+    const copyButton = document.getElementById("author-presence-copy-page");
+    if (!copyButton) return;
+
+    copyButton.addEventListener("click", async () => {
+      const url = window.location.href.split("#")[0];
+      const text = [
+        event?.title || "Événement littéraire sur Dédicalivres",
+        "",
+        "Retrouvez les informations pratiques, les auteurs présents et les liens utiles sur cette fiche :",
+        url
+      ].join("\n");
+
+      try {
+        await navigator.clipboard.writeText(text);
+        const oldText = copyButton.textContent;
+        copyButton.textContent = "Lien copié ✅";
+        setTimeout(() => {
+          copyButton.textContent = oldText;
+        }, 1600);
+      } catch (error) {
+        window.prompt("Copiez le lien de la fiche :", url);
+      }
+    });
+  }
+
+  async function loadAuthorsPresence(event) {
     const list = document.getElementById("authors-presence-list");
     const empty = document.getElementById("authors-presence-empty");
 
@@ -265,22 +324,25 @@
     if (!authors.length) {
       list.innerHTML = "";
       empty.hidden = false;
+      if (valueBox) valueBox.hidden = true;
       return [];
     }
 
     empty.hidden = true;
+    if (valueBox) valueBox.hidden = false;
 
-    list.innerHTML = authors.map(renderAuthorPresenceCard).join("");
+    list.innerHTML = authors.map((author) => renderAuthorPresenceCard(author, event)).join("");
     return authors;
   }
 
-  function renderAuthorPresenceCard(author) {
+  function renderAuthorPresenceCard(author, event) {
     const authorUrl = author.author_profile_url || author.website || "";
     const secondUrl = author.book_or_publisher_url || "";
     const modeLabel = getPublicationModeLabel(author.publication_mode);
     const authorLabel = getAuthorLinkLabel(author.author_profile_url_type);
     const secondLabel = getSecondLinkLabel(author.book_or_publisher_url_type, author.publisher_name);
     const publisherLine = author.publisher_name ? `<small>${escapeHtml(author.publisher_name)}</small>` : "";
+    const eventContext = buildEventContextText(author, event);
 
     return `
       <article class="author-presence-card author-presence-card-extended">
@@ -288,9 +350,10 @@
           <strong>${escapeHtml(author.pseudo)}</strong>
           <small>${escapeHtml(modeLabel)}</small>
           ${publisherLine}
+          <p>${escapeHtml(eventContext)}</p>
         </div>
 
-        <div class="author-presence-links">
+        <div class="author-presence-links" aria-label="Liens utiles pour ${escapeAttribute(author.pseudo)}">
           ${authorUrl ? `
             <a href="${escapeAttribute(authorUrl)}" target="_blank" rel="noopener noreferrer">
               ${escapeHtml(authorLabel)}
@@ -304,6 +367,18 @@
         </div>
       </article>
     `;
+  }
+
+  function buildEventContextText(author, event) {
+    const place = [event?.city, event?.region].filter(Boolean).join(", ");
+    const authorName = author?.pseudo || "Cet auteur";
+    const title = event?.title || "cet événement littéraire";
+
+    if (place) {
+      return `${authorName} est déclaré présent pour ${title} à ${place}.`;
+    }
+
+    return `${authorName} est déclaré présent pour ${title}.`;
   }
 
   function injectAuthorsPresenceSchema(event, authors) {
@@ -320,7 +395,7 @@
         "name": author.pseudo
       };
 
-      if (sameAs.length) person.sameAs = sameAs;
+      if (sameAs.length) person.sameAs = [...new Set(sameAs)];
       return person;
     }).filter((person) => person.name);
 
@@ -372,6 +447,77 @@
           0 0 0 8px rgba(255, 107, 53, .12),
           0 22px 55px rgba(58, 28, 113, .18);
         transition: outline .25s ease, box-shadow .25s ease;
+      }
+
+      .authors-presence-seo-intro {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-weight: 700;
+        line-height: 1.65;
+      }
+
+      .authors-presence-value-box,
+      .authors-presence-share-box {
+        margin: 18px 0;
+        padding: 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(255,107,53,.14);
+        background:
+          radial-gradient(circle at top left, rgba(255,107,53,.12), transparent 34%),
+          rgba(255,255,255,.78);
+      }
+
+      .authors-presence-value-box strong,
+      .authors-presence-share-box strong {
+        display: block;
+        color: var(--purple);
+        font-weight: 900;
+        margin-bottom: 6px;
+      }
+
+      .authors-presence-value-box p,
+      .authors-presence-share-box p,
+      .author-presence-card-main p {
+        margin: 0;
+        color: var(--muted);
+        font-weight: 700;
+        line-height: 1.55;
+      }
+
+      .authors-presence-share-box {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .authors-presence-share-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .author-presence-card-main p {
+        margin-top: 6px;
+        font-size: .92rem;
+      }
+
+      .author-presence-form-help {
+        color: var(--muted);
+        font-weight: 700;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 760px) {
+        .authors-presence-share-box {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .authors-presence-share-actions {
+          justify-content: flex-start;
+        }
       }
     `;
     document.head.appendChild(style);
