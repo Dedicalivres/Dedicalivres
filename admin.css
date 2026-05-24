@@ -3047,6 +3047,162 @@ body.cyber-admin {
 
 
 /* =========================================================
+   ADMIN MODULES COHERENCE 1
+   Clarifie les modules actifs et les anciens modules V4.
+========================================================= */
+
+.admin-modules-coherence-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-modules-coherence-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(25,215,255,.10), transparent 34%),
+    radial-gradient(circle at 95% 10%, rgba(25,255,156,.08), transparent 30%);
+}
+
+.admin-modules-coherence-panel > * {
+  position: relative;
+}
+
+.admin-modules-coherence-head {
+  align-items: flex-start;
+}
+
+.admin-modules-coherence-head > div {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-module-version {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--cyber-cyan);
+  background: rgba(25,215,255,.10);
+  border: 1px solid rgba(25,215,255,.16);
+  font-size: .76rem;
+  font-weight: 900;
+}
+
+.admin-modules-grid,
+.admin-legacy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.admin-module-card,
+.admin-legacy-card {
+  display: grid;
+  gap: 8px;
+  min-height: 124px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(8,18,14,.72);
+  border: 1px solid rgba(255,255,255,.07);
+}
+
+.admin-module-card strong,
+.admin-legacy-card strong {
+  display: block;
+  font-size: .96rem;
+}
+
+.admin-module-card small,
+.admin-legacy-card small {
+  display: block;
+  margin-top: 4px;
+  color: var(--cyber-muted);
+  font-size: .76rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.admin-module-card > span {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+.admin-module-card p,
+.admin-legacy-card p {
+  margin: 0;
+  color: var(--cyber-muted);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
+.admin-module-card.is-active {
+  border-color: rgba(25,255,156,.20);
+}
+
+.admin-module-card.is-active > span {
+  color: var(--cyber-green);
+  background: rgba(25,255,156,.12);
+}
+
+.admin-module-card.is-pending > span {
+  color: var(--cyber-orange);
+  background: rgba(255,158,68,.12);
+}
+
+.admin-module-card.is-error {
+  border-color: rgba(255,95,115,.24);
+}
+
+.admin-module-card.is-error > span {
+  color: var(--cyber-red);
+  background: rgba(255,95,115,.14);
+}
+
+.admin-legacy-modules {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.035);
+  border: 1px dashed rgba(255,255,255,.10);
+}
+
+.admin-legacy-modules summary {
+  cursor: pointer;
+  color: var(--cyber-muted);
+  font-weight: 900;
+}
+
+.admin-legacy-grid {
+  margin-top: 12px;
+}
+
+.admin-legacy-card {
+  min-height: 96px;
+  opacity: .86;
+}
+
+@media (max-width: 760px) {
+  .admin-modules-coherence-head {
+    gap: 10px;
+  }
+
+  .admin-module-version {
+    align-self: flex-start;
+  }
+}
+
+/* =========================================================
    ADMIN WORKFLOW 1 — PARCOURS RAPIDES
 ========================================================= */
 
@@ -3126,195 +3282,18 @@ body.cyber-admin {
   }
 }
 
-/* =========================================================
-   ADMIN TRAFFIC 1 — Trafic & intérêt lecteurs
-========================================================= */
-
-.admin-traffic-panel {
-  position: relative;
-  overflow: hidden;
-}
-
-.admin-traffic-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 10% 0%, rgba(25,215,255,.10), transparent 34%),
-    radial-gradient(circle at 92% 8%, rgba(25,255,156,.08), transparent 30%);
-}
-
-.admin-traffic-panel > * {
-  position: relative;
-}
-
-.traffic-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.traffic-kpi {
-  min-height: 96px;
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(25,215,255,.11);
-}
-
-.traffic-kpi span {
-  display: block;
-  color: var(--cyber-muted);
-  font-size: .78rem;
-  font-weight: 900;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-
-.traffic-kpi strong {
-  display: block;
-  margin-top: 9px;
-  color: var(--cyber-cyan);
-  font-family: "Orbitron", sans-serif;
-  font-size: clamp(1.55rem, 3vw, 2.2rem);
-  line-height: 1;
-}
-
-.traffic-insights-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.traffic-insight-card {
-  min-width: 0;
-  padding: 15px;
-  border-radius: 20px;
-  background: rgba(8,18,14,.86);
-  border: 1px solid rgba(255,255,255,.06);
-}
-
-.traffic-insight-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.traffic-insight-head strong {
-  display: block;
-  color: var(--cyber-green);
-  font-size: .94rem;
-  line-height: 1.25;
-}
-
-.traffic-insight-head small {
-  display: block;
-  color: var(--cyber-muted);
-  font-size: .75rem;
-  line-height: 1.3;
-  text-align: right;
-}
-
-.traffic-list {
-  display: grid;
-  gap: 9px;
-}
-
-.traffic-list-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 10px 12px;
-  border-radius: 15px;
-  background: rgba(255,255,255,.045);
-  border: 1px solid rgba(255,255,255,.055);
-  color: inherit;
-  text-decoration: none;
-}
-
-.traffic-list-row:hover {
-  border-color: rgba(25,215,255,.22);
-  background: rgba(255,255,255,.07);
-}
-
-.traffic-list-row strong,
-.traffic-list-row small {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.traffic-list-row strong {
-  font-size: .86rem;
-  line-height: 1.2;
-}
-
-.traffic-list-row small {
-  margin-top: 4px;
-  color: var(--cyber-muted);
-  font-size: .74rem;
-}
-
-.traffic-list-row > span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 34px;
-  min-height: 28px;
-  padding: 5px 8px;
-  border-radius: 999px;
-  background: rgba(25,215,255,.12);
-  color: var(--cyber-cyan);
-  font-weight: 900;
-}
-
-@media (max-width: 1120px) {
-  .traffic-insights-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 760px) {
-  .traffic-kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .traffic-insight-head {
-    display: grid;
-  }
-
-  .traffic-insight-head small {
-    text-align: left;
-  }
-}
-
-@media (max-width: 460px) {
-  .traffic-kpi-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 
 /* =========================================================
-   ADMIN TRAFFIC 1C — sécurité onglets
-   Force l'affichage des panneaux uniquement via .active.
+   ADMIN TABS RESTORE 1 — sécurité post-Traffic
+   Le panneau Cohérence Modules est retiré de l'affichage.
 ========================================================= */
-.cyber-admin .admin-tab-panel {
+#admin-modules-coherence-panel,
+.admin-modules-coherence-panel {
   display: none !important;
 }
-
-.cyber-admin .admin-tab-panel.active {
-  display: block !important;
+.cyber-admin .admin-tab-panel {
+  display: none;
 }
-
-.cyber-admin .admin-tab {
-  pointer-events: auto;
+.cyber-admin .admin-tab-panel.active {
+  display: block;
 }

@@ -37,7 +37,6 @@ const statsEvents = document.getElementById("stats-events");
 const statsPending = document.getElementById("stats-pending");
 const statsNewsletter = document.getElementById("stats-newsletter");
 const statsVisits = document.getElementById("stats-visits");
-const statsFeatured = document.getElementById("stats-featured");
 
 const priorityCities = document.getElementById("priority-cities");
 const priorityDevices = document.getElementById("priority-devices");
@@ -76,7 +75,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "admin-traffic-1c";
+const ADMIN_MODULE_VERSION = "admin-tabs-restore-1";
 
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",
@@ -559,10 +558,74 @@ function setAdminModuleStatus(src, status, loaded, error) {
     error: !!error
   });
 
+  renderAdminModulesStatusPanel();
 }
 
-function removeAdminModulesStatusPanel() {
+function renderAdminModulesStatusPanel() {
   document.getElementById("admin-modules-coherence-panel")?.remove();
+}
+
+function normalizeAdminModule(module) {
+  if (module && typeof module === "object" && !Array.isArray(module)) {
+    return module;
+  }
+
+  if (Array.isArray(module) && module[1] && typeof module[1] === "object") {
+    return module[1];
+  }
+
+  return {
+    label: "Module admin",
+    area: "Admin",
+    file: "module inconnu",
+    role: "Statut du module indisponible.",
+    status: "À vérifier",
+    loaded: false,
+    error: true
+  };
+}
+
+function renderAdminCoherenceModuleCard(module) {
+  const item = normalizeAdminModule(module);
+  const stateClass = item.error ? "is-error" : item.loaded ? "is-active" : "is-pending";
+  const label = cleanAdminModuleText(item.label, "Module admin");
+  const area = cleanAdminModuleText(item.area, "Admin");
+  const file = cleanAdminModuleText(item.file, "module inconnu");
+  const status = cleanAdminModuleText(item.status, item.loaded ? "Actif" : "En attente");
+  const role = cleanAdminModuleText(item.role, "Module admin Dédicalivres.");
+
+  return `
+    <article class="admin-module-card ${stateClass}">
+      <div>
+        <strong>${escapeHtml(label)}</strong>
+        <small>${escapeHtml(area)} · ${escapeHtml(file)}</small>
+      </div>
+      <span>${escapeHtml(status)}</span>
+      <p>${escapeHtml(role)}</p>
+    </article>
+  `;
+}
+
+function cleanAdminModuleText(value, fallback) {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return fallback;
+}
+
+function renderLegacyAdminModuleCard(module) {
+  const item = normalizeAdminModule(module);
+  const label = item.label || item.file || "Module historique";
+  const file = item.file || "module inconnu";
+  const status = item.status || "Non chargé automatiquement";
+  const replacement = item.replacement || "module moderne";
+
+  return `
+    <article class="admin-legacy-card">
+      <strong>${escapeHtml(label)}</strong>
+      <small>${escapeHtml(file)}</small>
+      <p>${escapeHtml(status)} · Remplacé par ${escapeHtml(replacement)}.</p>
+    </article>
+  `;
 }
 
 function clearAdminSensitiveState() {
@@ -586,52 +649,40 @@ function clearAdminSensitiveState() {
 /* TABS */
 
 function bindTabs() {
-  if (window.DEDICALIVRES_ADMIN_TABS_BOUND === true) return;
-  window.DEDICALIVRES_ADMIN_TABS_BOUND = true;
-
   document.addEventListener("click", (event) => {
-    const tab = event.target.closest(".admin-tab[data-tab]");
+    const tab = event.target.closest(".admin-tab");
 
     if (!tab) return;
 
-    event.preventDefault();
-    activateAdminTab(tab.dataset.tab || "overview");
-  }, true);
+    const target = tab.dataset.tab;
+
+    document.querySelectorAll(".admin-tab").forEach((item) => {
+      item.classList.remove("active");
+    });
+
+    document.querySelectorAll(".admin-tab-panel").forEach((panel) => {
+      panel.classList.remove("active");
+    });
+
+    tab.classList.add("active");
+
+    document
+      .getElementById(`tab-${target}`)
+      ?.classList.add("active");
+
+    if (target === "overview") {
+      setTimeout(() => {
+        map?.invalidateSize();
+      }, 250);
+    }
+
+    if (target === "exports") {
+      loadAdminExportsDashboard();
+    }
+  });
 }
 
-function activateAdminTab(target) {
-  const safeTarget = String(target || "overview");
-  const activeTab = document.querySelector(`.admin-tab[data-tab="${safeTarget}"]`);
-  const activePanel = document.getElementById(`tab-${safeTarget}`);
 
-  if (!activeTab || !activePanel) return false;
-
-  document.querySelectorAll(".admin-tab").forEach((item) => {
-    item.classList.toggle("active", item === activeTab);
-    item.setAttribute("aria-selected", item === activeTab ? "true" : "false");
-  });
-
-  document.querySelectorAll(".admin-tab-panel").forEach((panel) => {
-    const isActive = panel === activePanel;
-    panel.classList.toggle("active", isActive);
-    panel.hidden = false;
-    panel.setAttribute("aria-hidden", isActive ? "false" : "true");
-  });
-
-  if (safeTarget === "overview") {
-    setTimeout(() => {
-      map?.invalidateSize();
-    }, 250);
-  }
-
-  if (safeTarget === "exports") {
-    loadAdminExportsDashboard();
-  }
-
-  return true;
-}
-
-window.activateAdminTab = activateAdminTab;
 
 function bindMobileSwipeTabs() {
   // V9.6 : swipe mobile désactivé.
@@ -674,6 +725,7 @@ async function loadDashboard() {
 function refreshAdminViews() {
   safeAdminStepSync("statistiques", updateStats);
   safeAdminStepSync("actions prioritaires", renderPriorityActionPanel);
+  safeAdminStepSync("cohérence modules", renderAdminModulesStatusPanel);
   safeAdminStepSync("liste événements", renderEvents);
   safeAdminStepSync("premium", renderPremiumDashboard);
   safeAdminStepSync("réseaux", renderSocialUpcoming);
@@ -1011,10 +1063,10 @@ function scrollToAdminElement(id) {
 }
 
 function jumpToAdminTab(tabName) {
-  const target = String(tabName || "overview");
-  activateAdminTab(target);
+  const tab = document.querySelector(`.admin-tab[data-tab="${CSS.escape(tabName || "")}"]`);
+  tab?.click();
 
-  document.getElementById(`tab-${target}`)?.scrollIntoView({
+  document.getElementById(`tab-${tabName}`)?.scrollIntoView({
     behavior: "smooth",
     block: "start"
   });
