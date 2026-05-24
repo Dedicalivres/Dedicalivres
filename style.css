@@ -3194,3 +3194,17 @@ button:active,
     width: 100%;
   }
 }
+
+
+
+/* =========================================================
+   PACK SOUMETTRE-1 — Ancre formulaire précise
+========================================================= */
+
+#submission-form {
+  scroll-margin-top: 120px;
+}
+
+#soumettre {
+  scroll-margin-top: 96px;
+}

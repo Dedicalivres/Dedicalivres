@@ -57,7 +57,7 @@
         {
           label: "Proposer mon événement",
           hint: "Aller au formulaire de soumission",
-          run: () => scrollToTarget("#soumettre")
+          run: () => scrollToTarget("#submission-form")
         },
         {
           label: "Voir les dédicaces",
@@ -82,7 +82,7 @@
           label: "Soumettre un événement",
           hint: "Aller au formulaire",
           className: "primary",
-          run: () => scrollToTarget("#soumettre")
+          run: () => scrollToTarget("#submission-form")
         },
         {
           label: "Voir salons & festivals",
@@ -375,7 +375,7 @@ body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
 
         resultsContainer.querySelector("[data-guide-submit-event]")?.addEventListener("click", () => {
           closeGuide();
-          setTimeout(() => scrollToTarget("#soumettre"), 90);
+          setTimeout(() => scrollToTarget("#submission-form"), 90);
         });
 
         return;
