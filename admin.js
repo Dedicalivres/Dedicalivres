@@ -75,7 +75,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "admin-modules-coherence-1b";
+const ADMIN_MODULE_VERSION = "admin-modules-coherence-1c";
 
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",
@@ -583,7 +583,17 @@ function renderAdminModulesStatusPanel() {
     }
   }
 
-  const modules = Array.from(adminModuleStatus.values());
+  const modules = ADMIN_MODULE_REGISTRY.map((module) => {
+    const status = adminModuleStatus.get(module.file) || {};
+
+    return {
+      ...module,
+      status: status.status || "En attente",
+      loaded: status.loaded === true,
+      error: status.error === true
+    };
+  });
+
   const loadedCount = modules.filter((module) => module.loaded).length;
   const errorCount = modules.filter((module) => module.error).length;
 
@@ -597,13 +607,13 @@ function renderAdminModulesStatusPanel() {
     </div>
 
     <div class="admin-modules-grid">
-      ${modules.map((module) => renderAdminModuleCard(module)).join("")}
+      ${modules.map(renderAdminModuleCard).join("")}
     </div>
 
     <details class="admin-legacy-modules">
       <summary>Modules historiques non chargés automatiquement</summary>
       <div class="admin-legacy-grid">
-        ${LEGACY_ADMIN_MODULES.map((module) => renderLegacyAdminModuleCard(module)).join("")}
+        ${LEGACY_ADMIN_MODULES.map(renderLegacyAdminModuleCard).join("")}
       </div>
     </details>
   `;
@@ -632,11 +642,11 @@ function normalizeAdminModule(module) {
 function renderAdminModuleCard(module) {
   const item = normalizeAdminModule(module);
   const stateClass = item.error ? "is-error" : item.loaded ? "is-active" : "is-pending";
-  const label = item.label || item.file || "Module admin";
-  const area = item.area || "Admin";
-  const file = item.file || "module inconnu";
-  const status = item.status || (item.loaded ? "Actif" : "En attente");
-  const role = item.role || "Module admin Dédicalivres.";
+  const label = cleanAdminModuleText(item.label, "Module admin");
+  const area = cleanAdminModuleText(item.area, "Admin");
+  const file = cleanAdminModuleText(item.file, "module inconnu");
+  const status = cleanAdminModuleText(item.status, item.loaded ? "Actif" : "En attente");
+  const role = cleanAdminModuleText(item.role, "Module admin Dédicalivres.");
 
   return `
     <article class="admin-module-card ${stateClass}">
@@ -648,6 +658,12 @@ function renderAdminModuleCard(module) {
       <p>${escapeHtml(role)}</p>
     </article>
   `;
+}
+
+function cleanAdminModuleText(value, fallback) {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return fallback;
 }
 
 function renderLegacyAdminModuleCard(module) {
