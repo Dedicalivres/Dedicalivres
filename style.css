@@ -2913,11 +2913,9 @@ button:active,
 
 
 /* =========================================================
-   PACK CARTE-2C — Suppression ciblée toolbar premium
-   Cible confirmée :
-   - #map-fullscreen-toggle
-   - #map-close-mobile
-   - .map-premium-toolbar
+   PACK CARTE-2D — Rollback safe clics
+   Masque uniquement la toolbar maison identifiée.
+   Ne touche pas aux marqueurs ni aux popups Leaflet.
 ========================================================= */
 
 #map-fullscreen-toggle,
@@ -2928,14 +2926,7 @@ button:active,
   pointer-events: none !important;
 }
 
-/* Conserve uniquement la vraie zone d'actions au-dessus de la carte :
-   Carte en direct / Me localiser / Légende.
-*/
-.ux-actions {
-  align-items: center;
-}
-
-/* Garde l'attribution Leaflet/OpenStreetMap discrète. */
+/* Attribution Leaflet/OpenStreetMap conservée, juste plus discrète. */
 #map .leaflet-control-attribution {
   max-width: calc(100% - 18px);
   padding: 3px 7px;
@@ -2943,9 +2934,4 @@ button:active,
   background: rgba(255,255,255,.82);
   color: rgba(42,36,56,.72);
   font-size: .72rem;
-}
-
-/* Sécurité : aucun contrôle Leaflet non essentiel en dehors du zoom et de l'attribution. */
-#map .leaflet-control:not(.leaflet-control-zoom):not(.leaflet-control-attribution) {
-  display: none !important;
 }
