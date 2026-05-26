@@ -11,13 +11,16 @@
     content="Agenda des salons du livre, festivals littéraires, dédicaces et rencontres littéraires partout en France."
   />
   <link rel="canonical" href="https://dedicalivres.fr/" />
-<meta property="og:title" content="Dédicalivres — Agenda des événements littéraires" />
+  <meta name="theme-color" content="#3a1c71" />
+  <meta property="og:title" content="Dédicalivres — Agenda des événements littéraires" />
   <meta
     property="og:description"
     content="Trouvez les salons du livre, festivals littéraires, dédicaces et rencontres avec des auteurs partout en France."
   />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="banner.jpg" />
+  <meta property="og:url" content="https://dedicalivres.fr/" />
+  <meta property="og:image" content="https://dedicalivres.fr/banner.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
 
   <script type="application/ld+json">
   {
@@ -37,12 +40,12 @@
   />
 
   <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin=""
+    rel="preload"
+    as="image"
+    href="https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev/event-images/2026/05/42EA4595-FD0E-4227-9CAF-EE9BC74F6DDA.PNG"
   />
 
-  <link rel="stylesheet" href="style.css?v=visuel-6b" />
+  <link rel="stylesheet" href="style.css?v=index-optim-1" />
   <link rel="stylesheet" href="mascot-guide.css?v=soumettre-1b" />
 </head>
 
@@ -52,7 +55,7 @@
   <div class="container header-inner">
 
     <a href="index.html" aria-label="Accueil Dédicalivres">
-      <img src="logo.png" class="logo" alt="Dédicalivres" />
+      <img src="logo-160.png" class="logo" width="52" height="52" alt="Dédicalivres" />
     </a>
 
     <nav aria-label="Navigation principale">
@@ -66,18 +69,38 @@
   </div>
 </header>
 
-<section class="hero" aria-label="Bannière Dédicalivres"></section>
+<section class="hero hero-home" aria-labelledby="home-hero-title">
+  <div class="container hero-inner">
+    <p class="hero-kicker">Agenda littéraire en France</p>
+    <h1 id="home-hero-title">Trouvez une rencontre autour du livre sans chercher partout.</h1>
+    <p>
+      Salons, festivals, séances de dédicace et rencontres d’auteurs :
+      Dédicalivres rassemble les rendez-vous validés pour choisir plus vite.
+    </p>
+
+    <div class="hero-actions" aria-label="Actions principales">
+      <a class="btn-primary" href="#agenda">Voir les événements</a>
+      <a class="btn-secondary" href="dedicaces.html">Dédicaces</a>
+      <a class="btn-secondary" href="salons-du-livre.html">Salons & festivals</a>
+    </div>
+
+    <div class="hero-trust">
+      <span>Événements relus</span>
+      <span>Recherche par région</span>
+      <span>Soumission gratuite</span>
+    </div>
+  </div>
+</section>
 
 
 <section class="home-magazine container" aria-labelledby="home-magazine-title">
   <div class="home-magazine-card">
     <div>
-      <p class="home-magazine-kicker">Agenda littéraire vivant</p>
-      <h1 id="home-magazine-title">Trouvez votre prochaine rencontre autour du livre.</h1>
+      <p class="home-magazine-kicker">Accès rapides</p>
+      <h2 id="home-magazine-title">Gardez vos repères habituels.</h2>
       <p>
-        Salons du livre, festivals littéraires, séances de dédicace et rencontres d’auteurs :
-        Dédicalivres rassemble les rendez-vous à venir pour vous aider à choisir, sauvegarder
-        et partager les événements qui comptent.
+        L’accueil reste organisé autour des mêmes chemins : explorer les événements,
+        retrouver vos favoris, parcourir les régions ou proposer un rendez-vous.
       </p>
 
       <div class="home-magazine-actions">
@@ -496,25 +519,62 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  crossorigin=""
-></script>
-
 <script src="config.js?v=8.7"></script>
-<script src="app.js?v=carte-2f"></script>
-<script src="mascot-guide.js?v=soumettre-1b"></script>
+<script src="app.js?v=index-optim-1"></script>
 
 <script src="tracking-v4.js?v=7.7.5"></script>
-<script src="author-search-index.js?v=7.7.5"></script>
 <script src="ui-effects-v6.js?v=7.7.5"></script>
-<script src="regional-map.js?v=7.6.7f"></script>
-<script src="custom-cursor.js?v=7.7.5"></script>
 
 
 <script>
 (function () {
   "use strict";
+
+  function loadScript(src) {
+    if (document.querySelector(`script[src="${src}"]`)) return;
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    document.body.appendChild(script);
+  }
+
+  function onIdle(callback) {
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(callback, { timeout: 2200 });
+      return;
+    }
+
+    window.setTimeout(callback, 900);
+  }
+
+  onIdle(function () {
+    loadScript("author-search-index.js?v=7.7.5");
+    loadScript("mascot-guide.js?v=soumettre-1b");
+
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      loadScript("custom-cursor.js?v=7.7.5");
+    }
+  });
+
+  var regionalRoot = document.getElementById("regional-map-app");
+
+  if (regionalRoot) {
+    if ("IntersectionObserver" in window) {
+      var regionalObserver = new IntersectionObserver(function (entries, observer) {
+        if (!entries.some(function (entry) { return entry.isIntersecting; })) return;
+
+        loadScript("regional-map.js?v=7.6.7f");
+        observer.disconnect();
+      }, { rootMargin: "260px 0px" });
+
+      regionalObserver.observe(regionalRoot);
+    } else {
+      onIdle(function () {
+        loadScript("regional-map.js?v=7.6.7f");
+      });
+    }
+  }
 
   function getSubmissionForm() {
     return document.getElementById("submission-form");
