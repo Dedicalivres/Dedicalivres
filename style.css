@@ -4400,7 +4400,7 @@ button,
 
 
 /* =========================================================
-   INDEX OPTIM-4 — bannière visible + boutons pictogrammes
+   INDEX OPTIM-5 — pictogrammes extraits de la bannière
 ========================================================= */
 
 .hero-banner-menu {
@@ -4429,15 +4429,16 @@ button,
 }
 
 .hero-picto-nav {
+  --hero-picto-size: clamp(42px, 3.2vw, 58px);
   position: absolute;
   left: 50%;
-  bottom: clamp(14px, 4vw, 38px);
+  top: 66%;
   z-index: 3;
   display: grid;
-  grid-template-columns: repeat(5, minmax(118px, 1fr));
-  gap: clamp(8px, 1.2vw, 14px);
-  width: min(920px, calc(100% - 42px));
-  transform: translateX(-50%);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(4px, .52vw, 8px);
+  width: clamp(340px, 29.5vw, 580px);
+  transform: translate(-50%, -50%);
 }
 
 .hero-picto-button {
@@ -4445,23 +4446,23 @@ button,
   isolation: isolate;
   display: grid;
   justify-items: center;
-  gap: 6px;
-  min-height: 90px;
-  padding: 12px 10px 11px;
+  gap: 0;
+  min-height: calc(var(--hero-picto-size) + 20px);
+  padding: 4px 4px 6px;
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: 18px;
   color: var(--purple-dark);
   text-align: center;
   text-decoration: none !important;
   font-weight: 950;
-  line-height: 1.1;
+  line-height: 1.05;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,250,245,.82));
-  border: 1px solid rgba(255,255,255,.78);
+    linear-gradient(180deg, rgba(255,255,255,.52), rgba(255,250,245,.32));
+  border: 1px solid rgba(255,255,255,.70);
   box-shadow:
-    0 16px 34px rgba(38,17,72,.16),
-    0 0 0 1px rgba(58,28,113,.08) inset;
-  backdrop-filter: blur(14px);
+    0 9px 18px rgba(38,17,72,.10),
+    0 0 0 1px rgba(58,28,113,.05) inset;
+  backdrop-filter: blur(10px);
 }
 
 .hero-picto-button::before,
@@ -4476,9 +4477,9 @@ button,
 
 .hero-picto-button::before {
   background:
-    radial-gradient(circle at 50% 34%, rgba(255,107,53,.38), transparent 34%),
-    radial-gradient(circle at 54% 62%, rgba(58,28,113,.26), transparent 38%);
-  filter: blur(16px);
+    radial-gradient(circle at 50% 34%, rgba(255,107,53,.36), transparent 36%),
+    radial-gradient(circle at 54% 62%, rgba(58,28,113,.24), transparent 40%);
+  filter: blur(12px);
   transform: scale(.84);
 }
 
@@ -4486,45 +4487,44 @@ button,
   inset: 0;
   border-radius: inherit;
   box-shadow:
-    0 0 0 2px rgba(255,107,53,.24) inset,
-    0 0 34px rgba(255,107,53,.32);
+    0 0 0 1px rgba(255,107,53,.20) inset,
+    0 0 24px rgba(255,107,53,.26);
 }
 
 .hero-picto-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 16px;
-  color: #fff;
-  font-size: 1.35rem;
-  line-height: 1;
-  background:
-    radial-gradient(circle at 30% 24%, rgba(255,255,255,.34), transparent 28%),
-    linear-gradient(135deg, var(--orange), var(--purple));
+  display: block;
+  width: var(--hero-picto-size);
+  height: var(--hero-picto-size);
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.76);
   box-shadow:
-    0 10px 24px rgba(58,28,113,.22),
-    0 0 0 4px rgba(255,255,255,.58);
+    0 6px 14px rgba(58,28,113,.16),
+    0 0 0 3px rgba(255,255,255,.58);
+}
+
+.hero-picto-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
 }
 
 .hero-picto-button span:last-child {
-  font-size: clamp(.78rem, 1.15vw, .95rem);
-}
-
-.hero-picto-submit .hero-picto-icon {
-  background:
-    radial-gradient(circle at 30% 24%, rgba(255,255,255,.32), transparent 28%),
-    linear-gradient(135deg, #ff7a3d, #ffb088);
+  max-width: 100%;
+  font-size: clamp(.56rem, .68vw, .74rem);
+  text-wrap: balance;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .hero-picto-button:hover,
   .hero-picto-button:focus-visible {
-    transform: translateY(-5px);
+    transform: translateY(-4px);
     color: var(--purple);
     box-shadow:
-      0 22px 42px rgba(38,17,72,.22),
-      0 0 0 1px rgba(255,107,53,.22) inset;
+      0 15px 28px rgba(38,17,72,.18),
+      0 0 0 1px rgba(255,107,53,.20) inset;
   }
 
   .hero-picto-button:hover::before,
@@ -4539,14 +4539,15 @@ button,
   .hero-picto-button:focus-visible .hero-picto-icon {
     transform: scale(1.06);
     box-shadow:
-      0 14px 30px rgba(58,28,113,.28),
-      0 0 0 5px rgba(255,255,255,.70),
-      0 0 26px rgba(255,107,53,.45);
+      0 10px 22px rgba(58,28,113,.24),
+      0 0 0 4px rgba(255,255,255,.68),
+      0 0 20px rgba(255,107,53,.38);
   }
 }
 
 .hero-picto-button,
-.hero-picto-icon {
+.hero-picto-icon,
+.hero-picto-image {
   transition:
     transform .22s ease,
     box-shadow .22s ease,
@@ -4570,9 +4571,10 @@ button,
   }
 
   .hero-picto-nav {
+    --hero-picto-size: 46px;
     position: relative;
     left: auto;
-    bottom: auto;
+    top: auto;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     width: min(100% - 28px, 680px);
     margin: 12px auto 0;
@@ -4580,12 +4582,12 @@ button,
   }
 
   .hero-picto-button {
-    min-height: 74px;
-    grid-template-columns: 40px 1fr;
+    min-height: 70px;
+    grid-template-columns: 50px 1fr;
     justify-items: start;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 9px 12px;
     text-align: left;
     border-radius: 18px;
   }
@@ -4595,10 +4597,8 @@ button,
   }
 
   .hero-picto-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 14px;
-    font-size: 1.15rem;
+    width: var(--hero-picto-size);
+    height: var(--hero-picto-size);
   }
 }
 
