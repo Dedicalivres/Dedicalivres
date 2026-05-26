@@ -39,13 +39,9 @@
     rel="stylesheet"
   />
 
-  <link
-    rel="preload"
-    as="image"
-    href="https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev/event-images/2026/05/42EA4595-FD0E-4227-9CAF-EE9BC74F6DDA.PNG"
-  />
+  <link rel="preload" as="image" href="banner.jpg" />
 
-  <link rel="stylesheet" href="style.css?v=index-optim-3" />
+  <link rel="stylesheet" href="style.css?v=index-optim-4" />
   <link rel="stylesheet" href="mascot-guide.css?v=soumettre-1b" />
 </head>
 
@@ -69,38 +65,55 @@
   </div>
 </header>
 
-<section class="hero hero-home" aria-labelledby="home-hero-title">
-  <div class="container hero-inner">
-    <p class="hero-kicker">Agenda littéraire en France</p>
-    <h1 id="home-hero-title">Trouvez une rencontre autour du livre sans chercher partout.</h1>
-    <p>
-      Salons, festivals, séances de dédicace et rencontres d’auteurs :
-      Dédicalivres rassemble les rendez-vous validés pour choisir plus vite.
-    </p>
+<section class="hero hero-home hero-banner-menu" aria-label="Bannière Dédicalivres">
+  <img
+    class="hero-banner-image"
+    src="banner.jpg"
+    width="1983"
+    height="793"
+    alt="Dédicalivres, agenda littéraire en France"
+    decoding="async"
+    fetchpriority="high"
+  />
 
-    <div class="hero-actions" aria-label="Actions principales">
-      <a class="btn-primary" href="#agenda">Voir les événements</a>
-      <a class="btn-secondary" href="dedicaces.html">Dédicaces</a>
-      <a class="btn-secondary" href="salons-du-livre.html">Salons & festivals</a>
-    </div>
+  <nav class="hero-picto-nav" aria-label="Accès rapides Dédicalivres">
+    <a class="hero-picto-button" href="#agenda">
+      <span class="hero-picto-icon" aria-hidden="true">◆</span>
+      <span>Agenda</span>
+    </a>
 
-    <div class="hero-trust">
-      <span>Événements relus</span>
-      <span>Recherche par région</span>
-      <span>Soumission gratuite</span>
-    </div>
-  </div>
+    <a class="hero-picto-button" href="salons-du-livre.html">
+      <span class="hero-picto-icon" aria-hidden="true">▦</span>
+      <span>Salons & festivals</span>
+    </a>
+
+    <a class="hero-picto-button" href="dedicaces.html">
+      <span class="hero-picto-icon" aria-hidden="true">✒</span>
+      <span>Dédicaces</span>
+    </a>
+
+    <a class="hero-picto-button" href="temoignages.html">
+      <span class="hero-picto-icon" aria-hidden="true">♡</span>
+      <span>Témoignages</span>
+    </a>
+
+    <a class="hero-picto-button hero-picto-submit" href="#submission-form">
+      <span class="hero-picto-icon" aria-hidden="true">＋</span>
+      <span>Soumettre</span>
+    </a>
+  </nav>
 </section>
 
 
 <section class="home-magazine container" aria-labelledby="home-magazine-title">
   <div class="home-magazine-card">
     <div>
-      <p class="home-magazine-kicker">Accès rapides</p>
-      <h2 id="home-magazine-title">Gardez vos repères habituels.</h2>
+      <p class="home-magazine-kicker">Agenda littéraire vivant</p>
+      <h1 id="home-magazine-title">Trouvez votre prochaine rencontre autour du livre.</h1>
       <p>
-        L’accueil reste organisé autour des mêmes chemins : explorer les événements,
-        retrouver vos favoris, parcourir les régions ou proposer un rendez-vous.
+        Salons du livre, festivals littéraires, séances de dédicace et rencontres d’auteurs :
+        Dédicalivres rassemble les rendez-vous à venir pour vous aider à choisir, sauvegarder
+        et partager les événements qui comptent.
       </p>
 
       <div class="home-magazine-actions">
