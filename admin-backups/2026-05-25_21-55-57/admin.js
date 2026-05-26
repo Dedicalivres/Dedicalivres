@@ -70,15 +70,6 @@ const premiumCount = document.getElementById("premium-count");
 const premiumFeaturedCount = document.getElementById("premium-featured-count");
 const premiumCandidatesCount = document.getElementById("premium-candidates-count");
 const premiumMissingImageCount = document.getElementById("premium-missing-image-count");
-const qualityControlCount = document.getElementById("quality-control-count");
-const qualityControlGrid = document.getElementById("quality-control-grid");
-const qualityControlList = document.getElementById("quality-control-list");
-const qualityFocusSelect = document.getElementById("quality-focus-select");
-const controlStatsCount = document.getElementById("control-stats-count");
-const controlStatsGrid = document.getElementById("control-stats-grid");
-const controlRegionList = document.getElementById("control-region-list");
-const controlTypeList = document.getElementById("control-type-list");
-const controlSecurityGrid = document.getElementById("control-security-grid");
 
 let allEvents = [];
 let locationRows = [];
@@ -363,7 +354,6 @@ function bindEvents() {
   filterStatus?.addEventListener("change", renderEvents);
   filterArchive?.addEventListener("change", handleArchiveFilterChange);
   filterType?.addEventListener("change", renderEvents);
-  qualityFocusSelect?.addEventListener("change", renderQualityControlCenter);
 
   closeEditModalBtn?.addEventListener("click", closeEditModal);
   saveEditBtn?.addEventListener("click", saveEdition);
@@ -546,12 +536,6 @@ function clearAdminSensitiveState() {
   if (statsVisits) statsVisits.textContent = "0";
 
   document.getElementById("premium-container")?.replaceChildren();
-  document.getElementById("quality-control-grid")?.replaceChildren();
-  document.getElementById("quality-control-list")?.replaceChildren();
-  document.getElementById("control-stats-grid")?.replaceChildren();
-  document.getElementById("control-region-list")?.replaceChildren();
-  document.getElementById("control-type-list")?.replaceChildren();
-  document.getElementById("control-security-grid")?.replaceChildren();
   document.getElementById("testimonials-admin-panel")?.remove();
   document.getElementById("stats-testimonials-card")?.remove();
   document.getElementById("tab-social")?.replaceChildren();
@@ -641,9 +625,6 @@ function refreshAdminViews() {
   safeAdminStepSync("premium", renderPremiumDashboard);
   safeAdminStepSync("réseaux", renderSocialUpcoming);
   safeAdminStepSync("observatoire", renderPriorityZones);
-  safeAdminStepSync("qualité", renderQualityControlCenter);
-  safeAdminStepSync("statistiques cockpit", renderStatsControlCenter);
-  safeAdminStepSync("sécurité cockpit", renderSecurityControlCenter);
 }
 
 async function safeAdminStep(label, fn) {
@@ -951,233 +932,6 @@ function renderCustomAdminEventList(events, label) {
     behavior: "smooth",
     block: "start"
   });
-}
-
-/* CENTRE DE CONTRÔLE */
-
-function getControlBuckets() {
-  const upcoming = allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event));
-  const pending = allEvents.filter((event) => isPendingEvent(event));
-  const rejected = allEvents.filter((event) => event.rejected);
-  const missingImage = upcoming.filter((event) => !event.image_url);
-  const missingCoords = upcoming.filter((event) => !hasEventCoords(event));
-  const soon = upcoming.filter((event) => isUpcomingWithinDays(event, 14));
-  const featured = allEvents.filter((event) => event.featured && !event.rejected);
-  const featuredPast = allEvents.filter((event) => event.featured && isPastEvent(event));
-  const qualityLow = upcoming.filter((event) => getEventQuality(event).score < 55);
-  const noWebsite = upcoming.filter((event) => !event.website);
-
-  return {
-    upcoming,
-    pending,
-    rejected,
-    missingImage,
-    missingCoords,
-    soon,
-    featured,
-    featuredPast,
-    qualityLow,
-    noWebsite
-  };
-}
-
-function renderControlMetric(label, value, tone, detail = "") {
-  return `
-    <article class="cockpit-status-cell is-${escapeHtml(tone || "neutral")}">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(value)}</strong>
-      ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
-    </article>
-  `;
-}
-
-function renderQualityControlCenter() {
-  if (!qualityControlGrid || !qualityControlList) return;
-
-  const buckets = getControlBuckets();
-  const focus = qualityFocusSelect?.value || "all";
-  const qualityReady = buckets.upcoming.length - buckets.qualityLow.length;
-
-  if (qualityControlCount) {
-    qualityControlCount.textContent =
-      `${buckets.pending.length} à modérer · ${buckets.qualityLow.length} qualité faible`;
-  }
-
-  qualityControlGrid.innerHTML = [
-    renderControlMetric("En attente", buckets.pending.length, buckets.pending.length ? "warning" : "ok", "à valider"),
-    renderControlMetric("Sans image", buckets.missingImage.length, buckets.missingImage.length ? "purple" : "ok", "validés à compléter"),
-    renderControlMetric("Sans GPS", buckets.missingCoords.length, buckets.missingCoords.length ? "danger" : "ok", "carte et SEO local"),
-    renderControlMetric("Qualité faible", buckets.qualityLow.length, buckets.qualityLow.length ? "danger" : "ok", `${qualityReady} fiches solides`),
-    renderControlMetric("Sous 14 jours", buckets.soon.length, buckets.soon.length ? "info" : "neutral", "priorité publication"),
-    renderControlMetric("Mis en avant passés", buckets.featuredPast.length, buckets.featuredPast.length ? "warning" : "ok", "à nettoyer")
-  ].join("");
-
-  if (focus === "all") {
-    const rows = [
-      ["pending", "Événements en attente", buckets.pending.length, "Modération prioritaire", "warning"],
-      ["missing-image", "Validés sans image", buckets.missingImage.length, "Impact visuel et réseaux", "purple"],
-      ["missing-coords", "Validés sans coordonnées", buckets.missingCoords.length, "Carte et pages régionales", "danger"],
-      ["quality-low", "Qualité faible", buckets.qualityLow.length, "Titre, image, description, lien", "danger"],
-      ["soon", "À venir sous 14 jours", buckets.soon.length, "Communication rapide", "info"],
-      ["featured-past", "Mis en avant passés", buckets.featuredPast.length, "Nettoyage premium", "warning"]
-    ];
-
-    qualityControlList.innerHTML = rows.map(([action, label, count, detail, tone]) => `
-      <button class="cockpit-focus-row is-${escapeHtml(tone)}" type="button" data-quality-action="${escapeHtml(action)}">
-        <b>${escapeHtml(count)}</b>
-        <span>${escapeHtml(label)}</span>
-        <small>${escapeHtml(detail)}</small>
-      </button>
-    `).join("");
-  } else {
-    const rows = getQualityFocusRows(focus);
-
-    if (!rows.length) {
-      qualityControlList.innerHTML = `
-        <div class="cockpit-empty-state">
-          Aucun élément dans cette vue.
-        </div>
-      `;
-    } else {
-      qualityControlList.innerHTML = `
-        <div class="cockpit-focus-toolbar">
-          <strong>${rows.length} élément${rows.length > 1 ? "s" : ""}</strong>
-          <button class="cyber-btn-secondary" type="button" data-quality-action="${escapeHtml(focus)}">
-            Ouvrir dans événements
-          </button>
-        </div>
-        ${rows.slice(0, 24).map(renderQualityPreviewRow).join("")}
-      `;
-    }
-  }
-
-  qualityControlList.querySelectorAll("[data-quality-action]").forEach((button) => {
-    button.addEventListener("click", () => {
-      applyQualityFocusAction(button.dataset.qualityAction || "all");
-    });
-  });
-}
-
-function getQualityFocusRows(focus) {
-  const buckets = getControlBuckets();
-
-  if (focus === "pending") return buckets.pending;
-  if (focus === "missing-image") return buckets.missingImage;
-  if (focus === "missing-coords") return buckets.missingCoords;
-  if (focus === "quality-low") return buckets.qualityLow;
-  if (focus === "soon") return buckets.soon;
-  if (focus === "featured-past") return buckets.featuredPast;
-
-  return [];
-}
-
-function renderQualityPreviewRow(event) {
-  const quality = getEventQuality(event);
-
-  return `
-    <article class="cockpit-preview-row is-${escapeHtml(quality.level)}">
-      <div>
-        <strong>${escapeHtml(event.title || "Sans titre")}</strong>
-        <span>${escapeHtml(event.city || "Ville inconnue")} · ${formatDate(event.start_date)} · ${escapeHtml(event.type || "Type inconnu")}</span>
-      </div>
-      <b>${quality.score}%</b>
-    </article>
-  `;
-}
-
-function applyQualityFocusAction(action) {
-  const rows = getQualityFocusRows(action);
-
-  if (!rows.length) {
-    applyPriorityAction(action);
-    return;
-  }
-
-  document.querySelector('.admin-tab[data-tab="events"]')?.click();
-  renderCustomAdminEventList(rows, getQualityFocusLabel(action));
-}
-
-function getQualityFocusLabel(action) {
-  const labels = {
-    pending: "Événements en attente",
-    "missing-image": "Événements validés sans image",
-    "missing-coords": "Événements validés sans coordonnées",
-    "quality-low": "Événements à qualité faible",
-    soon: "Événements dans les 14 prochains jours",
-    "featured-past": "Événements mis en avant déjà passés"
-  };
-
-  return labels[action] || "Vue qualité";
-}
-
-function renderStatsControlCenter() {
-  if (!controlStatsGrid || !controlRegionList || !controlTypeList) return;
-
-  const buckets = getControlBuckets();
-  const total = allEvents.length;
-  const completion = buckets.upcoming.length
-    ? Math.round(((buckets.upcoming.length - buckets.qualityLow.length) / buckets.upcoming.length) * 100)
-    : 100;
-
-  if (controlStatsCount) {
-    controlStatsCount.textContent = `${total} événements analysés`;
-  }
-
-  controlStatsGrid.innerHTML = [
-    renderControlMetric("Total", total, "neutral", "chargés admin"),
-    renderControlMetric("À venir", buckets.upcoming.length, "ok", "publics actifs"),
-    renderControlMetric("Rejetés", buckets.rejected.length, buckets.rejected.length ? "danger" : "neutral", "historique"),
-    renderControlMetric("Mis en avant", buckets.featured.length, buckets.featured.length ? "purple" : "neutral", "sélection éditoriale"),
-    renderControlMetric("Complétude", `${completion}%`, completion >= 80 ? "ok" : completion >= 55 ? "warning" : "danger", "qualité des fiches"),
-    renderControlMetric("Localisations", locationRows.length, locationRows.length ? "info" : "neutral", "signaux récents")
-  ].join("");
-
-  controlRegionList.innerHTML = renderCockpitRanking(countByField(allEvents, "region"), "Aucune région");
-  controlTypeList.innerHTML = renderCockpitRanking(countByField(allEvents, "type"), "Aucun type");
-}
-
-function countByField(rows, key) {
-  const counts = new Map();
-
-  rows.forEach((row) => {
-    const label = String(row?.[key] || "Non renseigné").trim() || "Non renseigné";
-    counts.set(label, (counts.get(label) || 0) + 1);
-  });
-
-  return Array.from(counts.entries())
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "fr"));
-}
-
-function renderCockpitRanking(rows, emptyLabel) {
-  if (!rows.length) {
-    return `<div class="cockpit-empty-state">${escapeHtml(emptyLabel)}</div>`;
-  }
-
-  const max = Math.max(...rows.map((row) => row.count), 1);
-
-  return rows.slice(0, 10).map((row) => `
-    <div class="cockpit-ranking-row">
-      <div>
-        <strong>${escapeHtml(row.label)}</strong>
-        <span>${row.count} événement${row.count > 1 ? "s" : ""}</span>
-      </div>
-      <i style="--rank-width:${Math.max(8, Math.round((row.count / max) * 100))}%"></i>
-    </div>
-  `).join("");
-}
-
-function renderSecurityControlCenter() {
-  if (!controlSecurityGrid) return;
-
-  controlSecurityGrid.innerHTML = [
-    renderControlMetric("Backup", "OK", "ok", "local vérifié"),
-    renderControlMetric("RLS", "OK", "ok", "policies durcies"),
-    renderControlMetric("Storage", "OK", "ok", "uploads limités"),
-    renderControlMetric("Admin", "OK", "ok", "helper privé"),
-    renderControlMetric("À finir", "2", "warning", "unaccent + Auth password"),
-    renderControlMetric("Rollback", "Prêt", "info", "SQL exporté")
-  ].join("");
 }
 
 
@@ -1707,7 +1461,7 @@ function renderEvents() {
 
 function renderEventCard(event) {
   return `
-    <article class="${getEventCardClasses(event)}">
+    <article class="event-card event-card-with-image">
 
       ${
         event.image_url
@@ -1782,22 +1536,6 @@ function renderEventCard(event) {
 
     </article>
   `;
-}
-
-function getEventCardClasses(event) {
-  const classes = ["event-card", "event-card-with-image"];
-
-  if (isPendingEvent(event)) classes.push("is-status-pending");
-  if (event?.validated) classes.push("is-status-validated");
-  if (event?.rejected) classes.push("is-status-rejected");
-  if (event?.featured) classes.push("is-status-featured");
-  if (!event?.image_url) classes.push("is-status-missing-image");
-  if (event && isPastEvent(event)) classes.push("is-status-past");
-
-  const quality = getEventQuality(event);
-  classes.push(`is-quality-${quality.level}`);
-
-  return classes.join(" ");
 }
 
 function bindEventActions() {

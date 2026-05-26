@@ -21,8 +21,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=8.7" />
-  <link rel="stylesheet" href="admin-cockpit.css?v=1.0" />
+  <link rel="stylesheet" href="admin.css?v=8.6" />
 </head>
 
 <body class="cyber-admin">
@@ -62,8 +61,8 @@
       <div class="status-dot"></div>
 
       <div>
-        <h2>CENTRE DE CONTRÔLE</h2>
-        <p>Dédicalivres · modération, qualité, publications</p>
+        <h2>CONTROL CENTER</h2>
+        <p>Dédicalivres · pilotage éditorial et premium</p>
       </div>
 
     </div>
@@ -98,39 +97,27 @@
   <nav class="admin-tabs">
 
     <button class="admin-tab active" data-tab="overview" type="button">
-      Tableau de bord
+      ⚡ Tableau de bord
     </button>
 
     <button class="admin-tab" data-tab="events" type="button">
-      Événements
+      📚 Événements
     </button>
 
     <button class="admin-tab" data-tab="moderation" type="button">
-      Modération
-    </button>
-
-    <button class="admin-tab" data-tab="quality" type="button">
-      Qualité
-    </button>
-
-    <button class="admin-tab" data-tab="stats" type="button">
-      Statistiques
+      🛡️ Modération
     </button>
 
     <button class="admin-tab" data-tab="premium" type="button">
-      Premium
+      ⭐ Premium
     </button>
 
     <button class="admin-tab" data-tab="exports" type="button">
-      Exports
+      📤 Exports
     </button>
 
     <button class="admin-tab" data-tab="social" type="button">
-      Réseaux
-    </button>
-
-    <button class="admin-tab" data-tab="settings" type="button">
-      Sécurité
+      🚀 Réseaux
     </button>
 
   </nav>
@@ -320,65 +307,6 @@
         <p class="priority-empty">
           Les demandes auteurs et les témoignages s’affichent ici automatiquement.
         </p>
-      </section>
-    </section>
-
-    <!-- ================================================= -->
-    <!-- QUALITÉ -->
-    <!-- ================================================= -->
-
-    <section id="tab-quality" class="admin-tab-panel">
-      <section class="admin-panel cockpit-quality-panel">
-        <div class="section-head">
-          <h3>QUALITÉ DES DONNÉES</h3>
-          <span id="quality-control-count">Analyse en attente</span>
-        </div>
-
-        <div id="quality-control-grid" class="cockpit-status-grid"></div>
-
-        <div class="cockpit-toolbar">
-          <label for="quality-focus-select">Vue</label>
-          <select id="quality-focus-select">
-            <option value="all">Toutes les priorités</option>
-            <option value="pending">Événements en attente</option>
-            <option value="missing-image">Sans image</option>
-            <option value="missing-coords">Sans coordonnées</option>
-            <option value="quality-low">Qualité faible</option>
-            <option value="soon">À venir sous 14 jours</option>
-            <option value="featured-past">Mis en avant passés</option>
-          </select>
-        </div>
-
-        <div id="quality-control-list" class="cockpit-focus-list">
-          Chargement de l’analyse qualité…
-        </div>
-      </section>
-    </section>
-
-    <!-- ================================================= -->
-    <!-- STATISTIQUES -->
-    <!-- ================================================= -->
-
-    <section id="tab-stats" class="admin-tab-panel">
-      <section class="admin-panel cockpit-stats-panel">
-        <div class="section-head">
-          <h3>STATISTIQUES</h3>
-          <span id="control-stats-count">Lecture en attente</span>
-        </div>
-
-        <div id="control-stats-grid" class="cockpit-status-grid"></div>
-
-        <div class="cockpit-split-grid">
-          <article class="cockpit-plain-panel">
-            <h4>Répartition par région</h4>
-            <div id="control-region-list" class="cockpit-ranking-list">Chargement…</div>
-          </article>
-
-          <article class="cockpit-plain-panel">
-            <h4>Répartition par type</h4>
-            <div id="control-type-list" class="cockpit-ranking-list">Chargement…</div>
-          </article>
-        </div>
       </section>
     </section>
 
@@ -574,31 +502,6 @@
         <p class="priority-empty">Chargement du générateur Instagram…</p>
       </section>
     </section>
-
-    <!-- ================================================= -->
-    <!-- SÉCURITÉ -->
-    <!-- ================================================= -->
-
-    <section id="tab-settings" class="admin-tab-panel">
-      <section class="admin-panel cockpit-security-panel">
-        <div class="section-head">
-          <h3>SÉCURITÉ & RETOUR ARRIÈRE</h3>
-          <span>État de contrôle local</span>
-        </div>
-
-        <div id="control-security-grid" class="cockpit-status-grid"></div>
-
-        <div class="cockpit-security-note">
-          <strong>Sauvegarde locale vérifiée</strong>
-          <span>/Users/jeanchristopheleguilly/SupabaseBackups/dedicalivres/2026-05-25_21-24-15</span>
-        </div>
-
-        <div class="cockpit-security-note">
-          <strong>Rapport des changements</strong>
-          <span>SUPABASE_APPLIED_CHANGES_2026-05-25.md</span>
-        </div>
-      </section>
-    </section>
   </section>
 
 </main>
@@ -725,7 +628,7 @@
 ></script>
 
 <script src="config.js?v=8.6"></script>
-<script src="admin.js?v=8.7"></script>
+<script src="admin.js?v=8.6"></script>
 
 </body>
 </html>

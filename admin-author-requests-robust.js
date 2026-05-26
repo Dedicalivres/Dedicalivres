@@ -26,7 +26,6 @@
 
   let rows = [];
   let currentFilter = "pending";
-  let currentSearch = "";
 
   ensureStyles();
   bindAuthEvents();
@@ -60,25 +59,16 @@
     panel.id = "author-requests-admin-panel";
     panel.className = "admin-panel author-requests-admin-panel";
     panel.innerHTML = `
-      <div class="section-head moderation-section-head">
-        <div>
-          <h3>DEMANDES AUTEURS</h3>
-          <p class="moderation-panel-intro">Contrôle des auteurs déclarés présents, de leurs liens et de leur statut éditorial.</p>
-        </div>
+      <div class="section-head">
+        <h3>DEMANDES AUTEURS</h3>
         <span id="author-requests-count">Chargement…</span>
       </div>
 
-      <div class="moderation-kpi-row" id="author-requests-kpis" aria-label="Résumé demandes auteurs">
-        <span>Chargement du résumé…</span>
-      </div>
-
-      <div class="author-requests-toolbar moderation-toolbar">
-        <input id="author-requests-search" type="search" placeholder="Rechercher auteur, événement, ville, lien…" />
-        <button type="button" class="cyber-btn-secondary is-active" data-author-filter="pending">En attente <b data-author-count="pending">0</b></button>
-        <button type="button" class="cyber-btn-secondary" data-author-filter="validated">Validées <b data-author-count="validated">0</b></button>
-        <button type="button" class="cyber-btn-secondary" data-author-filter="rejected">Refusées <b data-author-count="rejected">0</b></button>
-        <button type="button" class="cyber-btn-secondary" data-author-filter="all">Toutes <b data-author-count="all">0</b></button>
-        <button type="button" class="cyber-btn-secondary" id="author-requests-compact" aria-pressed="false">Mode compact</button>
+      <div class="author-requests-toolbar">
+        <button type="button" class="cyber-btn-secondary is-active" data-author-filter="pending">En attente</button>
+        <button type="button" class="cyber-btn-secondary" data-author-filter="validated">Validées</button>
+        <button type="button" class="cyber-btn-secondary" data-author-filter="rejected">Refusées</button>
+        <button type="button" class="cyber-btn-secondary" data-author-filter="all">Toutes</button>
         <button type="button" class="cyber-btn-primary" id="author-requests-refresh">Actualiser</button>
       </div>
 
@@ -91,10 +81,6 @@
 
     panel.addEventListener("click", handlePanelClick);
     panel.addEventListener("change", handlePanelChange);
-    panel.querySelector("#author-requests-search")?.addEventListener("input", (event) => {
-      currentSearch = normalize(event.target.value || "");
-      render();
-    });
   }
 
   async function loadRows() {
@@ -147,9 +133,7 @@
 
     if (!list) return;
 
-    updateAuthorSummary();
-
-    const filtered = filterRows(rows, currentFilter).filter(matchesSearch);
+    const filtered = filterRows(rows, currentFilter);
 
     if (count) {
       const pending = rows.filter(isPending).length;
@@ -162,46 +146,6 @@
     }
 
     list.innerHTML = filtered.map(renderCard).join("");
-  }
-
-  function updateAuthorSummary() {
-    const counts = {
-      pending: rows.filter(isPending).length,
-      validated: rows.filter((row) => row.validated === true).length,
-      rejected: rows.filter((row) => row.rejected === true).length,
-      all: rows.length
-    };
-
-    Object.entries(counts).forEach(([key, value]) => {
-      const target = document.querySelector(`[data-author-count="${key}"]`);
-      if (target) target.textContent = String(value);
-    });
-
-    const kpis = document.getElementById("author-requests-kpis");
-    if (kpis) {
-      kpis.innerHTML = `
-        <span><b>${counts.pending}</b> en attente</span>
-        <span><b>${counts.validated}</b> validée${counts.validated > 1 ? "s" : ""}</span>
-        <span><b>${counts.rejected}</b> refusée${counts.rejected > 1 ? "s" : ""}</span>
-        <span><b>${counts.all}</b> total</span>
-      `;
-    }
-  }
-
-  function matchesSearch(row) {
-    if (!currentSearch) return true;
-    const event = row.events || {};
-    return normalize([
-      row.pseudo,
-      row.website,
-      row.author_profile_url,
-      row.book_or_publisher_url,
-      row.publisher_name,
-      row.admin_note,
-      event.title,
-      event.city,
-      event.region
-    ].filter(Boolean).join(" ")).includes(currentSearch);
   }
 
   function renderCard(row) {
@@ -283,7 +227,6 @@
         <div class="author-request-links">
           ${renderCheckLink("Lien auteur", row.author_profile_url || row.website)}
           ${renderCheckLink("Lien livre/éditeur", row.book_or_publisher_url)}
-          ${row.event_id ? `<a href="event.html?id=${encodeURIComponent(row.event_id)}" target="_blank" rel="noopener noreferrer">Voir événement</a>` : ""}
         </div>
 
         <div class="author-request-actions">
@@ -304,16 +247,6 @@
         button.classList.toggle("is-active", button === filterButton);
       });
       render();
-      return;
-    }
-
-    const compactButton = event.target.closest("#author-requests-compact");
-    if (compactButton) {
-      const panel = document.getElementById("author-requests-admin-panel");
-      const isCompact = !panel?.classList.contains("is-compact");
-      panel?.classList.toggle("is-compact", isCompact);
-      compactButton.setAttribute("aria-pressed", isCompact ? "true" : "false");
-      compactButton.textContent = isCompact ? "Mode détaillé" : "Mode compact";
       return;
     }
 
