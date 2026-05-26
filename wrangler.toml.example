@@ -12,7 +12,6 @@ crons = ["0 5 * * *"]
 PUBLIC_SITE_URL = "https://dedicalivres.fr"
 R2_PUBLIC_BASE_URL = "https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev"
 EVENTS_TABLE = "events"
-AUTHORS_TABLE = "authors"
 PRESENCE_TABLE = "event_authors_presence"
 EXPORT_PREFIX = "exports"
 

@@ -10,8 +10,8 @@
     R2_EXPORT_BASE_URL="https://.../exports" node test-export.js
 */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
 const DEFAULT_FORBIDDEN_KEYS = [
   'email', 'mail', 'telephone', 'phone', 'tel', 'mobile',
@@ -218,8 +218,9 @@ async function main() {
       results.push(ok('Réponse JSON lisible'));
       if (responseJson.ok === true) results.push(ok('Export manuel accepté', 'ok=true'));
       else results.push(warn('Réponse sans ok=true', `réponse : ${text.slice(0, 300)}`));
-      if (typeof responseJson.count === 'number') results.push(ok('Nombre d’événements retourné', `${responseJson.count}`));
-      else results.push(warn('Nombre d’événements absent', 'champ count non trouvé'));
+      const responseCount = responseJson.count ?? responseJson.event_count;
+      if (typeof responseCount === 'number') results.push(ok('Nombre d’événements retourné', `${responseCount}`));
+      else results.push(warn('Nombre d’événements absent', 'champ count/event_count non trouvé'));
     } catch (e) {
       results.push(fail('Réponse non JSON', text.slice(0, 300)));
     }

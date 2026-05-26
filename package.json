@@ -1,0 +1,13 @@
+{
+  "name": "dedicalivres-static",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Verification locale du site statique Dedicalivres",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check-project.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

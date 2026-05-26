@@ -32,12 +32,13 @@ for insert
 with check (validated = false and rejected = false);
 
 -- Admin connecté : lecture complète.
+-- Requiert la fonction private.is_admin() creee par SUPABASE_SECURITY_HARDENING.sql.
 drop policy if exists "Authenticated users can read testimonials" on public.testimonials;
 create policy "Authenticated users can read testimonials"
 on public.testimonials
 for select
 to authenticated
-using (true);
+using (private.is_admin());
 
 -- Admin connecté : mise à jour / suppression.
 drop policy if exists "Authenticated users can update testimonials" on public.testimonials;
@@ -45,15 +46,15 @@ create policy "Authenticated users can update testimonials"
 on public.testimonials
 for update
 to authenticated
-using (true)
-with check (true);
+using (private.is_admin())
+with check (private.is_admin());
 
 drop policy if exists "Authenticated users can delete testimonials" on public.testimonials;
 create policy "Authenticated users can delete testimonials"
 on public.testimonials
 for delete
 to authenticated
-using (true);
+using (private.is_admin());
 
 -- Bucket à créer dans Storage : testimonial-images
 -- Recommandé : public bucket.
