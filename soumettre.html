@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Soumettre un événement littéraire — Dédicalivres</title>
+  <meta name="description" content="Proposez gratuitement un salon du livre, festival littéraire, séance de dédicace ou rencontre d’auteur sur Dédicalivres." />
+  <link rel="canonical" href="https://dedicalivres.fr/soumettre" />
+  <meta name="theme-color" content="#3a1c71" />
+  <meta property="og:title" content="Soumettre un événement — Dédicalivres" />
+  <meta property="og:description" content="Ajoutez un événement littéraire à l’agenda Dédicalivres après relecture." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://dedicalivres.fr/banner2.jpg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css?v=index-optim-10" />
+  <link rel="stylesheet" href="mascot-guide.css?v=guide-4" />
+</head>
+
+<body class="submit-page">
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" aria-label="Accueil Dédicalivres">
+      <img src="logo.png" class="logo" width="52" height="52" alt="Dédicalivres" />
+    </a>
+
+    <nav aria-label="Navigation principale">
+      <a href="index.html#agenda">Agenda</a>
+      <a href="salons-du-livre.html">Salons & Festivals</a>
+      <a href="dedicaces.html">Dédicaces</a>
+      <a href="temoignages.html">Témoignages</a>
+      <a href="soumettre.html" class="nav-submit-link">Soumettre</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container submit-page-main">
+  <section class="seo-hero submit-hero">
+    <p class="category-kicker">Contribution gratuite</p>
+    <h1>Proposer un événement littéraire</h1>
+    <p>
+      Salon, festival, séance de dédicace, rencontre avec un auteur ou rendez-vous autour du livre :
+      envoyez les informations utiles, elles seront relues avant publication.
+    </p>
+  </section>
+
+  <section class="submit-page-layout" aria-labelledby="submission-form-title">
+    <aside class="submit-side-card">
+      <strong>Un formulaire clair, une mise en ligne maîtrisée.</strong>
+      <p>
+        L’objectif est simple : garder un agenda fiable pour les lecteurs, sans perdre les
+        organisateurs dans des étapes inutiles.
+      </p>
+      <ul>
+        <li>Soumission gratuite</li>
+        <li>Validation avant affichage</li>
+        <li>Carte alimentée par la ville choisie</li>
+        <li>Image recommandée, mais non obligatoire</li>
+      </ul>
+    </aside>
+
+    <form id="submission-form" class="submission-form-card">
+      <h2 id="submission-form-title">Informations de l’événement</h2>
+
+      <label>
+        <span>Titre de l’événement</span>
+        <input name="title" placeholder="Ex. Salon du livre de..." required />
+      </label>
+
+      <div class="form-grid-2">
+        <label>
+          <span>Type</span>
+          <select name="type" required>
+            <option value="">Choisir</option>
+            <option>Salon</option>
+            <option>Festival</option>
+            <option>Dédicace</option>
+            <option>Autre</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Région</span>
+          <select name="region" id="region-submit" required>
+            <option value="">Choisir</option>
+            <option>Auvergne-Rhône-Alpes</option>
+            <option>Bourgogne-Franche-Comté</option>
+            <option>Bretagne</option>
+            <option>Centre-Val de Loire</option>
+            <option>Corse</option>
+            <option>Grand Est</option>
+            <option>Hauts-de-France</option>
+            <option>Île-de-France</option>
+            <option>Normandie</option>
+            <option>Nouvelle-Aquitaine</option>
+            <option>Occitanie</option>
+            <option>Pays de la Loire</option>
+            <option>Provence-Alpes-Côte d’Azur</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="city-autocomplete-wrap">
+        <span>Ville</span>
+        <input
+          id="city-input"
+          name="city"
+          list="city-suggestions"
+          placeholder="Commencez à taper puis choisissez la commune"
+          autocomplete="off"
+          required
+        />
+        <datalist id="city-suggestions"></datalist>
+        <small id="city-help" class="field-help">
+          La ville sert à placer correctement l’événement sur la carte.
+        </small>
+      </label>
+
+      <input type="hidden" name="lat" id="city-lat" />
+      <input type="hidden" name="lng" id="city-lng" />
+
+      <div class="form-grid-2">
+        <label>
+          <span>Date de début</span>
+          <input name="start_date" type="date" required />
+        </label>
+
+        <label>
+          <span>Date de fin</span>
+          <input name="end_date" type="date" />
+        </label>
+      </div>
+
+      <div class="form-grid-2">
+        <label>
+          <span>Entrée</span>
+          <select name="price">
+            <option value="">Non précisé</option>
+            <option>Gratuit</option>
+            <option>Payant</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Site officiel</span>
+          <input name="website" type="url" placeholder="https://..." />
+        </label>
+      </div>
+
+      <label>
+        <span>Description</span>
+        <textarea name="description" rows="5" placeholder="Présentez le rendez-vous, le lieu, les auteurs invités ou les informations pratiques."></textarea>
+      </label>
+
+      <div class="upload-premium">
+        <label class="upload-box">
+          <input id="event-image-input" name="image" type="file" accept="image/*" />
+          <span class="upload-icon">Image</span>
+          <strong>Ajouter une affiche ou une photo</strong>
+          <small>JPG, PNG ou WEBP — recommandé : moins de 5 Mo</small>
+        </label>
+
+        <div id="image-preview" class="image-preview"></div>
+      </div>
+
+      <button type="submit">Envoyer la proposition</button>
+      <p id="form-feedback" class="form-feedback" aria-live="polite"></p>
+    </form>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=8.7"></script>
+<script src="app.js?v=index-optim-10"></script>
+<script src="tracking-v4.js?v=7.7.5"></script>
+<script>
+(function () {
+  "use strict";
+
+  const script = document.createElement("script");
+  script.src = "mascot-guide.js?v=guide-4";
+  script.async = true;
+  document.body.appendChild(script);
+})();
+</script>
+</body>
+</html>
