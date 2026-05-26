@@ -19,11 +19,14 @@
   );
 
   const FAVORITES_KEY = "dedicalivres_favorites";
+  const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+  const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 
   const eventsGrid = document.getElementById("events-grid");
   const resultsCount = document.getElementById("results-count");
   const favoritesList = document.getElementById("favorites-list");
   const clearFavoritesButton = document.getElementById("clear-favorites");
+  const savedEventsSection = document.getElementById("saved-events");
 
   const form = document.getElementById("submission-form");
   const formFeedback = document.getElementById("form-feedback");
@@ -56,6 +59,8 @@
   let userPosition = null;
   let selectedPreviewImage = null;
   let userMarker = null;
+  let pendingMapEvents = [];
+  let leafletAssetsPromise = null;
 
   const TYPE_META = {
     Salon: { className: "type-salon", color: "#3a1c71" },
@@ -71,10 +76,8 @@
     bindFavorites();
     bindImagePreview();
     populateMonthFilter();
-    initMap();
-    loadEvents();
-
     initDefaultMapVisibility();
+    loadEvents();
   }
 
   function initDefaultMapVisibility() {
@@ -93,9 +96,7 @@
     }
 
     if (shouldOpenByDefault) {
-      setTimeout(() => {
-        map?.invalidateSize();
-      }, 350);
+      requestMapRender();
     }
   }
 
@@ -140,11 +141,7 @@
 
     if (mapPanel.classList.contains("is-open")) {
       mobileMapToggle.textContent = "Fermer la carte en direct";
-
-      setTimeout(() => {
-        map?.invalidateSize();
-        installMapPremiumToolbarCleanupSafe();
-      }, 300);
+      requestMapRender(filterEvents(allEvents));
     } else {
       mobileMapToggle.textContent = "Carte en direct";
     }
@@ -197,10 +194,93 @@
     });
   }
 
-  function initMap() {
+  function loadStylesheetOnce(href) {
+    if (document.querySelector(`link[href="${href}"]`)) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = href;
+      link.crossOrigin = "";
+      link.onload = resolve;
+      link.onerror = resolve;
+      document.head.appendChild(link);
+    });
+  }
+
+  function loadScriptOnce(src) {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      return window.L ? Promise.resolve() : new Promise((resolve) => setTimeout(resolve, 240));
+    }
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.crossOrigin = "";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  function ensureLeafletAssets() {
+    if (window.L) return Promise.resolve();
+
+    if (!leafletAssetsPromise) {
+      leafletAssetsPromise = Promise.all([
+        loadStylesheetOnce(LEAFLET_CSS_URL),
+        loadScriptOnce(LEAFLET_JS_URL)
+      ]).then(() => undefined);
+    }
+
+    return leafletAssetsPromise;
+  }
+
+  function setMapLoadingState() {
     const mapElement = document.getElementById("map");
 
-    if (!mapElement || !window.L) return;
+    if (!mapElement || map || mapElement.querySelector(".map-loading-state")) return;
+
+    mapElement.innerHTML = `
+      <div class="map-loading-state">
+        <strong>Carte en cours de chargement</strong>
+        <span>Elle se lance uniquement quand vous l’utilisez.</span>
+      </div>
+    `;
+  }
+
+  async function requestMapRender(events = pendingMapEvents) {
+    if (!mapPanel) return;
+
+    pendingMapEvents = Array.isArray(events) ? events : [];
+    setMapLoadingState();
+
+    try {
+      await initMap();
+      renderMapMarkers(pendingMapEvents.length ? pendingMapEvents : filterEvents(allEvents));
+
+      setTimeout(() => {
+        map?.invalidateSize();
+        installMapPremiumToolbarCleanupSafe();
+      }, 180);
+    } catch (error) {
+      console.warn("Carte en direct indisponible :", error);
+    }
+  }
+
+  async function initMap() {
+    const mapElement = document.getElementById("map");
+
+    if (!mapElement) return null;
+    if (map) return map;
+
+    await ensureLeafletAssets();
+
+    if (!window.L) return null;
+
+    mapElement.innerHTML = "";
 
     map = L.map("map").setView([46.603354, 1.888334], 6);
 
@@ -211,6 +291,8 @@
     markersLayer = L.layerGroup().addTo(map);
     ensureMapFloatingPanel();
     installMapPremiumToolbarCleanupSafe();
+
+    return map;
   }
 
   async function loadEvents() {
@@ -220,7 +302,7 @@
 
     const { data, error } = await supabaseClient
       .from("events")
-      .select("*")
+      .select("id,title,type,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng")
       .eq("validated", true)
       .eq("rejected", false)
       .or(`end_date.is.null,end_date.gte.${today}`)
@@ -327,11 +409,17 @@
           Aucun événement trouvé.
         </article>
       `;
+      window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered", {
+        detail: { count: 0 }
+      }));
       return;
     }
 
     eventsGrid.innerHTML = events.map(renderEventCard).join("");
     refreshFavoriteButtons();
+    window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered", {
+      detail: { count: events.length }
+    }));
   }
 
   function renderEventCard(event) {
@@ -342,6 +430,7 @@
       <article
         class="event-card ${typeMeta.className}"
         id="event-${escapeAttribute(event.id)}"
+        data-event-id="${escapeAttribute(event.id)}"
       >
         ${
           event.featured
@@ -530,6 +619,7 @@
     const ids = getFavoriteIds();
 
     if (!ids.length) {
+      savedEventsSection?.classList.add("is-empty");
       favoritesList.innerHTML = `
         <article class="empty-state">Aucun favori pour le moment.</article>
       `;
@@ -541,6 +631,7 @@
       .filter(Boolean);
 
     if (!events.length) {
+      savedEventsSection?.classList.add("is-empty");
       favoritesList.innerHTML = `
         <article class="empty-state">
           Vos favoris seront affichés ici lorsque les événements correspondants seront encore à venir.
@@ -549,6 +640,7 @@
       return;
     }
 
+    savedEventsSection?.classList.remove("is-empty");
     favoritesList.innerHTML = events.map(renderFavoriteItem).join("");
   }
 
@@ -582,7 +674,15 @@
 
 
   function renderMapMarkers(events) {
-    if (!map || !markersLayer) return;
+    pendingMapEvents = Array.isArray(events) ? events : [];
+
+    if (!map || !markersLayer) {
+      if (mapPanel?.classList.contains("is-open")) {
+        requestMapRender(pendingMapEvents);
+      }
+
+      return;
+    }
 
     markersLayer.clearLayers();
     markerByEventId = {};
@@ -1452,9 +1552,23 @@
     }
   }
 
-  function locateUser() {
-    if (!navigator.geolocation || !map) {
+  async function locateUser() {
+    if (!navigator.geolocation) {
       alert("La géolocalisation n’est pas disponible.");
+      return;
+    }
+
+    if (mapPanel && !mapPanel.classList.contains("is-open")) {
+      mapPanel.classList.add("is-open");
+      if (mobileMapToggle) mobileMapToggle.textContent = "Fermer la carte en direct";
+    }
+
+    if (!map) {
+      await requestMapRender(filterEvents(allEvents));
+    }
+
+    if (!map || !window.L) {
+      alert("La carte n’est pas disponible pour le moment.");
       return;
     }
 

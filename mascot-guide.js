@@ -33,9 +33,9 @@
           run: () => scrollToTarget("#agenda")
         },
         {
-          label: "Explorer par région",
-          hint: "Trouver une zone géographique",
-          run: () => scrollToTarget("#regions")
+          label: "Voir la carte",
+          hint: "Repérer les événements sur la carte",
+          run: () => scrollToTarget("#agenda-map")
         }
       ]
     },
@@ -56,8 +56,8 @@
         },
         {
           label: "Proposer mon événement",
-          hint: "Aller au formulaire de soumission",
-          run: () => scrollToTarget("#submission-form")
+          hint: "Aller à l’espace de soumission",
+          run: () => scrollToTarget("#soumettre")
         },
         {
           label: "Voir les dédicaces",
@@ -80,9 +80,9 @@
       actions: [
         {
           label: "Soumettre un événement",
-          hint: "Aller au formulaire",
+          hint: "Aller à l’espace de soumission",
           className: "primary",
-          run: () => scrollToTarget("#submission-form")
+          run: () => scrollToTarget("#soumettre")
         },
         {
           label: "Voir salons & festivals",
@@ -367,7 +367,7 @@ body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
           <button class="mascot-guide-action primary" type="button" data-guide-submit-event>
             <span>
               Proposer cet événement
-              <small>Aller au formulaire de soumission</small>
+              <small>Aller à l’espace de soumission</small>
             </span>
             <span aria-hidden="true">→</span>
           </button>
@@ -375,7 +375,7 @@ body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
 
         resultsContainer.querySelector("[data-guide-submit-event]")?.addEventListener("click", () => {
           closeGuide();
-          setTimeout(() => scrollToTarget("#submission-form"), 90);
+          setTimeout(() => scrollToTarget("#soumettre"), 90);
         });
 
         return;

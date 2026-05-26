@@ -13,7 +13,7 @@
   position: fixed;
   right: 18px;
   bottom: 18px;
-  z-index: 70;
+  z-index: 900;
   font-family: Inter, system-ui, sans-serif;
   color: var(--mg-text);
 }

@@ -4617,3 +4617,142 @@ button,
     font-size: clamp(1.85rem, 9vw, 2.45rem);
   }
 }
+
+
+/* =========================================================
+   INDEX OPTIM-8 — agenda recentré sur carte + parcours allégé
+========================================================= */
+
+.header-inner {
+  min-height: 62px;
+}
+
+.header .logo {
+  height: 46px;
+}
+
+.header nav {
+  row-gap: 6px;
+}
+
+.header nav a {
+  line-height: 1.1;
+}
+
+.nav-submit-link {
+  padding-block: 6px;
+}
+
+#agenda-map {
+  scroll-margin-top: 86px;
+}
+
+.agenda-map-showcase {
+  margin: clamp(18px, 3vw, 28px) 0 clamp(16px, 3vw, 28px);
+}
+
+.agenda-map-showcase .map-teaser {
+  margin: 0 0 10px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255,107,53,.13), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,.95), rgba(248,241,251,.82));
+}
+
+.agenda-map-showcase .ux-actions {
+  margin: 0 0 12px;
+}
+
+.agenda-map-showcase .map-panel {
+  height: min(500px, 60vh);
+  margin-bottom: 0;
+}
+
+.saved-events-section.is-empty {
+  margin: 8px 0 18px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.78), rgba(248,241,251,.56));
+  box-shadow: 0 10px 26px rgba(58,28,113,.08);
+}
+
+.saved-events-section.is-empty .saved-events-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0;
+}
+
+.saved-events-section.is-empty .category-kicker,
+.saved-events-section.is-empty .saved-events-head p,
+.saved-events-section.is-empty #clear-favorites,
+.saved-events-section.is-empty .favorites-list {
+  display: none;
+}
+
+.saved-events-section.is-empty h2 {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: clamp(.98rem, 1.35vw, 1.12rem);
+  font-weight: 950;
+}
+
+.saved-events-section.is-empty h2::after {
+  content: "Aucun favori pour l’instant";
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  margin: 0 0 0 10px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255,255,255,.72);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: .78rem;
+  font-weight: 850;
+  vertical-align: middle;
+}
+
+.filters {
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .header-inner {
+    min-height: 58px;
+    padding: 6px 0 8px;
+  }
+
+  .header .logo {
+    height: 38px;
+  }
+
+  .agenda-map-showcase .map-panel {
+    height: min(430px, 68vh);
+  }
+}
+
+@media (max-width: 780px) {
+  html {
+    scroll-padding-top: 96px;
+  }
+
+  .header-inner {
+    padding: 7px 0 8px;
+  }
+
+  .agenda-map-showcase {
+    margin-top: 16px;
+  }
+
+  .saved-events-section.is-empty {
+    padding: 11px 12px;
+  }
+
+  .saved-events-section.is-empty h2::after {
+    display: block;
+    margin: 5px 0 0;
+    width: fit-content;
+  }
+}

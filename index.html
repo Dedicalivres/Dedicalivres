@@ -19,7 +19,7 @@
   />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://dedicalivres.fr/" />
-  <meta property="og:image" content="https://dedicalivres.fr/banner.jpg" />
+  <meta property="og:image" content="https://dedicalivres.fr/banner-preview.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
   <script type="application/ld+json">
@@ -39,10 +39,10 @@
     rel="stylesheet"
   />
 
-  <link rel="preload" as="image" href="banner.jpg" />
+  <link rel="preload" as="image" href="banner-preview.png" />
 
-  <link rel="stylesheet" href="style.css?v=index-optim-4" />
-  <link rel="stylesheet" href="mascot-guide.css?v=soumettre-1b" />
+  <link rel="stylesheet" href="style.css?v=index-optim-8" />
+  <link rel="stylesheet" href="mascot-guide.css?v=guide-3" />
 </head>
 
 <body data-agenda-mode="global">
@@ -59,7 +59,7 @@
       <a href="salons-du-livre.html">Salons & Festivals</a>
       <a href="dedicaces.html">Dédicaces</a>
       <a href="temoignages.html">Témoignages</a>
-      <a href="#submission-form" class="nav-submit-link">Soumettre</a>
+      <a href="#soumettre" class="nav-submit-link">Soumettre</a>
     </nav>
 
   </div>
@@ -68,7 +68,7 @@
 <section class="hero hero-home hero-banner-menu" aria-label="Bannière Dédicalivres">
   <img
     class="hero-banner-image"
-    src="banner.jpg"
+    src="banner-preview.png"
     width="1983"
     height="793"
     alt="Dédicalivres, agenda littéraire en France"
@@ -78,27 +78,37 @@
 
   <nav class="hero-picto-nav" aria-label="Accès rapides Dédicalivres">
     <a class="hero-picto-button" href="#agenda">
-      <span class="hero-picto-icon" aria-hidden="true">◆</span>
+      <span class="hero-picto-icon" aria-hidden="true">
+        <img class="hero-picto-image" src="assets/index-pictos/agenda.png" width="118" height="118" alt="" decoding="async" />
+      </span>
       <span>Agenda</span>
     </a>
 
     <a class="hero-picto-button" href="salons-du-livre.html">
-      <span class="hero-picto-icon" aria-hidden="true">▦</span>
+      <span class="hero-picto-icon" aria-hidden="true">
+        <img class="hero-picto-image" src="assets/index-pictos/salons-festivals.png" width="118" height="118" alt="" decoding="async" />
+      </span>
       <span>Salons & festivals</span>
     </a>
 
     <a class="hero-picto-button" href="dedicaces.html">
-      <span class="hero-picto-icon" aria-hidden="true">✒</span>
+      <span class="hero-picto-icon" aria-hidden="true">
+        <img class="hero-picto-image" src="assets/index-pictos/dedicaces.png" width="118" height="118" alt="" decoding="async" />
+      </span>
       <span>Dédicaces</span>
     </a>
 
     <a class="hero-picto-button" href="temoignages.html">
-      <span class="hero-picto-icon" aria-hidden="true">♡</span>
+      <span class="hero-picto-icon" aria-hidden="true">
+        <img class="hero-picto-image" src="assets/index-pictos/temoignages.png" width="118" height="118" alt="" decoding="async" />
+      </span>
       <span>Témoignages</span>
     </a>
 
-    <a class="hero-picto-button hero-picto-submit" href="#submission-form">
-      <span class="hero-picto-icon" aria-hidden="true">＋</span>
+    <a class="hero-picto-button hero-picto-submit" href="#soumettre">
+      <span class="hero-picto-icon" aria-hidden="true">
+        <img class="hero-picto-image" src="assets/index-pictos/soumettre.svg" width="118" height="118" alt="" decoding="async" />
+      </span>
       <span>Soumettre</span>
     </a>
   </nav>
@@ -118,7 +128,7 @@
 
       <div class="home-magazine-actions">
         <a class="btn-primary" href="#agenda">Explorer les événements</a>
-        <a class="btn-secondary" href="#submission-form">Soumettre un événement</a>
+        <a class="btn-secondary" href="#soumettre">Soumettre un événement</a>
       </div>
     </div>
 
@@ -131,9 +141,9 @@
         <strong>Mes événements sauvegardés</strong>
         <span>Retrouvez vos salons, dédicaces et rencontres favoris.</span>
       </a>
-      <a class="home-magazine-tile" href="#regions">
-        <strong>Explorer par région</strong>
-        <span>Repérez les événements près de chez vous.</span>
+      <a class="home-magazine-tile" href="#agenda-map">
+        <strong>Carte en direct</strong>
+        <span>Repérez rapidement les rendez-vous près de chez vous.</span>
       </a>
     </div>
   </div>
@@ -159,7 +169,51 @@
       </p>
     </div>
 
-    <section id="saved-events" class="section saved-events-section" aria-labelledby="saved-events-title">
+    <div id="agenda-map" class="agenda-map-showcase">
+      <div class="map-teaser">
+        <div>
+          <strong>Carte en direct</strong>
+          <p>
+            Visualisez les salons, festivals et dédicaces autour de vous
+            avant de choisir votre prochain rendez-vous littéraire.
+          </p>
+        </div>
+        <span>Atout Dédicalivres</span>
+      </div>
+
+      <div class="ux-actions">
+
+        <button
+          id="mobile-map-toggle"
+          class="btn-secondary mobile-map-toggle"
+          type="button"
+        >
+          Carte en direct
+        </button>
+
+        <button id="locate-me" class="btn-secondary" type="button">
+          Me localiser
+        </button>
+
+        <div class="map-legend-inline" aria-label="Légende de la carte en direct">
+          <span class="map-legend-title">Légende :</span>
+          <span><i class="legend-dot legend-salon"></i>Salon</span>
+          <span><i class="legend-dot legend-festival"></i>Festival</span>
+          <span><i class="legend-dot legend-dedicace"></i>Dédicace</span>
+        </div>
+
+      </div>
+
+      <aside
+        class="map-panel"
+        id="map-panel"
+        aria-label="Carte des événements"
+      >
+        <div id="map"></div>
+      </aside>
+    </div>
+
+    <section id="saved-events" class="section saved-events-section is-empty" aria-labelledby="saved-events-title">
       <div class="saved-events-head">
         <div>
           <p class="category-kicker">Mes repères</p>
@@ -222,107 +276,14 @@
 
     </div>
 
-    <div class="map-teaser">
-      <div>
-        <strong>Carte en direct</strong>
-        <p>
-          Visualisez les salons, festivals et dédicaces autour de vous
-          avant de choisir votre prochain rendez-vous littéraire.
-        </p>
-      </div>
-      <span>Atout Dédicalivres</span>
-    </div>
-
-    <div class="ux-actions">
-
-      <button
-        id="mobile-map-toggle"
-        class="btn-secondary mobile-map-toggle"
-        type="button"
-      >
-        Carte en direct
-      </button>
-
-      <button id="locate-me" class="btn-secondary" type="button">
-        Me localiser
-      </button>
-
-      <div class="map-legend-inline" aria-label="Légende de la carte en direct">
-        <span class="map-legend-title">Légende :</span>
-        <span><i class="legend-dot legend-salon"></i>Salon</span>
-        <span><i class="legend-dot legend-festival"></i>Festival</span>
-        <span><i class="legend-dot legend-dedicace"></i>Dédicace</span>
-      </div>
-
-
-    </div>
-
-    <div class="agenda-layout">
-
-      
-
-      
-      <aside
-        class="map-panel"
-        id="map-panel"
-        aria-label="Carte des événements"
-      >
-        <div id="map"></div>
-      </aside>
-
-      <div>
-        <section
-          id="events-grid"
-          class="events-grid"
-          aria-live="polite"
-        ></section>
-      </div>
-
-    
-
-    
-
-    </div>
+    <section
+      id="events-grid"
+      class="events-grid"
+      aria-live="polite"
+    ></section>
 
   </section>
 
-  <section id="regions" class="section regional-links-section regional-map-section" aria-labelledby="regions-title">
-
-    <div class="regional-links-head regional-map-head">
-      <p class="category-kicker">Explorer par région</p>
-      <h2 id="regions-title">Trouver un événement littéraire près de chez vous</h2>
-      <p>
-        Cliquez sur une région pour découvrir les salons du livre, festivals littéraires,
-        séances de dédicaces et rencontres d’auteurs validés sur Dédicalivres.
-      </p>
-    </div>
-
-    <div id="regional-map-app" class="regional-map-app" aria-live="polite">
-      <article class="empty-state">
-        <div class="loader"></div>
-        <p>Chargement de la carte régionale…</p>
-      </article>
-    </div>
-
-    <noscript>
-      <div class="regional-links-grid compact">
-        <a href="evenements-litteraires-ile-de-france.html"><strong>Île-de-France</strong><span>Paris, librairies, salons et rendez-vous franciliens</span></a>
-        <a href="evenements-litteraires-auvergne-rhone-alpes.html"><strong>Auvergne-Rhône-Alpes</strong><span>Lyon, Grenoble, Clermont-Ferrand et rencontres régionales</span></a>
-        <a href="evenements-litteraires-nouvelle-aquitaine.html"><strong>Nouvelle-Aquitaine</strong><span>Bordeaux, littoral, salons et festivals du livre</span></a>
-        <a href="evenements-litteraires-occitanie.html"><strong>Occitanie</strong><span>Toulouse, Montpellier, festivals et rencontres d’auteurs</span></a>
-        <a href="evenements-litteraires-bretagne.html"><strong>Bretagne</strong><span>Librairies, festivals, salons et rendez-vous bretons</span></a>
-        <a href="evenements-litteraires-bourgogne-franche-comte.html"><strong>Bourgogne-Franche-Comté</strong><span>Dijon, Besançon, librairies et rendez-vous du livre</span></a>
-        <a href="evenements-litteraires-centre-val-de-loire.html"><strong>Centre-Val de Loire</strong><span>Tours, Orléans, rencontres et événements littéraires</span></a>
-        <a href="evenements-litteraires-corse.html"><strong>Corse</strong><span>Ajaccio, Bastia, rencontres insulaires et salons du livre</span></a>
-        <a href="evenements-litteraires-grand-est.html"><strong>Grand Est</strong><span>Strasbourg, Reims, Metz, Nancy et rendez-vous du livre</span></a>
-        <a href="evenements-litteraires-hauts-de-france.html"><strong>Hauts-de-France</strong><span>Lille, Amiens, salons, dédicaces et festivals littéraires</span></a>
-        <a href="evenements-litteraires-normandie.html"><strong>Normandie</strong><span>Rouen, Caen, littoral normand et rencontres d’auteurs</span></a>
-        <a href="evenements-litteraires-pays-de-la-loire.html"><strong>Pays de la Loire</strong><span>Nantes, Angers, Le Mans et événements autour du livre</span></a>
-        <a href="evenements-litteraires-provence-alpes-cote-azur.html"><strong>Provence-Alpes-Côte d’Azur</strong><span>Marseille, Nice, Toulon, festivals et dédicaces</span></a>
-      </div>
-    </noscript>
-
-  </section>
 <section id="soumettre" class="section">
 
     <h2>Proposer un événement</h2>
@@ -509,7 +470,7 @@
         <a href="salons-du-livre.html">Salons & Festivals</a>
         <a href="dedicaces.html">Dédicaces</a>
         <a href="temoignages.html">Témoignages</a>
-        <a href="index.html#submission-form">Soumettre</a>
+        <a href="index.html#soumettre">Soumettre</a>
       </nav>
     </div>
 
@@ -561,33 +522,15 @@
     window.setTimeout(callback, 900);
   }
 
+  loadScript("mascot-guide.js?v=guide-3");
+
   onIdle(function () {
     loadScript("author-search-index.js?v=7.7.5");
-    loadScript("mascot-guide.js?v=soumettre-1b");
 
     if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
       loadScript("custom-cursor.js?v=7.7.5");
     }
   });
-
-  var regionalRoot = document.getElementById("regional-map-app");
-
-  if (regionalRoot) {
-    if ("IntersectionObserver" in window) {
-      var regionalObserver = new IntersectionObserver(function (entries, observer) {
-        if (!entries.some(function (entry) { return entry.isIntersecting; })) return;
-
-        loadScript("regional-map.js?v=7.6.7f");
-        observer.disconnect();
-      }, { rootMargin: "260px 0px" });
-
-      regionalObserver.observe(regionalRoot);
-    } else {
-      onIdle(function () {
-        loadScript("regional-map.js?v=7.6.7f");
-      });
-    }
-  }
 
   function getSubmissionForm() {
     return document.getElementById("submission-form");
@@ -614,6 +557,22 @@
     return true;
   }
 
+  function scrollToSubmitSection(updateHash) {
+    const section = document.getElementById("soumettre");
+    if (!section) return false;
+
+    if (updateHash) {
+      history.replaceState(null, "", "#soumettre");
+    }
+
+    section.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+    return true;
+  }
+
   document.addEventListener("click", function (event) {
     const link = event.target.closest('a[href="#soumettre"], a[href="#submission-form"], a[href$="index.html#soumettre"], a[href$="index.html#submission-form"]');
     if (!link) return;
@@ -622,12 +581,24 @@
 
     if (samePage && getSubmissionForm()) {
       event.preventDefault();
-      scrollToSubmissionForm(true);
+
+      if (link.hash === "#submission-form") {
+        scrollToSubmissionForm(true);
+        return;
+      }
+
+      scrollToSubmitSection(true);
     }
   });
 
   window.addEventListener("DOMContentLoaded", function () {
-    if (window.location.hash === "#soumettre" || window.location.hash === "#submission-form") {
+    if (window.location.hash === "#soumettre") {
+      setTimeout(function () {
+        scrollToSubmitSection(false);
+      }, 180);
+    }
+
+    if (window.location.hash === "#submission-form") {
       setTimeout(function () {
         scrollToSubmissionForm(false);
       }, 180);
