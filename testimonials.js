@@ -17,7 +17,11 @@
     return;
   }
 
-  const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  const client =
+    window.DEDICALIVRES_SUPABASE_CLIENT ||
+    window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+  window.DEDICALIVRES_SUPABASE_CLIENT = client;
   let selectedImage = null;
 
   init();
@@ -190,12 +194,12 @@
           imagePreview.classList.remove("is-visible");
         }
 
-        setFeedback("Merci, votre témoignage a bien été transmis. Il sera relu avant publication.", "success");
+        setFeedback("Merci, votre souvenir a bien été transmis. Il sera relu avec soin avant publication.", "success");
       } catch (error) {
         console.error("Erreur témoignage :", error);
-        setFeedback("Impossible d’envoyer le témoignage pour le moment. Vérifiez la table testimonials et le bucket testimonial-images.", "error");
+        setFeedback("Impossible d’envoyer le souvenir pour le moment. Réessayez dans quelques instants.", "error");
       } finally {
-        setButtonLoading(submitButton, false, "Envoyer mon témoignage");
+        setButtonLoading(submitButton, false, "Partager mon souvenir");
       }
     });
   }
