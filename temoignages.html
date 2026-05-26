@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=7.7.1f" />
+  <link rel="stylesheet" href="style.css?v=index-optim-10" />
 </head>
 
 <body class="testimonials-page">
@@ -37,29 +37,26 @@
       <a href="salons-du-livre.html">Salons &amp; Festivals</a>
       <a href="dedicaces.html">Dédicaces</a>
       <a href="temoignages.html">Témoignages</a>
-      <a href="index.html#soumettre" class="nav-submit-link">Soumettre</a>
+      <a href="soumettre.html" class="nav-submit-link">Soumettre</a>
     </nav>
   </div>
 </header>
 
 <main class="container seo-content">
   <section class="seo-hero testimonials-hero">
-    <p class="category-kicker">Témoignages</p>
-    <h1>Vos souvenirs de livres dédicacés et de rencontres littéraires</h1>
-    <p>
-      Dédicalivres référence les salons du livre, festivals, dédicaces et rencontres avec des auteurs.
-      Cette page rassemble les retours d’expérience des lecteurs : une nouvelle dédicace coup de cœur, une photo, un souvenir,
-      quelques mots adressés à Dédicalivres pour montrer que les rencontres littéraires laissent une trace.
-    </p>
-  </section>
+    <div>
+      <p class="category-kicker">Témoignages</p>
+      <h1>Vos souvenirs donnent envie de rencontrer les auteurs.</h1>
+      <p>
+        Une dédicace, une discussion, une photo de livre signé ou un moment fort en salon :
+        ces retours rendent l’agenda plus vivant et aident les lecteurs à se projeter.
+      </p>
+    </div>
 
-  <section class="seo-text-block testimonials-intro">
-    <h2>Partager une expérience, c’est faire vivre l’agenda</h2>
-    <p>
-      Une dédicace peut transformer un livre en souvenir personnel. En partageant votre expérience,
-      vous aidez d’autres lecteurs à découvrir les événements littéraires près de chez eux,
-      tout en donnant de la visibilité aux auteurs, librairies et organisateurs qui font vivre le livre.
-    </p>
+    <a class="testimonial-hero-card" href="#testimonial-form">
+      <strong>Partager un souvenir</strong>
+      <span>Quelques mots suffisent, la publication reste relue avant affichage.</span>
+    </a>
   </section>
 
   <section class="section testimonials-section" aria-labelledby="testimonials-list-title">
@@ -69,48 +66,65 @@
   </section>
 
   <section class="section testimonial-submit-section" aria-labelledby="testimonial-form-title">
-    <div class="submit-trust-panel testimonial-trust-panel">
-      <div>
-        <strong>Votre témoignage reste relu avant publication.</strong>
+    <div class="testimonial-submit-layout">
+      <aside class="testimonial-inspiration-card">
+        <p class="category-kicker">Pourquoi partager ?</p>
+        <strong>Un témoignage rassure, inspire et valorise le travail autour du livre.</strong>
         <p>
-          Pour préserver un espace bienveillant et utile, les messages et photos sont validés avant affichage.
-          Partagez un retour simple, sincère et respectueux autour d’une rencontre littéraire.
+          Le ton peut rester simple : ce que vous avez aimé, ce que la rencontre vous a apporté,
+          ou pourquoi cette dédicace compte pour vous.
         </p>
-      </div>
-      <ul>
-        <li>Souvenir de dédicace</li>
-        <li>Photo de votre nouvelle dédicace coup de cœur</li>
-        <li>Validation avant publication</li>
-      </ul>
+        <ul>
+          <li>Message relu avant publication</li>
+          <li>Email non affiché publiquement</li>
+          <li>Photo facultative</li>
+        </ul>
+      </aside>
+
+      <form id="testimonial-form" class="testimonial-form testimonial-form-card">
+        <h2 id="testimonial-form-title">Laisser un témoignage</h2>
+
+        <div class="form-grid-2">
+          <label>
+            <span>Prénom ou pseudo</span>
+            <input name="pseudo" type="text" placeholder="Ex. Marie" maxlength="80" required />
+          </label>
+
+          <label>
+            <span>Email</span>
+            <input name="email" type="email" placeholder="Non publié" required />
+          </label>
+        </div>
+
+        <label>
+          <span>Événement concerné</span>
+          <input name="event_title" type="text" placeholder="Optionnel" maxlength="140" />
+        </label>
+
+        <label>
+          <span>Votre souvenir</span>
+          <textarea name="message" rows="6" maxlength="900" placeholder="Racontez une rencontre, une dédicace, une émotion ou une découverte." required></textarea>
+        </label>
+
+        <label class="upload-box testimonial-upload-box">
+          <input id="testimonial-image-input" name="image" type="file" accept="image/*" />
+          <span class="upload-icon">Photo</span>
+          <strong>Ajouter une photo de votre dédicace coup de cœur</strong>
+          <small>JPG, PNG ou WEBP — recommandé : moins de 5 Mo</small>
+        </label>
+
+        <div id="testimonial-image-preview" class="image-preview"></div>
+
+        <button class="btn-primary" type="submit">Envoyer mon témoignage</button>
+        <p id="testimonial-feedback" class="form-feedback" aria-live="polite"></p>
+      </form>
     </div>
-
-    <form id="testimonial-form" class="testimonial-form">
-      <h2 id="testimonial-form-title">Laisser un témoignage à Dédicalivres</h2>
-
-      <input name="pseudo" type="text" placeholder="Votre prénom ou pseudo" maxlength="80" required />
-      <input name="email" type="email" placeholder="Votre email — non publié" required />
-      <input name="event_title" type="text" placeholder="Événement ou rencontre concernée — optionnel" maxlength="140" />
-
-      <textarea name="message" rows="6" maxlength="900" placeholder="Racontez votre souvenir : une rencontre, une dédicace, une émotion, votre nouvelle dédicace coup de cœur…" required></textarea>
-
-      <label class="upload-box testimonial-upload-box">
-        <input id="testimonial-image-input" name="image" type="file" accept="image/*" />
-        <span class="upload-icon">📖</span>
-        <strong>Ajouter une photo de votre nouvelle dédicace coup de cœur</strong>
-        <small>JPG, PNG ou WEBP — recommandé : moins de 5 Mo</small>
-      </label>
-
-      <div id="testimonial-image-preview" class="image-preview"></div>
-
-      <button class="btn-primary" type="submit">Envoyer mon témoignage</button>
-      <p id="testimonial-feedback" class="form-feedback" aria-live="polite"></p>
-    </form>
   </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=7.7.1e"></script>
-<script src="testimonials.js?v=7.7.1f"></script>
+<script src="config.js?v=8.7"></script>
+<script src="testimonials.js?v=index-optim-10"></script>
 <script src="tracking-v4.js?v=7.7.1e"></script>
 </body>
 </html>
