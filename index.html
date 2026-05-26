@@ -39,9 +39,9 @@
     rel="stylesheet"
   />
 
-  <link rel="preload" as="image" href="banner2.jpg?v=index-optim-9" />
+  <link rel="preload" as="image" href="banner2.jpg?v=index-optim-10" />
 
-  <link rel="stylesheet" href="style.css?v=index-optim-9" />
+  <link rel="stylesheet" href="style.css?v=index-optim-10" />
   <link rel="stylesheet" href="mascot-guide.css?v=guide-4" />
 </head>
 
@@ -59,7 +59,7 @@
       <a href="salons-du-livre.html">Salons & Festivals</a>
       <a href="dedicaces.html">Dédicaces</a>
       <a href="temoignages.html">Témoignages</a>
-      <a href="#soumettre" class="nav-submit-link">Soumettre</a>
+      <a href="soumettre.html" class="nav-submit-link">Soumettre</a>
     </nav>
 
   </div>
@@ -68,7 +68,7 @@
 <section class="hero hero-home hero-banner-menu" aria-label="Bannière Dédicalivres">
   <img
     class="hero-banner-image"
-    src="banner2.jpg?v=index-optim-9"
+    src="banner2.jpg?v=index-optim-10"
     width="1983"
     height="793"
     alt="Dédicalivres, agenda littéraire en France"
@@ -133,7 +133,7 @@
       <span>Témoignages</span>
     </a>
 
-    <a class="hero-picto-button hero-picto-submit" href="#soumettre">
+    <a class="hero-picto-button hero-picto-submit" href="soumettre.html">
       <span class="hero-picto-icon" aria-hidden="true">
         <svg class="hero-picto-image" viewBox="0 0 118 118" focusable="false">
           <circle cx="59" cy="59" r="55" fill="#fffdfc"/>
@@ -165,7 +165,7 @@
 
       <div class="home-magazine-actions">
         <a class="btn-primary" href="#agenda">Explorer les événements</a>
-        <a class="btn-secondary" href="#soumettre">Soumettre un événement</a>
+        <a class="btn-secondary" href="soumettre.html">Soumettre un événement</a>
       </div>
     </div>
 
@@ -231,6 +231,8 @@
         <button id="locate-me" class="btn-secondary" type="button">
           Me localiser
         </button>
+
+        <p id="locate-status" class="locate-status" aria-live="polite"></p>
 
         <div class="map-legend-inline" aria-label="Légende de la carte en direct">
           <span class="map-legend-title">Légende :</span>
@@ -319,142 +321,18 @@
       aria-live="polite"
     ></section>
 
-  </section>
+    <details id="past-events" class="past-events-section">
+      <summary>
+        <span>Événements passés</span>
+        <small id="past-events-count">Chargement…</small>
+      </summary>
 
-<section id="soumettre" class="section">
-
-    <h2>Proposer un événement</h2>
-
-    <p class="section-intro submit-intro">
-      Vous organisez un salon, une rencontre, une dédicace ou un rendez-vous autour du livre ?
-      Proposez-le gratuitement pour le rendre visible auprès des lecteurs.
-    </p>
-
-  <section class="submit-trust-panel">
-    <div>
-      <strong>Votre événement reste relu avant publication.</strong>
-      <p>
-        Dédicalivres centralise les propositions dans cet espace afin de garder
-        un agenda clair, fiable et utile aux lecteurs.
-      </p>
-    </div>
-
-    <ul>
-      <li>Soumission gratuite</li>
-      <li>Validation avant mise en ligne</li>
-      <li>Visibilité locale et nationale</li>
-    </ul>
-  </section>
-
-    <form id="submission-form">
-
-      <input
-        name="title"
-        placeholder="Titre de l’événement"
-        required
-      />
-
-      <select name="type">
-        <option value="">Type d’événement</option>
-        <option>Salon</option>
-        <option>Festival</option>
-        <option>Dédicace</option>
-        <option>Autre</option>
-      </select>
-
-      <select name="region" id="region-submit">
-        <option value="">Région</option>
-        <option>Auvergne-Rhône-Alpes</option>
-        <option>Bourgogne-Franche-Comté</option>
-        <option>Bretagne</option>
-        <option>Centre-Val de Loire</option>
-        <option>Corse</option>
-        <option>Grand Est</option>
-        <option>Hauts-de-France</option>
-        <option>Île-de-France</option>
-        <option>Normandie</option>
-        <option>Nouvelle-Aquitaine</option>
-        <option>Occitanie</option>
-        <option>Pays de la Loire</option>
-        <option>Provence-Alpes-Côte d’Azur</option>
-      </select>
-
-      <div class="city-autocomplete-wrap">
-
-        <input
-          id="city-input"
-          name="city"
-          list="city-suggestions"
-          placeholder="Ville — commencez à taper puis choisissez"
-          autocomplete="off"
-          required
-        />
-
-        <datalist id="city-suggestions"></datalist>
-
-        <small id="city-help" class="field-help">
-          Sélectionnez une ville proposée pour placer correctement
-          l’événement sur la carte.
-        </small>
-
-      </div>
-
-      <input type="hidden" name="lat" id="city-lat" />
-      <input type="hidden" name="lng" id="city-lng" />
-
-      <input name="start_date" type="date" />
-      <input name="end_date" type="date" />
-
-      <select name="price">
-        <option value="">Entrée</option>
-        <option>Gratuit</option>
-        <option>Payant</option>
-      </select>
-
-      <input
-        name="website"
-        type="url"
-        placeholder="Site officiel"
-      />
-
-      <textarea
-        name="description"
-        rows="5"
-        placeholder="Description"
-      ></textarea>
-
-      <div class="upload-premium">
-
-        <label class="upload-box">
-
-          <input
-            id="event-image-input"
-            name="image"
-            type="file"
-            accept="image/*"
-          />
-
-          <span class="upload-icon">🖼️</span>
-
-          <strong>Ajouter une affiche ou photo</strong>
-
-          <small>
-            JPG, PNG ou WEBP — recommandé : moins de 5 Mo
-          </small>
-
-        </label>
-
-        <div id="image-preview" class="image-preview"></div>
-
-      </div>
-
-      <button type="submit">
-        Envoyer
-      </button>
-
-      <p id="form-feedback"></p>
-
-    </form>
+      <div
+        id="past-events-grid"
+        class="events-grid past-events-grid"
+        aria-live="polite"
+      ></div>
+    </details>
 
   </section>
 
@@ -507,7 +385,7 @@
         <a href="salons-du-livre.html">Salons & Festivals</a>
         <a href="dedicaces.html">Dédicaces</a>
         <a href="temoignages.html">Témoignages</a>
-        <a href="index.html#soumettre">Soumettre</a>
+        <a href="soumettre.html">Soumettre</a>
       </nav>
     </div>
 
@@ -531,7 +409,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="config.js?v=8.7"></script>
-<script src="app.js?v=index-optim-9"></script>
+<script src="app.js?v=index-optim-10"></script>
 
 <script src="tracking-v4.js?v=7.7.5"></script>
 <script src="ui-effects-v6.js?v=7.7.5"></script>
@@ -569,78 +447,9 @@
     }
   });
 
-  function getSubmissionForm() {
-    return document.getElementById("submission-form");
+  if (window.location.hash === "#soumettre" || window.location.hash === "#submission-form") {
+    window.location.replace("soumettre.html");
   }
-
-  function scrollToSubmissionForm(updateHash) {
-    const form = getSubmissionForm();
-    if (!form) return false;
-
-    if (updateHash) {
-      history.replaceState(null, "", "#submission-form");
-    }
-
-    form.scrollIntoView({
-      behavior: "smooth",
-      block: "center"
-    });
-
-    setTimeout(function () {
-      const firstField = form.querySelector("input, select, textarea");
-      if (firstField) firstField.focus({ preventScroll: true });
-    }, 420);
-
-    return true;
-  }
-
-  function scrollToSubmitSection(updateHash) {
-    const section = document.getElementById("soumettre");
-    if (!section) return false;
-
-    if (updateHash) {
-      history.replaceState(null, "", "#soumettre");
-    }
-
-    section.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-
-    return true;
-  }
-
-  document.addEventListener("click", function (event) {
-    const link = event.target.closest('a[href="#soumettre"], a[href="#submission-form"], a[href$="index.html#soumettre"], a[href$="index.html#submission-form"]');
-    if (!link) return;
-
-    const samePage = !link.href || link.href.split("#")[0] === window.location.href.split("#")[0];
-
-    if (samePage && getSubmissionForm()) {
-      event.preventDefault();
-
-      if (link.hash === "#submission-form") {
-        scrollToSubmissionForm(true);
-        return;
-      }
-
-      scrollToSubmitSection(true);
-    }
-  });
-
-  window.addEventListener("DOMContentLoaded", function () {
-    if (window.location.hash === "#soumettre") {
-      setTimeout(function () {
-        scrollToSubmitSection(false);
-      }, 180);
-    }
-
-    if (window.location.hash === "#submission-form") {
-      setTimeout(function () {
-        scrollToSubmissionForm(false);
-      }, 180);
-    }
-  });
 })();
 </script>
 
