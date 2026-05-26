@@ -4008,3 +4008,271 @@ button,
     border-radius: 21px;
   }
 }
+
+
+/* =========================================================
+   INDEX OPTIM-1 — accueil plus direct, carte et blocs allégés
+========================================================= */
+
+.hero-home {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  min-height: clamp(360px, 38vw, 500px);
+  height: auto;
+  margin-bottom: clamp(20px, 3vw, 34px);
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(31, 12, 59, .86), rgba(31, 12, 59, .54) 48%, rgba(31, 12, 59, .16)),
+    linear-gradient(180deg, rgba(31, 12, 59, .08), rgba(31, 12, 59, .72)),
+    url("https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev/event-images/2026/05/42EA4595-FD0E-4227-9CAF-EE9BC74F6DDA.PNG") center 44% / cover no-repeat !important;
+}
+
+.hero-home::before {
+  display: none;
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  width: min(1180px, calc(100% - 40px));
+  padding: clamp(28px, 5vw, 56px) 0;
+  color: #fff;
+}
+
+.hero-kicker,
+.hero-trust span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border-radius: 999px;
+  font-weight: 950;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.hero-kicker {
+  margin: 0 0 12px;
+  padding: 7px 12px;
+  color: #fff3ed;
+  background: rgba(255, 107, 53, .22);
+  border: 1px solid rgba(255, 255, 255, .20);
+}
+
+.hero-home h1 {
+  max-width: 720px;
+  margin: 0;
+  color: #fff !important;
+  font-family: "Playfair Display", serif;
+  font-size: clamp(2.25rem, 5vw, 4.15rem);
+  line-height: 1;
+  text-shadow: 0 12px 36px rgba(31, 12, 59, .55);
+  text-wrap: balance;
+}
+
+.hero-home p:not(.hero-kicker) {
+  max-width: 640px;
+  margin: 14px 0 0;
+  color: rgba(255, 255, 255, .92) !important;
+  font-weight: 780;
+  font-size: clamp(.98rem, 1.35vw, 1.12rem);
+  line-height: 1.5;
+  text-shadow: 0 8px 26px rgba(31, 12, 59, .48);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.hero-actions .btn-primary,
+.hero-actions .btn-secondary {
+  text-decoration: none;
+}
+
+.hero-actions .btn-secondary {
+  background: rgba(255, 255, 255, .90);
+}
+
+.hero-trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.hero-trust span {
+  padding: 6px 10px;
+  color: rgba(255, 255, 255, .90);
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .18);
+  font-size: .76rem;
+}
+
+.home-magazine {
+  margin-bottom: 10px;
+}
+
+.home-magazine-card {
+  padding: clamp(20px, 3.2vw, 32px);
+  border-radius: 28px;
+}
+
+.home-magazine h2 {
+  margin: 0 0 10px;
+  color: var(--purple-dark);
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.85rem, 3vw, 2.55rem);
+  line-height: 1.04;
+}
+
+#agenda {
+  padding-top: clamp(30px, 4vw, 44px);
+}
+
+.editorial-hook {
+  margin: 18px auto 20px;
+  padding: 20px;
+  border-radius: 24px;
+}
+
+.saved-events-section {
+  margin: 18px 0 22px;
+  padding: 18px;
+  border-radius: 22px;
+}
+
+.saved-events-head {
+  margin-bottom: 12px;
+}
+
+.saved-events-head h2 {
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+}
+
+.filters {
+  position: relative;
+  gap: 10px;
+  padding: 13px;
+  border-radius: 20px;
+}
+
+.filters input,
+.filters select,
+.filters button {
+  min-height: 46px;
+}
+
+.map-teaser {
+  margin: 14px 0 12px;
+  padding: 15px 16px;
+  border-radius: 20px;
+}
+
+.map-panel {
+  height: min(480px, 68vh);
+}
+
+.map-loading-state {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  padding: 24px;
+  text-align: center;
+  color: var(--purple);
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.10), transparent 36%),
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(241,232,251,.82));
+}
+
+.map-loading-state strong {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+}
+
+.map-loading-state span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.regional-map-section {
+  padding-top: clamp(36px, 5vw, 54px);
+}
+
+#submission-form {
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .hero-home {
+    min-height: clamp(410px, 70vw, 500px);
+    background-size: cover !important;
+    background-position: center center !important;
+    box-shadow: 0 18px 44px rgba(58,28,113,.16);
+  }
+
+  .hero-home h1 {
+    max-width: 620px;
+    font-size: clamp(2.05rem, 7vw, 3.55rem);
+  }
+}
+
+@media (max-width: 780px) {
+  .hero-inner {
+    width: min(100% - 24px, 1180px);
+    padding: 34px 0;
+  }
+
+  .hero-home h1 {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+
+  .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions .btn-primary,
+  .hero-actions .btn-secondary {
+    width: 100%;
+  }
+
+  .hero-trust {
+    gap: 6px;
+  }
+
+  .home-magazine-card {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .home-magazine h2 {
+    font-size: clamp(1.7rem, 8vw, 2.2rem);
+  }
+
+  .saved-events-section {
+    padding: 15px;
+  }
+
+  .map-panel {
+    height: min(390px, 66vh);
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-home {
+    min-height: 450px;
+  }
+
+  .hero-kicker,
+  .hero-trust span {
+    font-size: .68rem;
+  }
+}
