@@ -3,11 +3,18 @@
 
   const config = window.DEDICALIVRES_CONFIG || {};
   const supabaseClient =
-    config.supabaseUrl &&
-    config.supabaseAnonKey &&
-    window.supabase
-      ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey)
-      : null;
+    window.DEDICALIVRES_SUPABASE_CLIENT ||
+    (
+      config.supabaseUrl &&
+      config.supabaseAnonKey &&
+      window.supabase
+        ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey)
+        : null
+    );
+
+  if (supabaseClient) {
+    window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
+  }
 
   // Interrupteur optionnel : ajouter enableMascotGuide: false dans config.js
   // ou window.DEDICALIVRES_CONFIG.enableMascotGuide = false avant ce script.
@@ -147,11 +154,19 @@
     </section>
   `;
 
-  document.addEventListener("DOMContentLoaded", () => {
+  function mountGuide() {
+    if (document.body.contains(widget)) return;
+
     document.body.appendChild(widget);
     bindGuideEvents();
     renderHome();
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mountGuide, { once: true });
+  } else {
+    mountGuide();
+  }
 
   function bindGuideEvents() {
     widget.querySelector(".mascot-guide-button")?.addEventListener("click", toggleGuide);

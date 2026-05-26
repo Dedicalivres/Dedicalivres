@@ -13,10 +13,11 @@
     return;
   }
 
-  const supabaseClient = window.supabase.createClient(
-    config.supabaseUrl,
-    config.supabaseAnonKey
-  );
+  const supabaseClient =
+    window.DEDICALIVRES_SUPABASE_CLIENT ||
+    window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+  window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
 
   const filters = document.querySelector(".filters");
   const eventsGrid = document.getElementById("events-grid");

@@ -13,10 +13,11 @@
     return;
   }
 
-  const supabaseClient = window.supabase.createClient(
-    config.supabaseUrl,
-    config.supabaseAnonKey
-  );
+  const supabaseClient =
+    window.DEDICALIVRES_SUPABASE_CLIENT ||
+    window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+  window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
 
   const FAVORITES_KEY = "dedicalivres_favorites";
   const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
