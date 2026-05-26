@@ -1,6 +1,6 @@
 /*
   DÉDICALIVRES — Filtre auteur + affichage auteurs sur cartes
-  Version V4 avec liens vers fiches auteurs publiques
+  Version V5 avec fallback robuste si colonnes auteur optionnelles indisponibles
 */
 
 (function () {
@@ -65,17 +65,25 @@
   }
 
   async function loadAuthorPresences() {
-    const { data, error } = await supabaseClient
+    let response = await supabaseClient
       .from("event_authors_presence")
-      .select("event_id, pseudo, website, author_slug, author_id, validated")
-      .eq("validated", true);
+      .select("event_id, pseudo, website, author_profile_url, author_slug, author_id, validated, rejected")
+      .eq("validated", true)
+      .or("rejected.is.null,rejected.eq.false");
 
-    if (error) {
-      console.error("Erreur chargement auteurs :", error);
+    if (response.error) {
+      response = await supabaseClient
+        .from("event_authors_presence")
+        .select("event_id, pseudo, website, validated")
+        .eq("validated", true);
+    }
+
+    if (response.error) {
+      console.error("Erreur chargement auteurs :", response.error);
       return;
     }
 
-    authorPresences = Array.isArray(data) ? data : [];
+    authorPresences = Array.isArray(response.data) ? response.data : [];
     fillSuggestions();
   }
 
@@ -190,7 +198,7 @@
     authorPresences.forEach((author) => {
       const eventId = String(author.event_id || "");
       const pseudo = clean(author.pseudo);
-      const website = normalizeWebsite(author.website);
+      const website = normalizeWebsite(author.author_profile_url || author.website);
       const slug = clean(author.author_slug);
 
       if (!eventId || !pseudo) return;

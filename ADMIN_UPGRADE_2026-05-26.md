@@ -53,3 +53,42 @@ et de supprimer `admin-cockpit.css`.
 - références locales de `admin.html` OK
 - aucun identifiant HTML dupliqué dans `admin.html`
 - structure CSS de `admin-cockpit.css` équilibrée
+
+## Optimisation espaces - 2026-05-26
+
+Une passe de densité a été ajoutée pour réduire les espaces visibles dans l'administration :
+
+- en-tête moins haut
+- onglets plus compacts
+- cartes statistiques et qualité moins hautes
+- blocs de priorités plus resserrés
+- cartes événements plus lisibles sur tablette
+
+Fichiers concernés :
+
+- `admin.html`
+- `admin-cockpit.css`
+
+Sauvegarde avant cette optimisation :
+
+`admin-backups/2026-05-26_15-40-02/`
+
+## Optimisation tous onglets - 2026-05-26
+
+Une deuxième passe de densité a été ajoutée sur les zones non visibles dans les premières captures :
+
+- Premium
+- Exports
+- Réseaux
+- Sécurité
+- Modération auteurs
+- Témoignages
+
+Fichiers concernés :
+
+- `admin.html`
+- `admin-cockpit.css`
+
+Sauvegarde avant cette optimisation :
+
+`admin-backups/2026-05-26_15-43-16/`

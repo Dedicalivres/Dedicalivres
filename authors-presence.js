@@ -280,6 +280,7 @@
   async function loadAuthorsPresence(event) {
     const list = document.getElementById("authors-presence-list");
     const empty = document.getElementById("authors-presence-empty");
+    const valueBox = document.getElementById("authors-presence-value-box");
 
     if (!list || !empty) return [];
 
