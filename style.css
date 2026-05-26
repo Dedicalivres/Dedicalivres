@@ -4276,3 +4276,124 @@ button,
     font-size: .68rem;
   }
 }
+
+
+/* =========================================================
+   INDEX OPTIM-3 — correction hero tablette/mobile
+========================================================= */
+
+@media (max-width: 900px) {
+  .header-inner {
+    gap: 8px;
+    padding: 8px 0 10px;
+  }
+
+  .logo {
+    height: 38px;
+    max-width: 96px;
+    object-fit: contain;
+  }
+
+  nav {
+    gap: 7px;
+    row-gap: 8px;
+  }
+
+  nav a {
+    min-height: 32px;
+    padding: 5px 8px;
+    font-size: clamp(.78rem, 2.7vw, .95rem);
+  }
+
+  .nav-submit-link {
+    padding-inline: 12px;
+  }
+
+  .hero-home {
+    align-items: center;
+    min-height: auto;
+    background:
+      linear-gradient(90deg, rgba(31, 12, 59, .92), rgba(31, 12, 59, .70) 56%, rgba(31, 12, 59, .32)),
+      linear-gradient(180deg, rgba(31, 12, 59, .12), rgba(31, 12, 59, .78)),
+      url("https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev/event-images/2026/05/42EA4595-FD0E-4227-9CAF-EE9BC74F6DDA.PNG") 58% center / cover no-repeat !important;
+  }
+
+  .hero-inner {
+    padding: 30px 0 32px;
+  }
+
+  .hero-kicker {
+    min-height: 28px;
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    font-size: .72rem;
+  }
+
+  .hero-home h1 {
+    max-width: 620px;
+    font-size: clamp(2.15rem, 7.2vw, 3rem);
+    line-height: 1.02;
+  }
+
+  .hero-home p:not(.hero-kicker) {
+    max-width: 650px;
+    margin-top: 12px;
+    font-size: clamp(.96rem, 2.8vw, 1.08rem);
+    line-height: 1.42;
+  }
+
+  .hero-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .hero-actions .btn-primary {
+    grid-column: 1 / -1;
+  }
+
+  .hero-actions .btn-primary,
+  .hero-actions .btn-secondary {
+    min-height: 46px;
+    padding: 11px 14px;
+    border-radius: 999px;
+    font-size: clamp(.92rem, 2.8vw, 1rem);
+  }
+
+  .hero-trust {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .hero-trust span {
+    justify-content: center;
+    min-height: 30px;
+    padding: 5px 7px;
+    text-align: center;
+    font-size: clamp(.62rem, 2.2vw, .76rem);
+  }
+}
+
+@media (max-width: 560px) {
+  .hero-home {
+    background:
+      linear-gradient(90deg, rgba(31, 12, 59, .94), rgba(31, 12, 59, .82)),
+      url("https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev/event-images/2026/05/42EA4595-FD0E-4227-9CAF-EE9BC74F6DDA.PNG") 62% center / cover no-repeat !important;
+  }
+
+  .hero-actions,
+  .hero-trust {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions .btn-primary {
+    grid-column: auto;
+  }
+
+  .hero-home h1 {
+    font-size: clamp(1.95rem, 10vw, 2.55rem);
+  }
+}
