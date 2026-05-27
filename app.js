@@ -25,6 +25,9 @@
 
   const eventsGrid = document.getElementById("events-grid");
   const resultsCount = document.getElementById("results-count");
+  const pastEventsGrid = document.getElementById("past-events-grid");
+  const pastEventsCount = document.getElementById("past-events-count");
+  const pastEventsSection = document.getElementById("past-events");
   const favoritesList = document.getElementById("favorites-list");
   const clearFavoritesButton = document.getElementById("clear-favorites");
   const savedEventsSection = document.getElementById("saved-events");
@@ -42,6 +45,7 @@
 
   const mobileMapToggle = document.getElementById("mobile-map-toggle");
   const locateMeButton = document.getElementById("locate-me");
+  const locateStatus = document.getElementById("locate-status");
   const mapPanel = document.getElementById("map-panel");
 
   const cityInput = document.getElementById("city-input");
@@ -78,7 +82,10 @@
     bindImagePreview();
     populateMonthFilter();
     initDefaultMapVisibility();
-    loadEvents();
+
+    if (eventsGrid || mapPanel || pastEventsGrid) {
+      loadEvents();
+    }
   }
 
   function initDefaultMapVisibility() {
@@ -181,10 +188,29 @@
       const reader = new FileReader();
 
       reader.onload = (e) => {
+        const previewUrl = escapeAttribute(e.target.result);
+        const previewName = escapeHtml(file.name);
+
         preview.innerHTML = `
-          <img src="${e.target.result}" alt="Prévisualisation" />
+          <div class="image-preview-grid">
+            <figure class="image-preview-example">
+              <figcaption>Rendu dans les tuiles</figcaption>
+              <div class="card-image-frame">
+                <img class="card-image-blur" src="${previewUrl}" alt="" aria-hidden="true" />
+                <img class="card-image" src="${previewUrl}" alt="Aperçu tuile" />
+              </div>
+            </figure>
+
+            <figure class="image-preview-example image-preview-example-detail">
+              <figcaption>Rendu dans la fiche</figcaption>
+              <div class="detail-image-frame">
+                <img class="detail-image-background" src="${previewUrl}" alt="" aria-hidden="true" />
+                <img class="detail-image" src="${previewUrl}" alt="Aperçu fiche événement" />
+              </div>
+            </figure>
+          </div>
           <div class="image-preview-caption">
-            ${escapeHtml(file.name)}
+            ${previewName}
           </div>
         `;
 
@@ -299,14 +325,11 @@
   async function loadEvents() {
     setLoadingState();
 
-    const today = new Date().toISOString().slice(0, 10);
-
     const { data, error } = await supabaseClient
       .from("events")
       .select("id,title,type,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng")
       .eq("validated", true)
       .eq("rejected", false)
-      .or(`end_date.is.null,end_date.gte.${today}`)
       .order("featured", { ascending: false })
       .order("start_date", { ascending: true });
 
@@ -323,9 +346,16 @@
 
   function renderFilteredEvents() {
     const filtered = filterEvents(allEvents);
+    const upcoming = filtered
+      .filter((event) => !isPastEvent(event))
+      .sort(sortUpcomingEvents);
+    const past = filtered
+      .filter(isPastEvent)
+      .sort(sortPastEvents);
 
-    renderEvents(filtered);
-    renderMapMarkers(filtered);
+    renderEvents(upcoming, past.length);
+    renderPastEvents(past);
+    renderMapMarkers(upcoming);
   }
 
   function filterEvents(events) {
@@ -390,6 +420,38 @@
     return start <= monthEnd && end >= monthStart;
   }
 
+  function isPastEvent(event) {
+    const eventEnd = parseLocalDate(event.end_date || event.start_date);
+
+    if (!eventEnd) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return eventEnd < today;
+  }
+
+  function sortUpcomingEvents(a, b) {
+    if (a.featured && !b.featured) return -1;
+    if (!a.featured && b.featured) return 1;
+
+    const dateA = parseLocalDate(a.start_date)?.getTime() || Number.MAX_SAFE_INTEGER;
+    const dateB = parseLocalDate(b.start_date)?.getTime() || Number.MAX_SAFE_INTEGER;
+
+    if (dateA !== dateB) return dateA - dateB;
+
+    return String(a.title || "").localeCompare(String(b.title || ""), "fr");
+  }
+
+  function sortPastEvents(a, b) {
+    const dateA = parseLocalDate(a.end_date || a.start_date)?.getTime() || 0;
+    const dateB = parseLocalDate(b.end_date || b.start_date)?.getTime() || 0;
+
+    if (dateA !== dateB) return dateB - dateA;
+
+    return String(a.title || "").localeCompare(String(b.title || ""), "fr");
+  }
+
   function parseLocalDate(value) {
     if (!value) return null;
 
@@ -398,16 +460,19 @@
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  function renderEvents(events) {
+  function renderEvents(events, pastCount = 0) {
     if (!eventsGrid || !resultsCount) return;
 
     resultsCount.textContent =
-      `${events.length} événement${events.length > 1 ? "s" : ""}`;
+      `${events.length} événement${events.length > 1 ? "s" : ""} à venir${
+        pastCount ? ` · ${pastCount} passé${pastCount > 1 ? "s" : ""}` : ""
+      }`;
 
     if (!events.length) {
       eventsGrid.innerHTML = `
         <article class="empty-state">
-          Aucun événement trouvé.
+          Aucun événement à venir pour cette recherche.
+          ${pastCount ? "Des événements passés restent disponibles dans la sous-section ci-dessous." : ""}
         </article>
       `;
       window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered", {
@@ -416,20 +481,40 @@
       return;
     }
 
-    eventsGrid.innerHTML = events.map(renderEventCard).join("");
+    eventsGrid.innerHTML = events.map((event) => renderEventCard(event)).join("");
     refreshFavoriteButtons();
     window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered", {
       detail: { count: events.length }
     }));
   }
 
-  function renderEventCard(event) {
+  function renderPastEvents(events) {
+    if (!pastEventsGrid || !pastEventsCount || !pastEventsSection) return;
+
+    pastEventsCount.textContent = events.length
+      ? `${events.length} événement${events.length > 1 ? "s" : ""}`
+      : "Aucun événement passé";
+
+    pastEventsSection.hidden = !events.length;
+
+    if (!events.length) {
+      pastEventsGrid.innerHTML = "";
+      return;
+    }
+
+    pastEventsGrid.innerHTML = events
+      .map((event) => renderEventCard(event, { isPast: true }))
+      .join("");
+  }
+
+  function renderEventCard(event, options = {}) {
     const typeMeta = TYPE_META[event.type] || TYPE_META.Autre;
     const image = resolveImageUrl(event.image_url);
+    const isPast = Boolean(options.isPast);
 
     return `
       <article
-        class="event-card ${typeMeta.className}"
+        class="event-card ${typeMeta.className}${isPast ? " is-past-event" : ""}"
         id="event-${escapeAttribute(event.id)}"
         data-event-id="${escapeAttribute(event.id)}"
       >
@@ -439,19 +524,7 @@
             : ""
         }
 
-        ${
-          image
-            ? `
-              <img
-                class="card-image"
-                src="${escapeAttribute(image)}"
-                alt="${escapeAttribute(event.title || "Événement")}"
-                loading="lazy"
-                decoding="async"
-              />
-            `
-            : `<div class="card-image"></div>`
-        }
+        ${renderCardImage(image, event.title || "Événement")}
 
         <div class="card-body">
           <div class="card-tags">
@@ -481,6 +554,12 @@
             ${
               event.verified
                 ? `<span class="badge badge-verified">Vérifié</span>`
+                : ""
+            }
+
+            ${
+              isPast
+                ? `<span class="badge badge-past">Passé</span>`
                 : ""
             }
           </div>
@@ -539,6 +618,26 @@
           </div>
         </div>
       </article>
+    `;
+  }
+
+  function renderCardImage(image, title) {
+    if (!image) {
+      return `
+        <div class="card-image-frame is-empty">
+          <div class="card-image"></div>
+        </div>
+      `;
+    }
+
+    const safeImage = escapeAttribute(image);
+    const safeTitle = escapeAttribute(title || "Événement");
+
+    return `
+      <div class="card-image-frame">
+        <img class="card-image-blur" src="${safeImage}" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <img class="card-image" src="${safeImage}" alt="${safeTitle}" loading="lazy" decoding="async" />
+      </div>
     `;
   }
 
@@ -1553,9 +1652,46 @@
     }
   }
 
+  function setLocateStatus(message, type = "") {
+    if (!locateStatus) return;
+
+    locateStatus.textContent = message || "";
+    locateStatus.className = `locate-status ${type}`.trim();
+  }
+
+  function getGeolocationErrorMessage(error) {
+    if (!error || typeof error.code !== "number") {
+      return "Impossible de récupérer votre position pour le moment.";
+    }
+
+    if (error.code === error.PERMISSION_DENIED) {
+      return "Localisation refusée. Autorisez la position dans le navigateur pour centrer la carte.";
+    }
+
+    if (error.code === error.POSITION_UNAVAILABLE) {
+      return "Position indisponible. Essayez de nouveau ou filtrez par région.";
+    }
+
+    if (error.code === error.TIMEOUT) {
+      return "La localisation prend trop de temps. Réessayez dans quelques secondes.";
+    }
+
+    return "Impossible de récupérer votre position pour le moment.";
+  }
+
   async function locateUser() {
+    setLocateStatus("", "");
+
+    if (!window.isSecureContext) {
+      setLocateStatus(
+        "La localisation fonctionne uniquement sur une page sécurisée en HTTPS.",
+        "error"
+      );
+      return;
+    }
+
     if (!navigator.geolocation) {
-      alert("La géolocalisation n’est pas disponible.");
+      setLocateStatus("La géolocalisation n’est pas disponible sur cet appareil.", "error");
       return;
     }
 
@@ -1569,7 +1705,7 @@
     }
 
     if (!map || !window.L) {
-      alert("La carte n’est pas disponible pour le moment.");
+      setLocateStatus("La carte n’est pas disponible pour le moment.", "error");
       return;
     }
 
@@ -1577,6 +1713,8 @@
       locateMeButton.disabled = true;
       locateMeButton.textContent = "Localisation…";
     }
+
+    setLocateStatus("Demande de position en cours…", "");
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -1601,23 +1739,24 @@
           .addTo(map);
 
         await trackLocationRequest(userPosition);
+        setLocateStatus("Position trouvée. La carte est centrée autour de vous.", "success");
 
         if (locateMeButton) {
           locateMeButton.disabled = false;
-          locateMeButton.textContent = "Me localiser";
+          locateMeButton.textContent = "Me localiser à nouveau";
         }
       },
-      () => {
+      (error) => {
         if (locateMeButton) {
           locateMeButton.disabled = false;
           locateMeButton.textContent = "Me localiser";
         }
 
-        alert("Impossible de récupérer votre position.");
+        setLocateStatus(getGeolocationErrorMessage(error), "error");
       },
       {
-        enableHighAccuracy: false,
-        timeout: 10000,
+        enableHighAccuracy: true,
+        timeout: 15000,
         maximumAge: 600000
       }
     );
