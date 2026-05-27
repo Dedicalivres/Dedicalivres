@@ -5526,3 +5526,115 @@ body.testimonials-page .testimonials-empty a:visited {
     width: 100%;
   }
 }
+
+/* =========================================================
+   AUTEURS SUR CARTES — boutons halo
+========================================================= */
+
+.card-authors-present {
+  display: grid !important;
+  grid-column: 1 / -1;
+  gap: 9px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255,107,53,.10), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,.78), rgba(247,240,252,.78));
+  border: 1px solid rgba(58,28,113,.10);
+}
+
+.card-authors-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--purple);
+  font-weight: 950;
+  line-height: 1.25;
+}
+
+.card-authors-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.author-pill-button,
+.author-pill-button:visited,
+.author-pill-more {
+  position: relative;
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 13px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.95), rgba(255,255,255,.74)),
+    linear-gradient(135deg, rgba(255,255,255,.95), rgba(248,240,255,.88));
+  border: 1px solid rgba(58,28,113,.18);
+  color: var(--purple) !important;
+  text-decoration: none !important;
+  font-size: .92rem;
+  font-weight: 950;
+  line-height: 1.1;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    0 8px 18px rgba(58,28,113,.08);
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease,
+    background .18s ease;
+}
+
+.author-pill-button::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(255,107,53,.34), rgba(109,40,217,.18), transparent 68%);
+  opacity: 0;
+  transform: scale(.92);
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.author-pill-button:hover,
+.author-pill-button:focus-visible {
+  border-color: rgba(255,107,53,.48);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    0 0 0 4px rgba(255,107,53,.10),
+    0 14px 28px rgba(58,28,113,.16);
+}
+
+.author-pill-button:hover::after,
+.author-pill-button:focus-visible::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.author-pill-static {
+  cursor: default;
+}
+
+.author-pill-more {
+  background: rgba(58,28,113,.09);
+  color: var(--muted) !important;
+}
+
+@media (max-width: 640px) {
+  .card-authors-present {
+    padding: 10px;
+  }
+
+  .author-pill-button,
+  .author-pill-more {
+    min-height: 32px;
+    padding: 7px 11px;
+    font-size: .86rem;
+  }
+}

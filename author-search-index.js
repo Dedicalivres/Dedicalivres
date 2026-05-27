@@ -1,6 +1,6 @@
 /*
   DÉDICALIVRES — Filtre auteur + affichage auteurs sur cartes
-  Version V5 avec fallback robuste si colonnes auteur optionnelles indisponibles
+  Version V6 avec boutons auteurs + halo
 */
 
 (function () {
@@ -250,19 +250,24 @@
       const pseudo = escapeHtml(author.pseudo);
 
       if (author.slug) {
-        return `<a href="author.html?slug=${encodeURIComponent(author.slug)}">${pseudo}</a>`;
+        return `<a class="author-pill-button" href="author.html?slug=${encodeURIComponent(author.slug)}">${pseudo}</a>`;
       }
 
       if (author.website) {
-        return `<a href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${pseudo}</a>`;
+        return `<a class="author-pill-button" href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${pseudo}</a>`;
       }
 
-      return `<strong>${pseudo}</strong>`;
+      return `<strong class="author-pill-button author-pill-static">${pseudo}</strong>`;
     });
 
-    const remaining = authors.length > 3 ? ` +${authors.length - 3}` : "";
+    const remaining = authors.length > 3
+      ? `<span class="author-pill-more">+${authors.length - 3}</span>`
+      : "";
 
-    line.innerHTML = `👤 <strong>Auteurs présents :</strong> ${authorLinks.join(", ")}${remaining}`;
+    line.innerHTML = `
+      <span class="card-authors-label">👤 <strong>Auteurs présents</strong></span>
+      <span class="card-authors-links">${authorLinks.join("")}${remaining}</span>
+    `;
 
     meta.appendChild(line);
   }
