@@ -10,3 +10,20 @@ window.DEDICALIVRES_CONFIG = {
   r2PublicBaseUrl: "https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev",
   exportsBaseUrl: "https://dedicalivres-daily-export.dedicalivres.workers.dev/exports"
 };
+
+window.getDedicalivresSupabaseClient = function getDedicalivresSupabaseClient() {
+  const config = window.DEDICALIVRES_CONFIG;
+
+  if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
+    return null;
+  }
+
+  if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+    window.DEDICALIVRES_SUPABASE_CLIENT = window.supabase.createClient(
+      config.supabaseUrl,
+      config.supabaseAnonKey
+    );
+  }
+
+  return window.DEDICALIVRES_SUPABASE_CLIENT;
+};

@@ -190,7 +190,13 @@
     }
 
     try {
-      const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+      const client =
+        (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
+        window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+      if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+        window.DEDICALIVRES_SUPABASE_CLIENT = client;
+      }
       const today = new Date().toISOString().slice(0, 10);
 
       const { data, error } = await client
@@ -280,7 +286,7 @@
 
           <div class="regional-map-panel-actions">
             <a class="btn-primary" href="${regionHref(state.selected)}">Voir les événements en ${escapeHtml(state.selected.name)}</a>
-            <a class="btn-secondary" href="index.html#soumettre">Proposer un événement</a>
+            <a class="btn-secondary" href="soumettre.html">Proposer un événement</a>
           </div>
         </aside>
       </div>

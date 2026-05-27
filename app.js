@@ -14,10 +14,12 @@
   }
 
   const supabaseClient =
-    window.DEDICALIVRES_SUPABASE_CLIENT ||
+    (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
     window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
-  window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
+  if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+    window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
+  }
 
   const FAVORITES_KEY = "dedicalivres_favorites";
   const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";

@@ -13,13 +13,17 @@
     return;
   }
 
-  const supabaseClient = window.supabase.createClient(
-    config.supabaseUrl,
-    config.supabaseAnonKey
-  );
+  const supabaseClient =
+    (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
+    window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+  if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+    window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
+  }
 
   const eventsContainer = document.getElementById("seo-events");
   const seoCount = document.getElementById("seo-count");
+  const pastEventsSection = ensurePastEventsSection();
 
   const region = document.body.dataset.region || "";
   const city = document.body.dataset.city || "";
@@ -66,14 +70,11 @@
       </article>
     `;
 
-    const today = new Date().toISOString().slice(0, 10);
-
     let query = supabaseClient
       .from("events")
       .select("*")
       .eq("validated", true)
       .eq("rejected", false)
-      .or(`end_date.is.null,end_date.gte.${today}`)
       .order("featured", { ascending: false })
       .order("start_date", { ascending: true });
 
@@ -99,22 +100,30 @@
       return;
     }
 
-    const events = (Array.isArray(data) ? data : [])
+    const filteredEvents = (Array.isArray(data) ? data : [])
       .filter((event) => {
         if (!event || event.rejected === true || event.validated !== true) return false;
         if (pageMode === "salons") return ["Salon", "Festival"].includes(event.type);
         if (pageMode === "dedicaces") return event.type === "Dédicace";
         return !eventTypes.length || eventTypes.includes(event.type);
-      })
+      });
+    const events = filteredEvents
+      .filter((event) => !isPastEvent(event))
       .sort(sortByUpcomingDate);
+    const pastEvents = filteredEvents
+      .filter(isPastEvent)
+      .sort(sortByPastDate);
 
     if (seoCount) {
       seoCount.textContent =
-        `${events.length} événement${events.length > 1 ? "s" : ""} trouvé${events.length > 1 ? "s" : ""}`;
+        `${events.length} événement${events.length > 1 ? "s" : ""} à venir${
+          pastEvents.length ? ` · ${pastEvents.length} passé${pastEvents.length > 1 ? "s" : ""}` : ""
+        }`;
     }
 
     if (!events.length) {
-      eventsContainer.innerHTML = renderEmptyRegionalState();
+      eventsContainer.innerHTML = renderEmptyRegionalState(pastEvents.length);
+      renderPastEvents(pastEvents);
 
       window.dispatchEvent(
         new CustomEvent("dedicalivres:cards-rendered")
@@ -124,6 +133,7 @@
     }
 
     eventsContainer.innerHTML = events.map(renderEventCard).join("");
+    renderPastEvents(pastEvents);
 
     window.dispatchEvent(
       new CustomEvent("dedicalivres:cards-rendered")
@@ -131,7 +141,50 @@
   }
 
 
-  function renderEmptyRegionalState() {
+  function ensurePastEventsSection() {
+    if (!eventsContainer) return null;
+
+    let section = document.getElementById("seo-past-events");
+    if (section) return section;
+
+    section = document.createElement("details");
+    section.id = "seo-past-events";
+    section.className = "past-events-section seo-past-events";
+    section.innerHTML = `
+      <summary>
+        <span>Événements passés</span>
+        <small id="seo-past-count">Chargement…</small>
+      </summary>
+      <div id="seo-past-grid" class="events-grid past-events-grid" aria-live="polite"></div>
+    `;
+
+    eventsContainer.insertAdjacentElement("afterend", section);
+
+    return section;
+  }
+
+  function renderPastEvents(events) {
+    if (!pastEventsSection) return;
+
+    const count = pastEventsSection.querySelector("#seo-past-count");
+    const grid = pastEventsSection.querySelector("#seo-past-grid");
+
+    pastEventsSection.hidden = !events.length;
+
+    if (count) {
+      count.textContent = events.length
+        ? `${events.length} événement${events.length > 1 ? "s" : ""}`
+        : "Aucun événement passé";
+    }
+
+    if (grid) {
+      grid.innerHTML = events.length
+        ? events.map((event) => renderEventCard(event, { isPast: true })).join("")
+        : "";
+    }
+  }
+
+  function renderEmptyRegionalState(pastCount = 0) {
     const regionName = region || "cette région";
     const isRegionalPage = Boolean(region);
 
@@ -140,11 +193,11 @@
         <article class="empty-state seo-empty-state">
           <p>
             Aucun événement à venir pour le moment.
-            Revenez bientôt ou proposez un événement.
+            ${pastCount ? "Les rendez-vous déjà passés restent consultables ci-dessous." : "Revenez bientôt ou proposez un événement."}
           </p>
 
           <p>
-            <a class="card-link" href="index.html#soumettre">
+            <a class="card-link" href="soumettre.html">
               Proposer un événement
             </a>
           </p>
@@ -171,7 +224,7 @@
         </p>
 
         <div class="regional-empty-actions">
-          <a class="btn-primary" href="index.html#soumettre">
+          <a class="btn-primary" href="soumettre.html">
             Proposer un événement en ${escapeHtml(regionName)}
           </a>
 
@@ -198,13 +251,26 @@
     );
   }
 
-  function renderEventCard(event) {
+  function sortByPastDate(a, b) {
+    const dateA = parseLocalDate(a.end_date || a.start_date)?.getTime() || 0;
+    const dateB = parseLocalDate(b.end_date || b.start_date)?.getTime() || 0;
+
+    if (dateA !== dateB) return dateB - dateA;
+
+    return String(a.title || "").localeCompare(
+      String(b.title || ""),
+      "fr"
+    );
+  }
+
+  function renderEventCard(event, options = {}) {
     const imageUrl = resolveImageUrl(event.image_url);
     const meta = TYPE_META[event.type] || TYPE_META.Autre;
+    const isPast = Boolean(options.isPast);
 
     return `
       <article
-        class="event-card ${event.featured ? "event-card-featured" : ""} ${meta.className}"
+        class="event-card ${event.featured ? "event-card-featured" : ""} ${meta.className}${isPast ? " is-past-event" : ""}"
         id="event-${escapeAttribute(event.id)}"
       >
         ${
@@ -213,19 +279,7 @@
             : ""
         }
 
-        ${
-          imageUrl
-            ? `
-              <img
-                class="card-image"
-                src="${escapeAttribute(imageUrl)}"
-                alt="${escapeAttribute(event.title || "Événement littéraire")}"
-                loading="lazy"
-                decoding="async"
-              />
-            `
-            : `<div class="card-image"></div>`
-        }
+        ${renderCardImage(imageUrl, event.title || "Événement littéraire")}
 
         <div class="card-body">
           <div class="card-tags">
@@ -259,6 +313,12 @@
             ${
               event.verified
                 ? `<span class="badge badge-verified">Vérifié</span>`
+                : ""
+            }
+
+            ${
+              isPast
+                ? `<span class="badge badge-past">Passé</span>`
                 : ""
             }
           </div>
@@ -315,6 +375,26 @@
     `;
   }
 
+  function renderCardImage(imageUrl, title) {
+    if (!imageUrl) {
+      return `
+        <div class="card-image-frame is-empty">
+          <div class="card-image"></div>
+        </div>
+      `;
+    }
+
+    const safeImage = escapeAttribute(imageUrl);
+    const safeTitle = escapeAttribute(title || "Événement littéraire");
+
+    return `
+      <div class="card-image-frame">
+        <img class="card-image-blur" src="${safeImage}" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <img class="card-image" src="${safeImage}" alt="${safeTitle}" loading="lazy" decoding="async" />
+      </div>
+    `;
+  }
+
   function resolveImageUrl(path) {
     if (!path) return "";
 
@@ -333,6 +413,25 @@
         : "";
 
     return end ? `${start} → ${end}` : start;
+  }
+
+  function isPastEvent(event) {
+    const eventEnd = parseLocalDate(event.end_date || event.start_date);
+
+    if (!eventEnd) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return eventEnd < today;
+  }
+
+  function parseLocalDate(value) {
+    if (!value) return null;
+
+    const date = new Date(`${value}T00:00:00`);
+
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   function formatDate(value) {

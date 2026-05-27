@@ -11,10 +11,13 @@ if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabas
   throw new Error("Supabase config missing");
 }
 
-const supabaseClient = window.supabase.createClient(
-  config.supabaseUrl,
-  config.supabaseAnonKey
-);
+const supabaseClient =
+  (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
+  window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+  window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
+}
 
 const loginScreen = document.getElementById("login-screen");
 const dashboard = document.getElementById("dashboard");
@@ -91,7 +94,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "10.1";
+const ADMIN_MODULE_VERSION = "10.2";
 const adminModerationCounters = {
   events: 0,
   testimonials: 0,
