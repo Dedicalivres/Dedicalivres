@@ -120,11 +120,13 @@
     if (response.error) {
       console.warn("Admin auteurs : chargement impossible", response.error);
       rows = [];
+      publishAuthorRequestCounter(0, true);
       showListError(response.error.message || "Chargement impossible.");
       return;
     }
 
     rows = Array.isArray(response.data) ? response.data : [];
+    publishAuthorRequestCounter(rows.filter(isPending).length, false);
   }
 
   function render() {
@@ -138,6 +140,7 @@
     if (count) {
       const pending = rows.filter(isPending).length;
       count.textContent = `${filtered.length} affichée(s) · ${pending} en attente`;
+      publishAuthorRequestCounter(pending, false);
     }
 
     if (!filtered.length) {
@@ -337,6 +340,18 @@
 
   function isPending(row) {
     return row.validated !== true && row.rejected !== true;
+  }
+
+  function publishAuthorRequestCounter(total, hasError) {
+    if (typeof window.updateAdminModerationCounter === "function") {
+      window.updateAdminModerationCounter("authorRequests", total, {
+        hasError: !!hasError
+      });
+    }
+
+    window.dispatchEvent(new CustomEvent("dedicalivres:authorRequestsUpdated", {
+      detail: { total, hasError: !!hasError }
+    }));
   }
 
   function renderCheckLink(label, url) {

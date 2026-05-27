@@ -1422,6 +1422,10 @@ body.cyber-admin {
   font-weight: 900;
 }
 
+.admin-tab-badge[hidden] {
+  display: none !important;
+}
+
 .admin-empty-panel {
   border-style: dashed;
   opacity: .92;

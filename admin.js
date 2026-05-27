@@ -91,6 +91,14 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
+const ADMIN_MODULE_VERSION = "10.1";
+const adminModerationCounters = {
+  events: 0,
+  testimonials: 0,
+  authorRequests: 0
+};
+const adminModerationErrors = new Set();
+
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",
   "admin-author-requests-robust.js",
@@ -522,7 +530,7 @@ function loadAdminScript(src) {
     }
 
     const script = document.createElement("script");
-    script.src = `${src}?v=10.0`;
+    script.src = `${src}?v=${ADMIN_MODULE_VERSION}`;
     script.defer = true;
     script.dataset.protectedAdminModule = src;
     script.onload = () => resolve();
@@ -532,6 +540,71 @@ function loadAdminScript(src) {
     };
     document.body.appendChild(script);
   });
+}
+
+function updateAdminModerationCounter(source, value, options = {}) {
+  if (!Object.prototype.hasOwnProperty.call(adminModerationCounters, source)) {
+    return;
+  }
+
+  const count = Number(value);
+  adminModerationCounters[source] = Number.isFinite(count) && count > 0
+    ? Math.floor(count)
+    : 0;
+
+  if (options.hasError) {
+    adminModerationErrors.add(source);
+  } else {
+    adminModerationErrors.delete(source);
+  }
+
+  renderAdminModerationBadge();
+}
+
+window.updateAdminModerationCounter = updateAdminModerationCounter;
+
+window.addEventListener("dedicalivres:authorRequestsUpdated", (event) => {
+  updateAdminModerationCounter("authorRequests", event.detail?.total || 0, {
+    hasError: !!event.detail?.hasError
+  });
+});
+
+function renderAdminModerationBadge() {
+  const moderationTab = document.querySelector('.admin-tab[data-tab="moderation"]');
+  if (!moderationTab) return;
+
+  moderationTab
+    .querySelectorAll("#testimonials-tab-badge, #author-requests-tab-badge")
+    .forEach((badge) => badge.remove());
+
+  let badge = document.getElementById("moderation-tab-badge");
+  if (!badge) {
+    badge = document.createElement("span");
+    badge.id = "moderation-tab-badge";
+    badge.className = "admin-tab-badge moderation-tab-badge";
+    moderationTab.appendChild(badge);
+  }
+
+  const total = Object.values(adminModerationCounters)
+    .reduce((sum, count) => sum + count, 0);
+  const hasError = adminModerationErrors.size > 0;
+
+  badge.textContent = hasError ? "!" : String(total);
+  badge.hidden = !hasError && total === 0;
+  badge.setAttribute(
+    "aria-label",
+    hasError
+      ? "Compteur de modération partiellement indisponible"
+      : `${total} élément${total > 1 ? "s" : ""} à modérer`
+  );
+}
+
+function resetAdminModerationCounters() {
+  Object.keys(adminModerationCounters).forEach((key) => {
+    adminModerationCounters[key] = 0;
+  });
+  adminModerationErrors.clear();
+  renderAdminModerationBadge();
 }
 
 function clearAdminSensitiveState() {
@@ -544,6 +617,7 @@ function clearAdminSensitiveState() {
   if (statsPending) statsPending.textContent = "0";
   if (statsNewsletter) statsNewsletter.textContent = "0";
   if (statsVisits) statsVisits.textContent = "0";
+  resetAdminModerationCounters();
 
   document.getElementById("premium-container")?.replaceChildren();
   document.getElementById("quality-control-grid")?.replaceChildren();
@@ -782,6 +856,7 @@ function updateStats() {
 
   if (statsEvents) statsEvents.textContent = allEvents.length;
   if (statsPending) statsPending.textContent = pending.length;
+  updateAdminModerationCounter("events", pending.length);
   if (statsFeatured) statsFeatured.textContent = String((allEvents || []).filter((event) => !!event.featured).length);
 if (eventsCount) {
     eventsCount.textContent = `${getFilteredEvents().length} éléments`;

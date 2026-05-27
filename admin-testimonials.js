@@ -232,6 +232,12 @@
     const stat = document.getElementById("stats-testimonials-pending");
     if (stat) stat.textContent = pending;
 
+    if (typeof window.updateAdminModerationCounter === "function") {
+      document.getElementById("testimonials-tab-badge")?.remove();
+      window.updateAdminModerationCounter("testimonials", pending);
+      return;
+    }
+
     const adminTab = document.querySelector('[data-tab="moderation"]');
     if (!adminTab) return;
 
