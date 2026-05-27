@@ -192,23 +192,31 @@
         const previewName = escapeHtml(file.name);
 
         preview.innerHTML = `
+          <div class="image-preview-intro">
+            <strong>Aperçu rassurant de votre visuel</strong>
+            <p>L’interface optimise le format pour garder un maximum de visibilité pour votre affiche.</p>
+          </div>
+
           <div class="image-preview-grid">
-            <figure class="image-preview-example">
-              <figcaption>Rendu dans les tuiles</figcaption>
+            <figure class="image-preview-example image-preview-card">
+              <figcaption>Dans l’agenda</figcaption>
               <div class="card-image-frame">
                 <img class="card-image-blur" src="${previewUrl}" alt="" aria-hidden="true" />
                 <img class="card-image" src="${previewUrl}" alt="Aperçu tuile" />
               </div>
+              <small>Format compact, pensé pour la liste.</small>
             </figure>
 
-            <figure class="image-preview-example image-preview-example-detail">
-              <figcaption>Rendu dans la fiche</figcaption>
+            <figure class="image-preview-example image-preview-example-detail image-preview-card">
+              <figcaption>Dans la fiche événement</figcaption>
               <div class="detail-image-frame">
                 <img class="detail-image-background" src="${previewUrl}" alt="" aria-hidden="true" />
                 <img class="detail-image" src="${previewUrl}" alt="Aperçu fiche événement" />
               </div>
+              <small>Affichage plus large pour mieux voir l’affiche.</small>
             </figure>
           </div>
+
           <div class="image-preview-caption">
             ${previewName}
           </div>

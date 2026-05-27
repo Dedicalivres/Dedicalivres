@@ -5776,3 +5776,251 @@ body.testimonials-page .testimonials-empty a:visited {
     width: 100%;
   }
 }
+
+/* =========================================================
+   INDEX OPTIM-14 — images preservées dans tuiles et fiches
+========================================================= */
+
+.event-card .card-image-frame,
+.image-preview .card-image-frame {
+  position: relative;
+  width: 100%;
+  height: clamp(168px, 18vw, 210px);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.94), rgba(245,238,252,.86) 48%, rgba(255,238,229,.72));
+}
+
+.event-card .card-image-frame {
+  border-radius: inherit inherit 0 0;
+}
+
+.card-image-blur {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: cover;
+  filter: blur(18px) saturate(1.08);
+  opacity: .32;
+  transform: scale(1.04);
+}
+
+.event-card .card-image-frame > .card-image,
+.image-preview .card-image-frame .card-image {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent;
+}
+
+.image-preview .card-image-blur,
+.image-preview .detail-image-background {
+  width: 124%;
+  max-height: none;
+}
+
+.image-preview .detail-image-background {
+  width: 128%;
+}
+
+.event-card .card-image-frame.is-empty .card-image {
+  object-fit: cover;
+  background: linear-gradient(135deg, var(--orange), var(--purple));
+}
+
+.detail-image-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 280px;
+  height: min(520px, 56vw);
+  max-height: 520px;
+  margin: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255,255,255,.95), rgba(246,239,252,.88) 52%, rgba(255,237,226,.70));
+}
+
+.detail-image-background {
+  position: absolute;
+  inset: -14%;
+  width: 128%;
+  height: 128%;
+  object-fit: cover;
+  filter: blur(24px) saturate(1.08);
+  opacity: .28;
+  transform: scale(1.05);
+}
+
+.detail-image-frame .detail-image {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  object-fit: contain;
+  background: transparent;
+}
+
+.image-preview {
+  padding: 14px;
+}
+
+.image-preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+  gap: 14px;
+}
+
+.image-preview-example {
+  margin: 0;
+}
+
+.image-preview-example figcaption {
+  margin: 0 0 8px;
+  color: var(--purple);
+  font-weight: 950;
+}
+
+.image-preview .card-image-frame,
+.image-preview .detail-image-frame {
+  border: 1px solid rgba(58,28,113,.12);
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(58,28,113,.08);
+}
+
+.image-preview .detail-image-frame {
+  min-height: 0;
+  height: 220px;
+  max-height: none;
+}
+
+.image-preview-caption {
+  padding: 12px 2px 0;
+}
+
+@media (max-width: 760px) {
+  .image-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-image-frame {
+    height: min(430px, 72vw);
+  }
+}
+
+/* =========================================================
+   INDEX OPTIM-15 — aperçu de soumission plus rassurant
+========================================================= */
+
+.submission-form .image-preview {
+  padding: clamp(16px, 2.6vw, 24px);
+  overflow: visible;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.10), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,.96), rgba(248,243,252,.92));
+  border: 1px solid rgba(58,28,113,.10);
+  box-shadow: 0 18px 42px rgba(58,28,113,.10);
+}
+
+.image-preview-intro {
+  max-width: 760px;
+  margin: 0 auto 16px;
+  text-align: center;
+}
+
+.image-preview-intro strong {
+  display: block;
+  color: var(--purple);
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+  font-weight: 950;
+}
+
+.image-preview-intro p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-weight: 850;
+  line-height: 1.5;
+}
+
+.submission-form .image-preview-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 860px;
+  margin: 0 auto;
+  gap: clamp(12px, 2vw, 18px);
+}
+
+.image-preview-card {
+  padding: 12px;
+  border-radius: 22px;
+  background: rgba(255,255,255,.78);
+  border: 1px solid rgba(58,28,113,.10);
+  box-shadow: 0 14px 28px rgba(58,28,113,.08);
+}
+
+.image-preview-card figcaption {
+  margin: 0 0 10px;
+  color: var(--purple-dark);
+  font-size: .96rem;
+  font-weight: 950;
+}
+
+.image-preview-card small {
+  display: block;
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.submission-form .image-preview .card-image-frame,
+.submission-form .image-preview .detail-image-frame {
+  width: 100%;
+  height: clamp(118px, 15vw, 170px);
+  min-height: 0;
+  max-height: none;
+  border-radius: 16px;
+}
+
+.submission-form .image-preview .detail-image-frame {
+  height: clamp(132px, 17vw, 188px);
+}
+
+.submission-form .image-preview img {
+  max-height: none;
+}
+
+.submission-form .image-preview .card-image-frame > .card-image,
+.submission-form .image-preview .detail-image-frame > .detail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.submission-form .image-preview-caption {
+  max-width: 860px;
+  margin: 10px auto 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: .82rem;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .submission-form .image-preview-grid {
+    grid-template-columns: 1fr;
+    max-width: 430px;
+  }
+
+  .submission-form .image-preview .card-image-frame,
+  .submission-form .image-preview .detail-image-frame {
+    height: clamp(138px, 44vw, 190px);
+  }
+}
