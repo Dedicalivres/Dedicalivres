@@ -659,7 +659,7 @@
       renderSavedFavorites();
     });
 
-    eventsGrid?.addEventListener("click", (event) => {
+    function handleFavoriteClick(event) {
       const button = event.target.closest("[data-favorite-id]");
 
       if (!button) return;
@@ -667,10 +667,25 @@
       event.preventDefault();
       event.stopPropagation();
 
+      const isSavedListButton = Boolean(button.closest("#favorites-list"));
+      const wasActive = isFavorite(button.dataset.favoriteId);
+
       toggleFavorite(button.dataset.favoriteId);
       refreshFavoriteButtons();
+
+      const active = isFavorite(button.dataset.favoriteId);
+      animateFavoriteButton(button, active);
+
+      if (isSavedListButton && wasActive && !active) {
+        window.setTimeout(renderSavedFavorites, 320);
+        return;
+      }
+
       renderSavedFavorites();
-    });
+    }
+
+    eventsGrid?.addEventListener("click", handleFavoriteClick);
+    favoritesList?.addEventListener("click", handleFavoriteClick);
 
     window.addEventListener("storage", (event) => {
       if (event.key !== FAVORITES_KEY) return;
@@ -711,6 +726,18 @@
       : [...ids, key];
 
     setFavoriteIds(next);
+  }
+
+  function animateFavoriteButton(button, active) {
+    if (!button) return;
+
+    button.classList.remove("favorite-pop", "favorite-release");
+    void button.offsetWidth;
+    button.classList.add(active ? "favorite-pop" : "favorite-release");
+
+    window.setTimeout(() => {
+      button.classList.remove("favorite-pop", "favorite-release");
+    }, 700);
   }
 
   function refreshFavoriteButtons() {

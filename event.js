@@ -200,6 +200,10 @@
     favoriteButton?.addEventListener("click", () => {
       toggleFavorite(event.id);
       refreshFavoriteButton();
+      animateFavoriteButton(
+        favoriteButton,
+        getFavoriteIds().includes(String(event.id))
+      );
     });
 
     calendarButton?.addEventListener("click", () => downloadICS(event));
@@ -222,6 +226,18 @@
     const next = ids.includes(key) ? ids.filter((item) => item !== key) : [...ids, key];
     localStorage.setItem(FAVORITES_KEY, JSON.stringify([...new Set(next)]));
     window.dispatchEvent(new CustomEvent("dedicalivres:favorites-updated"));
+  }
+
+  function animateFavoriteButton(button, active) {
+    if (!button) return;
+
+    button.classList.remove("favorite-pop", "favorite-release");
+    void button.offsetWidth;
+    button.classList.add(active ? "favorite-pop" : "favorite-release");
+
+    window.setTimeout(() => {
+      button.classList.remove("favorite-pop", "favorite-release");
+    }, 700);
   }
 
   function downloadICS(event) {
