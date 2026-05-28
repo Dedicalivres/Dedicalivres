@@ -10,15 +10,15 @@
 <meta property="og:title" content="Dédicaces auteurs et rencontres littéraires — Dédicalivres" />
   <meta property="og:description" content="Trouvez les prochaines séances de dédicace, rencontres avec des auteurs et événements littéraires référencés en France." />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="banner.jpg" />
+  <meta property="og:image" content="https://dedicalivres.fr/banner2.jpg" />
 
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "name": 'Dédicaces auteurs et rencontres littéraires — Dédicalivres',
-    "description": 'Trouvez les prochaines séances de dédicace, rencontres avec des auteurs et événements littéraires référencés en France.',
-    "url": 'https://dedicalivres.fr/dedicaces',
+    "name": "Dédicaces auteurs et rencontres littéraires — Dédicalivres",
+    "description": "Trouvez les prochaines séances de dédicace, rencontres avec des auteurs et événements littéraires référencés en France.",
+    "url": "https://dedicalivres.fr/dedicaces",
     "isPartOf": {
       "@type": "WebSite",
       "name": "Dédicalivres",
@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=index-optim-10" />
+  <link rel="stylesheet" href="style.css?v=full-optim-1" />
 </head>
 <body class="seo-page" data-agenda-mode="dedicaces" data-event-type="Dédicace">
 <header class="header">
@@ -90,11 +90,19 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=7.7.6i"></script>
-<script src="regional-map.js?v=7.7.6i"></script>
-<script src="seo-pages.js?v=index-optim-10"></script>
-<script src="tracking-v4.js?v=7.7.6i"></script>
+<script src="config.js?v=shared-client-1"></script>
+<script src="regional-map.js?v=shared-client-1"></script>
+<script src="seo-pages.js?v=shared-client-1"></script>
+<script src="tracking-v4.js?v=shared-client-1"></script>
 <script src="ui-effects-v6.js?v=7.7.6i"></script>
-<script src="custom-cursor.js?v=7.7.6i"></script>
+<script>
+(function () {
+  if (!window.matchMedia || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+  const script = document.createElement("script");
+  script.src = "custom-cursor.js?v=7.7.6i";
+  script.async = true;
+  document.body.appendChild(script);
+})();
+</script>
 </body>
 </html>

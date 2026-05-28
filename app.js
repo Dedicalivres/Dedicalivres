@@ -1748,8 +1748,18 @@
           .bindPopup("Vous êtes ici")
           .addTo(map);
 
+        const nearbyEvents = findNearestEvents(userPosition, filterEvents(allEvents));
+        if (nearbyEvents.length) {
+          openMapFloatingPanel(nearbyEvents);
+        }
+
         await trackLocationRequest(userPosition);
-        setLocateStatus("Position trouvée. La carte est centrée autour de vous.", "success");
+        setLocateStatus(
+          nearbyEvents.length
+            ? "Position trouvée. Les rendez-vous les plus proches sont affichés sur la carte."
+            : "Position trouvée. Aucun événement proche avec coordonnées n’est disponible dans ce filtre.",
+          "success"
+        );
 
         if (locateMeButton) {
           locateMeButton.disabled = false;
@@ -1770,6 +1780,45 @@
         maximumAge: 600000
       }
     );
+  }
+
+  function findNearestEvents(position, events) {
+    if (!position) return [];
+
+    return (Array.isArray(events) ? events : [])
+      .filter((event) => (
+        Number.isFinite(Number(event.lat)) &&
+        Number.isFinite(Number(event.lng))
+      ))
+      .map((event) => ({
+        ...event,
+        distanceKm: distanceInKm(
+          Number(position.lat),
+          Number(position.lng),
+          Number(event.lat),
+          Number(event.lng)
+        )
+      }))
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .slice(0, 3);
+  }
+
+  function distanceInKm(lat1, lng1, lat2, lng2) {
+    const radius = 6371;
+    const dLat = toRadians(lat2 - lat1);
+    const dLng = toRadians(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+
+    return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function toRadians(value) {
+    return Number(value) * Math.PI / 180;
   }
 
   async function trackLocationRequest(position) {

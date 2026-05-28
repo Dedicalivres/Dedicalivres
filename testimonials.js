@@ -18,10 +18,12 @@
   }
 
   const client =
-    window.DEDICALIVRES_SUPABASE_CLIENT ||
+    (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
     window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
-  window.DEDICALIVRES_SUPABASE_CLIENT = client;
+  if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+    window.DEDICALIVRES_SUPABASE_CLIENT = client;
+  }
   let selectedImage = null;
 
   init();
@@ -127,9 +129,20 @@
       selectedImage = file;
       const reader = new FileReader();
       reader.onload = (event) => {
+        const previewUrl = escapeAttribute(event.target.result);
+        const previewName = escapeHtml(file.name);
+
         imagePreview.innerHTML = `
-          <img src="${event.target.result}" alt="Prévisualisation" />
-          <div class="image-preview-caption">${escapeHtml(file.name)}</div>
+          <div class="image-preview-intro">
+            <strong>Votre photo reste un souvenir, pas une obligation</strong>
+            <p>Elle sera affichée avec douceur pour accompagner votre texte sans le voler.</p>
+          </div>
+
+          <figure class="image-preview-example image-preview-card testimonial-preview-card">
+            <figcaption>Aperçu du témoignage</figcaption>
+            <img src="${previewUrl}" alt="Prévisualisation de votre souvenir" />
+            <small>${previewName}</small>
+          </figure>
         `;
         imagePreview.classList.add("is-visible");
       };

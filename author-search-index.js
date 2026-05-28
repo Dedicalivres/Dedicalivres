@@ -14,10 +14,12 @@
   }
 
   const supabaseClient =
-    window.DEDICALIVRES_SUPABASE_CLIENT ||
+    (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
     window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
-  window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
+  if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+    window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
+  }
 
   const filters = document.querySelector(".filters");
   const eventsGrid = document.getElementById("events-grid");
@@ -265,7 +267,7 @@
       : "";
 
     line.innerHTML = `
-      <span class="card-authors-label">👤 <strong>Auteurs présents</strong></span>
+      <span class="card-authors-label">👤 <strong>Auteurs déclarés présents</strong></span>
       <span class="card-authors-links">${authorLinks.join("")}${remaining}</span>
     `;
 

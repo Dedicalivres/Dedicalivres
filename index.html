@@ -39,9 +39,9 @@
     rel="stylesheet"
   />
 
-  <link rel="preload" as="image" href="banner2.jpg?v=index-optim-10" />
+  <link rel="preload" as="image" href="banner2.jpg?v=full-optim-1" />
 
-  <link rel="stylesheet" href="style.css?v=index-optim-15" />
+  <link rel="stylesheet" href="style.css?v=full-optim-1" />
   <link rel="stylesheet" href="mascot-guide.css?v=guide-4" />
 </head>
 
@@ -68,7 +68,7 @@
 <section class="hero hero-home hero-banner-menu" aria-label="Bannière Dédicalivres">
   <img
     class="hero-banner-image"
-    src="banner2.jpg?v=index-optim-10"
+    src="banner2.jpg?v=full-optim-1"
     width="1983"
     height="793"
     alt="Dédicalivres, agenda littéraire en France"
@@ -408,10 +408,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script src="config.js?v=8.7"></script>
-<script src="app.js?v=image-fit-2"></script>
+<script src="config.js?v=shared-client-1"></script>
+<script src="app.js?v=full-optim-1"></script>
 
-<script src="tracking-v4.js?v=7.7.5"></script>
+<script src="tracking-v4.js?v=shared-client-1"></script>
 <script src="ui-effects-v6.js?v=7.7.5"></script>
 
 
@@ -437,10 +437,10 @@
     window.setTimeout(callback, 900);
   }
 
-  loadScript("mascot-guide.js?v=guide-4");
+  loadScript("mascot-guide.js?v=shared-client-1");
 
   onIdle(function () {
-    loadScript("author-search-index.js?v=shared-client-3");
+    loadScript("author-search-index.js?v=full-optim-1");
 
     if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
       loadScript("custom-cursor.js?v=7.7.5");

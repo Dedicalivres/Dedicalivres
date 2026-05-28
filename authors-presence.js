@@ -23,10 +23,13 @@
     return;
   }
 
-  const supabaseClient = window.supabase.createClient(
-    config.supabaseUrl,
-    config.supabaseAnonKey
-  );
+  const supabaseClient =
+    (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
+    window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+  if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+    window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
+  }
 
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
@@ -78,14 +81,14 @@
         Aucun auteur ne s’est encore déclaré présent pour cet événement.
       </p>
 
-      <div id="authors-presence-value-box" class="authors-presence-value-box" hidden>
-        <strong>Pourquoi ces liens sont utiles ?</strong>
+      <details id="authors-presence-value-box" class="authors-presence-value-box" hidden>
+        <summary>Pourquoi ces liens sont utiles ?</summary>
         <p>
           Les liens validés permettent aux visiteurs de découvrir l’auteur, son livre ou sa maison d’édition
           directement depuis la fiche événement Dédicalivres. Les visuels restent volontairement simples ;
           la fiche, elle, rassemble les informations cliquables et vérifiées.
         </p>
-      </div>
+      </details>
 
       <div class="authors-presence-share-box">
         <div>
@@ -339,19 +342,14 @@
   function renderAuthorPresenceCard(author, event) {
     const authorUrl = author.author_profile_url || author.website || "";
     const secondUrl = author.book_or_publisher_url || "";
-    const modeLabel = getPublicationModeLabel(author.publication_mode);
     const authorLabel = getAuthorLinkLabel(author.author_profile_url_type);
     const secondLabel = getSecondLinkLabel(author.book_or_publisher_url_type, author.publisher_name);
-    const publisherLine = author.publisher_name ? `<small>${escapeHtml(author.publisher_name)}</small>` : "";
-    const eventContext = buildEventContextText(author, event);
 
     return `
       <article class="author-presence-card author-presence-card-extended">
         <div class="author-presence-card-main">
           <strong>${escapeHtml(author.pseudo)}</strong>
-          <small>${escapeHtml(modeLabel)}</small>
-          ${publisherLine}
-          <p>${escapeHtml(eventContext)}</p>
+          <small>Auteur déclaré présent</small>
         </div>
 
         <div class="author-presence-links" aria-label="Liens utiles pour ${escapeAttribute(author.pseudo)}">
@@ -368,18 +366,6 @@
         </div>
       </article>
     `;
-  }
-
-  function buildEventContextText(author, event) {
-    const place = [event?.city, event?.region].filter(Boolean).join(", ");
-    const authorName = author?.pseudo || "Cet auteur";
-    const title = event?.title || "cet événement littéraire";
-
-    if (place) {
-      return `${authorName} est déclaré présent pour ${title} à ${place}.`;
-    }
-
-    return `${authorName} est déclaré présent pour ${title}.`;
   }
 
   function injectAuthorsPresenceSchema(event, authors) {
@@ -469,11 +455,16 @@
       }
 
       .authors-presence-value-box strong,
+      .authors-presence-value-box summary,
       .authors-presence-share-box strong {
         display: block;
         color: var(--purple);
         font-weight: 900;
         margin-bottom: 6px;
+      }
+
+      .authors-presence-value-box summary {
+        cursor: pointer;
       }
 
       .authors-presence-value-box p,
@@ -542,19 +533,6 @@
         section.classList.remove("is-anchor-focused");
       }, 2600);
     }, 450);
-  }
-
-  function getPublicationModeLabel(value) {
-    switch (value) {
-      case "self_published":
-        return "Publication : autoédition";
-      case "publisher":
-        return "Publication : maison d’édition";
-      case "hybrid":
-        return "Publication : hybride";
-      default:
-        return "Auteur déclaré présent";
-    }
   }
 
   function getAuthorLinkLabel(value) {

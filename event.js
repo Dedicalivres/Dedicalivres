@@ -4,10 +4,19 @@
 
   if (!config || !container) return;
 
-  const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  const client =
+    (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
+    window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+  if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+    window.DEDICALIVRES_SUPABASE_CLIENT = client;
+  }
   const FAVORITES_KEY = "dedicalivres_favorites";
+  const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+  const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
+  let leafletAssetsPromise = null;
 
   if (!eventId) {
     container.innerHTML = `<div class="empty-state"><p>Événement introuvable.</p></div>`;
@@ -32,9 +41,7 @@
     document.title = `${data.title || "Événement"} — Dédicalivres`;
     document.querySelector('meta[name="description"]')?.setAttribute("content", `${data.title || "Événement littéraire"} à ${data.city || "proximité"} — informations, dates et lien officiel.`);
 
-    const image = data.image_url
-      ? `<img class="detail-image" src="${escapeAttribute(data.image_url)}" alt="${escapeAttribute(data.title || "Événement")}" />`
-      : `<div class="detail-image detail-image-placeholder"></div>`;
+    const image = renderDetailImage(data.image_url, data.title || "Événement");
 
     container.innerHTML = `
       ${image}
@@ -73,13 +80,109 @@
 
     bindDetailActions(data);
 
-    if (Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng)) && window.L) {
-      const map = L.map("detail-map", { scrollWheelZoom: false }).setView([Number(data.lat), Number(data.lng)], 11);
+    if (Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng))) {
+      initDetailMap(data);
+    }
+  }
+
+  async function initDetailMap(event) {
+    const mapElement = document.getElementById("detail-map");
+    if (!mapElement) return;
+
+    mapElement.innerHTML = `
+      <div class="map-loading-state">
+        <strong>Carte en cours de chargement</strong>
+        <span>Elle se lance uniquement sur cette fiche.</span>
+      </div>
+    `;
+
+    try {
+      await ensureLeafletAssets();
+      if (!window.L) throw new Error("Leaflet indisponible");
+
+      mapElement.innerHTML = "";
+
+      const map = L.map("detail-map", { scrollWheelZoom: false }).setView(
+        [Number(event.lat), Number(event.lng)],
+        11
+      );
+
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap contributors"
       }).addTo(map);
-      L.marker([Number(data.lat), Number(data.lng)]).addTo(map).bindPopup(escapeHtml(data.title || "Événement")).openPopup();
+
+      L.marker([Number(event.lat), Number(event.lng)])
+        .addTo(map)
+        .bindPopup(escapeHtml(event.title || "Événement"))
+        .openPopup();
+    } catch (error) {
+      console.warn("Carte fiche événement indisponible :", error);
+      mapElement.innerHTML = `
+        <div class="empty-state">
+          <p>Carte indisponible pour le moment. Le lieu reste indiqué dans les informations de l’événement.</p>
+        </div>
+      `;
     }
+  }
+
+  function ensureLeafletAssets() {
+    if (window.L) return Promise.resolve();
+
+    if (!leafletAssetsPromise) {
+      leafletAssetsPromise = Promise.all([
+        loadStylesheetOnce(LEAFLET_CSS_URL),
+        loadScriptOnce(LEAFLET_JS_URL)
+      ]).then(() => undefined);
+    }
+
+    return leafletAssetsPromise;
+  }
+
+  function loadStylesheetOnce(href) {
+    if (document.querySelector(`link[href="${href}"]`)) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = href;
+      link.crossOrigin = "";
+      link.onload = resolve;
+      link.onerror = resolve;
+      document.head.appendChild(link);
+    });
+  }
+
+  function loadScriptOnce(src) {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      return window.L ? Promise.resolve() : new Promise((resolve) => setTimeout(resolve, 240));
+    }
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.crossOrigin = "";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  function renderDetailImage(imageUrl, title) {
+    if (!imageUrl) {
+      return `<div class="detail-image detail-image-placeholder"></div>`;
+    }
+
+    const safeImage = escapeAttribute(imageUrl);
+    const safeTitle = escapeAttribute(title || "Événement");
+
+    return `
+      <figure class="detail-image-frame">
+        <img class="detail-image-background" src="${safeImage}" alt="" aria-hidden="true" />
+        <img class="detail-image" src="${safeImage}" alt="${safeTitle}" />
+      </figure>
+    `;
   }
 
   function bindDetailActions(event) {
