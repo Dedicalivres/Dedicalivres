@@ -1240,6 +1240,31 @@
   }
 }
 
+@media (max-width: 1180px) {
+  .social-generator-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .instagram-caption-wrap textarea {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 680px) {
+  .social-card-head {
+    flex-direction: column;
+  }
+
+  .social-generator-controls,
+  .social-generator-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .social-events-selector {
+    max-height: 340px;
+  }
+}
+
 /* =========================================================
    DENSITE V1.2 - TOUS LES ONGLETS ADMIN
 ========================================================= */
@@ -1397,6 +1422,225 @@
   border-radius: 10px;
 }
 
+.social-generator-shell {
+  display: grid;
+  gap: 12px;
+}
+
+.instagram-generator-card {
+  display: grid;
+  gap: 16px;
+}
+
+.social-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(25, 215, 255, .09);
+}
+
+.social-card-head h3 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+}
+
+.social-card-head p {
+  max-width: 78ch;
+  margin: 8px 0 0;
+  color: var(--cyber-muted);
+  line-height: 1.45;
+}
+
+.social-pill {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-radius: 999px;
+  color: #bff7ff;
+  background: rgba(25, 215, 255, .08);
+  border: 1px solid rgba(25, 215, 255, .14);
+  font-size: .78rem;
+  font-weight: 900;
+}
+
+.social-generator-workbench {
+  display: grid;
+  grid-template-columns: minmax(320px, .82fr) minmax(420px, 1.18fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.social-compose-panel,
+.social-preview-panel {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .035);
+  border: 1px solid rgba(255, 255, 255, .07);
+}
+
+.social-preview-panel {
+  border-color: rgba(25, 215, 255, .12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+}
+
+.social-generator-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.social-generator-controls label,
+.instagram-caption-wrap {
+  display: grid;
+  gap: 6px;
+}
+
+.social-generator-controls span,
+.instagram-caption-wrap > span {
+  color: var(--cyber-muted);
+  font-size: .76rem;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.instagram-caption-wrap small {
+  color: var(--cyber-muted);
+  line-height: 1.35;
+}
+
+.social-generator-controls select,
+.social-search-input,
+.instagram-caption-wrap textarea {
+  width: 100%;
+  color: var(--cyber-text);
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(255, 255, 255, .12);
+  box-shadow: none;
+}
+
+.social-generator-controls select,
+.social-search-input {
+  min-height: 42px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.social-search-input {
+  margin-top: 10px;
+}
+
+.social-generator-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.social-generator-actions button {
+  min-height: 42px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.social-selection-summary {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #bff7ff;
+  background: rgba(25, 215, 255, .07);
+  border: 1px solid rgba(25, 215, 255, .10);
+  font-weight: 900;
+}
+
+.social-events-selector {
+  display: grid;
+  gap: 8px;
+  max-height: 420px;
+  margin-top: 10px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.social-event-choice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .045);
+  border: 1px solid rgba(255, 255, 255, .075);
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.social-event-choice:hover {
+  transform: translateY(-1px);
+  border-color: rgba(25, 215, 255, .20);
+  background: rgba(25, 215, 255, .06);
+}
+
+.social-event-choice:has(input:checked) {
+  border-color: rgba(25, 255, 156, .30);
+  background: rgba(25, 255, 156, .07);
+}
+
+.social-event-choice input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #32d3ff;
+}
+
+.social-event-choice strong,
+.social-event-choice small {
+  display: block;
+}
+
+.social-event-choice strong {
+  line-height: 1.24;
+}
+
+.social-event-choice small {
+  margin-top: 4px;
+  color: var(--cyber-muted);
+  line-height: 1.35;
+}
+
+.instagram-caption-wrap textarea {
+  min-height: 430px;
+  margin: 0;
+  padding: 14px;
+  border-radius: 12px;
+  resize: vertical;
+  line-height: 1.5;
+  font-size: .95rem;
+}
+
+.social-help-card {
+  padding: 0;
+  background: rgba(255, 255, 255, .025);
+}
+
+.social-help-card details {
+  padding: 14px;
+}
+
+.social-help-card summary {
+  cursor: pointer;
+  color: #dff8ff;
+  font-weight: 900;
+}
+
+.social-tips-list {
+  margin: 12px 0 0;
+  color: var(--cyber-muted);
+  line-height: 1.45;
+}
+
 .social-grid {
   gap: 12px;
   padding: 12px;
@@ -1405,6 +1649,35 @@
 .social-card textarea {
   margin: 10px 0;
   border-radius: 10px;
+}
+
+.instagram-caption-wrap textarea {
+  margin: 0;
+}
+
+@media (max-width: 1180px) {
+  .social-generator-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .instagram-caption-wrap textarea {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 680px) {
+  .social-card-head {
+    flex-direction: column;
+  }
+
+  .social-generator-controls,
+  .social-generator-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .social-events-selector {
+    max-height: 340px;
+  }
 }
 
 .author-moderation-head {

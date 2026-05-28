@@ -1,12 +1,12 @@
 /* =========================================================
-   DÉDICALIVRES — Générateur Instagram robuste V7.6.2
+   DÉDICALIVRES — Générateur Instagram robuste V7.6.4
    - Injecte l'interface dans l'onglet Réseaux même si admin.html
      contient encore l'ancienne carte "Instagram IA".
 ========================================================= */
 (function () {
   "use strict";
 
-  const VERSION = "7.6.3-secure";
+  const VERSION = "7.6.4-secure";
   const REGIONS = [
     "Auvergne-Rhône-Alpes",
     "Bourgogne-Franche-Comté",
@@ -50,6 +50,13 @@
     "#Auteurs"
   ];
 
+  const TYPE_HASHTAGS = {
+    Salon: ["#SalonDuLivre", "#RencontreLitteraire", "#Livre"],
+    Festival: ["#FestivalDuLivre", "#FestivalLitteraire", "#SortieCulturelle"],
+    "Dédicace": ["#Dedicace", "#Auteur", "#LivreDedicace"],
+    Autre: ["#EvenementLitteraire", "#Culture", "#Lecture"]
+  };
+
   let client = null;
   let events = [];
   let filteredEvents = [];
@@ -87,7 +94,14 @@
       const tab = document.getElementById("tab-social");
       if (config && window.supabase && tab) {
         clearInterval(timer);
-        client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+        client =
+          (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
+          window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+        if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+          window.DEDICALIVRES_SUPABASE_CLIENT = client;
+        }
+
         injectInterface(tab);
         bindControls();
         loadEvents();
@@ -114,87 +128,96 @@
             <span class="social-pill">V${VERSION}</span>
           </div>
 
-          <div class="social-generator-controls">
-            <label>
-              <span>Mode</span>
-              <select id="social-post-mode">
-                <option value="central">Dédicalivres au centre</option>
-                <option value="regional">Focus régional</option>
-                <option value="multi">Multi-régions</option>
-                <option value="story">Story courte</option>
-                <option value="carousel">Carousel Instagram</option>
-              </select>
-            </label>
+          <div class="social-generator-workbench">
+            <div class="social-compose-panel">
+              <div class="social-generator-controls">
+                <label>
+                  <span>Mode</span>
+                  <select id="social-post-mode">
+                    <option value="central">Dédicalivres au centre</option>
+                    <option value="regional">Focus régional</option>
+                    <option value="multi">Multi-régions</option>
+                    <option value="story">Story courte</option>
+                    <option value="carousel">Carousel Instagram</option>
+                  </select>
+                </label>
 
-            <label>
-              <span>Région</span>
-              <select id="social-region-filter">
-                <option value="">Toutes les régions</option>
-              </select>
-            </label>
+                <label>
+                  <span>Région</span>
+                  <select id="social-region-filter">
+                    <option value="">Toutes les régions</option>
+                  </select>
+                </label>
 
-            <label>
-              <span>Type</span>
-              <select id="social-type-filter">
-                <option value="">Tous les types</option>
-                <option value="Salon">Salon</option>
-                <option value="Festival">Festival</option>
-                <option value="Dédicace">Dédicace</option>
-                <option value="Autre">Autre</option>
-              </select>
-            </label>
+                <label>
+                  <span>Type</span>
+                  <select id="social-type-filter">
+                    <option value="">Tous les types</option>
+                    <option value="Salon">Salon</option>
+                    <option value="Festival">Festival</option>
+                    <option value="Dédicace">Dédicace</option>
+                    <option value="Autre">Autre</option>
+                  </select>
+                </label>
 
-            <label>
-              <span>Nombre</span>
-              <select id="social-max-events">
-                <option value="3">3 événements</option>
-                <option value="5" selected>5 événements</option>
-                <option value="8">8 événements</option>
-                <option value="12">12 événements</option>
-              </select>
-            </label>
+                <label>
+                  <span>Nombre</span>
+                  <select id="social-max-events">
+                    <option value="3">3 événements</option>
+                    <option value="5" selected>5 événements</option>
+                    <option value="8">8 événements</option>
+                    <option value="12">12 événements</option>
+                  </select>
+                </label>
+              </div>
+
+              <input
+                id="social-event-search"
+                class="social-search-input"
+                type="search"
+                placeholder="Rechercher un événement, une ville, une région…"
+              />
+
+              <div class="social-generator-actions mobile-sticky-actions">
+                <button id="social-generate-post" class="cyber-btn-primary" type="button">Générer</button>
+                <button id="social-copy-post" class="cyber-btn-secondary" type="button">Copier</button>
+                <button id="social-clear-selection" class="cyber-btn-danger" type="button">Effacer</button>
+              </div>
+
+              <div class="social-selection-summary" id="social-selection-summary">
+                Chargement des événements…
+              </div>
+
+              <div id="social-events-selector" class="social-events-selector">
+                <p class="priority-empty">Chargement des événements à venir…</p>
+              </div>
+            </div>
+
+            <div class="social-preview-panel">
+              <label class="instagram-caption-wrap">
+                <span>Texte généré</span>
+                <small>5 hashtags maximum, choisis selon le sujet, le type et la région.</small>
+                <textarea
+                  id="instagram-caption"
+                  rows="14"
+                  placeholder="Choisis un mode, sélectionne quelques événements, puis clique sur Générer."
+                ></textarea>
+              </label>
+            </div>
           </div>
-
-          <input
-            id="social-event-search"
-            class="social-search-input"
-            type="search"
-            placeholder="Rechercher un événement, une ville, une région…"
-          />
-
-          <div class="social-generator-actions mobile-sticky-actions">
-            <button id="social-generate-post" class="cyber-btn-primary" type="button">Générer</button>
-            <button id="social-copy-post" class="cyber-btn-secondary" type="button">Copier</button>
-            <button id="social-clear-selection" class="cyber-btn-danger" type="button">Effacer</button>
-          </div>
-
-          <div class="social-selection-summary" id="social-selection-summary">
-            Chargement des événements…
-          </div>
-
-          <div id="social-events-selector" class="social-events-selector">
-            <p class="priority-empty">Chargement des événements à venir…</p>
-          </div>
-
-          <label class="instagram-caption-wrap">
-            <span>Texte généré</span>
-            <textarea
-              id="instagram-caption"
-              rows="12"
-              placeholder="Choisis un mode, sélectionne quelques événements, puis clique sur Générer."
-            ></textarea>
-          </label>
         </article>
 
         <article class="social-card social-help-card">
-          <h3>Comment choisir le bon mode ?</h3>
-          <ul class="social-tips-list">
-            <li><strong>Dédicalivres au centre</strong> : publication générale pour faire rayonner le site.</li>
-            <li><strong>Focus régional</strong> : publication locale pour une région précise.</li>
-            <li><strong>Multi-régions</strong> : sélection nationale regroupée par territoire.</li>
-            <li><strong>Story courte</strong> : texte rapide à utiliser en story ou post bref.</li>
-            <li><strong>Carousel</strong> : plan de slides + légende associée.</li>
-          </ul>
+          <details>
+            <summary>Repères rapides pour choisir le bon mode</summary>
+            <ul class="social-tips-list">
+              <li><strong>Dédicalivres au centre</strong> : publication générale pour faire rayonner le site.</li>
+              <li><strong>Focus régional</strong> : publication locale pour une région précise.</li>
+              <li><strong>Multi-régions</strong> : sélection nationale regroupée par territoire.</li>
+              <li><strong>Story courte</strong> : texte rapide à utiliser en story ou post bref.</li>
+              <li><strong>Carousel</strong> : plan de slides + légende associée.</li>
+            </ul>
+          </details>
         </article>
       </section>
     `;
@@ -359,7 +382,7 @@
       "",
       "✨ Retrouvez l’agenda complet sur dedicalivres.fr",
       "",
-      renderHashtags(chosen, true)
+      renderHashtags(chosen, { includeRegions: true, mode: "central" })
     ].join("\n");
   }
 
@@ -378,7 +401,7 @@
       "",
       "Dédicalivres relaie les événements littéraires partout en France, région par région.",
       "",
-      renderHashtags(list, true)
+      renderHashtags(list, { includeRegions: true, mode: "regional" })
     ].join("\n");
   }
 
@@ -399,7 +422,7 @@
 
     lines.push("Retrouvez tous les événements sur dedicalivres.fr");
     lines.push("");
-    lines.push(renderHashtags(chosen, true));
+    lines.push(renderHashtags(chosen, { includeRegions: true, mode: "multi" }));
     return lines.join("\n");
   }
 
@@ -411,7 +434,7 @@
       "",
       renderBullets(chosen.slice(0, 4)),
       "",
-      renderHashtags(chosen, false)
+      renderHashtags(chosen, { includeRegions: false, mode: "story" })
     ].join("\n");
   }
 
@@ -430,7 +453,7 @@
       "Légende proposée :",
       "Dédicalivres rassemble les salons du livre, dédicaces, festivals et rencontres littéraires partout en France.",
       "",
-      renderHashtags(chosen, true)
+      renderHashtags(chosen, { includeRegions: true, mode: "carousel" })
     ].join("\n");
   }
 
@@ -442,16 +465,65 @@
     }).join("\n");
   }
 
-  function renderHashtags(items, includeRegions) {
-    const tags = [...BASE_HASHTAGS];
+  function renderHashtags(items, options = {}) {
+    const includeRegions = options.includeRegions !== false;
+    const selectedRegion = document.getElementById("social-region-filter")?.value || "";
+    const selectedType = document.getElementById("social-type-filter")?.value || "";
+    const mode = options.mode || document.getElementById("social-post-mode")?.value || "central";
+    const regions = unique(items.map((event) => event.region).filter(Boolean));
+    const types = unique(items.map((event) => event.type).filter(Boolean));
+    const tags = [];
 
-    if (includeRegions) {
-      unique(items.map((event) => event.region).filter(Boolean)).forEach((region) => {
-        tags.push(...(REGION_HASHTAGS[region] || [`#${slugifyHashtag(region)}`]));
+    addWeighted(tags, "#dedicalivres", 120);
+    addWeighted(tags, "#AgendaLitteraire", mode === "story" ? 74 : 95);
+
+    if (selectedType) {
+      (TYPE_HASHTAGS[selectedType] || [`#${slugifyHashtag(selectedType)}`]).forEach((tag, index) => {
+        addWeighted(tags, tag, 92 - index * 16);
+      });
+    } else {
+      types.slice(0, 2).forEach((type, typeIndex) => {
+        (TYPE_HASHTAGS[type] || [`#${slugifyHashtag(type)}`]).forEach((tag, index) => {
+          addWeighted(tags, tag, 82 - typeIndex * 12 - index * 9);
+        });
       });
     }
 
-    return unique(tags).slice(0, 28).join(" ");
+    if (includeRegions) {
+      const preferredRegions = selectedRegion ? [selectedRegion] : regions.slice(0, mode === "multi" ? 2 : 1);
+      preferredRegions.forEach((region, regionIndex) => {
+        (REGION_HASHTAGS[region] || [`#${slugifyHashtag(region)}`]).forEach((tag, index) => {
+          addWeighted(tags, tag, 88 - regionIndex * 10 - index * 4);
+        });
+      });
+    }
+
+    if (mode === "regional") addWeighted(tags, "#SortieCulturelle", 68);
+    if (mode === "multi") addWeighted(tags, "#FranceCulture", 70);
+    if (mode === "story") addWeighted(tags, "#Lecture", 84);
+    if (mode === "carousel") addWeighted(tags, "#Livres", 76);
+
+    BASE_HASHTAGS.forEach((tag, index) => addWeighted(tags, tag, 64 - index * 3));
+
+    return tags
+      .sort((a, b) => b.score - a.score || a.tag.localeCompare(b.tag, "fr"))
+      .reduce((acc, item) => {
+        const normalized = item.tag.toLowerCase();
+        if (!acc.keys.has(normalized)) {
+          acc.keys.add(normalized);
+          acc.values.push(item.tag);
+        }
+        return acc;
+      }, { keys: new Set(), values: [] })
+      .values
+      .slice(0, 5)
+      .join(" ");
+  }
+
+  function addWeighted(tags, tag, score) {
+    const clean = String(tag || "").trim();
+    if (!clean || clean === "#") return;
+    tags.push({ tag: clean, score });
   }
 
   async function copyPost() {

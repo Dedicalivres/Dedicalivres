@@ -94,7 +94,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "10.6";
+const ADMIN_MODULE_VERSION = "10.7";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const adminModerationCounters = {
   events: 0,
