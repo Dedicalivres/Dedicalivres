@@ -94,7 +94,8 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "10.2";
+const ADMIN_MODULE_VERSION = "10.6";
+const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const adminModerationCounters = {
   events: 0,
   testimonials: 0,
@@ -600,6 +601,9 @@ function renderAdminModerationBadge() {
       ? "Compteur de modération partiellement indisponible"
       : `${total} élément${total > 1 ? "s" : ""} à modérer`
   );
+
+  safeAdminStepSync("centre modération", renderModerationCommandCenter);
+  safeAdminStepSync("mission du jour", renderAdminMissionControl);
 }
 
 function resetAdminModerationCounters() {
@@ -713,7 +717,10 @@ async function loadDashboard() {
 
 function refreshAdminViews() {
   safeAdminStepSync("statistiques", updateStats);
+  safeAdminStepSync("mission du jour", renderAdminMissionControl);
   safeAdminStepSync("actions prioritaires", renderPriorityActionPanel);
+  safeAdminStepSync("historique admin", renderAdminActionHistory);
+  safeAdminStepSync("centre modération", renderModerationCommandCenter);
   safeAdminStepSync("liste événements", renderEvents);
   safeAdminStepSync("premium", renderPremiumDashboard);
   safeAdminStepSync("réseaux", renderSocialUpcoming);
@@ -721,6 +728,7 @@ function refreshAdminViews() {
   safeAdminStepSync("qualité", renderQualityControlCenter);
   safeAdminStepSync("statistiques cockpit", renderStatsControlCenter);
   safeAdminStepSync("sécurité cockpit", renderSecurityControlCenter);
+  safeAdminStepSync("diagnostic santé", renderAdminHealthDiagnostics);
 }
 
 async function safeAdminStep(label, fn) {
@@ -866,6 +874,209 @@ if (eventsCount) {
   }
 }
 
+/* MISSION DU JOUR / MODÉRATION UNIFIÉE */
+
+function getAdminModerationTotal() {
+  return Object.values(adminModerationCounters)
+    .reduce((sum, count) => sum + Number(count || 0), 0);
+}
+
+function renderAdminMissionControl() {
+  const overviewPanel = document.getElementById("tab-overview");
+  const statsGrid = overviewPanel?.querySelector(".stats-grid");
+
+  if (!overviewPanel || !statsGrid) return;
+
+  let panel = document.getElementById("admin-mission-panel");
+
+  if (!panel) {
+    panel = document.createElement("section");
+    panel.id = "admin-mission-panel";
+    panel.className = "admin-panel admin-mission-panel";
+    statsGrid.insertAdjacentElement("afterend", panel);
+  }
+
+  const buckets = getControlBuckets();
+  const moderationTotal = getAdminModerationTotal();
+  const criticalTotal = buckets.missingCoords.length + buckets.featuredPast.length + buckets.qualityLow.length;
+  const nextAction = getAdminMissionNextAction(buckets, moderationTotal);
+
+  panel.innerHTML = `
+    <div class="admin-mission-copy">
+      <span class="admin-mission-kicker">Mission du jour</span>
+      <h3>${escapeHtml(nextAction.title)}</h3>
+      <p>${escapeHtml(nextAction.text)}</p>
+    </div>
+
+    <div class="admin-mission-grid" aria-label="Synthèse du centre de contrôle">
+      ${renderMissionTile("Modération", moderationTotal, "events", moderationTotal ? "warning" : "ok")}
+      ${renderMissionTile("Qualité", buckets.qualityLow.length, "quality-low", buckets.qualityLow.length ? "danger" : "ok")}
+      ${renderMissionTile("GPS", buckets.missingCoords.length, "missing-coords", buckets.missingCoords.length ? "danger" : "ok")}
+      ${renderMissionTile("Publication", buckets.soon.length, "soon", buckets.soon.length ? "info" : "neutral")}
+      ${renderMissionTile("Santé", criticalTotal, "settings", criticalTotal ? "warning" : "ok")}
+    </div>
+  `;
+
+  panel.querySelectorAll("[data-mission-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const action = button.dataset.missionAction || "";
+
+      if (action === "events") {
+        switchAdminTab("moderation");
+        return;
+      }
+
+      if (action === "settings") {
+        switchAdminTab("settings");
+        return;
+      }
+
+      if (["quality-low", "missing-coords", "soon"].includes(action)) {
+        switchAdminTab("quality");
+        if (qualityFocusSelect) qualityFocusSelect.value = action;
+        renderQualityControlCenter();
+        return;
+      }
+
+      switchAdminTab("overview");
+    });
+  });
+}
+
+function getAdminMissionNextAction(buckets, moderationTotal) {
+  if (moderationTotal > 0) {
+    return {
+      title: "Commencer par la modération",
+      text: `${moderationTotal} élément${moderationTotal > 1 ? "s" : ""} attendent une décision.`
+    };
+  }
+
+  if (buckets.missingCoords.length > 0) {
+    const count = buckets.missingCoords.length;
+    return {
+      title: "Sécuriser la carte",
+      text: `${count} fiche${count > 1 ? "s" : ""} validée${count > 1 ? "s" : ""} manque${count > 1 ? "nt" : ""} de coordonnées.`
+    };
+  }
+
+  if (buckets.qualityLow.length > 0) {
+    return {
+      title: "Renforcer les fiches faibles",
+      text: `${buckets.qualityLow.length} événement${buckets.qualityLow.length > 1 ? "s" : ""} peuvent gagner en lisibilité.`
+    };
+  }
+
+  if (buckets.soon.length > 0) {
+    return {
+      title: "Préparer les prochaines publications",
+      text: `${buckets.soon.length} événement${buckets.soon.length > 1 ? "s" : ""} arrivent sous 14 jours.`
+    };
+  }
+
+  return {
+    title: "Centre de contrôle stable",
+    text: "Aucune urgence détectée sur les données chargées."
+  };
+}
+
+function renderMissionTile(label, value, action, tone) {
+  return `
+    <button class="admin-mission-tile is-${escapeHtml(tone || "neutral")}" type="button" data-mission-action="${escapeHtml(action)}">
+      <strong>${escapeHtml(value)}</strong>
+      <span>${escapeHtml(label)}</span>
+    </button>
+  `;
+}
+
+function renderModerationCommandCenter() {
+  const moderationTab = document.getElementById("tab-moderation");
+  if (!moderationTab) return;
+
+  let panel = document.getElementById("admin-moderation-command-center");
+
+  if (!panel) {
+    panel = document.createElement("section");
+    panel.id = "admin-moderation-command-center";
+    panel.className = "admin-panel admin-moderation-command-center";
+    moderationTab.prepend(panel);
+  }
+
+  const pendingEvents = adminModerationCounters.events || 0;
+  const pendingTestimonials = adminModerationCounters.testimonials || 0;
+  const pendingAuthorRequests = adminModerationCounters.authorRequests || 0;
+  const total = pendingEvents + pendingTestimonials + pendingAuthorRequests;
+  const hasError = adminModerationErrors.size > 0;
+
+  panel.innerHTML = `
+    <div class="section-head">
+      <h3>FILE DE MODÉRATION</h3>
+      <span>${hasError ? "Un compteur est indisponible" : `${total} élément${total > 1 ? "s" : ""} à traiter`}</span>
+    </div>
+
+    <div class="moderation-command-grid">
+      ${renderModerationCommandCard("Événements", pendingEvents, "pending-events", pendingEvents ? "warning" : "ok", "Nouvelles propositions")}
+      ${renderModerationCommandCard("Demandes auteurs", pendingAuthorRequests, "author-requests", pendingAuthorRequests ? "warning" : "ok", "Présence déclarée")}
+      ${renderModerationCommandCard("Témoignages", pendingTestimonials, "testimonials", pendingTestimonials ? "warning" : "ok", "Souvenirs à publier")}
+      ${renderModerationCommandCard("Total", hasError ? "!" : total, "all", hasError ? "danger" : total ? "warning" : "ok", hasError ? "À vérifier" : "Vue globale")}
+    </div>
+  `;
+
+  panel.querySelectorAll("[data-moderation-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      handleModerationCommand(button.dataset.moderationAction || "all");
+    });
+  });
+}
+
+function renderModerationCommandCard(label, value, action, tone, detail) {
+  return `
+    <button class="moderation-command-card is-${escapeHtml(tone || "neutral")}" type="button" data-moderation-action="${escapeHtml(action)}">
+      <strong>${escapeHtml(value)}</strong>
+      <span>${escapeHtml(label)}</span>
+      <small>${escapeHtml(detail || "")}</small>
+    </button>
+  `;
+}
+
+function handleModerationCommand(action) {
+  if (action === "pending-events") {
+    applyPriorityAction("pending");
+    return;
+  }
+
+  if (action === "author-requests") {
+    switchAdminTab("moderation");
+    scrollToAdminPanel("author-requests-admin-panel");
+    return;
+  }
+
+  if (action === "testimonials") {
+    switchAdminTab("moderation");
+    scrollToAdminPanel("testimonials-admin-panel");
+    return;
+  }
+
+  switchAdminTab("moderation");
+}
+
+function switchAdminTab(target) {
+  document.querySelector(`.admin-tab[data-tab="${target}"]`)?.click();
+}
+
+function scrollToAdminPanel(id) {
+  const panel = document.getElementById(id);
+
+  if (!panel) {
+    showToast("Module en cours de chargement");
+    return;
+  }
+
+  panel.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
 
 /* ACTIONS PRIORITAIRES */
 
@@ -881,7 +1092,7 @@ function renderPriorityActionPanel() {
     panel = document.createElement("section");
     panel.id = "admin-action-priority-panel";
     panel.className = "admin-action-priority-panel";
-    statsGrid.insertAdjacentElement("afterend", panel);
+    (document.getElementById("admin-mission-panel") || statsGrid).insertAdjacentElement("afterend", panel);
   }
 
   const pending = allEvents.filter((event) => isPendingEvent(event));
@@ -1256,6 +1467,171 @@ function renderSecurityControlCenter() {
     renderControlMetric("À finir", "2", "warning", "unaccent + Auth password"),
     renderControlMetric("Rollback", "Prêt", "info", "SQL exporté")
   ].join("");
+}
+
+function renderAdminHealthDiagnostics() {
+  const settingsPanel = document.getElementById("tab-settings");
+  if (!settingsPanel) return;
+
+  let panel = document.getElementById("admin-health-diagnostics");
+
+  if (!panel) {
+    panel = document.createElement("section");
+    panel.id = "admin-health-diagnostics";
+    panel.className = "admin-panel admin-health-diagnostics";
+    settingsPanel.appendChild(panel);
+  }
+
+  const buckets = getControlBuckets();
+  const checks = [
+    {
+      label: "Événements passés mis en avant",
+      value: buckets.featuredPast.length,
+      tone: buckets.featuredPast.length ? "warning" : "ok",
+      detail: buckets.featuredPast.length ? "À retirer ou renouveler" : "Aucun nettoyage urgent"
+    },
+    {
+      label: "Fiches publiques sans image",
+      value: buckets.missingImage.length,
+      tone: buckets.missingImage.length ? "purple" : "ok",
+      detail: "Impact visuel"
+    },
+    {
+      label: "Fiches publiques sans GPS",
+      value: buckets.missingCoords.length,
+      tone: buckets.missingCoords.length ? "danger" : "ok",
+      detail: "Carte et recherche régionale"
+    },
+    {
+      label: "Sites officiels manquants",
+      value: buckets.noWebsite.length,
+      tone: buckets.noWebsite.length ? "warning" : "ok",
+      detail: "Confiance utilisateur"
+    },
+    {
+      label: "Qualité faible",
+      value: buckets.qualityLow.length,
+      tone: buckets.qualityLow.length ? "danger" : "ok",
+      detail: "À compléter avant diffusion"
+    },
+    {
+      label: "Modération",
+      value: getAdminModerationTotal(),
+      tone: getAdminModerationTotal() ? "warning" : "ok",
+      detail: "File visiteurs"
+    }
+  ];
+
+  panel.innerHTML = `
+    <div class="section-head">
+      <h3>DIAGNOSTIC SANTÉ DU SITE</h3>
+      <span>Contrôles calculés sans modifier Supabase</span>
+    </div>
+
+    <div class="cockpit-status-grid">
+      ${checks.map((check) => renderControlMetric(check.label, check.value, check.tone, check.detail)).join("")}
+    </div>
+
+    <div class="admin-health-actions">
+      <button class="cyber-btn-secondary" type="button" data-health-action="missing-image">Voir sans image</button>
+      <button class="cyber-btn-secondary" type="button" data-health-action="missing-coords">Voir sans GPS</button>
+      <button class="cyber-btn-secondary" type="button" data-health-action="featured-past">Nettoyer mis en avant</button>
+    </div>
+  `;
+
+  panel.querySelectorAll("[data-health-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      applyPriorityAction(button.dataset.healthAction || "");
+    });
+  });
+}
+
+function getAdminActionLog() {
+  try {
+    const rows = JSON.parse(localStorage.getItem(ADMIN_ACTION_LOG_KEY) || "[]");
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
+  }
+}
+
+function recordAdminAction(label, detail = "") {
+  const rows = getAdminActionLog();
+  const next = [
+    {
+      label: String(label || "Action admin"),
+      detail: String(detail || ""),
+      created_at: new Date().toISOString()
+    },
+    ...rows
+  ].slice(0, 20);
+
+  localStorage.setItem(ADMIN_ACTION_LOG_KEY, JSON.stringify(next));
+  renderAdminActionHistory();
+}
+
+function renderAdminActionHistory() {
+  const overviewPanel = document.getElementById("tab-overview");
+  const anchor = document.getElementById("admin-action-priority-panel") || document.getElementById("admin-mission-panel");
+
+  if (!overviewPanel || !anchor) return;
+
+  let panel = document.getElementById("admin-action-history-panel");
+
+  if (!panel) {
+    panel = document.createElement("section");
+    panel.id = "admin-action-history-panel";
+    panel.className = "admin-panel admin-action-history-panel";
+    anchor.insertAdjacentElement("afterend", panel);
+  }
+
+  const rows = getAdminActionLog().slice(0, 6);
+
+  panel.innerHTML = `
+    <div class="section-head">
+      <h3>DERNIÈRES ACTIONS</h3>
+      <span>Historique local de ce navigateur</span>
+    </div>
+
+    ${
+      rows.length
+        ? `<div class="admin-action-history-list">${rows.map(renderAdminActionHistoryRow).join("")}</div>`
+        : `<p class="priority-empty">Les validations, refus, modifications et mises en avant apparaîtront ici.</p>`
+    }
+  `;
+}
+
+function renderAdminActionHistoryRow(row) {
+  return `
+    <article class="admin-action-history-row">
+      <div>
+        <strong>${escapeHtml(row.label)}</strong>
+        ${row.detail ? `<span>${escapeHtml(row.detail)}</span>` : ""}
+      </div>
+      <time>${escapeHtml(formatRelativeAdminTime(row.created_at))}</time>
+    </article>
+  `;
+}
+
+function formatRelativeAdminTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "date inconnue";
+
+  const diff = Date.now() - date.getTime();
+  const minutes = Math.max(0, Math.round(diff / 60000));
+
+  if (minutes < 1) return "à l’instant";
+  if (minutes < 60) return `${minutes} min`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h`;
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }
 
 
@@ -1753,6 +2129,33 @@ function renderEventQuality(event) {
   `;
 }
 
+function renderEventChecklist(event) {
+  const descriptionLength = String(event?.description || "").trim().length;
+  const checks = [
+    ["Date", !!event?.start_date],
+    ["Lieu", !!event?.city && !!event?.region],
+    ["GPS", hasEventCoords(event)],
+    ["Image", !!event?.image_url],
+    ["Texte", descriptionLength >= 120],
+    ["Site", !!event?.website]
+  ];
+
+  return `
+    <div class="event-admin-checklist" aria-label="Checklist qualité événement">
+      ${checks.map(([label, ok]) => renderEventChecklistChip(label, ok)).join("")}
+    </div>
+  `;
+}
+
+function renderEventChecklistChip(label, ok) {
+  return `
+    <span class="event-admin-check ${ok ? "is-ok" : "is-missing"}">
+      <i aria-hidden="true">${ok ? "✓" : "!"}</i>
+      ${escapeHtml(label)}
+    </span>
+  `;
+}
+
 
 /* RENDER EVENTS */
 
@@ -1841,6 +2244,7 @@ function renderEventCard(event) {
         </div>
 
         ${renderEventQuality(event)}
+        ${renderEventChecklist(event)}
       </div>
 
       <div class="event-actions">
@@ -1987,6 +2391,7 @@ async function validateEvent(id) {
   }
 
   await loadDashboard();
+  recordAdminAction("Événement validé", eventActionLabel(id));
   showToast("Événement validé");
 }
 
@@ -2006,6 +2411,7 @@ async function rejectEvent(id) {
   }
 
   await loadDashboard();
+  recordAdminAction("Événement refusé", eventActionLabel(id));
   showToast("Événement rejeté");
 }
 
@@ -2028,6 +2434,7 @@ async function toggleFeatured(id) {
   }
 
   await loadDashboard();
+  recordAdminAction(event.featured ? "Mise en avant retirée" : "Mise en avant ajoutée", eventActionLabel(id));
   showToast("Mise à jour");
 }
 
@@ -2065,7 +2472,13 @@ async function deleteRejectedEvent(id) {
   }
 
   await loadDashboard();
+  recordAdminAction("Événement refusé supprimé", event.title || "Sans titre");
   showToast("Événement refusé supprimé");
+}
+
+function eventActionLabel(id) {
+  const event = allEvents.find((item) => String(item.id) === String(id));
+  return event?.title || "Événement";
 }
 
 
@@ -2550,6 +2963,7 @@ async function saveEdition() {
     selectedAdminImageFile = null;
     closeEditModal();
     await loadDashboard();
+    recordAdminAction("Événement modifié", payload.title || "Sans titre");
     showToast("Événement modifié");
   } catch (error) {
     console.error("Erreur édition admin :", error);

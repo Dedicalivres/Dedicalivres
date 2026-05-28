@@ -148,6 +148,295 @@
   border-left-color: var(--status-danger) !important;
 }
 
+.admin-mission-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
+  gap: 18px;
+  align-items: stretch;
+  margin: 0 14px 14px;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, .14), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, .12), transparent 30%),
+    var(--surface-panel);
+}
+
+.admin-mission-copy {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+}
+
+.admin-mission-kicker {
+  color: var(--status-info);
+  font-size: .78rem;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.admin-mission-copy h3 {
+  margin: 0;
+  color: var(--cyber-text);
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+  letter-spacing: .035em;
+}
+
+.admin-mission-copy p {
+  max-width: 640px;
+  margin: 0;
+  color: var(--cyber-muted);
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.admin-mission-grid,
+.moderation-command-grid,
+.traffic-counter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.admin-mission-tile,
+.moderation-command-card,
+.traffic-counter {
+  min-height: 92px;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-left: 5px solid var(--status-neutral);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: inherit;
+  text-align: left;
+}
+
+.admin-mission-tile,
+.moderation-command-card {
+  cursor: pointer;
+}
+
+.admin-mission-tile:hover,
+.moderation-command-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, .085);
+}
+
+.admin-mission-tile strong,
+.moderation-command-card strong,
+.traffic-counter strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--cyber-text);
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.admin-mission-tile span,
+.moderation-command-card span,
+.traffic-counter span {
+  display: block;
+  color: var(--cyber-muted);
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.moderation-command-card small {
+  display: block;
+  margin-top: 6px;
+  color: var(--cyber-muted);
+  font-size: .78rem;
+  font-weight: 750;
+}
+
+.admin-mission-tile.is-ok,
+.moderation-command-card.is-ok,
+.traffic-counter.is-total {
+  border-left-color: var(--status-ok);
+}
+
+.admin-mission-tile.is-warning,
+.moderation-command-card.is-warning,
+.traffic-counter.is-week {
+  border-left-color: var(--status-warning);
+}
+
+.admin-mission-tile.is-danger,
+.moderation-command-card.is-danger {
+  border-left-color: var(--status-danger);
+}
+
+.admin-mission-tile.is-info,
+.moderation-command-card.is-info,
+.traffic-counter.is-today {
+  border-left-color: var(--status-info);
+}
+
+.admin-mission-tile.is-purple,
+.moderation-command-card.is-purple,
+.traffic-counter.is-month {
+  border-left-color: var(--status-purple);
+}
+
+.event-admin-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.event-admin-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .065);
+  color: var(--cyber-muted);
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+.event-admin-check i {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  font-style: normal;
+  font-size: .7rem;
+}
+
+.event-admin-check.is-ok {
+  color: #bbf7d0;
+}
+
+.event-admin-check.is-ok i {
+  background: rgba(34, 197, 94, .18);
+  color: var(--status-ok);
+}
+
+.event-admin-check.is-missing {
+  color: #fed7aa;
+}
+
+.event-admin-check.is-missing i {
+  background: rgba(245, 158, 11, .18);
+  color: var(--status-warning);
+}
+
+.admin-action-history-list,
+.traffic-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-action-history-row,
+.traffic-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 10px;
+  background: var(--surface-quiet);
+}
+
+.admin-action-history-row strong,
+.admin-action-history-row span,
+.traffic-list-row strong,
+.traffic-list-row small {
+  display: block;
+}
+
+.admin-action-history-row span,
+.traffic-list-row small,
+.admin-action-history-row time {
+  margin-top: 4px;
+  color: var(--cyber-muted);
+  font-size: .82rem;
+  font-weight: 750;
+}
+
+.admin-action-history-row time,
+.traffic-list-row span {
+  flex: 0 0 auto;
+  color: var(--status-info);
+  font-family: "Orbitron", sans-serif;
+  font-weight: 900;
+}
+
+.admin-health-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.traffic-split-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.traffic-overview-panel {
+  margin: 0 14px 14px;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, .12), transparent 34%),
+    var(--surface-panel);
+}
+
+.traffic-overview-sources {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, .075);
+}
+
+.traffic-overview-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.traffic-overview-head strong,
+.traffic-overview-head small {
+  display: block;
+}
+
+.traffic-overview-head small {
+  color: var(--cyber-muted);
+  font-weight: 750;
+}
+
+.traffic-source-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.traffic-source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, .09);
+  border: 1px solid rgba(56, 189, 248, .16);
+  color: var(--cyber-text);
+  font-weight: 900;
+}
+
+.traffic-source-pill b {
+  color: var(--status-info);
+}
+
 .cockpit-status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -491,6 +780,16 @@
 }
 
 @media (max-width: 820px) {
+  .admin-mission-panel,
+  .traffic-split-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .traffic-overview-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .admin-panel {
     margin: 16px 12px;
     padding: 16px;
@@ -769,6 +1068,80 @@
   font-size: .86rem;
 }
 
+@media (min-width: 1181px) {
+  #events-container .event-card {
+    grid-template-columns: 126px minmax(360px, 1fr) minmax(330px, 430px);
+    align-items: start;
+    gap: 18px;
+    padding: 18px 20px;
+  }
+
+  #events-container .event-card > div:nth-child(2) {
+    min-width: 0;
+    display: grid;
+    align-content: start;
+  }
+
+  #events-container .event-title {
+    max-width: 58ch;
+    font-size: clamp(1.05rem, 1.25vw, 1.22rem);
+  }
+
+  #events-container .event-meta {
+    margin-top: 10px;
+    gap: 7px 14px;
+    font-size: .92rem;
+  }
+
+  #events-container .event-badges {
+    margin-top: 10px;
+  }
+
+  #events-container .quality-score {
+    margin-top: 4px;
+  }
+
+  #events-container .event-admin-checklist {
+    max-width: 390px;
+  }
+
+  #events-container .event-actions {
+    align-self: center;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    max-width: 430px;
+    padding: 10px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .035);
+    border: 1px solid rgba(25, 215, 255, .08);
+  }
+
+  #events-container .event-action {
+    width: 100%;
+    min-width: 0;
+    padding: 0 10px;
+  }
+}
+
+@media (min-width: 1181px) and (max-width: 1450px) {
+  #events-container .event-card {
+    grid-template-columns: 112px minmax(300px, 1fr) minmax(260px, 330px);
+  }
+
+  #events-container .event-admin-thumb,
+  #events-container .event-admin-thumb-placeholder {
+    width: 112px;
+    height: 112px;
+  }
+
+  #events-container .event-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 330px;
+  }
+}
+
 @media (min-width: 681px) and (max-width: 980px) {
   .event-card {
     grid-template-columns: 96px minmax(0, 1fr);
@@ -858,6 +1231,12 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+  }
+
+  .admin-action-history-row,
+  .traffic-list-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
