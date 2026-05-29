@@ -242,6 +242,16 @@
   line-height: 1.25;
 }
 
+.traffic-counter small {
+  display: block;
+  margin-top: 2px;
+  color: var(--cyber-muted);
+  font-size: .74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
 .moderation-command-card small {
   display: block;
   margin-top: 6px;
@@ -269,7 +279,8 @@
 
 .admin-mission-tile.is-info,
 .moderation-command-card.is-info,
-.traffic-counter.is-today {
+.traffic-counter.is-today,
+.traffic-counter.is-visitors {
   border-left-color: var(--status-info);
 }
 
