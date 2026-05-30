@@ -27,7 +27,7 @@
   const MASCOT_GUIDE_IMAGE =
     typeof config.mascotGuideImage === "string" && config.mascotGuideImage.trim()
       ? config.mascotGuideImage.trim()
-      : "mascotte-guide.png";
+      : "mascotte-guide.jpeg";
 
   const MASCOT_GUIDE_SPLINE_URL =
     typeof config.mascotGuideSplineUrl === "string" && config.mascotGuideSplineUrl.trim()
