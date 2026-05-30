@@ -41,7 +41,7 @@
 
   <link rel="preload" as="image" href="banner2.jpg?v=full-optim-1" />
 
-  <link rel="stylesheet" href="style.css?v=full-optim-1" />
+  <link rel="stylesheet" href="style.css?v=calendar-map-1" />
   <link rel="stylesheet" href="mascot-guide.css?v=guide-4" />
 </head>
 
@@ -206,50 +206,94 @@
       </p>
     </div>
 
-    <div id="agenda-map" class="agenda-map-showcase">
+    <div id="agenda-map" class="agenda-map-showcase agenda-discovery-showcase">
       <div class="map-teaser">
         <div>
-          <strong>Carte en direct</strong>
+          <strong>Carte et calendrier en direct</strong>
           <p>
-            Visualisez les salons, festivals et dédicaces autour de vous
-            avant de choisir votre prochain rendez-vous littéraire.
+            Visualisez les rendez-vous par lieu ou par date avant de choisir
+            votre prochaine rencontre littéraire.
           </p>
         </div>
         <span>Atout Dédicalivres</span>
       </div>
 
-      <div class="ux-actions">
+      <div class="agenda-discovery-grid">
+        <section class="agenda-calendar-panel" aria-labelledby="agenda-calendar-title">
+          <div class="agenda-calendar-head">
+            <div>
+              <p class="category-kicker">Explorer par date</p>
+              <h3 id="agenda-calendar-title">Calendrier des rencontres</h3>
+            </div>
 
-        <button
-          id="mobile-map-toggle"
-          class="btn-secondary mobile-map-toggle"
-          type="button"
-        >
-          Carte en direct
-        </button>
+            <div class="agenda-calendar-controls" aria-label="Navigation du calendrier">
+              <button id="calendar-prev" class="calendar-nav-btn" type="button" aria-label="Mois précédent">‹</button>
+              <strong id="calendar-current-month">Mois</strong>
+              <button id="calendar-next" class="calendar-nav-btn" type="button" aria-label="Mois suivant">›</button>
+            </div>
+          </div>
 
-        <button id="locate-me" class="btn-secondary" type="button">
-          Me localiser
-        </button>
+          <div class="agenda-calendar-shortcuts" aria-label="Raccourcis de dates">
+            <button type="button" data-calendar-shortcut="today">Aujourd’hui</button>
+            <button type="button" data-calendar-shortcut="tomorrow">Demain</button>
+            <button type="button" data-calendar-shortcut="month">Ce mois</button>
+          </div>
 
-        <p id="locate-status" class="locate-status" aria-live="polite"></p>
+          <div class="agenda-calendar-weekdays" aria-hidden="true">
+            <span>Lun</span>
+            <span>Mar</span>
+            <span>Mer</span>
+            <span>Jeu</span>
+            <span>Ven</span>
+            <span>Sam</span>
+            <span>Dim</span>
+          </div>
 
-        <div class="map-legend-inline" aria-label="Légende de la carte en direct">
-          <span class="map-legend-title">Légende :</span>
-          <span><i class="legend-dot legend-salon"></i>Salon</span>
-          <span><i class="legend-dot legend-festival"></i>Festival</span>
-          <span><i class="legend-dot legend-dedicace"></i>Dédicace</span>
-        </div>
+          <div id="agenda-calendar-grid" class="agenda-calendar-grid" aria-live="polite"></div>
 
+          <div class="agenda-calendar-footer">
+            <p id="agenda-calendar-selection">Cliquez sur une date pour filtrer la carte et les événements.</p>
+            <button id="calendar-clear-date" class="calendar-clear-btn" type="button" hidden>
+              Toutes les dates
+            </button>
+          </div>
+        </section>
+
+        <section class="agenda-map-panel-block" aria-label="Vue carte des événements">
+          <div class="ux-actions">
+
+            <button
+              id="mobile-map-toggle"
+              class="btn-secondary mobile-map-toggle"
+              type="button"
+            >
+              Carte en direct
+            </button>
+
+            <button id="locate-me" class="btn-secondary" type="button">
+              Me localiser
+            </button>
+
+            <p id="locate-status" class="locate-status" aria-live="polite"></p>
+
+            <div class="map-legend-inline" aria-label="Légende de la carte en direct">
+              <span class="map-legend-title">Légende :</span>
+              <span><i class="legend-dot legend-salon"></i>Salon</span>
+              <span><i class="legend-dot legend-festival"></i>Festival</span>
+              <span><i class="legend-dot legend-dedicace"></i>Dédicace</span>
+            </div>
+
+          </div>
+
+          <aside
+            class="map-panel"
+            id="map-panel"
+            aria-label="Carte des événements"
+          >
+            <div id="map"></div>
+          </aside>
+        </section>
       </div>
-
-      <aside
-        class="map-panel"
-        id="map-panel"
-        aria-label="Carte des événements"
-      >
-        <div id="map"></div>
-      </aside>
     </div>
 
     <section id="saved-events" class="section saved-events-section is-empty" aria-labelledby="saved-events-title">
@@ -387,7 +431,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="config.js?v=shared-client-1"></script>
-<script src="app.js?v=full-optim-1"></script>
+<script src="app.js?v=calendar-map-1"></script>
 
 <script src="tracking-v4.js?v=shared-client-1"></script>
 <script src="ui-effects-v6.js?v=7.7.5"></script>

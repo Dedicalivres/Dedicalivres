@@ -44,6 +44,12 @@
   const regionFilter = document.getElementById("region-filter");
   const typeFilter = document.getElementById("type-filter");
   const dateFilter = document.getElementById("date-filter");
+  const calendarGrid = document.getElementById("agenda-calendar-grid");
+  const calendarMonthLabel = document.getElementById("calendar-current-month");
+  const calendarPrevButton = document.getElementById("calendar-prev");
+  const calendarNextButton = document.getElementById("calendar-next");
+  const calendarClearButton = document.getElementById("calendar-clear-date");
+  const calendarSelection = document.getElementById("agenda-calendar-selection");
 
   const mobileMapToggle = document.getElementById("mobile-map-toggle");
   const locateMeButton = document.getElementById("locate-me");
@@ -68,6 +74,10 @@
   let userMarker = null;
   let pendingMapEvents = [];
   let leafletAssetsPromise = null;
+  let selectedCalendarDate = "";
+  let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
 
   const TYPE_META = {
     Salon: { className: "type-salon", color: "#3a1c71" },
@@ -134,9 +144,36 @@
 
     mobileMapToggle?.addEventListener("click", toggleMobileMap);
     locateMeButton?.addEventListener("click", locateUser);
+    calendarPrevButton?.addEventListener("click", () => {
+      calendarCursor = new Date(
+        calendarCursor.getFullYear(),
+        calendarCursor.getMonth() - 1,
+        1
+      );
+      renderAgendaCalendar();
+    });
+    calendarNextButton?.addEventListener("click", () => {
+      calendarCursor = new Date(
+        calendarCursor.getFullYear(),
+        calendarCursor.getMonth() + 1,
+        1
+      );
+      renderAgendaCalendar();
+    });
+    calendarClearButton?.addEventListener("click", clearCalendarDate);
+    calendarGrid?.addEventListener("click", handleCalendarClick);
+    document.querySelectorAll("[data-calendar-shortcut]").forEach((button) => {
+      button.addEventListener("click", handleCalendarShortcut);
+    });
 
-    [regionFilter, typeFilter, dateFilter].forEach((el) => {
+    [regionFilter, typeFilter].forEach((el) => {
       el?.addEventListener("change", renderFilteredEvents);
+    });
+
+    dateFilter?.addEventListener("change", () => {
+      selectedCalendarDate = "";
+      syncCalendarCursorFromMonth(dateFilter.value);
+      renderFilteredEvents();
     });
 
     searchInput?.addEventListener("input", renderFilteredEvents);
@@ -366,9 +403,12 @@
     renderEvents(upcoming, past.length);
     renderPastEvents(past);
     renderMapMarkers(upcoming);
+    renderAgendaCalendar();
   }
 
-  function filterEvents(events) {
+  function filterEvents(events, options = {}) {
+    const includeMonth = options.includeMonth !== false;
+    const includeCalendarDate = options.includeCalendarDate !== false;
     const search = normalize(searchInput?.value || "");
     const region = regionFilter?.value || "";
     const type = typeFilter?.value || "";
@@ -398,10 +438,26 @@
       if (search && !haystack.includes(search)) return false;
       if (region && normalize(event.region) !== normalize(region)) return false;
       if (type && event.type !== type) return false;
-      if (selectedMonth && !matchesMonth(event, selectedMonth)) return false;
+      if (selectedMonth && includeMonth && !matchesMonth(event, selectedMonth)) return false;
+      if (selectedCalendarDate && includeCalendarDate && !matchesDate(event, selectedCalendarDate)) return false;
 
       return true;
     });
+  }
+
+  function matchesDate(event, selectedDate) {
+    if (!selectedDate) return true;
+
+    const day = parseLocalDate(selectedDate);
+    const eventStart = parseLocalDate(event.start_date);
+    const eventEnd = parseLocalDate(event.end_date || event.start_date);
+
+    if (!day || (!eventStart && !eventEnd)) return false;
+
+    const start = eventStart || eventEnd;
+    const end = eventEnd || eventStart;
+
+    return start <= day && end >= day;
   }
 
   function matchesMonth(event, selectedMonth) {
@@ -428,6 +484,200 @@
     const end = eventEnd || eventStart;
 
     return start <= monthEnd && end >= monthStart;
+  }
+
+  function renderAgendaCalendar() {
+    if (!calendarGrid || !calendarMonthLabel) return;
+
+    const year = calendarCursor.getFullYear();
+    const month = calendarCursor.getMonth();
+    const monthStart = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const leadingDays = (monthStart.getDay() + 6) % 7;
+    const baseEvents = filterEvents(allEvents, {
+      includeMonth: false,
+      includeCalendarDate: false
+    }).filter((event) => !isPastEvent(event));
+    const todayKey = toDateKey(new Date());
+    const cells = [];
+
+    calendarMonthLabel.textContent = new Intl.DateTimeFormat("fr-FR", {
+      month: "long",
+      year: "numeric"
+    }).format(monthStart);
+
+    for (let i = 0; i < leadingDays; i += 1) {
+      cells.push(`<span class="agenda-calendar-day is-empty" aria-hidden="true"></span>`);
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(year, month, day);
+      const dateKey = toDateKey(date);
+      const events = getEventsForCalendarDate(baseEvents, dateKey);
+      const summary = getCalendarSummary(events);
+      const dots = getCalendarDots(events);
+      const classes = [
+        "agenda-calendar-day",
+        events.length ? "has-events" : "",
+        dateKey === todayKey ? "is-today" : "",
+        dateKey === selectedCalendarDate ? "is-selected" : ""
+      ].filter(Boolean).join(" ");
+
+      cells.push(`
+        <button
+          class="${classes}"
+          type="button"
+          data-calendar-date="${dateKey}"
+          aria-label="${escapeAttribute(`${formatDate(dateKey)} : ${summary || "aucun événement"}`)}"
+        >
+          <span class="calendar-day-number">${day}</span>
+          ${events.length ? `<span class="calendar-day-count">${events.length}</span>` : ""}
+          ${dots}
+          ${events.length ? `<span class="calendar-tooltip" role="tooltip">${escapeHtml(summary)}</span>` : ""}
+        </button>
+      `);
+    }
+
+    calendarGrid.innerHTML = cells.join("");
+    updateCalendarSelection(baseEvents);
+  }
+
+  function getEventsForCalendarDate(events, dateKey) {
+    return (Array.isArray(events) ? events : [])
+      .filter((event) => matchesDate(event, dateKey));
+  }
+
+  function getCalendarSummary(events) {
+    const total = events.length;
+    if (!total) return "";
+
+    const salonCount = events.filter((event) => ["Salon", "Festival"].includes(event.type)).length;
+    const dedicaceCount = events.filter((event) => event.type === "Dédicace").length;
+    const otherCount = Math.max(0, total - salonCount - dedicaceCount);
+    const parts = [`${total} événement${total > 1 ? "s" : ""}`];
+
+    if (salonCount) parts.push(`${salonCount} salon/festival`);
+    if (dedicaceCount) parts.push(`${dedicaceCount} dédicace${dedicaceCount > 1 ? "s" : ""}`);
+    if (otherCount) parts.push(`${otherCount} autre${otherCount > 1 ? "s" : ""}`);
+
+    return parts.join(" · ");
+  }
+
+  function getCalendarDots(events) {
+    if (!events.length) return "";
+
+    const types = [...new Set(events.map((event) => event.type || "Autre"))].slice(0, 3);
+
+    return `
+      <span class="calendar-day-dots" aria-hidden="true">
+        ${types.map((type) => {
+          const typeMeta = TYPE_META[type] || TYPE_META.Autre;
+          return `<i style="--dot-color:${typeMeta.color}"></i>`;
+        }).join("")}
+      </span>
+    `;
+  }
+
+  function updateCalendarSelection(baseEvents) {
+    if (!calendarSelection) return;
+
+    if (!selectedCalendarDate) {
+      calendarSelection.textContent = "Cliquez sur une date pour filtrer la carte et les événements.";
+      if (calendarClearButton) calendarClearButton.hidden = true;
+      return;
+    }
+
+    const selectedEvents = getEventsForCalendarDate(baseEvents, selectedCalendarDate);
+    const summary = getCalendarSummary(selectedEvents) || "aucun événement";
+
+    calendarSelection.textContent = `${formatDate(selectedCalendarDate)} · ${summary}`;
+    if (calendarClearButton) calendarClearButton.hidden = false;
+  }
+
+  function handleCalendarClick(event) {
+    const button = event.target.closest("[data-calendar-date]");
+    if (!button) return;
+
+    selectCalendarDate(button.dataset.calendarDate || "");
+  }
+
+  function handleCalendarShortcut(event) {
+    const shortcut = event.currentTarget?.dataset?.calendarShortcut;
+    const now = new Date();
+
+    if (shortcut === "today") {
+      selectCalendarDate(toDateKey(now));
+      return;
+    }
+
+    if (shortcut === "tomorrow") {
+      selectCalendarDate(toDateKey(addDays(now, 1)));
+      return;
+    }
+
+    if (shortcut === "month") {
+      selectedCalendarDate = "";
+      calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1);
+      if (dateFilter) {
+        dateFilter.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      }
+      renderFilteredEvents();
+    }
+  }
+
+  function selectCalendarDate(dateKey) {
+    if (!dateKey) return;
+
+    const date = parseLocalDate(dateKey);
+    if (!date) return;
+
+    selectedCalendarDate = dateKey;
+    calendarCursor = new Date(date.getFullYear(), date.getMonth(), 1);
+
+    if (dateFilter) {
+      const monthValue = dateKey.slice(0, 7);
+      const hasMonthOption = Array.from(dateFilter.options || [])
+        .some((option) => option.value === monthValue);
+
+      dateFilter.value = hasMonthOption ? monthValue : "";
+    }
+
+    if (
+      mapPanel &&
+      window.matchMedia &&
+      window.matchMedia("(min-width: 781px)").matches
+    ) {
+      mapPanel.classList.add("is-open");
+    }
+
+    renderFilteredEvents();
+  }
+
+  function clearCalendarDate() {
+    selectedCalendarDate = "";
+    if (dateFilter) dateFilter.value = "";
+    renderFilteredEvents();
+  }
+
+  function syncCalendarCursorFromMonth(monthValue) {
+    if (!monthValue) return;
+
+    const monthStart = new Date(`${monthValue}-01T00:00:00`);
+    if (Number.isNaN(monthStart.getTime())) return;
+
+    calendarCursor = new Date(monthStart.getFullYear(), monthStart.getMonth(), 1);
+  }
+
+  function addDays(date, days) {
+    return new Date(date.getTime() + Number(days || 0) * DAY_MS);
+  }
+
+  function toDateKey(date) {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0")
+    ].join("-");
   }
 
   function isPastEvent(event) {
@@ -1896,6 +2146,8 @@
     if (regionFilter) regionFilter.value = "";
     if (typeFilter) typeFilter.value = "";
     if (dateFilter) dateFilter.value = "";
+    selectedCalendarDate = "";
+    calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
     renderFilteredEvents();
   }
