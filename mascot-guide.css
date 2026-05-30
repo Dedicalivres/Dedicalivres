@@ -1,5 +1,5 @@
 /* =========================================================
-   DÉDICALIVRES — GUIDE MASCOTTE OPTIONNEL V1
+   DÉDICALIVRES — GUIDE MASCOTTE OPTIONNEL V1 + OPTION C
    Module isolé : ne modifie pas la logique agenda/carte.
 ========================================================= */
 
@@ -81,7 +81,7 @@
 .mascot-guide-head {
   position: relative;
   display: grid;
-  grid-template-columns: 86px 1fr auto;
+  grid-template-columns: 96px 1fr auto;
   gap: 14px;
   align-items: center;
   padding: 18px 18px 14px;
@@ -89,14 +89,54 @@
   color: white;
 }
 
-.mascot-guide-portrait {
+.mascot-guide-visual {
+  --mg-look-x: 0;
+  --mg-look-y: 0;
   align-self: end;
-  width: 86px;
-  height: 112px;
+  position: relative;
+  width: 96px;
+  height: 118px;
+  margin-bottom: -16px;
+  border-radius: 24px;
+  overflow: visible;
+  transform:
+    rotateY(calc(var(--mg-look-x) * 5deg))
+    rotateX(calc(var(--mg-look-y) * -3deg));
+  transform-style: preserve-3d;
+  transition: transform .16s ease-out;
+}
+
+.mascot-guide-portrait {
+  width: 96px;
+  height: 118px;
   object-fit: contain;
   object-position: center bottom;
-  margin-bottom: -16px;
   filter: drop-shadow(0 12px 18px rgba(0,0,0,.25));
+  transform:
+    translateX(calc(var(--mg-look-x) * 3px))
+    translateY(calc(var(--mg-look-y) * 2px));
+  transition: transform .16s ease-out;
+}
+
+.mascot-guide-spline-shell {
+  position: absolute;
+  inset: -8px -10px -2px -10px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: radial-gradient(circle at center, rgba(255,255,255,.22), transparent 64%);
+  filter: drop-shadow(0 12px 18px rgba(0,0,0,.25));
+}
+
+.mascot-guide-spline {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.mascot-guide-portrait-fallback {
+  display: none;
 }
 
 .mascot-guide-kicker {
@@ -239,9 +279,22 @@
     padding: 15px;
   }
 
+  .mascot-guide-visual {
+    width: 70px;
+    height: 94px;
+  }
+
   .mascot-guide-portrait {
     width: 70px;
     height: 94px;
+  }
+
+  .mascot-guide-spline-shell {
+    display: none;
+  }
+
+  .mascot-guide-portrait-fallback {
+    display: block;
   }
 }
 
@@ -250,8 +303,23 @@
   .mascot-guide-panel,
   .mascot-guide-choice,
   .mascot-guide-action,
-  .mascot-guide-back {
+  .mascot-guide-back,
+  .mascot-guide-visual,
+  .mascot-guide-portrait {
     transition: none;
+  }
+
+  .mascot-guide-visual,
+  .mascot-guide-portrait {
+    transform: none;
+  }
+
+  .mascot-guide-spline-shell {
+    display: none;
+  }
+
+  .mascot-guide-portrait-fallback {
+    display: block;
   }
 }
 

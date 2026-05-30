@@ -3,7 +3,7 @@
 
   const config = window.DEDICALIVRES_CONFIG || {};
   const supabaseClient =
-    window.DEDICALIVRES_SUPABASE_CLIENT ||
+    (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
     (
       config.supabaseUrl &&
       config.supabaseAnonKey &&
@@ -12,13 +12,30 @@
         : null
     );
 
-  if (supabaseClient) {
+  if (supabaseClient && !window.DEDICALIVRES_SUPABASE_CLIENT) {
     window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
   }
 
   // Interrupteur optionnel : ajouter enableMascotGuide: false dans config.js
   // ou window.DEDICALIVRES_CONFIG.enableMascotGuide = false avant ce script.
   if (config.enableMascotGuide === false) return;
+
+  // Option C : Spline sur desktop, image fixe/animée légère en fallback mobile ou si Spline est absent.
+  // Exemple config.js :
+  // window.DEDICALIVRES_CONFIG.mascotGuideSplineUrl = "https://prod.spline.design/xxxxx/scene.splinecode";
+  // window.DEDICALIVRES_CONFIG.mascotGuideImage = "mascotte-guide.png";
+  const MASCOT_GUIDE_IMAGE =
+    typeof config.mascotGuideImage === "string" && config.mascotGuideImage.trim()
+      ? config.mascotGuideImage.trim()
+      : "mascotte-guide.png";
+
+  const MASCOT_GUIDE_SPLINE_URL =
+    typeof config.mascotGuideSplineUrl === "string" && config.mascotGuideSplineUrl.trim()
+      ? config.mascotGuideSplineUrl.trim()
+      : "";
+
+  const MASCOT_GUIDE_MOBILE_QUERY = "(max-width: 780px)";
+  const MASCOT_GUIDE_REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
   const PROFILES = {
     reader: {
@@ -64,7 +81,7 @@
         {
           label: "Proposer mon événement",
           hint: "Aller à l’espace de soumission",
-          run: () => scrollToTarget("#soumettre")
+          run: () => goTo("soumettre.html")
         },
         {
           label: "Voir les dédicaces",
@@ -89,7 +106,7 @@
           label: "Soumettre un événement",
           hint: "Aller à l’espace de soumission",
           className: "primary",
-          run: () => scrollToTarget("#soumettre")
+          run: () => goTo("soumettre.html")
         },
         {
           label: "Voir salons & festivals",
@@ -136,13 +153,15 @@
 
   widget.innerHTML = `
     <button class="mascot-guide-button" type="button" aria-expanded="false" aria-controls="mascot-guide-panel">
-      <img class="mascot-guide-avatar" src="mascotte-guide.png" alt="" loading="lazy" decoding="async">
+      <img class="mascot-guide-avatar" src="${escapeAttribute(MASCOT_GUIDE_IMAGE)}" alt="" loading="lazy" decoding="async">
       <span class="mascot-guide-button-label">Guide Dédicalivres</span>
     </button>
 
     <section class="mascot-guide-panel" id="mascot-guide-panel" role="dialog" aria-modal="false" aria-labelledby="mascot-guide-title">
       <div class="mascot-guide-head">
-        <img class="mascot-guide-portrait" src="mascotte-guide.png" alt="" loading="lazy" decoding="async">
+        <div class="mascot-guide-visual" data-mascot-visual>
+          <img class="mascot-guide-portrait" src="${escapeAttribute(MASCOT_GUIDE_IMAGE)}" alt="" loading="lazy" decoding="async">
+        </div>
         <div>
           <p class="mascot-guide-kicker">Guide optionnel</p>
           <h2 class="mascot-guide-title" id="mascot-guide-title">Bienvenue sur Dédicalivres</h2>
@@ -159,6 +178,7 @@
 
     document.body.appendChild(widget);
     bindGuideEvents();
+    initMascotVisual();
     renderHome();
   }
 
@@ -171,10 +191,84 @@
   function bindGuideEvents() {
     widget.querySelector(".mascot-guide-button")?.addEventListener("click", toggleGuide);
     widget.querySelector(".mascot-guide-close")?.addEventListener("click", closeGuide);
+    bindMascotPointerTracking();
+
+    window.addEventListener("resize", debounce(initMascotVisual, 180));
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && state.isOpen) closeGuide();
     });
+  }
+
+  function initMascotVisual() {
+    const visual = widget.querySelector("[data-mascot-visual]");
+    if (!visual) return;
+
+    const mobile = window.matchMedia?.(MASCOT_GUIDE_MOBILE_QUERY).matches === true;
+    const reducedMotion = window.matchMedia?.(MASCOT_GUIDE_REDUCED_MOTION_QUERY).matches === true;
+    const canUseSpline = Boolean(MASCOT_GUIDE_SPLINE_URL) && !mobile && !reducedMotion;
+
+    if (!canUseSpline) {
+      if (visual.dataset.mode !== "image") {
+        visual.dataset.mode = "image";
+        visual.innerHTML = `
+          <img class="mascot-guide-portrait" src="${escapeAttribute(MASCOT_GUIDE_IMAGE)}" alt="" loading="lazy" decoding="async">
+        `;
+      }
+      return;
+    }
+
+    if (visual.dataset.mode === "spline") return;
+
+    visual.dataset.mode = "spline";
+    visual.innerHTML = `
+      <div class="mascot-guide-spline-shell" aria-hidden="true">
+        <iframe
+          class="mascot-guide-spline"
+          src="${escapeAttribute(MASCOT_GUIDE_SPLINE_URL)}"
+          title="Mascotte Dédicalivres animée"
+          loading="lazy"
+          allow="autoplay; fullscreen; xr-spatial-tracking"
+        ></iframe>
+      </div>
+      <img class="mascot-guide-portrait mascot-guide-portrait-fallback" src="${escapeAttribute(MASCOT_GUIDE_IMAGE)}" alt="" loading="lazy" decoding="async">
+    `;
+  }
+
+  function bindMascotPointerTracking() {
+    const reducedMotion = window.matchMedia?.(MASCOT_GUIDE_REDUCED_MOTION_QUERY).matches === true;
+    if (reducedMotion) return;
+
+    widget.addEventListener("pointermove", (event) => {
+      const visual = widget.querySelector("[data-mascot-visual]");
+      if (!visual) return;
+
+      const rect = visual.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const x = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width - 0.5) * 2));
+      const y = Math.max(-1, Math.min(1, ((event.clientY - rect.top) / rect.height - 0.5) * 2));
+
+      visual.style.setProperty("--mg-look-x", x.toFixed(3));
+      visual.style.setProperty("--mg-look-y", y.toFixed(3));
+    });
+
+    widget.addEventListener("pointerleave", () => {
+      const visual = widget.querySelector("[data-mascot-visual]");
+      if (!visual) return;
+
+      visual.style.setProperty("--mg-look-x", "0");
+      visual.style.setProperty("--mg-look-y", "0");
+    });
+  }
+
+  function debounce(callback, delay) {
+    let timer = null;
+
+    return function debouncedCallback() {
+      clearTimeout(timer);
+      timer = setTimeout(callback, delay);
+    };
   }
 
   function toggleGuide() {
@@ -258,7 +352,7 @@
       <button class="mascot-guide-back" type="button">Changer de profil</button>
     `;
 
-        body.querySelectorAll("[data-action-index]").forEach((button) => {
+    body.querySelectorAll("[data-action-index]").forEach((button) => {
       button.addEventListener("click", () => {
         const action = profile.actions[Number(button.dataset.actionIndex)];
 
@@ -277,7 +371,7 @@
       });
     });
 
-body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
+    body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
   }
 
 
@@ -390,7 +484,7 @@ body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
 
         resultsContainer.querySelector("[data-guide-submit-event]")?.addEventListener("click", () => {
           closeGuide();
-          setTimeout(() => scrollToTarget("#soumettre"), 90);
+          setTimeout(() => goTo("soumettre.html"), 90);
         });
 
         return;
