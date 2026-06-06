@@ -1,0 +1,49 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), payment=(), geolocation=(self)
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://dedicalivres.fr https://www.dedicalivres.fr https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev https://*.r2.dev https://*.tile.openstreetmap.org https://simplemaps.com; connect-src 'self' https://pwyetrqyiaxpzjrafpvb.supabase.co https://dedicalivres-r2-upload.dedicalivres.workers.dev https://dedicalivres-daily-export.dedicalivres.workers.dev https://api-adresse.data.gouv.fr; object-src 'none'; upgrade-insecure-requests
+
+/admin.html
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+
+/admin.js
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+
+/admin.css
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+
+/config.js
+  Cache-Control: public, max-age=300
+
+/index.html
+  Cache-Control: no-cache
+
+/app.js
+  Cache-Control: no-cache
+
+/style.css
+  Cache-Control: no-cache
+
+/event.html
+  Cache-Control: no-cache
+
+/soumettre.html
+  Cache-Control: no-cache
+
+/author.html
+  Cache-Control: no-cache
+
+/authors-presence.js
+  Cache-Control: no-cache
+
+/author-search-index.js
+  Cache-Control: no-cache
+
+/author.js
+  Cache-Control: no-cache
