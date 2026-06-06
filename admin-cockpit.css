@@ -1418,6 +1418,17 @@
   margin-bottom: 5px;
 }
 
+.exports-layout-card.exports-file-card::before {
+  top: 10px;
+  right: 10px;
+  padding: 3px 7px;
+  font-size: .58rem;
+}
+
+.exports-layout-card.exports-file-card strong {
+  padding-right: 50px;
+}
+
 .exports-card {
   padding: 13px;
   border-radius: 10px;
