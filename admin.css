@@ -1890,6 +1890,52 @@ button.pending[data-author-action="pending"] {
   color: var(--cyber-text);
 }
 
+.exports-file-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 12px 0 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(255,71,87,.13), rgba(255,123,84,.06)),
+    rgba(11,25,41,.70);
+  border: 1px solid rgba(255,113,113,.28);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+}
+
+.exports-file-label strong,
+.exports-file-label span {
+  display: block;
+}
+
+.exports-file-label strong {
+  color: var(--cyber-text);
+  font-weight: 900;
+}
+
+.exports-file-label span {
+  margin-top: 4px;
+  color: var(--cyber-muted);
+  font-size: .86rem;
+  line-height: 1.45;
+}
+
+.exports-file-label em {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(255,71,87,.18);
+  border: 1px solid rgba(255,113,113,.38);
+  color: #ffb4bd;
+  font-size: .72rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
 .exports-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1906,6 +1952,36 @@ button.pending[data-author-action="pending"] {
 
 .exports-actions-secondary {
   margin-bottom: 20px;
+}
+
+.exports-file-button,
+.exports-file-button:visited {
+  gap: 8px;
+  background:
+    linear-gradient(135deg, rgba(255,82,82,.98), rgba(190,24,49,.92)) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,175,175,.46) !important;
+  box-shadow:
+    0 14px 28px rgba(255,69,69,.18),
+    inset 0 0 0 1px rgba(255,255,255,.08) !important;
+}
+
+.exports-file-button::before {
+  content: "FICHIER";
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.18);
+  color: rgba(255,255,255,.92);
+  font-size: .62rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.exports-file-button:hover {
+  box-shadow:
+    0 18px 34px rgba(255,82,82,.28),
+    0 0 0 1px rgba(255,255,255,.10) inset,
+    0 0 24px rgba(255,82,82,.20) !important;
 }
 
 .exports-grid {

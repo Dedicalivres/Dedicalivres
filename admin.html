@@ -21,8 +21,8 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=8.8" />
-  <link rel="stylesheet" href="admin-cockpit.css?v=1.7" />
+  <link rel="stylesheet" href="admin.css?v=8.9-exports-red" />
+  <link rel="stylesheet" href="admin-cockpit.css?v=1.9-exports-red" />
 </head>
 
 <body class="cyber-admin">
@@ -435,19 +435,27 @@
           <span>Filtre : <strong id="exports-filter-label">événements à venir uniquement</strong></span>
         </div>
 
-        <div class="exports-actions">
-          <button id="exports-refresh-btn" class="cyber-btn-primary" type="button">Vérifier les exports</button>
-          <a id="exports-json-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">JSON global</a>
-          <a id="exports-csv-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">CSV global</a>
-          <a id="exports-publications-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Publications globales</a>
+        <div class="exports-file-label">
+          <div>
+            <strong>Fichiers d’extraction</strong>
+            <span>Les boutons rouges ouvrent les fichiers générés : JSON, CSV et publications prêtes à récupérer.</span>
+          </div>
+          <em>Rouge = fichier</em>
         </div>
 
-        <div class="exports-actions exports-actions-secondary">
-          <a id="exports-dedicaces-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Dédicaces</a>
-          <a id="exports-salons-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Salons / Festivals</a>
-          <a id="exports-autres-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Autres</a>
-          <a id="exports-planning-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Planning publication</a>
-          <a id="exports-weekend-link" class="cyber-btn-secondary" href="#" target="_blank" rel="noopener">Week-end par région</a>
+        <div class="exports-actions exports-actions-files">
+          <button id="exports-refresh-btn" class="cyber-btn-primary" type="button">Vérifier les exports</button>
+          <a id="exports-json-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">JSON global</a>
+          <a id="exports-csv-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">CSV global</a>
+          <a id="exports-publications-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Publications globales</a>
+        </div>
+
+        <div class="exports-actions exports-actions-secondary exports-actions-files">
+          <a id="exports-dedicaces-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Dédicaces</a>
+          <a id="exports-salons-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Salons / Festivals</a>
+          <a id="exports-autres-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Autres</a>
+          <a id="exports-planning-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Planning publication</a>
+          <a id="exports-weekend-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Week-end par région</a>
         </div>
 
         <section class="exports-layout-section" aria-labelledby="exports-instagram-title">
@@ -725,7 +733,7 @@
 ></script>
 
 <script src="config.js?v=shared-client-1"></script>
-<script src="admin.js?v=control-center-5"></script>
+<script src="admin.js?v=control-center-6-social-visuals"></script>
 
 </body>
 </html>
