@@ -33,6 +33,9 @@
 
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
+  const AUTHOR_PORTRAIT_FOLDER = "author-portraits";
+  const AUTHOR_PORTRAIT_FALLBACK_FOLDER = "event-images";
+  const MAX_AUTHOR_PORTRAIT_SIZE = 4 * 1024 * 1024;
 
   if (!eventId || !eventDetail) return;
 
@@ -120,8 +123,8 @@
 
         <div class="author-presence-grid author-presence-grid-extended">
           <label>
-            <span>Nom / pseudo d’auteur</span>
-            <input name="pseudo" type="text" placeholder="Pseudo / nom d’auteur" minlength="2" required />
+            <span>Nom, prénom ou pseudo d’auteur</span>
+            <input name="pseudo" type="text" placeholder="Nom d’auteur, prénom nom ou pseudonyme" minlength="2" maxlength="120" required />
           </label>
 
           <label>
@@ -171,11 +174,20 @@
             <span>Nom de la maison d’édition ou de la boutique</span>
             <input name="publisher_name" type="text" placeholder="Optionnel : nom de l’éditeur, boutique ou librairie" />
           </label>
+
+          <label class="author-presence-field-wide author-portrait-field">
+            <span>Portrait auteur optionnel</span>
+            <input id="author-portrait-input" name="author_portrait" type="file" accept="image/*" />
+            <small>
+              Photo facultative, utile pour préparer votre future fiche auteur Dédicalivres V2.
+              JPG, PNG ou WEBP — moins de 4 Mo.
+            </small>
+          </label>
         </div>
 
         <p class="author-presence-form-help">
-          Ces liens ne sont pas intégrés aux visuels PNG : ils sont affichés sur la fiche événement,
-          où ils restent cliquables, utiles aux visiteurs et vérifiés avant publication.
+          Les liens et portraits transmis sont vérifiés avant publication. Le portrait prépare la future
+          partie auteurs, sans modifier automatiquement l’affichage public actuel.
         </p>
 
         <button class="btn-primary" type="submit">Indiquer ma présence</button>
@@ -198,6 +210,7 @@
 
       const formData = new FormData(form);
       const pseudo = cleanText(formData.get("pseudo"));
+      const authorIdentityKey = slugifyAuthorIdentity(pseudo);
       const publicationMode = cleanSelectValue(formData.get("publication_mode"), ["self_published", "publisher", "hybrid", "unknown"], "unknown");
 
       const authorProfileUrl = normalizeWebsite(formData.get("author_profile_url"));
@@ -207,18 +220,31 @@
       const bookOrPublisherUrlType = cleanSelectValue(formData.get("book_or_publisher_url_type"), ["boutique_auteur", "page_livre", "maison_edition", "librairie", "amazon", "autre"], "autre");
 
       const publisherName = cleanText(formData.get("publisher_name")).slice(0, 120);
+      const portraitFile = formData.get("author_portrait");
 
       try {
         if (pseudo.length < 2) throw new Error("Merci d’indiquer un pseudo valide.");
         if (!isValidUrl(authorProfileUrl)) throw new Error("Merci d’indiquer un lien auteur valide.");
         if (bookOrPublisherUrl && !isValidUrl(bookOrPublisherUrl)) throw new Error("Merci d’indiquer un second lien valide ou de laisser le champ vide.");
+        validateAuthorPortraitFile(portraitFile);
 
         setButtonLoading(submitButton, true, "Envoi…");
         setFeedback(feedback, "", "Envoi de votre demande…");
 
+        let authorPortraitUrl = null;
+        let authorPortraitStorageKey = null;
+
+        if (portraitFile instanceof File && portraitFile.size > 0) {
+          const uploadedPortrait = await uploadAuthorPortrait(portraitFile, authorIdentityKey);
+          authorPortraitUrl = uploadedPortrait.url;
+          authorPortraitStorageKey = uploadedPortrait.storageKey;
+        }
+
         const extendedPayload = {
           event_id: eventId,
           pseudo,
+          author_slug: authorIdentityKey || null,
+          author_identity_key: authorIdentityKey || null,
           website: authorProfileUrl, // compatibilité avec l’ancien champ
           author_profile_url: authorProfileUrl,
           author_profile_url_type: authorProfileUrlType,
@@ -226,6 +252,8 @@
           book_or_publisher_url: bookOrPublisherUrl || null,
           book_or_publisher_url_type: bookOrPublisherUrl ? bookOrPublisherUrlType : null,
           publisher_name: publisherName || null,
+          author_portrait_url: authorPortraitUrl,
+          author_portrait_storage_key: authorPortraitStorageKey,
           validated: false,
           rejected: false
         };
@@ -566,6 +594,135 @@
       default:
         return `Livre / éditeur / boutique${suffix}`;
     }
+  }
+
+  function validateAuthorPortraitFile(file) {
+    if (!(file instanceof File) || !file.size) return;
+
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Le portrait doit être une image.");
+    }
+
+    if (file.size > MAX_AUTHOR_PORTRAIT_SIZE) {
+      throw new Error("Le portrait est trop lourd. Merci d’utiliser une image de moins de 4 Mo.");
+    }
+  }
+
+  async function uploadAuthorPortrait(file, authorIdentityKey) {
+    if (!shouldUseR2Upload()) {
+      throw new Error("L’upload du portrait n’est pas disponible pour le moment.");
+    }
+
+    const compressed = await compressAuthorPortrait(file, authorIdentityKey);
+    let url = "";
+
+    try {
+      url = await uploadImageToR2(compressed, AUTHOR_PORTRAIT_FOLDER, authorIdentityKey);
+    } catch (error) {
+      console.warn("Upload portrait auteur dans author-portraits indisponible, bascule R2 event-images :", error);
+      url = await uploadImageToR2(compressed, AUTHOR_PORTRAIT_FALLBACK_FOLDER, authorIdentityKey);
+    }
+
+    return {
+      url,
+      storageKey: getR2StorageKey(url)
+    };
+  }
+
+  function shouldUseR2Upload() {
+    return (
+      config?.imageUploadProvider === "r2" &&
+      typeof config.imageUploadEndpoint === "string" &&
+      config.imageUploadEndpoint.trim().startsWith("http")
+    );
+  }
+
+  async function uploadImageToR2(file, folder, authorIdentityKey) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", folder);
+    formData.append("file_name", file.name);
+    formData.append("identity_key", authorIdentityKey || "auteur");
+
+    const response = await fetch(config.imageUploadEndpoint, {
+      method: "POST",
+      body: formData
+    });
+
+    let payload = null;
+
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok || !payload?.url) {
+      throw new Error(payload?.error || `Upload R2 impossible (${response.status})`);
+    }
+
+    return payload.url;
+  }
+
+  function compressAuthorPortrait(file, authorIdentityKey) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onerror = () => reject(new Error("Lecture du portrait impossible."));
+      reader.onload = (event) => {
+        img.onload = () => {
+          const maxWidth = 900;
+          const ratio = Math.min(1, maxWidth / img.width);
+          const canvas = document.createElement("canvas");
+
+          canvas.width = Math.max(1, Math.round(img.width * ratio));
+          canvas.height = Math.max(1, Math.round(img.height * ratio));
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error("Compression du portrait impossible."));
+                return;
+              }
+
+              const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+              const safeName = `${authorIdentityKey || "auteur"}-${stamp}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+              resolve(new File([blob], safeName, { type: "image/jpeg" }));
+            },
+            "image/jpeg",
+            0.82
+          );
+        };
+
+        img.onerror = () => reject(new Error("Portrait invalide."));
+        img.src = event.target.result;
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function getR2StorageKey(url) {
+    try {
+      const parsed = new URL(url);
+      return decodeURIComponent(parsed.pathname.replace(/^\/+/, ""));
+    } catch {
+      return "";
+    }
+  }
+
+  function slugifyAuthorIdentity(value) {
+    return cleanText(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 90);
   }
 
   function cleanText(value) {

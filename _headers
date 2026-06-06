@@ -20,3 +20,18 @@
 
 /config.js
   Cache-Control: public, max-age=300
+
+/index.html
+  Cache-Control: no-cache
+
+/app.js
+  Cache-Control: no-cache
+
+/style.css
+  Cache-Control: no-cache
+
+/event.html
+  Cache-Control: no-cache
+
+/authors-presence.js
+  Cache-Control: no-cache
