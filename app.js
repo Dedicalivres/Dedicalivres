@@ -1670,22 +1670,44 @@
 
     if (value.length < 3) return [];
 
-    const cacheKey = `${value.toLowerCase()}::${limit}`;
+    const cacheKey = `${normalize(value)}::${limit}`;
 
     if (citySuggestionCache.has(cacheKey)) {
       return citySuggestionCache.get(cacheKey);
     }
 
     try {
+      const [adresseSuggestions, communeSuggestions] = await Promise.all([
+        fetchAdresseCitySuggestions(value, limit),
+        fetchCommuneSuggestions(value, limit)
+      ]);
+
+      const suggestions = mergeCitySuggestions(
+        adresseSuggestions,
+        communeSuggestions,
+        limit
+      );
+
+      citySuggestionCache.set(cacheKey, suggestions);
+
+      return suggestions;
+    } catch (error) {
+      console.warn("Autocomplétion ville indisponible :", error);
+      return [];
+    }
+  }
+
+  async function fetchAdresseCitySuggestions(value, limit) {
+    try {
       const response = await fetch(
-        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(value)}&limit=${limit}&type=municipality`
+        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(value)}&limit=${limit}&autocomplete=1&type=municipality`
       );
 
       if (!response.ok) return [];
 
       const data = await response.json();
 
-      const suggestions = (data.features || [])
+      return (data.features || [])
         .map((feature) => {
           const properties = feature.properties || {};
           const coords = feature.geometry?.coordinates || [];
@@ -1699,38 +1721,113 @@
           const postcode = properties.postcode || "";
           const context = properties.context || "";
 
-          const label = [
-            cityName,
-            postcode,
-            context
-          ]
-            .filter(Boolean)
-            .join(" — ");
-
-          return {
-            label,
+          return buildCitySuggestion({
             city: cityName,
             postcode,
             context,
             lng: Number(coords[0]),
             lat: Number(coords[1])
-          };
+          });
         })
-        .filter((item) => {
-          return (
-            item.city &&
-            Number.isFinite(item.lat) &&
-            Number.isFinite(item.lng)
-          );
-        });
-
-      citySuggestionCache.set(cacheKey, suggestions);
-
-      return suggestions;
+        .filter(Boolean);
     } catch (error) {
-      console.warn("Autocomplétion ville indisponible :", error);
+      console.warn("API Adresse indisponible :", error);
       return [];
     }
+  }
+
+  async function fetchCommuneSuggestions(value, limit) {
+    try {
+      const fields = [
+        "nom",
+        "codesPostaux",
+        "centre",
+        "departement",
+        "region"
+      ].join(",");
+
+      const response = await fetch(
+        `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(value)}&boost=population&limit=${limit}&fields=${encodeURIComponent(fields)}`
+      );
+
+      if (!response.ok) return [];
+
+      const communes = await response.json();
+
+      return (Array.isArray(communes) ? communes : [])
+        .map((commune) => {
+          const coords = commune.centre?.coordinates || [];
+          const postcode = Array.isArray(commune.codesPostaux)
+            ? commune.codesPostaux[0]
+            : "";
+          const context = [
+            commune.departement?.nom,
+            commune.region?.nom
+          ]
+            .filter(Boolean)
+            .join(", ");
+
+          return buildCitySuggestion({
+            city: commune.nom || "",
+            postcode,
+            context,
+            lng: Number(coords[0]),
+            lat: Number(coords[1])
+          });
+        })
+        .filter(Boolean);
+    } catch (error) {
+      console.warn("API communes indisponible :", error);
+      return [];
+    }
+  }
+
+  function buildCitySuggestion(item) {
+    if (
+      !item?.city ||
+      !Number.isFinite(item.lat) ||
+      !Number.isFinite(item.lng)
+    ) {
+      return null;
+    }
+
+    const label = [
+      item.city,
+      item.postcode,
+      item.context
+    ]
+      .filter(Boolean)
+      .join(" — ");
+
+    return {
+      label,
+      city: item.city,
+      postcode: item.postcode || "",
+      context: item.context || "",
+      lng: item.lng,
+      lat: item.lat
+    };
+  }
+
+  function mergeCitySuggestions(primary, fallback, limit) {
+    const seen = new Set();
+    const merged = [];
+
+    [...(primary || []), ...(fallback || [])].forEach((item) => {
+      const key = [
+        normalize(item.city),
+        normalize(item.postcode),
+        Number(item.lat).toFixed(4),
+        Number(item.lng).toFixed(4)
+      ].join("|");
+
+      if (seen.has(key)) return;
+
+      seen.add(key);
+      merged.push(item);
+    });
+
+    return merged.slice(0, limit);
   }
 
   async function reverseGeocodeApprox(lat, lng) {
