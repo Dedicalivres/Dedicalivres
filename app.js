@@ -1683,8 +1683,8 @@
       ]);
 
       const suggestions = mergeCitySuggestions(
-        adresseSuggestions,
         communeSuggestions,
+        adresseSuggestions,
         limit
       );
 
@@ -1966,7 +1966,10 @@
     if (!citySuggestions) return null;
 
     const option = Array.from(citySuggestions.options || []).find((item) => {
-      return normalize(item.value) === normalizedValue;
+      return (
+        normalize(item.value) === normalizedValue ||
+        normalize(item.dataset.city || "") === normalizedValue
+      );
     });
 
     if (!option) return null;
