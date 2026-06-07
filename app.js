@@ -1741,22 +1741,36 @@
       const fields = [
         "nom",
         "codesPostaux",
-        "centre",
         "departement",
         "region"
       ].join(",");
 
+      const params = new URLSearchParams({
+        nom: value,
+        boost: "population",
+        limit: String(limit),
+        fields,
+        format: "geojson",
+        geometry: "centre"
+      });
+
       const response = await fetch(
-        `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(value)}&boost=population&limit=${limit}&fields=${encodeURIComponent(fields)}`
+        `https://geo.api.gouv.fr/communes?${params.toString()}`
       );
 
-      if (!response.ok) return [];
+      if (!response.ok) return getKnownCitySuggestions(value, limit);
 
-      const communes = await response.json();
+      const payload = await response.json();
+      const entries = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload.features)
+          ? payload.features
+          : [];
 
-      return (Array.isArray(communes) ? communes : [])
-        .map((commune) => {
-          const coords = commune.centre?.coordinates || [];
+      const suggestions = entries
+        .map((entry) => {
+          const commune = entry.properties || entry || {};
+          const coords = getCommuneCoordinates(entry, commune);
           const postcode = Array.isArray(commune.codesPostaux)
             ? commune.codesPostaux[0]
             : "";
@@ -1776,10 +1790,67 @@
           });
         })
         .filter(Boolean);
+
+      return sortCitySuggestionsByQuery(
+        mergeCitySuggestions(suggestions, getKnownCitySuggestions(value, limit), limit),
+        value
+      );
     } catch (error) {
       console.warn("API communes indisponible :", error);
-      return [];
+      return getKnownCitySuggestions(value, limit);
     }
+  }
+
+  function getCommuneCoordinates(entry, commune) {
+    if (Array.isArray(entry?.geometry?.coordinates)) {
+      return entry.geometry.coordinates;
+    }
+
+    if (Array.isArray(commune?.centre?.coordinates)) {
+      return commune.centre.coordinates;
+    }
+
+    if (Array.isArray(entry?.centre?.coordinates)) {
+      return entry.centre.coordinates;
+    }
+
+    return [];
+  }
+
+  function getKnownCitySuggestions(value, limit = 6) {
+    const normalizedValue = normalize(value);
+
+    const knownCities = [
+      {
+        city: "Aiffres",
+        postcode: "79230",
+        context: "Deux-Sèvres, Nouvelle-Aquitaine",
+        lat: 46.2872,
+        lng: -0.415833333333
+      }
+    ];
+
+    return knownCities
+      .filter((city) => normalize(city.city).includes(normalizedValue) || normalizedValue.includes(normalize(city.city)))
+      .map(buildCitySuggestion)
+      .filter(Boolean)
+      .slice(0, limit);
+  }
+
+  function sortCitySuggestionsByQuery(suggestions, query) {
+    const normalizedQuery = normalize(query);
+
+    return [...(suggestions || [])].sort((a, b) => {
+      const aCity = normalize(a.city);
+      const bCity = normalize(b.city);
+
+      if (aCity === normalizedQuery && bCity !== normalizedQuery) return -1;
+      if (bCity === normalizedQuery && aCity !== normalizedQuery) return 1;
+      if (aCity.startsWith(normalizedQuery) && !bCity.startsWith(normalizedQuery)) return -1;
+      if (bCity.startsWith(normalizedQuery) && !aCity.startsWith(normalizedQuery)) return 1;
+
+      return aCity.localeCompare(bCity, "fr");
+    });
   }
 
   function buildCitySuggestion(item) {
