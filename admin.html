@@ -21,7 +21,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=9.0-exports-files-red" />
+  <link rel="stylesheet" href="admin.css?v=9.1-worker-direct-extraction" />
   <link rel="stylesheet" href="admin-cockpit.css?v=2.0-exports-files-red" />
 </head>
 
@@ -263,8 +263,12 @@
         <input
           type="search"
           id="search-input"
-          placeholder="Recherche événement, ville, région..."
+          placeholder="Recherche événement, ville, territoire ou pays..."
         />
+
+        <select id="filter-country" aria-label="Filtrer les événements par pays">
+          <option value="">Tous pays</option>
+        </select>
 
         <select id="filter-status">
           <option value="">Tous</option>
@@ -370,7 +374,12 @@
 
         <div class="cockpit-split-grid">
           <article class="cockpit-plain-panel">
-            <h4>Répartition par région</h4>
+            <h4>Répartition par pays</h4>
+            <div id="control-country-list" class="cockpit-ranking-list">Chargement…</div>
+          </article>
+
+          <article class="cockpit-plain-panel">
+            <h4>Répartition par territoire</h4>
             <div id="control-region-list" class="cockpit-ranking-list">Chargement…</div>
           </article>
 
@@ -435,6 +444,91 @@
           <span>Filtre : <strong id="exports-filter-label">événements à venir uniquement</strong></span>
         </div>
 
+        <details id="exports-command-panel" class="exports-command-panel">
+          <summary>
+            <span class="exports-command-summary-icon" aria-hidden="true">↓</span>
+            <span>
+              <strong>Nouvelle extraction</strong>
+              <small>Choisir les événements et créer les fichiers directement.</small>
+            </span>
+            <em>Configurer</em>
+          </summary>
+
+          <form id="exports-command-form" class="exports-command-form">
+            <div class="exports-command-grid">
+              <label>
+                <span>Catégorie</span>
+                <select id="exports-command-category">
+                  <option value="all">Tous les événements</option>
+                  <option value="dedicaces">Dédicaces</option>
+                  <option value="salons_festivals">Salons et festivals</option>
+                  <option value="salons">Salons uniquement</option>
+                  <option value="festivals">Festivals uniquement</option>
+                  <option value="autres">Autres événements</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Pays</span>
+                <select id="exports-command-country">
+                  <option value="ALL">Tous les pays</option>
+                  <option value="FR">France</option>
+                  <option value="BE">Belgique</option>
+                  <option value="LU">Luxembourg</option>
+                  <option value="CH">Suisse</option>
+                  <option value="MC">Monaco</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Territoire</span>
+                <select id="exports-command-region">
+                  <option value="">Tous les territoires</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Période rapide</span>
+                <select id="exports-command-period">
+                  <option value="30-days">30 prochains jours</option>
+                  <option value="week">Cette semaine</option>
+                  <option value="month">Ce mois</option>
+                  <option value="90-days">90 prochains jours</option>
+                  <option value="custom">Dates personnalisées</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Date de début</span>
+                <input id="exports-command-start" type="date" required />
+              </label>
+
+              <label>
+                <span>Date de fin</span>
+                <input id="exports-command-end" type="date" required />
+              </label>
+            </div>
+
+            <fieldset class="exports-command-formats">
+              <legend>Fichiers à produire</legend>
+              <label><input type="checkbox" name="exports-command-format" value="json" checked /> JSON</label>
+              <label><input type="checkbox" name="exports-command-format" value="csv" checked /> CSV</label>
+              <label><input type="checkbox" name="exports-command-format" value="markdown" checked /> Publications</label>
+            </fieldset>
+
+            <div class="exports-command-actions">
+              <button id="exports-command-submit" class="cyber-btn-primary" type="submit">
+                Générer l’extraction
+              </button>
+              <span id="exports-command-status" role="status" aria-live="polite">
+                Les fichiers seront rangés automatiquement dans R2.
+              </span>
+            </div>
+
+            <div id="exports-command-results" class="exports-command-results" hidden></div>
+          </form>
+        </details>
+
         <div class="exports-file-label">
           <div>
             <strong>Fichiers d’extraction</strong>
@@ -455,7 +549,7 @@
           <a id="exports-salons-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Salons / Festivals</a>
           <a id="exports-autres-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Autres</a>
           <a id="exports-planning-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Planning publication</a>
-          <a id="exports-weekend-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Week-end par région</a>
+          <a id="exports-weekend-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Week-end par territoire</a>
         </div>
 
         <section class="exports-layout-section" aria-labelledby="exports-instagram-title">
@@ -484,8 +578,8 @@
             </a>
 
             <a id="exports-instagram-weekend-link" class="exports-layout-card exports-file-card" href="#" target="_blank" rel="noopener">
-              <strong>Week-end par région</strong>
-              <span>Regroupements rapides pour publications régionales</span>
+              <strong>Week-end par territoire</strong>
+              <span>Regroupements rapides pour publications locales</span>
             </a>
           </div>
         </section>
@@ -560,7 +654,7 @@
             <option value="dedicaces-latest.md">Dédicaces</option>
             <option value="salons-latest.md">Salons / Festivals</option>
             <option value="planning-publication-latest.md">Planning publication</option>
-            <option value="weekend-par-region-latest.md">Week-end par région</option>
+            <option value="weekend-par-region-latest.md">Week-end par territoire</option>
           </select>
           <button id="exports-copy-preview-btn" class="cyber-btn-secondary" type="button">Copier l’aperçu</button>
         </div>
@@ -689,8 +783,15 @@
           <option>Autre</option>
         </select>
 
-        <input id="edit-city" placeholder="Ville" />
-        <input id="edit-region" placeholder="Région" />
+        <input id="edit-city" placeholder="Ville / commune" />
+
+        <select id="edit-country">
+          <option value="FR">France</option>
+        </select>
+
+        <select id="edit-region">
+          <option value="">Territoire</option>
+        </select>
 
         <input id="edit-start-date" type="date" />
         <input id="edit-end-date" type="date" />
@@ -733,7 +834,8 @@
 ></script>
 
 <script src="config.js?v=shared-client-1"></script>
-<script src="admin.js?v=control-center-6-social-visuals"></script>
+<script src="geography.js?v=francophone-1"></script>
+<script src="admin.js?v=worker-direct-extraction-1"></script>
 
 </body>
 </html>

@@ -5,6 +5,7 @@
 "use strict";
 
 const config = window.DEDICALIVRES_CONFIG;
+const geo = window.DEDICALIVRES_GEO;
 
 if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
   alert("Configuration Supabase introuvable.");
@@ -35,6 +36,7 @@ const searchInput = document.getElementById("search-input");
 const filterStatus = document.getElementById("filter-status");
 const filterArchive = document.getElementById("filter-archive");
 const filterType = document.getElementById("filter-type");
+const filterCountry = document.getElementById("filter-country");
 
 const statsEvents = document.getElementById("stats-events");
 const statsPending = document.getElementById("stats-pending");
@@ -56,6 +58,7 @@ const editId = document.getElementById("edit-id");
 const editTitle = document.getElementById("edit-title");
 const editType = document.getElementById("edit-type");
 const editCity = document.getElementById("edit-city");
+const editCountry = document.getElementById("edit-country");
 const editRegion = document.getElementById("edit-region");
 const editStartDate = document.getElementById("edit-start-date");
 const editEndDate = document.getElementById("edit-end-date");
@@ -80,6 +83,7 @@ const qualityFocusSelect = document.getElementById("quality-focus-select");
 const controlStatsCount = document.getElementById("control-stats-count");
 const controlStatsGrid = document.getElementById("control-stats-grid");
 const controlRegionList = document.getElementById("control-region-list");
+const controlCountryList = document.getElementById("control-country-list");
 const controlTypeList = document.getElementById("control-type-list");
 const controlSecurityGrid = document.getElementById("control-security-grid");
 
@@ -117,6 +121,7 @@ const ADMIN_EVENTS_COLUMNS = [
   "title",
   "type",
   "city",
+  "country_code",
   "region",
   "description",
   "start_date",
@@ -136,6 +141,7 @@ const ADMIN_LOCATION_COLUMNS = [
   "id",
   "created_at",
   "city",
+  "country_code",
   "region",
   "device",
   "lat",
@@ -331,6 +337,7 @@ function ensureAdminObservatoryStyles() {
 async function init() {
   window.DEDICALIVRES_ADMIN_AUTHENTICATED = false;
   lockDashboard();
+  initAdminGeographyControls();
   bindEvents();
   bindTabs();
 
@@ -350,6 +357,28 @@ async function init() {
   } finally {
     adminBooting = false;
   }
+}
+
+function initAdminGeographyControls() {
+  if (!geo) return;
+
+  geo.populateCountrySelect(filterCountry, {
+    includeAll: true,
+    allLabel: "Tous pays"
+  });
+  geo.populateCountrySelect(editCountry, {
+    selected: geo.DEFAULT_COUNTRY_CODE
+  });
+  populateAdminEditRegion();
+}
+
+function populateAdminEditRegion(selectedRegion = "") {
+  if (!geo || !editCountry || !editRegion) return;
+
+  geo.populateSubdivisionSelect(editRegion, editCountry.value, {
+    selected: selectedRegion,
+    emptyLabel: "Territoire"
+  });
 }
 
 function bindEvents() {
@@ -375,6 +404,8 @@ function bindEvents() {
   filterStatus?.addEventListener("change", renderEvents);
   filterArchive?.addEventListener("change", handleArchiveFilterChange);
   filterType?.addEventListener("change", renderEvents);
+  filterCountry?.addEventListener("change", renderEvents);
+  editCountry?.addEventListener("change", () => populateAdminEditRegion());
   qualityFocusSelect?.addEventListener("change", renderQualityControlCenter);
 
   closeEditModalBtn?.addEventListener("click", closeEditModal);
@@ -1151,6 +1182,10 @@ function applyPriorityAction(action) {
     filterType.value = "";
   }
 
+  if (filterCountry) {
+    filterCountry.value = "";
+  }
+
   if (searchInput) {
     searchInput.value = "";
   }
@@ -1421,7 +1456,16 @@ function renderStatsControlCenter() {
     renderControlMetric("Localisations", locationRows.length, locationRows.length ? "info" : "neutral", "signaux récents")
   ].join("");
 
-  controlRegionList.innerHTML = renderCockpitRanking(countByField(allEvents, "region"), "Aucune région");
+  if (controlCountryList) {
+    const countryRows = countByField(
+      allEvents.map((event) => ({
+        country: geo?.getCountryName(event.country_code) || event.country_code || "France"
+      })),
+      "country"
+    );
+    controlCountryList.innerHTML = renderCockpitRanking(countryRows, "Aucun pays");
+  }
+  controlRegionList.innerHTML = renderCockpitRanking(countByField(allEvents, "region"), "Aucun territoire");
   controlTypeList.innerHTML = renderCockpitRanking(countByField(allEvents, "type"), "Aucun type");
 }
 
@@ -1676,11 +1720,11 @@ function renderTerritorialCoverage() {
   priorityCities.innerHTML = `
     <div class="priority-trend-box">
       <strong>${covered.length}/${regions.length}</strong>
-      <span>régions bien couvertes</span>
+      <span>territoires bien couverts</span>
     </div>
 
     <div class="priority-mini">
-      <b>${empty.length}</b> région(s) sans événement à venir ou en attente.
+      <b>${empty.length}</b> territoire(s) sans événement à venir ou en attente.
     </div>
 
     ${renderRegionTable(rows.slice(0, 7))}
@@ -1814,21 +1858,9 @@ function bindObservatoryActions() {
 }
 
 function getKnownRegions() {
-  const defaults = [
-    "Auvergne-Rhône-Alpes",
-    "Bourgogne-Franche-Comté",
-    "Bretagne",
-    "Centre-Val de Loire",
-    "Corse",
-    "Grand Est",
-    "Hauts-de-France",
-    "Île-de-France",
-    "Normandie",
-    "Nouvelle-Aquitaine",
-    "Occitanie",
-    "Pays de la Loire",
-    "Provence-Alpes-Côte d’Azur"
-  ];
+  const defaults = geo
+    ? Object.values(geo.COUNTRIES).flatMap((country) => country.subdivisions)
+    : [];
 
   const fromEvents = allEvents
     .map((event) => cleanLabel(event.region))
@@ -2002,6 +2034,11 @@ function cleanLabel(value) {
     .slice(0, 90);
 }
 
+function formatAdminPlace(record) {
+  if (geo) return geo.formatPlace(record);
+  return [record?.city, record?.region].filter(Boolean).join(", ");
+}
+
 /* FILTER */
 
 function getFilteredEvents() {
@@ -2009,17 +2046,20 @@ function getFilteredEvents() {
   const status = filterStatus?.value || "";
   const archiveMode = getArchiveMode();
   const type = filterType?.value || "";
+  const country = filterCountry?.value || "";
 
   return allEvents.filter((event) => {
     const haystack = normalize([
       event.title,
       event.city,
       event.region,
+      geo?.getCountryName(event.country_code),
       event.description
     ].join(" "));
 
     if (search && !haystack.includes(search)) return false;
     if (type && event.type !== type) return false;
+    if (country && geo?.getCountryCode(event) !== geo.normalizeCountryCode(country)) return false;
 
     if (archiveMode === "current" && !isCurrentAdminEvent(event)) return false;
     if (archiveMode === "past" && (!isPastEvent(event) || isPendingEvent(event))) return false;
@@ -2054,8 +2094,8 @@ function getEventQuality(event) {
     },
     {
       key: "location",
-      label: "ville/région",
-      ok: !!event?.city && !!event?.region,
+      label: "ville/territoire/pays",
+      ok: !!event?.city && !!event?.region && !!event?.country_code,
       points: 15
     },
     {
@@ -2210,7 +2250,7 @@ function renderEventCard(event) {
         </div>
 
         <div class="event-meta">
-          <span>📍 ${escapeHtml(event.city || "")}</span>
+          <span>📍 ${escapeHtml(formatAdminPlace(event))}</span>
           <span>📅 ${formatDate(event.start_date)}</span>
           <span>🏷️ ${escapeHtml(event.type || "")}</span>
         </div>
@@ -2333,9 +2373,10 @@ function buildSocialPostText(event) {
   const title = cleanLabel(event.title || "Événement littéraire");
   const city = cleanLabel(event.city || "");
   const region = cleanLabel(event.region || "");
+  const country = geo?.getCountryName(event.country_code) || "";
   const type = cleanLabel(event.type || "Rencontre littéraire");
   const date = formatDate(event.start_date);
-  const location = [city, region].filter(Boolean).join(", ");
+  const location = [city, region, country].filter(Boolean).join(", ");
   const url = `https://dedicalivres.fr/event.html?id=${encodeURIComponent(event.id)}`;
 
   const prefix =
@@ -2356,7 +2397,7 @@ ${type ? `🏷️ ${type}` : ""}
 Retrouvez les informations complètes sur Dédicalivres :
 ${url}
 
-#Dédicalivres #Livre #Lecture #AgendaLittéraire #Dédicace #SalonDuLivre`;
+#Dédicalivres #Livre #Lecture #AgendaLittéraire #Francophonie`;
 }
 
 function fallbackCopyText(text) {
@@ -2632,7 +2673,8 @@ function initMap() {
   if (!mapElement) return;
 
   if (!map) {
-    map = L.map("admin-map").setView([46.6, 1.88], 6);
+    const mapView = geo?.getMapView("") || { center: [47.2, 5.1], zoom: 5 };
+    map = L.map("admin-map").setView(mapView.center, mapView.zoom);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap"
@@ -2659,7 +2701,7 @@ function initMap() {
         });
 
         marker.bindPopup(`
-          <strong>${escapeHtml(row.city || row.region || "Localisation visiteur")}</strong>
+          <strong>${escapeHtml(formatAdminPlace(row) || "Localisation visiteur")}</strong>
           <br>
           ${escapeHtml(row.device || "Appareil inconnu")}
           <br>
@@ -2708,7 +2750,7 @@ function initMap() {
     marker.bindPopup(`
       <strong>${escapeHtml(event.title)}</strong>
       <br>
-      ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}
+      ${escapeHtml(formatAdminPlace(event))}
       <br>
       ${escapeHtml(event.type || "")}
       <br>
@@ -2809,7 +2851,7 @@ function renderPremiumCard(event) {
       <div>
         <div class="event-title">${escapeHtml(event.title || "")}</div>
         <div class="event-meta">
-          <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}</span>
+          <span>📍 ${escapeHtml(formatAdminPlace(event))}</span>
           <span>📅 ${formatDate(event.start_date)}</span>
           <span>🏷️ ${escapeHtml(event.type || "")}</span>
         </div>
@@ -2874,7 +2916,10 @@ function openEditModal(id) {
   editTitle.value = event.title || "";
   editType.value = event.type || "";
   editCity.value = event.city || "";
-  editRegion.value = event.region || "";
+  if (editCountry) {
+    editCountry.value = geo?.getCountryCode(event) || event.country_code || "FR";
+  }
+  populateAdminEditRegion(event.region || "");
   editStartDate.value = event.start_date || "";
   editEndDate.value = event.end_date || "";
   editWebsite.value = event.website || "";
@@ -2945,6 +2990,7 @@ async function saveEdition() {
       title: editTitle.value.trim(),
       type: editType.value,
       city: editCity.value.trim(),
+      country_code: geo?.normalizeCountryCode(editCountry?.value || "FR") || "FR",
       region: editRegion.value.trim(),
       start_date: editStartDate.value || null,
       end_date: editEndDate.value || null,
@@ -3131,6 +3177,7 @@ function formatDate(value) {
 ========================================================= */
 
 const DEFAULT_EXPORTS_BASE_URL = "https://dedicalivres-daily-export.dedicalivres.workers.dev/exports";
+const EXPORT_COMMAND_STORAGE_KEY = "dedicalivres_admin_export_command_v1";
 
 let adminExportsLoadedAt = null;
 let adminExportsLastPreview = "";
@@ -3147,6 +3194,12 @@ function getExportsBaseUrl() {
 
 function getExportFileUrl(filename) {
   return `${getExportsBaseUrl()}/${String(filename).replace(/^\/+/, "")}`;
+}
+
+function getExportsWorkerUrl() {
+  const configuredUrl = String(config.exportsWorkerUrl || "").trim();
+  if (configuredUrl) return configuredUrl.replace(/\/+$/, "");
+  return getExportsBaseUrl().replace(/\/exports\/?$/i, "");
 }
 
 function bindAdminExportsPanel() {
@@ -3175,8 +3228,305 @@ function bindAdminExportsPanel() {
     }
   });
 
+  bindAdminExportCommand();
   hydrateAdminExportLinks();
   bindAdminExternalExportLinks();
+}
+
+function bindAdminExportCommand() {
+  const form = document.getElementById("exports-command-form");
+  const countrySelect = document.getElementById("exports-command-country");
+  const periodSelect = document.getElementById("exports-command-period");
+  const startInput = document.getElementById("exports-command-start");
+  const endInput = document.getElementById("exports-command-end");
+
+  if (!form || form.dataset.bound === "true") return;
+  form.dataset.bound = "true";
+
+  initializeAdminExportCommand();
+
+  countrySelect?.addEventListener("change", () => {
+    populateAdminExportRegions();
+    saveAdminExportCommandPreferences();
+  });
+
+  periodSelect?.addEventListener("change", () => {
+    applyAdminExportPeriod(periodSelect.value);
+    saveAdminExportCommandPreferences();
+  });
+
+  [startInput, endInput].forEach((input) => {
+    input?.addEventListener("change", () => {
+      if (periodSelect) periodSelect.value = "custom";
+      saveAdminExportCommandPreferences();
+    });
+  });
+
+  form.addEventListener("change", (event) => {
+    if (event.target === countrySelect || event.target === periodSelect || event.target === startInput || event.target === endInput) {
+      return;
+    }
+    saveAdminExportCommandPreferences();
+  });
+
+  form.addEventListener("submit", submitAdminExportCommand);
+}
+
+function initializeAdminExportCommand() {
+  const saved = readAdminExportCommandPreferences();
+  const categorySelect = document.getElementById("exports-command-category");
+  const countrySelect = document.getElementById("exports-command-country");
+  const periodSelect = document.getElementById("exports-command-period");
+
+  if (categorySelect && saved.category) categorySelect.value = saved.category;
+  if (countrySelect && saved.countryCode) countrySelect.value = saved.countryCode;
+  if (periodSelect && saved.period) periodSelect.value = saved.period;
+
+  populateAdminExportRegions(saved.region || "");
+
+  const checkboxes = document.querySelectorAll('input[name="exports-command-format"]');
+  if (Array.isArray(saved.formats) && saved.formats.length) {
+    checkboxes.forEach((checkbox) => {
+      checkbox.checked = saved.formats.includes(checkbox.value);
+    });
+  }
+
+  if (saved.period === "custom" && isAdminExportIsoDate(saved.dateStart) && isAdminExportIsoDate(saved.dateEnd)) {
+    setAdminExportDates(saved.dateStart, saved.dateEnd);
+  } else {
+    applyAdminExportPeriod(periodSelect?.value || "30-days");
+  }
+}
+
+function populateAdminExportRegions(selectedRegion = "") {
+  const countrySelect = document.getElementById("exports-command-country");
+  const regionSelect = document.getElementById("exports-command-region");
+  if (!countrySelect || !regionSelect) return;
+
+  const countryCode = countrySelect.value || "ALL";
+  if (countryCode === "ALL" || !window.DEDICALIVRES_GEO) {
+    regionSelect.innerHTML = '<option value="">Tous les territoires</option>';
+    regionSelect.disabled = countryCode === "ALL";
+    return;
+  }
+
+  window.DEDICALIVRES_GEO.populateSubdivisionSelect(regionSelect, countryCode, {
+    selected: selectedRegion,
+    emptyLabel: "Tous les territoires"
+  });
+  regionSelect.disabled = false;
+}
+
+function applyAdminExportPeriod(period) {
+  const today = adminExportStartOfDay(new Date());
+  let start = today;
+  let end = adminExportAddDays(today, 29);
+
+  if (period === "week") {
+    const day = today.getDay() || 7;
+    start = adminExportAddDays(today, 1 - day);
+    end = adminExportAddDays(start, 6);
+  } else if (period === "month") {
+    start = new Date(today.getFullYear(), today.getMonth(), 1);
+    end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  } else if (period === "90-days") {
+    end = adminExportAddDays(today, 89);
+  } else if (period === "custom") {
+    return;
+  }
+
+  setAdminExportDates(adminExportDateValue(start), adminExportDateValue(end));
+}
+
+function setAdminExportDates(startValue, endValue) {
+  const startInput = document.getElementById("exports-command-start");
+  const endInput = document.getElementById("exports-command-end");
+  if (startInput) startInput.value = startValue;
+  if (endInput) endInput.value = endValue;
+}
+
+async function submitAdminExportCommand(event) {
+  event.preventDefault();
+  if (!(await ensureAdminSession())) return;
+
+  const submitButton = document.getElementById("exports-command-submit");
+  const status = document.getElementById("exports-command-status");
+  const results = document.getElementById("exports-command-results");
+  const formats = getAdminExportCommandFormats();
+  const payload = {
+    category: document.getElementById("exports-command-category")?.value || "all",
+    countryCode: document.getElementById("exports-command-country")?.value || "ALL",
+    region: document.getElementById("exports-command-region")?.value || "",
+    dateStart: document.getElementById("exports-command-start")?.value || "",
+    dateEnd: document.getElementById("exports-command-end")?.value || "",
+    formats
+  };
+
+  if (!formats.length) {
+    setAdminExportCommandStatus("Choisissez au moins un format de fichier.", "error");
+    return;
+  }
+  if (!isAdminExportIsoDate(payload.dateStart) || !isAdminExportIsoDate(payload.dateEnd)) {
+    setAdminExportCommandStatus("Indiquez une date de début et une date de fin.", "error");
+    return;
+  }
+  if (payload.dateStart > payload.dateEnd) {
+    setAdminExportCommandStatus("La date de fin doit suivre la date de début.", "error");
+    return;
+  }
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Génération...";
+  }
+  if (results) {
+    results.hidden = true;
+    results.replaceChildren();
+  }
+  setAdminExportCommandStatus("Le Worker prépare les fichiers dans R2…");
+  saveAdminExportCommandPreferences();
+
+  try {
+    const { data, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError || !data?.session?.access_token) {
+      throw new Error("Votre session administrateur doit être renouvelée.");
+    }
+
+    const response = await fetch(`${getExportsWorkerUrl()}/admin-extract`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${data.session.access_token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    let result = null;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error(`Réponse Worker illisible (HTTP ${response.status}).`);
+    }
+
+    if (!response.ok || result?.ok !== true) {
+      throw new Error(result?.error || `Extraction refusée (HTTP ${response.status}).`);
+    }
+
+    renderAdminExportCommandResults(result);
+    setAdminExportCommandStatus(
+      `${result.event_count || 0} événement(s) extrait(s). Les fichiers sont prêts.`,
+      "success"
+    );
+    recordAdminAction("Extraction Worker", `${result.event_count || 0} événement(s)`);
+    showToast("Extraction terminée");
+  } catch (error) {
+    console.warn("Extraction Worker impossible", error);
+    setAdminExportCommandStatus(error.message || "Extraction impossible.", "error");
+    showToast("Extraction impossible");
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = "Générer l’extraction";
+    }
+  }
+}
+
+function renderAdminExportCommandResults(result) {
+  const container = document.getElementById("exports-command-results");
+  if (!container) return;
+
+  container.replaceChildren();
+
+  const summary = document.createElement("p");
+  summary.className = "exports-command-result-summary";
+  summary.textContent = `${result.event_count || 0} événement(s) · fichiers générés le ${formatExportDateTime(result.generated_at)}`;
+  container.appendChild(summary);
+
+  const files = Array.isArray(result.files) ? result.files : [];
+  files.forEach((file) => {
+    const url = getAdminExportResultUrl(file);
+    if (!url) return;
+
+    const link = document.createElement("a");
+    link.className = "cyber-btn-secondary exports-file-button";
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = file.label || "Ouvrir le fichier";
+    container.appendChild(link);
+  });
+
+  container.hidden = false;
+}
+
+function getAdminExportResultUrl(file) {
+  const directUrl = String(file?.url || "").trim();
+  if (directUrl) return directUrl;
+
+  const key = String(file?.key || "").replace(/^\/+/, "");
+  if (!key) return "";
+  return `${getExportsBaseUrl()}/${key.replace(/^exports\//, "")}`;
+}
+
+function setAdminExportCommandStatus(message, tone = "") {
+  const status = document.getElementById("exports-command-status");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle("is-success", tone === "success");
+  status.classList.toggle("is-error", tone === "error");
+}
+
+function getAdminExportCommandFormats() {
+  return [...document.querySelectorAll('input[name="exports-command-format"]:checked')]
+    .map((checkbox) => checkbox.value)
+    .filter(Boolean);
+}
+
+function saveAdminExportCommandPreferences() {
+  const preferences = {
+    category: document.getElementById("exports-command-category")?.value || "all",
+    countryCode: document.getElementById("exports-command-country")?.value || "ALL",
+    region: document.getElementById("exports-command-region")?.value || "",
+    period: document.getElementById("exports-command-period")?.value || "30-days",
+    dateStart: document.getElementById("exports-command-start")?.value || "",
+    dateEnd: document.getElementById("exports-command-end")?.value || "",
+    formats: getAdminExportCommandFormats()
+  };
+
+  try {
+    localStorage.setItem(EXPORT_COMMAND_STORAGE_KEY, JSON.stringify(preferences));
+  } catch {
+    // L’extraction reste disponible si le stockage local est désactivé.
+  }
+}
+
+function readAdminExportCommandPreferences() {
+  try {
+    return JSON.parse(localStorage.getItem(EXPORT_COMMAND_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function adminExportStartOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function adminExportAddDays(date, days) {
+  const next = new Date(date.getTime());
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function adminExportDateValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isAdminExportIsoDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
 }
 
 function hydrateAdminExportLinks() {
