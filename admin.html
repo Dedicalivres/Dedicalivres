@@ -21,7 +21,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=9.1-worker-direct-extraction" />
+  <link rel="stylesheet" href="admin.css?v=9.2-visual-gallery" />
   <link rel="stylesheet" href="admin-cockpit.css?v=2.0-exports-files-red" />
 </head>
 
@@ -514,6 +514,7 @@
               <label><input type="checkbox" name="exports-command-format" value="json" checked /> JSON</label>
               <label><input type="checkbox" name="exports-command-format" value="csv" checked /> CSV</label>
               <label><input type="checkbox" name="exports-command-format" value="markdown" checked /> Publications</label>
+              <label><input type="checkbox" name="exports-command-format" value="html" checked /> Galerie visuelle</label>
             </fieldset>
 
             <div class="exports-command-actions">
@@ -521,7 +522,7 @@
                 Générer l’extraction
               </button>
               <span id="exports-command-status" role="status" aria-live="polite">
-                Les fichiers seront rangés automatiquement dans R2.
+                La galerie permet d’enregistrer les visuels sans ouvrir R2.
               </span>
             </div>
 
@@ -532,7 +533,7 @@
         <div class="exports-file-label">
           <div>
             <strong>Fichiers d’extraction</strong>
-            <span>Les boutons rouges ouvrent les fichiers générés : JSON, CSV et publications prêtes à récupérer.</span>
+            <span>Les boutons rouges ouvrent les données, les textes et la galerie de visuels directement téléchargeables.</span>
           </div>
           <em>Rouge = fichier</em>
         </div>
@@ -835,7 +836,7 @@
 
 <script src="config.js?v=shared-client-1"></script>
 <script src="geography.js?v=francophone-1"></script>
-<script src="admin.js?v=worker-direct-extraction-1"></script>
+<script src="admin.js?v=visual-gallery-1"></script>
 
 </body>
 </html>

@@ -3286,8 +3286,11 @@ function initializeAdminExportCommand() {
 
   const checkboxes = document.querySelectorAll('input[name="exports-command-format"]');
   if (Array.isArray(saved.formats) && saved.formats.length) {
+    const savedFormats = saved.version >= 2
+      ? saved.formats
+      : [...new Set([...saved.formats, "html"])];
     checkboxes.forEach((checkbox) => {
-      checkbox.checked = saved.formats.includes(checkbox.value);
+      checkbox.checked = savedFormats.includes(checkbox.value);
     });
   }
 
@@ -3408,6 +3411,10 @@ async function submitAdminExportCommand(event) {
       throw new Error(`Réponse Worker illisible (HTTP ${response.status}).`);
     }
 
+    if (response.status === 404) {
+      throw new Error("Le Worker en ligne doit être mis à jour avant d’utiliser cette extraction.");
+    }
+
     if (!response.ok || result?.ok !== true) {
       throw new Error(result?.error || `Extraction refusée (HTTP ${response.status}).`);
     }
@@ -3484,6 +3491,7 @@ function getAdminExportCommandFormats() {
 
 function saveAdminExportCommandPreferences() {
   const preferences = {
+    version: 2,
     category: document.getElementById("exports-command-category")?.value || "all",
     countryCode: document.getElementById("exports-command-country")?.value || "ALL",
     region: document.getElementById("exports-command-region")?.value || "",
