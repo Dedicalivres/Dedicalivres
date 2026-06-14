@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import worker from './dedicalivres-daily-export.js';
 
 const storedFiles = new Map();
@@ -161,6 +162,84 @@ try {
   assert.match(galleryFile[1].body, /Galerie visuelle prête à publier/);
   assert.match(galleryFile[1].body, /Télécharger le PNG/);
   assert.match(galleryFile[1].body, /Dédicace en Wallonie/);
+  assert.match(galleryFile[1].body, /calculateAdaptiveLayout/);
+  assert.match(galleryFile[1].body, /getEventTheme/);
+  assert.match(galleryFile[1].body, /drawImageContain/);
+
+  const visualScript = galleryFile[1].body.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/)?.[1];
+  assert.ok(visualScript);
+
+  const visualWindow = {
+    addEventListener() {},
+    isSecureContext: false
+  };
+  const visualDocument = {
+    getElementById(id) {
+      if (id === 'events-data') return { textContent: '[]' };
+      if (id === 'gallery') return { appendChild() {} };
+      return null;
+    }
+  };
+
+  vm.runInNewContext(visualScript, {
+    window: visualWindow,
+    document: visualDocument,
+    console,
+    JSON,
+    Math,
+    String,
+    Array,
+    Date,
+    Intl,
+    Promise,
+    URL,
+    navigator: {}
+  });
+
+  const visualEngine = visualWindow.__DEDICALIVRES_VISUAL_ENGINE__;
+  assert.ok(visualEngine);
+
+  const layoutCases = [
+    {
+      mode: 'portrait',
+      event: { title: 'Grande dédicace littéraire', authors: ['Autrice Test'] },
+      image: { naturalWidth: 700, naturalHeight: 1100 }
+    },
+    {
+      mode: 'balanced',
+      event: { title: 'Salon du livre', authors: [] },
+      image: { naturalWidth: 900, naturalHeight: 900 }
+    },
+    {
+      mode: 'landscape',
+      event: {
+        title: 'Festival international des littératures et des rencontres passionnées',
+        authors: ['Autrice Test']
+      },
+      image: { naturalWidth: 1600, naturalHeight: 850 }
+    },
+    {
+      mode: 'landscape',
+      event: { title: 'Rencontre panoramique', authors: [] },
+      image: { naturalWidth: 2200, naturalHeight: 650 }
+    }
+  ];
+
+  layoutCases.forEach(({ mode, event, image }) => {
+    const layout = visualEngine.calculateAdaptiveLayout({}, event, image);
+    assert.equal(layout.mode, mode);
+    assertLayoutInsideSafeArea(layout.image);
+    assertLayoutInsideSafeArea(layout.presentation);
+    assert.equal(rectanglesOverlap(layout.image, layout.presentation), false);
+    if (mode === 'landscape') {
+      assert.ok(layout.presentation.height >= 420);
+    }
+  });
+
+  assert.equal(visualEngine.getEventTheme('Dédicace').primary, '#7137b6');
+  assert.equal(visualEngine.getEventTheme('Festival').primary, '#f06a2f');
+  assert.equal(visualEngine.getEventTheme('Salon').primary, '#2784c7');
+  assert.equal(visualEngine.getEventTheme('Rencontre').primary, '#24936f');
 
   const unauthorizedResponse = await worker.fetch(new Request('https://worker.example.test/admin-extract', {
     method: 'POST',
@@ -175,4 +254,22 @@ try {
   console.log('OK — extraction admin authentifiée, filtrée et stockée dans R2.');
 } finally {
   globalThis.fetch = originalFetch;
+}
+
+function assertLayoutInsideSafeArea(box) {
+  assert.ok(box.width > 0);
+  assert.ok(box.height > 0);
+  assert.ok(box.x >= 72);
+  assert.ok(box.y >= 215);
+  assert.ok(box.x + box.width <= 1008.001);
+  assert.ok(box.y + box.height <= 1145.001);
+}
+
+function rectanglesOverlap(a, b) {
+  return !(
+    a.x + a.width <= b.x ||
+    b.x + b.width <= a.x ||
+    a.y + a.height <= b.y ||
+    b.y + b.height <= a.y
+  );
 }

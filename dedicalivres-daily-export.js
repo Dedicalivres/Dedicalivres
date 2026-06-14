@@ -998,6 +998,8 @@ function buildManualVisualGalleryHtml(events, generatedAt, siteUrl, options) {
       var width = canvas.width;
       var height = canvas.height;
       var image = includeImage ? await loadImage(event.image_url) : null;
+      var theme = getEventTheme(event.type);
+      var layout = calculateAdaptiveLayout(ctx, event, image);
 
       ctx.clearRect(0, 0, width, height);
 
@@ -1008,12 +1010,12 @@ function buildManualVisualGalleryHtml(events, generatedAt, siteUrl, options) {
       ctx.fillStyle = background;
       ctx.fillRect(0, 0, width, height);
 
-      ctx.fillStyle = "#ff6b35";
+      ctx.fillStyle = theme.primary;
       ctx.fillRect(0, 0, 18, height);
-      ctx.fillStyle = "#3b176f";
+      ctx.fillStyle = theme.secondary;
       ctx.fillRect(width - 18, 0, 18, height);
 
-      ctx.strokeStyle = "rgba(59,23,111,.13)";
+      ctx.strokeStyle = theme.guide;
       ctx.lineWidth = 2;
       for (var line = 0; line < 5; line += 1) {
         ctx.beginPath();
@@ -1030,69 +1032,233 @@ function buildManualVisualGalleryHtml(events, generatedAt, siteUrl, options) {
       ctx.font = "800 19px Arial, sans-serif";
       ctx.fillText("ASSOCIATION · AGENDA LITTÉRAIRE FRANCOPHONE", 72, 112);
 
-      drawPill(ctx, typeLabel(event.type), 72, 150, "#3b176f", "#ffffff");
+      drawPill(ctx, typeLabel(event.type), 72, 150, theme.primary, "#ffffff");
+      drawAdaptiveImageFrame(ctx, image, event, layout.image, theme);
+      drawAdaptivePresentation(ctx, event, layout.presentation, theme, layout.mode);
 
-      roundedRect(ctx, 72, 215, 936, 500, 38);
-      ctx.save();
-      ctx.clip();
-      ctx.fillStyle = "#e8dff0";
-      ctx.fillRect(72, 215, 936, 500);
-
-      if (image) {
-        drawImageCover(ctx, image, 72, 215, 936, 500, true);
-        ctx.fillStyle = "rgba(255,255,255,.28)";
-        ctx.fillRect(72, 215, 936, 500);
-        drawImageContain(ctx, image, 92, 235, 896, 460);
-      } else {
-        drawImageFallback(ctx, event, 72, 215, 936, 500);
-      }
-      ctx.restore();
-
-      ctx.strokeStyle = "rgba(59,23,111,.18)";
-      ctx.lineWidth = 3;
-      roundedRect(ctx, 72, 215, 936, 500, 38);
-      ctx.stroke();
-
-      ctx.fillStyle = "#271c35";
-      var titleTop = 785;
-      var titleResult = drawFittedTitle(ctx, event.title || "Événement littéraire", 72, titleTop, 936, 3);
-      var currentY = titleTop + titleResult.height + 28;
-
-      ctx.fillStyle = "#3b176f";
-      ctx.font = "900 31px Arial, sans-serif";
-      ctx.fillText(dateRange(event), 72, currentY);
-      currentY += 54;
-
-      var place = [event.city, event.region, event.country].filter(Boolean).join(" · ");
-      if (place) {
-        ctx.fillStyle = "#64586f";
-        ctx.font = "700 27px Arial, sans-serif";
-        drawSingleLineEllipsis(ctx, place, 72, currentY, 936);
-      }
-
-      if (Array.isArray(event.authors) && event.authors.length) {
-        currentY += 48;
-        ctx.fillStyle = "#64586f";
-        ctx.font = "700 23px Arial, sans-serif";
-        drawSingleLineEllipsis(ctx, "Auteurs présents : " + event.authors.join(", "), 72, currentY, 936);
-      }
-
-      ctx.fillStyle = "#3b176f";
-      roundedRect(ctx, 72, 1192, 420, 82, 22);
-      ctx.fill();
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "900 27px Arial, sans-serif";
-      ctx.fillText("Fiche événement", 112, 1243);
-
-      ctx.fillStyle = "#ff6b35";
-      ctx.font = "900 25px Arial, sans-serif";
+      ctx.fillStyle = theme.primary;
+      ctx.font = "900 23px Arial, sans-serif";
       ctx.textAlign = "right";
-      ctx.fillText("Le livre nous rassemble", 1008, 1239);
+      ctx.fillText("Le livre nous rassemble", 1008, 1265);
       ctx.textAlign = "left";
 
       ctx.fillStyle = "#6c6278";
-      ctx.font = "700 19px Arial, sans-serif";
-      ctx.fillText("Informations vérifiées avant publication", 72, 1310);
+      ctx.font = "700 18px Arial, sans-serif";
+      ctx.fillText("Informations vérifiées avant publication", 72, 1308);
+    }
+
+    function calculateAdaptiveLayout(ctx, event, image) {
+      var bounds = { x:72, y:215, width:936, height:930 };
+      var ratio = image && image.naturalWidth && image.naturalHeight
+        ? image.naturalWidth / image.naturalHeight
+        : 1.45;
+      var titleLength = String(event.title || "").length;
+      var hasAuthors = Array.isArray(event.authors) && event.authors.length > 0;
+      var textNeed = 320 + Math.min(120, Math.max(0, titleLength - 45) * 1.35) + (hasAuthors ? 42 : 0);
+
+      if (ratio < .84) {
+        var gap = 28;
+        var maxImageWidth = Math.min(500, bounds.width - gap - 390);
+        var imageWidth = Math.min(maxImageWidth, bounds.height * ratio);
+        imageWidth = Math.max(285, imageWidth);
+        var imageHeight = Math.min(bounds.height, imageWidth / Math.max(ratio, .2));
+        imageWidth = Math.min(maxImageWidth, imageHeight * ratio);
+        var presentationWidth = bounds.width - imageWidth - gap;
+        var sharedHeight = Math.min(bounds.height, Math.max(imageHeight, Math.min(820, textNeed + 160)));
+        var top = bounds.y + ((bounds.height - sharedHeight) / 2);
+
+        return {
+          mode: "portrait",
+          image: {
+            x:bounds.x,
+            y:top + ((sharedHeight - imageHeight) / 2),
+            width:imageWidth,
+            height:imageHeight
+          },
+          presentation: {
+            x:bounds.x + imageWidth + gap,
+            y:top,
+            width:presentationWidth,
+            height:sharedHeight
+          }
+        };
+      }
+
+      if (ratio <= 1.18) {
+        var squareGap = 28;
+        var squareImageWidth = Math.min(555, bounds.width - squareGap - 350);
+        var squareImageHeight = Math.min(700, squareImageWidth / Math.max(ratio, .2));
+        var squarePresentationWidth = bounds.width - squareImageWidth - squareGap;
+        var squareSharedHeight = Math.min(bounds.height, Math.max(squareImageHeight, Math.min(780, textNeed + 170)));
+        var squareTop = bounds.y + ((bounds.height - squareSharedHeight) / 2);
+
+        return {
+          mode: "balanced",
+          image: {
+            x:bounds.x,
+            y:squareTop + ((squareSharedHeight - squareImageHeight) / 2),
+            width:squareImageWidth,
+            height:squareImageHeight
+          },
+          presentation: {
+            x:bounds.x + squareImageWidth + squareGap,
+            y:squareTop,
+            width:squarePresentationWidth,
+            height:squareSharedHeight
+          }
+        };
+      }
+
+      var stackedGap = 26;
+      var presentationHeight = Math.min(470, Math.max(420, textNeed));
+      var imageMaxHeight = bounds.height - stackedGap - presentationHeight;
+      var naturalHeight = bounds.width / ratio;
+      var imageHeight = Math.min(imageMaxHeight, Math.max(350, naturalHeight));
+      var imageWidth = Math.min(bounds.width, imageHeight * ratio);
+      var totalHeight = imageHeight + stackedGap + presentationHeight;
+      var stackedTop = bounds.y + ((bounds.height - totalHeight) / 2);
+
+      return {
+        mode: "landscape",
+        image: {
+          x:bounds.x + ((bounds.width - imageWidth) / 2),
+          y:stackedTop,
+          width:imageWidth,
+          height:imageHeight
+        },
+        presentation: {
+          x:bounds.x,
+          y:stackedTop + imageHeight + stackedGap,
+          width:bounds.width,
+          height:presentationHeight
+        }
+      };
+    }
+
+    function drawAdaptiveImageFrame(ctx, image, event, box, theme) {
+      ctx.save();
+      ctx.shadowColor = theme.shadow;
+      ctx.shadowBlur = 22;
+      ctx.shadowOffsetY = 10;
+      ctx.fillStyle = theme.pale;
+      roundedRect(ctx, box.x, box.y, box.width, box.height, 34);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      roundedRect(ctx, box.x, box.y, box.width, box.height, 34);
+      ctx.clip();
+      ctx.fillStyle = theme.pale;
+      ctx.fillRect(box.x, box.y, box.width, box.height);
+
+      if (image) {
+        drawImageCover(ctx, image, box.x, box.y, box.width, box.height, true);
+        ctx.fillStyle = "rgba(255,255,255,.25)";
+        ctx.fillRect(box.x, box.y, box.width, box.height);
+
+        var inset = Math.max(12, Math.min(22, Math.round(Math.min(box.width, box.height) * .035)));
+        drawImageContain(ctx, image, box.x + inset, box.y + inset, box.width - (inset * 2), box.height - (inset * 2));
+      } else {
+        drawImageFallback(ctx, event, box.x, box.y, box.width, box.height, theme);
+      }
+      ctx.restore();
+
+      ctx.strokeStyle = theme.primary;
+      ctx.lineWidth = 6;
+      roundedRect(ctx, box.x, box.y, box.width, box.height, 34);
+      ctx.stroke();
+    }
+
+    function drawAdaptivePresentation(ctx, event, box, theme, mode) {
+      var compact = box.width < 430;
+      var padding = compact ? 26 : 34;
+      var innerX = box.x + padding;
+      var innerWidth = box.width - (padding * 2);
+      var bottom = box.y + box.height - padding;
+
+      ctx.save();
+      ctx.shadowColor = theme.shadow;
+      ctx.shadowBlur = 22;
+      ctx.shadowOffsetY = 10;
+      ctx.fillStyle = "rgba(255,255,255,.94)";
+      roundedRect(ctx, box.x, box.y, box.width, box.height, 34);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.strokeStyle = theme.secondary;
+      ctx.lineWidth = 5;
+      roundedRect(ctx, box.x, box.y, box.width, box.height, 34);
+      ctx.stroke();
+
+      var badgeY = box.y + padding;
+      drawPill(ctx, typeLabel(event.type), innerX, badgeY, theme.primary, "#ffffff", compact ? 17 : 19);
+
+      var titleY = badgeY + (compact ? 78 : 84);
+      var ctaHeight = compact ? 66 : 72;
+      var ctaY = bottom - ctaHeight;
+      var metaBottom = ctaY - 24;
+      var requestedTitleLines = mode === "landscape" ? 3 : 5;
+      var titleMaxFont = compact ? 40 : 48;
+      var titleMinFont = compact ? 27 : 31;
+      var reserveForDate = compact ? 50 : 58;
+      var availableTitleHeight = Math.max(
+        titleMinFont * 1.12,
+        metaBottom - titleY - reserveForDate
+      );
+      var titleMaxLines = Math.max(
+        1,
+        Math.min(requestedTitleLines, Math.floor(availableTitleHeight / (titleMinFont * 1.12)))
+      );
+
+      ctx.fillStyle = "#271c35";
+      var titleResult = drawAdaptiveTitle(
+        ctx,
+        event.title || "Événement littéraire",
+        innerX,
+        titleY,
+        innerWidth,
+        titleMaxLines,
+        titleMaxFont,
+        titleMinFont
+      );
+      var currentY = titleY + titleResult.height + (compact ? 18 : 24);
+
+      var dateFont = compact ? 24 : 29;
+      ctx.fillStyle = theme.secondary;
+      ctx.font = "900 " + dateFont + "px Arial, sans-serif";
+      var dateLine = dateRange(event);
+      if (currentY <= metaBottom) {
+        drawSingleLineEllipsis(ctx, dateLine, innerX, currentY, innerWidth);
+        currentY += dateFont + 23;
+      }
+
+      var place = [event.city, event.region, event.country].filter(Boolean).join(" · ");
+      var metaFont = compact ? 20 : 24;
+      if (place && currentY + metaFont <= metaBottom) {
+        ctx.fillStyle = "#64586f";
+        ctx.font = "700 " + metaFont + "px Arial, sans-serif";
+        drawSingleLineEllipsis(ctx, place, innerX, currentY, innerWidth);
+        currentY += metaFont + 20;
+      }
+
+      var authors = Array.isArray(event.authors) ? event.authors.filter(Boolean) : [];
+      if (authors.length && currentY + metaFont <= metaBottom) {
+        ctx.fillStyle = "#64586f";
+        ctx.font = "700 " + Math.max(18, metaFont - 2) + "px Arial, sans-serif";
+        drawSingleLineEllipsis(ctx, "Auteurs présents : " + authors.join(", "), innerX, currentY, innerWidth);
+        currentY += metaFont + 18;
+      }
+
+      if (event.price && currentY + 38 <= metaBottom) {
+        drawPill(ctx, event.price, innerX, currentY - 18, theme.pale, theme.secondary, compact ? 15 : 17);
+      }
+
+      ctx.fillStyle = theme.secondary;
+      roundedRect(ctx, innerX, ctaY, Math.min(innerWidth, compact ? innerWidth : 390), ctaHeight, 20);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 " + (compact ? 21 : 25) + "px Arial, sans-serif";
+      ctx.fillText("Fiche événement", innerX + (compact ? 24 : 32), ctaY + (compact ? 42 : 47));
     }
 
     function loadImage(source) {
@@ -1142,40 +1308,42 @@ function buildManualVisualGalleryHtml(events, generatedAt, siteUrl, options) {
       ctx.drawImage(image, x + ((width - drawWidth) / 2), y + ((height - drawHeight) / 2), drawWidth, drawHeight);
     }
 
-    function drawImageFallback(ctx, event, x, y, width, height) {
+    function drawImageFallback(ctx, event, x, y, width, height, theme) {
       var gradient = ctx.createLinearGradient(x, y, x + width, y + height);
-      gradient.addColorStop(0, "#32135f");
-      gradient.addColorStop(1, "#6c35a1");
+      gradient.addColorStop(0, theme.secondary);
+      gradient.addColorStop(1, theme.primary);
       ctx.fillStyle = gradient;
       ctx.fillRect(x, y, width, height);
       ctx.fillStyle = "rgba(255,255,255,.12)";
-      ctx.font = "900 250px Georgia, serif";
+      ctx.font = "900 " + Math.min(250, Math.round(height * .42)) + "px Georgia, serif";
       ctx.textAlign = "center";
-      ctx.fillText("D", x + (width / 2), y + 335);
+      ctx.fillText("D", x + (width / 2), y + (height * .62));
       ctx.textAlign = "left";
       ctx.fillStyle = "#ffffff";
-      ctx.font = "900 32px Arial, sans-serif";
-      ctx.fillText(typeLabel(event.type), x + 52, y + height - 54);
+      ctx.font = "900 " + Math.min(32, Math.max(18, Math.round(width * .055))) + "px Arial, sans-serif";
+      drawSingleLineEllipsis(ctx, typeLabel(event.type), x + 32, y + height - 36, width - 64);
     }
 
-    function drawPill(ctx, text, x, y, background, color) {
-      ctx.font = "900 20px Arial, sans-serif";
+    function drawPill(ctx, text, x, y, background, color, fontSize) {
+      var size = fontSize || 20;
+      ctx.font = "900 " + size + "px Arial, sans-serif";
       var width = Math.min(360, ctx.measureText(text).width + 46);
+      var height = size + 26;
       ctx.fillStyle = background;
-      roundedRect(ctx, x, y, width, 46, 23);
+      roundedRect(ctx, x, y, width, height, height / 2);
       ctx.fill();
       ctx.fillStyle = color;
-      ctx.fillText(text, x + 23, y + 30);
+      ctx.fillText(text, x + 23, y + size + 8);
     }
 
-    function drawFittedTitle(ctx, text, x, y, width, maxLines) {
-      var fontSize = 52;
+    function drawAdaptiveTitle(ctx, text, x, y, width, maxLines, maxFont, minFont) {
+      var fontSize = maxFont;
       var lines = [];
-      while (fontSize >= 34) {
+      while (fontSize >= minFont) {
         ctx.font = "700 " + fontSize + "px Georgia, serif";
         lines = wrapLines(ctx, text, width);
         if (lines.length <= maxLines) break;
-        fontSize -= 3;
+        fontSize -= 2;
       }
       if (lines.length > maxLines) {
         lines = lines.slice(0, maxLines);
@@ -1189,6 +1357,48 @@ function buildManualVisualGalleryHtml(events, generatedAt, siteUrl, options) {
         ctx.fillText(line, x, y + (index * lineHeight));
       });
       return { height: Math.max(lineHeight, lines.length * lineHeight), fontSize: fontSize };
+    }
+
+    function getEventTheme(value) {
+      var type = String(value || "")
+        .normalize("NFD")
+        .replace(/[\\u0300-\\u036f]/g, "")
+        .toLowerCase();
+
+      if (type.indexOf("dedicace") >= 0) {
+        return {
+          primary:"#7137b6",
+          secondary:"#43206f",
+          pale:"#f0e7fa",
+          guide:"rgba(113,55,182,.14)",
+          shadow:"rgba(67,32,111,.22)"
+        };
+      }
+      if (type.indexOf("festival") >= 0) {
+        return {
+          primary:"#f06a2f",
+          secondary:"#a83d16",
+          pale:"#fff0e8",
+          guide:"rgba(240,106,47,.14)",
+          shadow:"rgba(168,61,22,.22)"
+        };
+      }
+      if (type.indexOf("salon") >= 0) {
+        return {
+          primary:"#2784c7",
+          secondary:"#155580",
+          pale:"#e7f4fc",
+          guide:"rgba(39,132,199,.14)",
+          shadow:"rgba(21,85,128,.22)"
+        };
+      }
+      return {
+        primary:"#24936f",
+        secondary:"#155e49",
+        pale:"#e6f7f1",
+        guide:"rgba(36,147,111,.14)",
+        shadow:"rgba(21,94,73,.22)"
+      };
     }
 
     function wrapLines(ctx, text, width) {
@@ -1291,6 +1501,11 @@ function buildManualVisualGalleryHtml(events, generatedAt, siteUrl, options) {
       textarea.remove();
       return Promise.resolve();
     }
+
+    window.__DEDICALIVRES_VISUAL_ENGINE__ = {
+      calculateAdaptiveLayout: calculateAdaptiveLayout,
+      getEventTheme: getEventTheme
+    };
   })();
   </script>
 </body>

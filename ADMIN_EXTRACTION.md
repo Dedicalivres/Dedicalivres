@@ -51,6 +51,25 @@ une catégorie, un pays et une période courte.
 Si une image distante refuse son utilisation dans le générateur, le visuel reste téléchargeable
 avec un fond Dédicalivres de remplacement.
 
+## Composition adaptative
+
+La galerie analyse chaque image avant de composer le visuel :
+
+- une affiche portrait est agrandie à gauche et la présentation est placée à droite ;
+- une image carrée utilise une composition équilibrée en deux zones ;
+- une image paysage est placée au-dessus de la présentation ;
+- l’image reste entière grâce à un affichage contenu, sans déformation ni rognage ;
+- les éventuelles marges sont prolongées par une version floutée de l’image ;
+- le titre, la date, le lieu, les auteurs et le prix sont affichés selon la place disponible ;
+- les zones image et texte sont calculées séparément et ne peuvent pas se superposer.
+
+Le contour identifie la catégorie :
+
+- violet pour une dédicace ;
+- orange pour un festival ;
+- bleu pour un salon ;
+- vert pour une rencontre ou un autre événement.
+
 ## Message « Not found »
 
 Ce message indique que l’ancienne version du Worker Cloudflare est encore en ligne.
