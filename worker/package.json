@@ -5,7 +5,9 @@
   "description": "Tests automatisés pour le Worker d'export Dédicalivres",
   "type": "module",
   "scripts": {
-    "test:export": "node test-export.js"
+    "test:export": "node test-export.js",
+    "test:admin-extract": "node test-admin-extract.js",
+    "check": "node --check dedicalivres-daily-export.js && node test-admin-extract.js"
   },
   "engines": {
     "node": ">=18"

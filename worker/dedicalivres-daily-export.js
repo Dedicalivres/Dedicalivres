@@ -12,6 +12,7 @@
  * Variables recommandées :
  * - PUBLIC_SITE_URL=https://dedicalivres.fr
  * - R2_PUBLIC_BASE_URL=https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev
+ * - ALLOWED_ADMIN_ORIGINS=https://dedicalivres.fr,https://www.dedicalivres.fr
  * - EVENTS_TABLE=events
  * - PRESENCE_TABLE=event_authors_presence
  * - EXPORT_PREFIX=exports
@@ -19,6 +20,16 @@
 
 const DEFAULT_SITE_URL = 'https://dedicalivres.fr';
 const DEFAULT_EXPORT_PREFIX = 'exports';
+const MANUAL_EXPORT_FORMATS = new Set(['json', 'csv', 'markdown']);
+const MANUAL_EXPORT_CATEGORIES = new Set([
+  'all',
+  'dedicaces',
+  'salons_festivals',
+  'salons',
+  'festivals',
+  'autres'
+]);
+const MANUAL_EXPORT_COUNTRIES = new Set(['ALL', 'FR', 'BE', 'LU', 'CH', 'MC']);
 
 export default {
   async scheduled(event, env, ctx) {
@@ -27,6 +38,14 @@ export default {
 
   async fetch(request, env) {
     const url = new URL(request.url);
+    const cors = buildCorsHeaders(request, env);
+
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: cors
+      });
+    }
 
     if (url.pathname === '/') {
       return jsonResponse({
@@ -34,26 +53,49 @@ export default {
         status: 'ok',
         endpoints: {
           health: '/health',
-          export_now: '/export-now?secret=***'
+          export_now: '/export-now?secret=***',
+          admin_extract: 'POST /admin-extract'
         }
-      });
+      }, 200, cors);
     }
 
     if (url.pathname === '/health') {
-      return jsonResponse({ ok: true, generated_by: 'dedicalivres-daily-export' });
+      return jsonResponse({ ok: true, generated_by: 'dedicalivres-daily-export' }, 200, cors);
     }
 
     if (url.pathname === '/export-now') {
       const providedSecret = url.searchParams.get('secret') || request.headers.get('x-export-secret');
       if (env.EXPORT_SECRET && providedSecret !== env.EXPORT_SECRET) {
-        return jsonResponse({ ok: false, error: 'Unauthorized export request' }, 401);
+        return jsonResponse({ ok: false, error: 'Unauthorized export request' }, 401, cors);
       }
 
       const result = await runDailyExport(env);
-      return jsonResponse(result, result.ok ? 200 : 500);
+      return jsonResponse(result, result.ok ? 200 : 500, cors);
     }
 
-    return jsonResponse({ ok: false, error: 'Not found' }, 404);
+    if (url.pathname === '/admin-extract') {
+      if (request.method !== 'POST') {
+        return jsonResponse({ ok: false, error: 'Method not allowed' }, 405, {
+          ...cors,
+          Allow: 'POST, OPTIONS'
+        });
+      }
+
+      try {
+        await assertAdminRequest(request, env);
+        const payload = await readJsonBody(request);
+        const result = await runManualExport(env, payload);
+        return jsonResponse(result, result.ok ? 200 : 500, cors);
+      } catch (error) {
+        const status = Number(error.status) || 400;
+        return jsonResponse({
+          ok: false,
+          error: error.message || String(error)
+        }, status, cors);
+      }
+    }
+
+    return jsonResponse({ ok: false, error: 'Not found' }, 404, cors);
   }
 };
 
@@ -232,6 +274,109 @@ async function runDailyExport(env) {
   }
 }
 
+async function runManualExport(env, rawOptions = {}) {
+  try {
+    assertEnv(env);
+
+    const generatedAt = new Date();
+    const siteUrl = trimTrailingSlash(env.PUBLIC_SITE_URL || DEFAULT_SITE_URL);
+    const exportPrefix = trimSlashes(env.EXPORT_PREFIX || DEFAULT_EXPORT_PREFIX);
+    const options = normalizeManualExportOptions(rawOptions, generatedAt);
+
+    const availableEvents = await fetchEventsWithAuthors(env, siteUrl, {
+      dateStart: options.dateStart,
+      dateEnd: options.dateEnd,
+      countryCode: options.countryCode,
+      region: options.region
+    });
+
+    const selectedEvents = filterEventsByCategory(availableEvents, options.category);
+    const events = sortEvents(selectedEvents);
+    const extractionSlug = buildManualExtractionSlug(options, generatedAt);
+    const baseKey = `${exportPrefix}/manual/${extractionSlug}`;
+    const files = [];
+
+    if (options.formats.includes('json')) {
+      files.push({
+        key: `${baseKey}/evenements.json`,
+        label: 'JSON',
+        body: JSON.stringify(buildManualJsonExport(events, generatedAt, siteUrl, options), null, 2),
+        contentType: 'application/json; charset=utf-8'
+      });
+    }
+
+    if (options.formats.includes('csv')) {
+      files.push({
+        key: `${baseKey}/evenements.csv`,
+        label: 'CSV',
+        body: buildCsvExport(events),
+        contentType: 'text/csv; charset=utf-8'
+      });
+    }
+
+    if (options.formats.includes('markdown')) {
+      files.push({
+        key: `${baseKey}/publications.md`,
+        label: 'Publications',
+        body: buildManualMarkdownExport(events, generatedAt, siteUrl, options),
+        contentType: 'text/markdown; charset=utf-8'
+      });
+    }
+
+    const manifest = {
+      generated_at: generatedAt.toISOString(),
+      count: events.length,
+      filters: serializeManualExportOptions(options),
+      files: files.map((file) => ({
+        label: file.label,
+        key: file.key,
+        url: getPublicExportUrl(env, file.key),
+        content_type: file.contentType
+      }))
+    };
+
+    files.push({
+      key: `${baseKey}/manifest.json`,
+      label: 'Manifeste',
+      body: JSON.stringify(manifest, null, 2),
+      contentType: 'application/json; charset=utf-8'
+    });
+
+    for (const file of files) {
+      await env.EXPORTS_BUCKET.put(file.key, file.body, {
+        httpMetadata: {
+          contentType: file.contentType,
+          cacheControl: 'private, max-age=60'
+        },
+        customMetadata: {
+          generated_at: generatedAt.toISOString(),
+          source: 'dedicalivres-admin-extract',
+          category: options.category,
+          country_code: options.countryCode
+        }
+      });
+    }
+
+    return {
+      ok: true,
+      generated_at: generatedAt.toISOString(),
+      event_count: events.length,
+      filters: serializeManualExportOptions(options),
+      files: files.map((file) => ({
+        label: file.label,
+        key: file.key,
+        url: getPublicExportUrl(env, file.key),
+        content_type: file.contentType
+      }))
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error.message || String(error)
+    };
+  }
+}
+
 function assertEnv(env) {
   const missing = [];
   if (!env.SUPABASE_URL) missing.push('SUPABASE_URL');
@@ -240,12 +385,16 @@ function assertEnv(env) {
   if (missing.length) throw new Error(`Missing required configuration: ${missing.join(', ')}`);
 }
 
-async function fetchEventsWithAuthors(env, siteUrl) {
+async function fetchEventsWithAuthors(env, siteUrl, requestedFilters = {}) {
   const eventsTable = env.EVENTS_TABLE || 'events';
   const presenceTable = env.PRESENCE_TABLE || 'event_authors_presence';
 
   const eventsUrl = new URL(`/rest/v1/${eventsTable}`, trimTrailingSlash(env.SUPABASE_URL));
   const today = new Date().toISOString().slice(0, 10);
+  const dateStart = normalizeDate(requestedFilters.dateStart || today);
+  const dateEnd = normalizeDate(requestedFilters.dateEnd || '');
+  const countryCode = normalizeCountryCode(requestedFilters.countryCode || 'ALL');
+  const requestedRegion = safeText(requestedFilters.region || '');
 
   // Champs volontairement publics. Ne pas exporter emails, tracking, données privées ou champs admin sensibles.
   eventsUrl.searchParams.set(
@@ -255,6 +404,7 @@ async function fetchEventsWithAuthors(env, siteUrl) {
       'title',
       'description',
       'type',
+      'country_code',
       'city',
       'region',
       'start_date',
@@ -274,14 +424,28 @@ async function fetchEventsWithAuthors(env, siteUrl) {
 
   eventsUrl.searchParams.set('validated', 'eq.true');
   eventsUrl.searchParams.set('rejected', 'eq.false');
-  eventsUrl.searchParams.set('or', `(end_date.is.null,end_date.gte.${today})`);
+  if (dateStart) {
+    eventsUrl.searchParams.set('or', `(end_date.is.null,end_date.gte.${dateStart})`);
+  }
+  if (dateEnd) {
+    eventsUrl.searchParams.set('start_date', `lte.${dateEnd}`);
+  }
+  if (countryCode !== 'ALL') {
+    eventsUrl.searchParams.set('country_code', `eq.${countryCode}`);
+  }
+  if (requestedRegion) {
+    eventsUrl.searchParams.set('region', `eq.${requestedRegion}`);
+  }
   eventsUrl.searchParams.set('order', 'featured.desc,start_date.asc.nullslast,title.asc');
 
   const rawEvents = await supabaseGet(env, eventsUrl);
   const publicEvents = rawEvents
     .filter(isEventPublic)
     .filter((event) => event.rejected !== true)
-    .filter((event) => getEventDate(event));
+    .filter((event) => getEventDate(event))
+    .filter((event) => eventOverlapsDateRange(event, dateStart, dateEnd))
+    .filter((event) => countryCode === 'ALL' || normalizeCountryCode(event.country_code) === countryCode)
+    .filter((event) => !requestedRegion || safeText(event.region) === requestedRegion);
 
   const eventIds = publicEvents.map((event) => event.id).filter(Boolean);
   const authorsByEventId = eventIds.length
@@ -335,6 +499,7 @@ function normalizeEvent(event, authors, siteUrl) {
   const title = safeText(event.title || 'Événement littéraire');
   const city = safeText(event.city || '');
   const region = safeText(event.region || '');
+  const countryCode = normalizeCountryCode(event.country_code || 'FR');
   const type = safeText(event.type || 'Autre');
   const description = normalizeDescription(event.description || '');
   const eventUrl = `${siteUrl}/event.html?id=${encodeURIComponent(event.id)}`;
@@ -349,6 +514,8 @@ function normalizeEvent(event, authors, siteUrl) {
     time: normalizeTime(eventTime),
     city,
     region,
+    country_code: countryCode,
+    country: getCountryLabel(countryCode),
     price: safeText(event.price || ''),
     website: safeText(event.website || ''),
     latitude: event.lat ?? null,
@@ -396,7 +563,7 @@ function buildJsonExport(events, generatedAt, siteUrl, filter = 'all') {
 
 function buildCsvExport(events) {
   const headers = [
-    'date', 'fin', 'type', 'titre', 'ville', 'region', 'prix', 'auteurs',
+    'date', 'fin', 'type', 'titre', 'ville', 'territoire', 'pays', 'code_pays', 'prix', 'auteurs',
     'description', 'image_url', 'site_officiel', 'event_url', 'post_short', 'hashtags'
   ];
 
@@ -407,6 +574,8 @@ function buildCsvExport(events) {
     event.title,
     event.city,
     event.region,
+    event.country,
+    event.country_code,
     event.price,
     event.authors.join(' | '),
     event.description,
@@ -464,6 +633,49 @@ function splitEventsByCategory(events) {
       return type !== 'dedicace' && !['salon', 'festival'].includes(type);
     })
   };
+}
+
+function filterEventsByCategory(events, category) {
+  const normalizedCategory = String(category || 'all');
+  if (normalizedCategory === 'all') return [...events];
+
+  return events.filter((event) => {
+    const type = normalizeCategory(event.type);
+
+    if (normalizedCategory === 'dedicaces') return type === 'dedicace';
+    if (normalizedCategory === 'salons_festivals') return ['salon', 'festival'].includes(type);
+    if (normalizedCategory === 'salons') return type === 'salon';
+    if (normalizedCategory === 'festivals') return type === 'festival';
+    if (normalizedCategory === 'autres') {
+      return type !== 'dedicace' && !['salon', 'festival'].includes(type);
+    }
+
+    return true;
+  });
+}
+
+function buildManualJsonExport(events, generatedAt, siteUrl, options) {
+  return {
+    generated_at: generatedAt.toISOString(),
+    source: siteUrl,
+    filter: 'admin_custom_extract',
+    filters: serializeManualExportOptions(options),
+    count: events.length,
+    events
+  };
+}
+
+function buildManualMarkdownExport(events, generatedAt, siteUrl, options) {
+  const filterLabel = buildManualFilterLabel(options);
+  const content = buildMarkdownPublications(events, generatedAt, siteUrl);
+
+  return [
+    '# Extraction personnalisée Dédicalivres',
+    '',
+    `Filtres : ${filterLabel}`,
+    '',
+    content
+  ].join('\n');
 }
 
 function buildCategorizedMarkdown(categories, generatedAt, siteUrl) {
@@ -578,6 +790,116 @@ function getWeekendEvents(events, generatedAt) {
     const date = event.date || '';
     return date >= saturdayText && date <= sundayText;
   });
+}
+
+function normalizeManualExportOptions(rawOptions, generatedAt) {
+  const defaultStart = toIsoDate(startOfUtcDay(generatedAt));
+  const defaultEnd = toIsoDate(addUtcDays(startOfUtcDay(generatedAt), 30));
+  const category = String(rawOptions.category || 'all').trim().toLowerCase();
+  const countryCode = normalizeCountryCode(rawOptions.countryCode || rawOptions.country_code || 'ALL');
+  const dateStart = normalizeDate(rawOptions.dateStart || rawOptions.date_start || defaultStart);
+  const dateEnd = normalizeDate(rawOptions.dateEnd || rawOptions.date_end || defaultEnd);
+  const region = safeText(rawOptions.region || '').slice(0, 120);
+  const requestedFormats = Array.isArray(rawOptions.formats) ? rawOptions.formats : ['json', 'csv', 'markdown'];
+  const formats = [...new Set(
+    requestedFormats
+      .map((value) => String(value || '').trim().toLowerCase())
+      .filter((value) => MANUAL_EXPORT_FORMATS.has(value))
+  )];
+
+  if (!MANUAL_EXPORT_CATEGORIES.has(category)) {
+    throw new Error('Catégorie d’extraction non reconnue.');
+  }
+  if (!MANUAL_EXPORT_COUNTRIES.has(countryCode)) {
+    throw new Error('Pays d’extraction non reconnu.');
+  }
+  if (!isIsoDate(dateStart) || !isIsoDate(dateEnd)) {
+    throw new Error('Les dates de début et de fin sont obligatoires.');
+  }
+  if (dateStart > dateEnd) {
+    throw new Error('La date de fin doit être postérieure à la date de début.');
+  }
+  if (daysBetweenIsoDates(dateStart, dateEnd) > 1095) {
+    throw new Error('La période maximale autorisée est de trois ans.');
+  }
+  if (!formats.length) {
+    throw new Error('Choisissez au moins un format de fichier.');
+  }
+
+  return {
+    category,
+    countryCode,
+    region,
+    dateStart,
+    dateEnd,
+    formats
+  };
+}
+
+function serializeManualExportOptions(options) {
+  return {
+    category: options.category,
+    category_label: getCategoryLabel(options.category),
+    country_code: options.countryCode,
+    country_label: options.countryCode === 'ALL' ? 'Tous les pays' : getCountryLabel(options.countryCode),
+    territory: options.region || 'Tous les territoires',
+    date_start: options.dateStart,
+    date_end: options.dateEnd,
+    formats: [...options.formats]
+  };
+}
+
+function buildManualFilterLabel(options) {
+  return [
+    getCategoryLabel(options.category),
+    options.countryCode === 'ALL' ? 'Tous les pays' : getCountryLabel(options.countryCode),
+    options.region || 'Tous les territoires',
+    `du ${formatFrenchDate(options.dateStart)} au ${formatFrenchDate(options.dateEnd)}`
+  ].join(' · ');
+}
+
+function buildManualExtractionSlug(options, generatedAt) {
+  const timestamp = generatedAt.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  return [
+    timestamp,
+    options.category,
+    options.countryCode.toLowerCase(),
+    options.region || 'tous-territoires',
+    options.dateStart,
+    options.dateEnd
+  ].map(slugPart).join('_');
+}
+
+function getCategoryLabel(category) {
+  const labels = {
+    all: 'Tous les événements',
+    dedicaces: 'Dédicaces',
+    salons_festivals: 'Salons et festivals',
+    salons: 'Salons',
+    festivals: 'Festivals',
+    autres: 'Autres événements'
+  };
+  return labels[category] || labels.all;
+}
+
+function getCountryLabel(countryCode) {
+  const labels = {
+    FR: 'France',
+    BE: 'Belgique',
+    LU: 'Luxembourg',
+    CH: 'Suisse',
+    MC: 'Monaco'
+  };
+  return labels[countryCode] || countryCode || 'Pays non précisé';
+}
+
+function eventOverlapsDateRange(event, dateStart, dateEnd) {
+  const eventStart = getEventDate(event);
+  const eventEnd = normalizeDate(event.end_date || eventStart);
+  if (!eventStart || !eventEnd) return false;
+  if (dateStart && eventEnd < dateStart) return false;
+  if (dateEnd && eventStart > dateEnd) return false;
+  return true;
 }
 
 function buildSocialHtml(events, title, generatedAt, format) {
@@ -700,6 +1022,11 @@ function normalizeCategory(value) {
     .trim();
 }
 
+function normalizeCountryCode(value) {
+  const normalized = String(value || 'ALL').trim().toUpperCase();
+  return normalized || 'ALL';
+}
+
 function normalizeDescription(value) {
   return safeText(String(value).replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
 }
@@ -723,6 +1050,17 @@ function normalizeTime(value) {
   const match = raw.match(/(\d{1,2}):(\d{2})/);
   if (!match) return raw;
   return `${match[1].padStart(2, '0')}:${match[2]}`;
+}
+
+function isIsoDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
+}
+
+function daysBetweenIsoDates(startValue, endValue) {
+  const start = new Date(`${startValue}T00:00:00Z`);
+  const end = new Date(`${endValue}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return Number.POSITIVE_INFINITY;
+  return Math.round((end.getTime() - start.getTime()) / 86400000);
 }
 
 function formatFrenchDate(value) {
@@ -791,6 +1129,15 @@ function htmlClass(value) {
   return String(value || 'default').replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'default';
 }
 
+function slugPart(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'export';
+}
+
 function dedupeAuthorsMap(map) {
   for (const [key, value] of map.entries()) {
     map.set(key, [...new Set(value.filter(Boolean))].sort((a, b) => a.localeCompare(b)));
@@ -806,11 +1153,121 @@ function trimSlashes(value) {
   return String(value || '').replace(/^\/+|\/+$/g, '');
 }
 
-function jsonResponse(payload, status = 200) {
+function getPublicExportUrl(env, key) {
+  const baseUrl = trimTrailingSlash(env.R2_PUBLIC_BASE_URL || '');
+  return baseUrl ? `${baseUrl}/${String(key).replace(/^\/+/, '')}` : '';
+}
+
+async function assertAdminRequest(request, env) {
+  assertEnv(env);
+
+  const authorization = request.headers.get('authorization') || '';
+  const tokenMatch = authorization.match(/^Bearer\s+(.+)$/i);
+  const accessToken = tokenMatch?.[1]?.trim() || '';
+
+  if (!accessToken) {
+    throw httpError(401, 'Session administrateur absente.');
+  }
+
+  const authResponse = await fetch(`${trimTrailingSlash(env.SUPABASE_URL)}/auth/v1/user`, {
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/json'
+    }
+  });
+
+  if (!authResponse.ok) {
+    throw httpError(401, 'Session administrateur invalide ou expirée.');
+  }
+
+  const user = await authResponse.json();
+  if (!user?.id) {
+    throw httpError(401, 'Utilisateur Supabase introuvable.');
+  }
+
+  const adminUrl = new URL('/rest/v1/admin_users', trimTrailingSlash(env.SUPABASE_URL));
+  adminUrl.searchParams.set('select', 'user_id');
+  adminUrl.searchParams.set('user_id', `eq.${user.id}`);
+  adminUrl.searchParams.set('limit', '1');
+
+  const admins = await supabaseGet(env, adminUrl);
+  if (!Array.isArray(admins) || !admins.length) {
+    throw httpError(403, 'Cette session ne possède pas les droits administrateur.');
+  }
+
+  return user;
+}
+
+async function readJsonBody(request) {
+  const contentLength = Number(request.headers.get('content-length') || 0);
+  if (contentLength > 32768) {
+    throw httpError(413, 'Paramètres d’extraction trop volumineux.');
+  }
+
+  try {
+    return await request.json();
+  } catch {
+    throw httpError(400, 'Paramètres d’extraction invalides.');
+  }
+}
+
+function httpError(status, message) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+function buildCorsHeaders(request, env) {
+  const origin = request.headers.get('origin') || '';
+  const configuredOrigins = String(env.ALLOWED_ADMIN_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const defaultOrigins = [
+    'https://dedicalivres.fr',
+    'https://www.dedicalivres.fr',
+    'https://xn--ddicalivres-bbb.fr',
+    'null'
+  ];
+  const allowedOrigins = new Set([...defaultOrigins, ...configuredOrigins]);
+  let allowedOrigin = '';
+
+  if (!origin) {
+    allowedOrigin = '*';
+  } else if (allowedOrigins.has(origin) || isLocalDevelopmentOrigin(origin)) {
+    allowedOrigin = origin;
+  }
+
+  const headers = {
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+    Vary: 'Origin'
+  };
+
+  if (allowedOrigin) {
+    headers['Access-Control-Allow-Origin'] = allowedOrigin;
+  }
+
+  return headers;
+}
+
+function isLocalDevelopmentOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    return ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function jsonResponse(payload, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(payload, null, 2), {
     status,
     headers: {
-      'content-type': 'application/json; charset=utf-8'
+      'content-type': 'application/json; charset=utf-8',
+      ...extraHeaders
     }
   });
 }
