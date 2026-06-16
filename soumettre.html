@@ -9,15 +9,15 @@
   <link rel="canonical" href="https://dedicalivres.fr/soumettre" />
   <meta name="theme-color" content="#3a1c71" />
   <meta property="og:title" content="Soumettre un événement — Dédicalivres" />
-  <meta property="og:description" content="Ajoutez un événement littéraire à l’agenda Dédicalivres après relecture." />
+  <meta property="og:description" content="Ajoutez gratuitement un événement littéraire à l’agenda de l’association Dédicalivres après relecture." />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://dedicalivres.fr/banner2.jpg" />
+  <meta property="og:image" content="https://dedicalivres.fr/assets/brand/dedicalivres-association-light.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="style.css?v=full-optim-1" />
+  <link rel="stylesheet" href="style.css?v=v1-francophone-20260615" />
   <link rel="stylesheet" href="mascot-guide.css?v=guide-4" />
 </head>
 
@@ -40,11 +40,11 @@
 
 <main class="container submit-page-main">
   <section class="seo-hero submit-hero">
-    <p class="category-kicker">Contribution gratuite</p>
+    <p class="category-kicker">Contribuer à l’agenda associatif</p>
     <h1>Proposer un événement littéraire</h1>
     <p>
       Salon, festival, séance de dédicace, rencontre avec un auteur ou rendez-vous autour du livre :
-      envoyez les informations utiles, elles seront relues avant publication.
+      envoyez les informations utiles. L’association les relira avant publication.
     </p>
   </section>
 
@@ -52,8 +52,8 @@
     <aside class="submit-side-card">
       <strong>Un formulaire clair, une mise en ligne maîtrisée.</strong>
       <p>
-        L’objectif est simple : garder un agenda fiable pour les lecteurs, sans perdre les
-        organisateurs dans des étapes inutiles.
+        Notre objectif associatif est simple : garder un agenda fiable pour les lecteurs,
+        sans perdre les organisateurs dans des étapes inutiles.
       </p>
       <ul>
         <li>Soumission gratuite</li>
@@ -74,7 +74,7 @@
       <div class="form-grid-2">
         <label>
           <span>Type</span>
-          <select name="type" required>
+          <select name="type" id="event-type-submit" required>
             <option value="">Choisir</option>
             <option>Salon</option>
             <option>Festival</option>
@@ -84,41 +84,37 @@
         </label>
 
         <label>
-          <span>Région</span>
-          <select name="region" id="region-submit" required>
-            <option value="">Choisir</option>
-            <option>Auvergne-Rhône-Alpes</option>
-            <option>Bourgogne-Franche-Comté</option>
-            <option>Bretagne</option>
-            <option>Centre-Val de Loire</option>
-            <option>Corse</option>
-            <option>Grand Est</option>
-            <option>Hauts-de-France</option>
-            <option>Île-de-France</option>
-            <option>Normandie</option>
-            <option>Nouvelle-Aquitaine</option>
-            <option>Occitanie</option>
-            <option>Pays de la Loire</option>
-            <option>Provence-Alpes-Côte d’Azur</option>
+          <span>Pays</span>
+          <select name="country_code" id="country-submit" required>
+            <option value="FR">France</option>
           </select>
         </label>
       </div>
 
-      <label class="city-autocomplete-wrap">
-        <span>Ville</span>
-        <input
-          id="city-input"
-          name="city"
-          list="city-suggestions"
-          placeholder="Commencez à taper puis choisissez la commune"
-          autocomplete="off"
-          required
-        />
-        <datalist id="city-suggestions"></datalist>
-        <small id="city-help" class="field-help">
-          La ville sert à placer correctement l’événement sur la carte.
-        </small>
-      </label>
+      <div class="form-grid-2">
+        <label>
+          <span id="region-submit-label">Région</span>
+          <select name="region" id="region-submit" required>
+            <option value="">Choisir</option>
+          </select>
+        </label>
+
+        <label class="city-autocomplete-wrap">
+          <span>Ville / commune</span>
+          <input
+            id="city-input"
+            name="city"
+            list="city-suggestions"
+            placeholder="Commencez à taper puis choisissez la localité"
+            autocomplete="off"
+            required
+          />
+          <datalist id="city-suggestions"></datalist>
+          <small id="city-help" class="field-help">
+            La localité sert à placer correctement l’événement sur la carte.
+          </small>
+        </label>
+      </div>
 
       <input type="hidden" name="lat" id="city-lat" />
       <input type="hidden" name="lng" id="city-lng" />
@@ -156,6 +152,36 @@
         <textarea name="description" rows="5" placeholder="Présentez le rendez-vous, le lieu, les auteurs invités ou les informations pratiques."></textarea>
       </label>
 
+      <section id="dedicace-author-fields" class="submission-author-panel" hidden>
+        <div class="submission-author-intro">
+          <p class="category-kicker">Auteur de la dédicace</p>
+          <h3>Associer l’auteur à cet événement</h3>
+          <p>
+            Pour une dédicace, vous pouvez transmettre le nom, un lien et un portrait.
+            Ces éléments seront vérifiés avant publication et prépareront la galerie auteurs.
+          </p>
+        </div>
+
+        <div class="form-grid-2">
+          <label>
+            <span>Nom / pseudo d’auteur</span>
+            <input name="author_pseudo" type="text" placeholder="Nom d’auteur, prénom nom ou pseudonyme" maxlength="120" />
+          </label>
+
+          <label>
+            <span>Lien auteur facultatif</span>
+            <input name="author_profile_url" type="url" placeholder="Site, Instagram, Linktree…" />
+          </label>
+        </div>
+
+        <label class="upload-box author-portrait-upload-box">
+          <input id="submitted-author-portrait-input" name="author_portrait" type="file" accept="image/*" />
+          <span class="upload-icon">Portrait</span>
+          <strong>Ajouter le portrait de l’auteur</strong>
+          <small>JPG, PNG ou WEBP — recommandé : moins de 4 Mo</small>
+        </label>
+      </section>
+
       <div class="upload-premium">
         <label class="upload-box">
           <input id="event-image-input" name="image" type="file" accept="image/*" />
@@ -175,7 +201,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js?v=shared-client-1"></script>
-<script src="app.js?v=ville-aiffres-4"></script>
+<script src="geography.js?v=v1-francophone-20260615"></script>
+<script src="app.js?v=v1-francophone-20260615"></script>
 <script src="tracking-v4.js?v=shared-client-1"></script>
 <script>
 (function () {
