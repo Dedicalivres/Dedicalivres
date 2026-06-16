@@ -2,6 +2,7 @@
   "use strict";
 
   const config = window.DEDICALIVRES_CONFIG;
+  const geo = window.DEDICALIVRES_GEO;
 
   if (
     !config ||
@@ -21,14 +22,15 @@
     window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
   }
 
+  const params = new URLSearchParams(window.location.search || "");
   const eventsContainer = document.getElementById("seo-events");
   const seoCount = document.getElementById("seo-count");
   const pastEventsSection = ensurePastEventsSection();
 
-  const region = document.body.dataset.region || "";
+  const region = document.body.dataset.region || params.get("region") || "";
   const city = document.body.dataset.city || "";
+  const countryCode = document.body.dataset.countryCode || params.get("country") || "";
   const pageMode = document.body.dataset.agendaMode || "";
-  const params = new URLSearchParams(window.location.search || "");
 
   function getRequiredTypes() {
     const fromParams = params.get("types") || params.get("type") || "";
@@ -80,6 +82,10 @@
 
     if (region) {
       query = query.eq("region", region);
+    }
+
+    if (countryCode) {
+      query = query.eq("country_code", geo?.normalizeCountryCode(countryCode) || countryCode);
     }
 
     if (city) {
@@ -185,8 +191,8 @@
   }
 
   function renderEmptyRegionalState(pastCount = 0) {
-    const regionName = region || "cette région";
-    const isRegionalPage = Boolean(region);
+    const regionName = region || (countryCode ? geo?.getCountryName(countryCode) : "") || "ce territoire";
+    const isRegionalPage = Boolean(region || countryCode);
 
     if (!isRegionalPage) {
       return `
@@ -219,7 +225,7 @@
         <p>
           Dédicalivres avance grâce aux lecteurs, auteurs, librairies, médiathèques,
           associations et organisateurs qui partagent les rendez-vous autour du livre.
-          Si vous connaissez un événement littéraire dans cette région, votre contribution
+          Si vous connaissez un événement littéraire dans ce territoire, votre contribution
           peut aider à faire vivre l’agenda local et à équilibrer la visibilité entre les territoires.
         </p>
 
@@ -229,7 +235,7 @@
           </a>
 
           <a class="btn-secondary" href="index.html#agenda">
-            Voir l’agenda national
+            Voir l’agenda francophone
           </a>
         </div>
       </article>
@@ -339,7 +345,7 @@
             }
 
             <span>
-              📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", ")) || "Lieu non précisé"}
+              📍 ${escapeHtml(formatEventPlace(event)) || "Lieu non précisé"}
             </span>
           </div>
 
@@ -403,6 +409,11 @@
     }
 
     return `${config.assetsBaseUrl || ""}${path}`;
+  }
+
+  function formatEventPlace(event) {
+    if (geo) return geo.formatPlace(event);
+    return [event?.city, event?.region].filter(Boolean).join(", ");
   }
 
   function formatDateRange(startDate, endDate) {

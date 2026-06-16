@@ -17,10 +17,13 @@
     return;
   }
 
-  const client = window.supabase.createClient(
-    config.supabaseUrl,
-    config.supabaseAnonKey
-  );
+  const client =
+    (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
+    window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+  if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+    window.DEDICALIVRES_SUPABASE_CLIENT = client;
+  }
 
   trackSiteVisit();
 

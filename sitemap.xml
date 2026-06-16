@@ -66,6 +66,11 @@
     <priority>0.75</priority>
   </url>
   <url>
+    <loc>https://dedicalivres.fr/evenements-litteraires-belgique</loc>
+    <lastmod>2026-06-12</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
     <loc>https://dedicalivres.fr/evenements-litteraires-bourgogne-franche-comte</loc>
     <lastmod>2026-05-25</lastmod>
     <priority>0.75</priority>
@@ -116,6 +121,11 @@
     <priority>0.75</priority>
   </url>
   <url>
+    <loc>https://dedicalivres.fr/evenements-litteraires-luxembourg</loc>
+    <lastmod>2026-06-12</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
     <loc>https://dedicalivres.fr/evenements-litteraires-lyon</loc>
     <lastmod>2026-05-25</lastmod>
     <priority>0.75</priority>
@@ -129,6 +139,11 @@
     <loc>https://dedicalivres.fr/evenements-litteraires-metz</loc>
     <lastmod>2026-05-25</lastmod>
     <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://dedicalivres.fr/evenements-litteraires-monaco</loc>
+    <lastmod>2026-06-12</lastmod>
+    <priority>0.80</priority>
   </url>
   <url>
     <loc>https://dedicalivres.fr/evenements-litteraires-montpellier</loc>
@@ -199,6 +214,11 @@
     <loc>https://dedicalivres.fr/evenements-litteraires-strasbourg</loc>
     <lastmod>2026-05-25</lastmod>
     <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://dedicalivres.fr/evenements-litteraires-suisse</loc>
+    <lastmod>2026-06-12</lastmod>
+    <priority>0.80</priority>
   </url>
   <url>
     <loc>https://dedicalivres.fr/evenements-litteraires-toulouse</loc>
@@ -334,6 +354,11 @@
     <loc>https://dedicalivres.fr/salons-du-livre</loc>
     <lastmod>2026-05-25</lastmod>
     <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://dedicalivres.fr/soumettre</loc>
+    <lastmod>2026-06-12</lastmod>
+    <priority>0.80</priority>
   </url>
   <url>
     <loc>https://dedicalivres.fr/temoignages</loc>
