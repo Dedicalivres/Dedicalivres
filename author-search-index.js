@@ -69,7 +69,7 @@
   async function loadAuthorPresences() {
     let response = await supabaseClient
       .from("event_authors_presence")
-      .select("event_id, pseudo, website, author_profile_url, author_slug, author_id, validated, rejected")
+      .select("event_id, pseudo, website, author_profile_url, author_slug, author_id, author_portrait_url, validated, rejected")
       .eq("validated", true)
       .or("rejected.is.null,rejected.eq.false");
 
@@ -202,6 +202,7 @@
       const pseudo = clean(author.pseudo);
       const website = normalizeWebsite(author.author_profile_url || author.website);
       const slug = clean(author.author_slug);
+      const portraitUrl = resolveImageUrl(author.author_portrait_url);
 
       if (!eventId || !pseudo) return;
 
@@ -212,7 +213,7 @@
       const list = authorsByEvent.get(eventId);
 
       if (!list.some((item) => normalize(item.pseudo) === normalize(pseudo))) {
-        list.push({ pseudo, website, slug });
+        list.push({ pseudo, website, slug, portraitUrl });
       }
     });
 
@@ -250,16 +251,17 @@
 
     const authorLinks = authors.slice(0, 3).map((author) => {
       const pseudo = escapeHtml(author.pseudo);
+      const avatar = renderAuthorPillAvatar(author);
 
       if (author.slug) {
-        return `<a class="author-pill-button" href="author.html?slug=${encodeURIComponent(author.slug)}">${pseudo}</a>`;
+        return `<a class="author-pill-button" href="author.html?slug=${encodeURIComponent(author.slug)}">${avatar}<span>${pseudo}</span></a>`;
       }
 
       if (author.website) {
-        return `<a class="author-pill-button" href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${pseudo}</a>`;
+        return `<a class="author-pill-button" href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${avatar}<span>${pseudo}</span></a>`;
       }
 
-      return `<strong class="author-pill-button author-pill-static">${pseudo}</strong>`;
+      return `<strong class="author-pill-button author-pill-static">${avatar}<span>${pseudo}</span></strong>`;
     });
 
     const remaining = authors.length > 3
@@ -290,6 +292,30 @@
     const raw = clean(value);
     if (!raw) return "";
     return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  }
+
+  function resolveImageUrl(path) {
+    if (!path) return "";
+    if (/^https?:\/\//i.test(path)) return path;
+    return `${config.assetsBaseUrl || ""}${path}`;
+  }
+
+  function renderAuthorPillAvatar(author) {
+    if (author.portraitUrl) {
+      return `<span class="author-pill-avatar"><img src="${escapeAttribute(author.portraitUrl)}" alt="" loading="lazy" decoding="async" /></span>`;
+    }
+
+    return `<span class="author-pill-avatar author-pill-initials" aria-hidden="true">${escapeHtml(getAuthorInitials(author.pseudo))}</span>`;
+  }
+
+  function getAuthorInitials(value) {
+    const words = clean(value)
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2);
+
+    const initials = words.map((word) => word[0]).join("").toUpperCase();
+    return initials || "A";
   }
 
   function escapeHtml(value) {

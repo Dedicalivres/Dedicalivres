@@ -7,6 +7,7 @@
   "use strict";
 
   const config = window.DEDICALIVRES_CONFIG;
+  const geo = window.DEDICALIVRES_GEO;
   const profile = document.getElementById("author-profile");
   const eventsGrid = document.getElementById("author-events-grid");
 
@@ -17,10 +18,13 @@
 
   if (!profile || !eventsGrid) return;
 
-  const client = window.supabase.createClient(
-    config.supabaseUrl,
-    config.supabaseAnonKey
-  );
+  const client =
+    (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
+    window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+  if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
+    window.DEDICALIVRES_SUPABASE_CLIENT = client;
+  }
 
   const params = new URLSearchParams(window.location.search);
   const slug = cleanText(params.get("slug"));
@@ -54,10 +58,65 @@
 
     if (error) {
       console.error("Erreur chargement auteur :", error);
-      return null;
+      return loadAuthorFromPresence(slugValue);
+    }
+
+    if (!data) {
+      return loadAuthorFromPresence(slugValue);
+    }
+
+    if (!data.avatar_url) {
+      const presencePortrait = await loadAuthorPresencePortrait(slugValue);
+      if (presencePortrait) data.avatar_url = presencePortrait;
     }
 
     return data;
+  }
+
+  async function loadAuthorFromPresence(slugValue) {
+    const { data, error } = await client
+      .from("event_authors_presence")
+      .select("pseudo, author_slug, author_identity_key, website, author_profile_url, author_portrait_url, validated, rejected, created_at")
+      .or(`author_slug.eq.${slugValue},author_identity_key.eq.${slugValue}`)
+      .eq("validated", true)
+      .or("rejected.is.null,rejected.eq.false")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Erreur chargement auteur depuis présence :", error);
+      return null;
+    }
+
+    if (!data) return null;
+
+    return {
+      id: null,
+      pseudo: data.pseudo,
+      slug: data.author_slug || data.author_identity_key || slugValue,
+      website: data.author_profile_url || data.website || null,
+      bio: null,
+      avatar_url: data.author_portrait_url || null,
+      validated: true,
+      created_at: data.created_at
+    };
+  }
+
+  async function loadAuthorPresencePortrait(slugValue) {
+    const { data, error } = await client
+      .from("event_authors_presence")
+      .select("author_portrait_url, created_at")
+      .or(`author_slug.eq.${slugValue},author_identity_key.eq.${slugValue}`)
+      .eq("validated", true)
+      .or("rejected.is.null,rejected.eq.false")
+      .not("author_portrait_url", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data?.author_portrait_url) return "";
+    return data.author_portrait_url;
   }
 
   async function loadAuthorEvents(author) {
@@ -72,7 +131,7 @@
       On charge les présences déclarées.
       La jointure events fonctionne si event_authors_presence.event_id référence events.id.
     */
-    const { data, error } = await client
+    let query = client
       .from("event_authors_presence")
       .select(`
         id,
@@ -81,12 +140,15 @@
         website,
         author_id,
         author_slug,
+        author_identity_key,
+        author_portrait_url,
         validated,
         created_at,
         events (
           id,
           title,
           city,
+          country_code,
           region,
           start_date,
           end_date,
@@ -101,9 +163,15 @@
           verified
         )
       `)
-      .eq("validated", true)
-      .or(`author_slug.eq.${author.slug},author_id.eq.${author.id}`)
-      .order("created_at", { ascending: false });
+      .eq("validated", true);
+
+    if (author.id) {
+      query = query.or(`author_slug.eq.${author.slug},author_identity_key.eq.${author.slug},author_id.eq.${author.id}`);
+    } else {
+      query = query.or(`author_slug.eq.${author.slug},author_identity_key.eq.${author.slug}`);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
       console.error("Erreur chargement présences auteur :", error);
@@ -126,6 +194,7 @@
 
   function renderAuthor(author) {
     document.title = `${author.pseudo} — Auteur sur Dédicalivres`;
+    const avatarUrl = resolveImageUrl(author.avatar_url);
 
     document
       .querySelector('meta[name="description"]')
@@ -137,9 +206,9 @@
     profile.innerHTML = `
       <div class="author-profile-inner">
         ${
-          author.avatar_url
-            ? `<img class="author-avatar" src="${escapeAttribute(author.avatar_url)}" alt="${escapeAttribute(author.pseudo)}" />`
-            : `<div class="author-avatar-placeholder">✍️</div>`
+          avatarUrl
+            ? `<img class="author-avatar" src="${escapeAttribute(avatarUrl)}" alt="${escapeAttribute(author.pseudo)}" />`
+            : `<div class="author-avatar-placeholder">${escapeHtml(getAuthorInitials(author.pseudo))}</div>`
         }
 
         <div class="author-profile-content">
@@ -212,7 +281,7 @@
                     ? `<span>📅 ${formatDateRange(event.start_date, event.end_date)}</span>`
                     : ""
                 }
-                <span>📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", ")) || "Lieu non précisé"}</span>
+                <span>📍 ${escapeHtml(formatEventPlace(event)) || "Lieu non précisé"}</span>
               </div>
 
               ${
@@ -291,6 +360,21 @@
 
   function cleanText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function getAuthorInitials(value) {
+    const words = cleanText(value)
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2);
+
+    const initials = words.map((word) => word[0]).join("").toUpperCase();
+    return initials || "A";
+  }
+
+  function formatEventPlace(event) {
+    if (geo) return geo.formatPlace(event);
+    return [event?.city, event?.region].filter(Boolean).join(", ");
   }
 
   function escapeHtml(value) {

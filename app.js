@@ -2,6 +2,7 @@
   "use strict";
 
   const config = window.DEDICALIVRES_CONFIG;
+  const geo = window.DEDICALIVRES_GEO;
 
   if (
     !config ||
@@ -36,11 +37,14 @@
 
   const form = document.getElementById("submission-form");
   const formFeedback = document.getElementById("form-feedback");
+  const submissionTypeSelect = document.getElementById("event-type-submit");
+  const dedicaceAuthorFields = document.getElementById("dedicace-author-fields");
 
   const newsletterForm = document.getElementById("newsletter-form");
   const newsletterFeedback = document.getElementById("newsletter-feedback");
 
   const searchInput = document.getElementById("search-input");
+  const countryFilter = document.getElementById("country-filter");
   const regionFilter = document.getElementById("region-filter");
   const typeFilter = document.getElementById("type-filter");
   const dateFilter = document.getElementById("date-filter");
@@ -61,6 +65,9 @@
   const cityLngInput = document.getElementById("city-lng");
   const cityHelp = document.getElementById("city-help");
   const citySuggestions = document.getElementById("city-suggestions");
+  const countrySubmit = document.getElementById("country-submit");
+  const regionSubmit = document.getElementById("region-submit");
+  const regionSubmitLabel = document.getElementById("region-submit-label");
 
   let map;
   let markersLayer;
@@ -78,6 +85,9 @@
   let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
   const DAY_MS = 24 * 60 * 60 * 1000;
+  const AUTHOR_PORTRAIT_FOLDER = "author-portraits";
+  const AUTHOR_PORTRAIT_FALLBACK_FOLDER = "event-images";
+  const MAX_AUTHOR_PORTRAIT_SIZE = 4 * 1024 * 1024;
 
   const TYPE_META = {
     Salon: { className: "type-salon", color: "#3a1c71" },
@@ -89,6 +99,7 @@
   init();
 
   function init() {
+    initGeographyControls();
     bindEvents();
     bindFavorites();
     bindImagePreview();
@@ -103,21 +114,15 @@
   function initDefaultMapVisibility() {
     if (!mapPanel) return;
 
-    const shouldOpenByDefault =
-      window.matchMedia &&
-      window.matchMedia("(min-width: 781px)").matches;
-
-    mapPanel.classList.toggle("is-open", shouldOpenByDefault);
+    mapPanel.classList.add("is-open");
 
     if (mobileMapToggle) {
-      mobileMapToggle.textContent = shouldOpenByDefault
-        ? "Fermer la carte en direct"
-        : "Carte en direct";
+      mobileMapToggle.textContent = "Fermer la carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", "true");
+      mobileMapToggle.setAttribute("aria-controls", "map-panel");
     }
 
-    if (shouldOpenByDefault) {
-      requestMapRender();
-    }
+    requestMapRender();
   }
 
   function bindEvents() {
@@ -130,6 +135,8 @@
       ?.addEventListener("click", resetFilters);
 
     form?.addEventListener("submit", handleFormSubmit);
+    submissionTypeSelect?.addEventListener("change", syncDedicaceAuthorFields);
+    syncDedicaceAuthorFields();
 
     if (newsletterForm) {
       newsletterForm.setAttribute("novalidate", "novalidate");
@@ -170,6 +177,18 @@
       el?.addEventListener("change", renderFilteredEvents);
     });
 
+    countryFilter?.addEventListener("change", () => {
+      populateAgendaRegionFilter();
+      renderFilteredEvents();
+    });
+
+    countrySubmit?.addEventListener("change", () => {
+      populateSubmissionRegion();
+      clearSelectedCity();
+      clearCitySuggestions();
+      citySuggestionCache.clear();
+    });
+
     dateFilter?.addEventListener("change", () => {
       selectedCalendarDate = "";
       syncCalendarCursorFromMonth(dateFilter.value);
@@ -181,6 +200,103 @@
     bindCityAutocomplete();
   }
 
+  function syncDedicaceAuthorFields() {
+    if (!dedicaceAuthorFields || !submissionTypeSelect) return;
+
+    const isDedicace = submissionTypeSelect.value === "Dédicace";
+    dedicaceAuthorFields.hidden = !isDedicace;
+
+    dedicaceAuthorFields
+      .querySelectorAll("input, select, textarea")
+      .forEach((field) => {
+        field.disabled = !isDedicace;
+      });
+  }
+
+  function initGeographyControls() {
+    if (!geo) return;
+    const params = new URLSearchParams(window.location.search || "");
+    const requestedCountry = params.get("country") || "";
+    const requestedRegion = params.get("region") || "";
+
+    if (countryFilter) {
+      geo.populateCountrySelect(countryFilter, {
+        includeAll: true,
+        allLabel: "Tous les pays"
+      });
+      if (requestedCountry) {
+        countryFilter.value = geo.normalizeCountryCode(requestedCountry);
+      }
+      populateAgendaRegionFilter();
+      if (
+        requestedRegion &&
+        Array.from(regionFilter?.options || []).some((option) => option.value === requestedRegion)
+      ) {
+        regionFilter.value = requestedRegion;
+      }
+    }
+
+    if (countrySubmit) {
+      geo.populateCountrySelect(countrySubmit, {
+        selected: countrySubmit.value || geo.DEFAULT_COUNTRY_CODE
+      });
+      populateSubmissionRegion();
+    }
+  }
+
+  function populateAgendaRegionFilter() {
+    if (!geo || !regionFilter) return;
+
+    const selectedCountry = countryFilter?.value || "";
+    const selectedRegion = regionFilter.value;
+    regionFilter.innerHTML = "";
+
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = selectedCountry
+      ? `Toutes les ${geo.getSubdivisionLabel(selectedCountry).toLowerCase()}s`
+      : "Tous les territoires";
+    regionFilter.appendChild(emptyOption);
+
+    const countryEntries = selectedCountry
+      ? [[selectedCountry, geo.getCountry(selectedCountry)]]
+      : Object.entries(geo.COUNTRIES);
+
+    countryEntries.forEach(([countryCode, country]) => {
+      const parent = selectedCountry ? regionFilter : document.createElement("optgroup");
+      if (!selectedCountry) parent.label = country.name;
+
+      country.subdivisions.forEach((subdivision) => {
+        const option = document.createElement("option");
+        option.value = subdivision;
+        option.textContent = subdivision;
+        option.dataset.countryCode = countryCode;
+        parent.appendChild(option);
+      });
+
+      if (!selectedCountry) regionFilter.appendChild(parent);
+    });
+
+    if (Array.from(regionFilter.options).some((option) => option.value === selectedRegion)) {
+      regionFilter.value = selectedRegion;
+    }
+  }
+
+  function populateSubmissionRegion() {
+    if (!geo || !regionSubmit || !countrySubmit) return;
+
+    const countryCode = geo.normalizeCountryCode(countrySubmit.value);
+    const currentRegion = regionSubmit.value;
+    geo.populateSubdivisionSelect(regionSubmit, countryCode, {
+      selected: currentRegion,
+      emptyLabel: "Choisir"
+    });
+
+    if (regionSubmitLabel) {
+      regionSubmitLabel.textContent = geo.getSubdivisionLabel(countryCode);
+    }
+  }
+
   function toggleMobileMap() {
     if (!mapPanel) return;
 
@@ -188,9 +304,11 @@
 
     if (mapPanel.classList.contains("is-open")) {
       mobileMapToggle.textContent = "Fermer la carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", "true");
       requestMapRender(filterEvents(allEvents));
     } else {
       mobileMapToggle.textContent = "Carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", "false");
     }
   }
 
@@ -356,7 +474,12 @@
 
     mapElement.innerHTML = "";
 
-    map = L.map("map").setView([46.603354, 1.888334], 6);
+    const mapView = geo?.getMapView(countryFilter?.value || "") || {
+      center: [47.2, 5.1],
+      zoom: 5
+    };
+
+    map = L.map("map").setView(mapView.center, mapView.zoom);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap contributors"
@@ -374,7 +497,7 @@
 
     const { data, error } = await supabaseClient
       .from("events")
-      .select("id,title,type,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng")
+      .select("id,title,type,country_code,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng")
       .eq("validated", true)
       .eq("rejected", false)
       .order("featured", { ascending: false })
@@ -410,6 +533,7 @@
     const includeMonth = options.includeMonth !== false;
     const includeCalendarDate = options.includeCalendarDate !== false;
     const search = normalize(searchInput?.value || "");
+    const country = countryFilter?.value || "";
     const region = regionFilter?.value || "";
     const type = typeFilter?.value || "";
     const selectedMonth = dateFilter?.value || "";
@@ -431,11 +555,13 @@
         event.title,
         event.city,
         event.region,
+        geo?.getCountryName(event.country_code),
         event.description,
         event.type
       ].join(" "));
 
       if (search && !haystack.includes(search)) return false;
+      if (country && geo?.getCountryCode(event) !== geo.normalizeCountryCode(country)) return false;
       if (region && normalize(event.region) !== normalize(region)) return false;
       if (type && event.type !== type) return false;
       if (selectedMonth && includeMonth && !matchesMonth(event, selectedMonth)) return false;
@@ -836,7 +962,7 @@
             }
 
             <span>
-              📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", ")) || "Lieu non précisé"}
+              📍 ${escapeHtml(formatEventPlace(event)) || "Lieu non précisé"}
             </span>
           </div>
 
@@ -1038,7 +1164,7 @@
           <strong>${escapeHtml(event.title || "Sans titre")}</strong>
           <span>
             ${escapeHtml(formatDateRange(event.start_date, event.end_date))}
-            ${event.city || event.region ? ` · ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}` : ""}
+            ${event.city || event.region ? ` · ${escapeHtml(formatEventPlace(event))}` : ""}
           </span>
         </div>
 
@@ -1206,7 +1332,7 @@
   function renderMapFloatingEvent(event) {
     const typeMeta = TYPE_META[event.type] || TYPE_META.Autre;
     const image = resolveImageUrl(event.image_url);
-    const place = [event.city, event.region].filter(Boolean).join(" — ") || "Lieu non précisé";
+    const place = formatEventPlace(event, " — ") || "Lieu non précisé";
     const date = event.start_date
       ? formatDateRange(event.start_date, event.end_date)
       : "Date à préciser";
@@ -1323,6 +1449,7 @@
 
       if (mobileMapToggle) {
         mobileMapToggle.textContent = "Carte en direct";
+        mobileMapToggle.setAttribute("aria-expanded", "false");
       }
     }
 
@@ -1411,6 +1538,9 @@
     const region = (formData.get("region") || "")
       .toString()
       .trim();
+    const countryCode = geo?.normalizeCountryCode(
+      formData.get("country_code") || countryFilter?.value || "FR"
+    ) || "FR";
 
     if (!isValidEmail(email)) {
       setNewsletterFeedback(
@@ -1435,7 +1565,8 @@
         .insert([
           {
             email,
-            region: region || null
+            region: region || null,
+            country_code: countryCode
           }
         ]);
 
@@ -1503,9 +1634,14 @@
         lng = coords.lng;
       }
 
+      const eventId = createClientUuid();
+      const eventType = cleanText(formData.get("type"));
+
       const payload = {
+        id: eventId,
         title: formData.get("title"),
-        type: formData.get("type"),
+        type: eventType,
+        country_code: geo?.normalizeCountryCode(formData.get("country_code")) || "FR",
         region: formData.get("region"),
         city: formData.get("city"),
         price: formData.get("price"),
@@ -1527,14 +1663,46 @@
         payload.image_url = await uploadImage(imageFile);
       }
 
+      const authorPresencePayload = await buildSubmittedAuthorPresencePayload(formData, payload);
+
       const { error } = await supabaseClient
         .from("events")
         .insert([payload]);
 
       if (error) throw error;
 
+      let authorPresenceWarning = "";
+
+      if (authorPresencePayload) {
+        const { error: authorPresenceError } = await supabaseClient
+          .from("event_authors_presence")
+          .insert([authorPresencePayload]);
+
+        if (authorPresenceError) {
+          console.warn("Présence auteur non jointe à la soumission :", authorPresenceError);
+
+          const legacyPayload = {
+            event_id: eventId,
+            pseudo: authorPresencePayload.pseudo,
+            website: authorPresencePayload.author_profile_url || payload.website || "https://dedicalivres.fr/",
+            validated: false,
+            rejected: false
+          };
+
+          const { error: legacyAuthorPresenceError } = await supabaseClient
+            .from("event_authors_presence")
+            .insert([legacyPayload]);
+
+          if (legacyAuthorPresenceError) {
+            console.warn("Fallback présence auteur impossible :", legacyAuthorPresenceError);
+            authorPresenceWarning = " La fiche événement est transmise, mais la présence auteur devra être ajoutée ou corrigée en modération.";
+          }
+        }
+      }
+
       form.reset();
       selectedPreviewImage = null;
+      syncDedicaceAuthorFields();
 
       const preview = document.getElementById("image-preview");
 
@@ -1543,7 +1711,7 @@
         preview.classList.remove("is-visible");
       }
 
-      setFormFeedback("Votre événement a bien été transmis.", "success");
+      setFormFeedback(`Votre événement a bien été transmis.${authorPresenceWarning}`, "success");
     } catch (error) {
       console.error(error);
 
@@ -1552,6 +1720,56 @@
         "error"
       );
     }
+  }
+
+  async function buildSubmittedAuthorPresencePayload(formData, eventPayload) {
+    if (!eventPayload || eventPayload.type !== "Dédicace") return null;
+
+    const pseudo = cleanText(formData.get("author_pseudo")).slice(0, 120);
+    const authorProfileUrl = normalizeOptionalWebsite(formData.get("author_profile_url"));
+    const portraitFile = formData.get("author_portrait");
+    const hasPortrait = portraitFile instanceof File && portraitFile.size > 0;
+
+    if (!pseudo && !authorProfileUrl && !hasPortrait) return null;
+
+    if (pseudo.length < 2) {
+      throw new Error("Pour associer un portrait ou un lien auteur, merci d’indiquer le nom ou pseudo de l’auteur.");
+    }
+
+    if (authorProfileUrl && !isValidUrl(authorProfileUrl)) {
+      throw new Error("Le lien auteur semble invalide. Vous pouvez le corriger ou laisser ce champ vide.");
+    }
+
+    validateAuthorPortraitFile(portraitFile);
+
+    const authorIdentityKey = slugifyAuthorIdentity(pseudo);
+    let authorPortraitUrl = null;
+    let authorPortraitStorageKey = null;
+
+    if (hasPortrait) {
+      const uploadedPortrait = await uploadAuthorPortrait(portraitFile, authorIdentityKey);
+      authorPortraitUrl = uploadedPortrait.url;
+      authorPortraitStorageKey = uploadedPortrait.storageKey;
+    }
+
+    return {
+      event_id: eventPayload.id,
+      pseudo,
+      author_slug: authorIdentityKey || null,
+      author_identity_key: authorIdentityKey || null,
+      website: authorProfileUrl || null,
+      author_profile_url: authorProfileUrl || null,
+      author_profile_url_type: authorProfileUrl ? inferAuthorProfileUrlType(authorProfileUrl) : null,
+      publication_mode: "unknown",
+      book_or_publisher_url: null,
+      book_or_publisher_url_type: null,
+      publisher_name: null,
+      author_portrait_url: authorPortraitUrl,
+      author_portrait_storage_key: authorPortraitStorageKey,
+      source: "event_submission",
+      validated: false,
+      rejected: false
+    };
   }
 
   async function uploadImage(file) {
@@ -1576,10 +1794,57 @@
     );
   }
 
-  async function uploadImageToR2(file, folder) {
+  function validateAuthorPortraitFile(file) {
+    if (!(file instanceof File) || !file.size) return;
+
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Le portrait auteur doit être une image.");
+    }
+
+    if (file.size > MAX_AUTHOR_PORTRAIT_SIZE) {
+      throw new Error("Le portrait auteur est trop lourd. Merci d’utiliser une image de moins de 4 Mo.");
+    }
+  }
+
+  async function uploadAuthorPortrait(file, authorIdentityKey) {
+    if (!shouldUseR2Upload()) {
+      throw new Error("L’upload du portrait auteur n’est pas disponible pour le moment.");
+    }
+
+    const compressed = await compressAuthorPortrait(file, authorIdentityKey);
+    let url = "";
+
+    try {
+      url = await uploadImageToR2(compressed, AUTHOR_PORTRAIT_FOLDER, {
+        fileName: compressed.name,
+        identityKey: authorIdentityKey || "auteur"
+      });
+    } catch (error) {
+      console.warn("Upload portrait auteur dans author-portraits indisponible, bascule R2 event-images :", error);
+      url = await uploadImageToR2(compressed, AUTHOR_PORTRAIT_FALLBACK_FOLDER, {
+        fileName: compressed.name,
+        identityKey: authorIdentityKey || "auteur"
+      });
+    }
+
+    return {
+      url,
+      storageKey: getR2StorageKey(url)
+    };
+  }
+
+  async function uploadImageToR2(file, folder, options = {}) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("folder", folder);
+
+    if (options.fileName) {
+      formData.append("file_name", options.fileName);
+    }
+
+    if (options.identityKey) {
+      formData.append("identity_key", options.identityKey);
+    }
 
     const response = await fetch(config.imageUploadEndpoint, {
       method: "POST",
@@ -1659,6 +1924,48 @@
     });
   }
 
+  function compressAuthorPortrait(file, authorIdentityKey) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onerror = () => reject(new Error("Lecture du portrait auteur impossible."));
+      reader.onload = (event) => {
+        img.onload = () => {
+          const maxWidth = 900;
+          const ratio = Math.min(1, maxWidth / img.width);
+          const canvas = document.createElement("canvas");
+
+          canvas.width = Math.max(1, Math.round(img.width * ratio));
+          canvas.height = Math.max(1, Math.round(img.height * ratio));
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error("Compression du portrait auteur impossible."));
+                return;
+              }
+
+              const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+              const safeName = `${authorIdentityKey || "auteur"}-${stamp}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+              resolve(new File([blob], safeName, { type: "image/jpeg" }));
+            },
+            "image/jpeg",
+            0.82
+          );
+        };
+
+        img.onerror = () => reject(new Error("Portrait auteur invalide."));
+        img.src = event.target.result;
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
+
   async function geocodeMunicipality(city) {
     const suggestions = await fetchCitySuggestions(city, 1);
 
@@ -1667,16 +1974,27 @@
 
   async function fetchCitySuggestions(query, limit = 6) {
     const value = String(query || "").trim();
+    const countryCode = geo?.normalizeCountryCode(countrySubmit?.value || countryFilter?.value || "FR") || "FR";
 
     if (value.length < 3) return [];
 
-    const cacheKey = `${normalize(value)}::${limit}`;
+    const cacheKey = `${countryCode}::${normalize(value)}::${limit}`;
 
     if (citySuggestionCache.has(cacheKey)) {
       return citySuggestionCache.get(cacheKey);
     }
 
     try {
+      if (countryCode !== "FR") {
+        const internationalSuggestions = await fetchNominatimCitySuggestions(
+          value,
+          countryCode,
+          limit
+        );
+        citySuggestionCache.set(cacheKey, internationalSuggestions);
+        return internationalSuggestions;
+      }
+
       const [adresseSuggestions, communeSuggestions] = await Promise.all([
         fetchAdresseCitySuggestions(value, limit),
         fetchCommuneSuggestions(value, limit)
@@ -1693,6 +2011,58 @@
       return suggestions;
     } catch (error) {
       console.warn("Autocomplétion ville indisponible :", error);
+      return [];
+    }
+  }
+
+  async function fetchNominatimCitySuggestions(value, countryCode, limit) {
+    try {
+      const params = new URLSearchParams({
+        q: value,
+        format: "jsonv2",
+        addressdetails: "1",
+        limit: String(limit),
+        countrycodes: countryCode.toLowerCase(),
+        "accept-language": "fr"
+      });
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?${params.toString()}`
+      );
+
+      if (!response.ok) return [];
+
+      const payload = await response.json();
+
+      return (Array.isArray(payload) ? payload : [])
+        .map((entry) => {
+          const address = entry.address || {};
+          const city =
+            address.city ||
+            address.town ||
+            address.village ||
+            address.municipality ||
+            address.hamlet ||
+            entry.name ||
+            "";
+          const region =
+            address.state ||
+            address.region ||
+            address.county ||
+            "";
+
+          return buildCitySuggestion({
+            city,
+            postcode: address.postcode || "",
+            context: [region, geo?.getCountryName(countryCode)].filter(Boolean).join(", "),
+            region,
+            countryCode,
+            lat: Number(entry.lat),
+            lng: Number(entry.lon)
+          });
+        })
+        .filter(Boolean);
+    } catch (error) {
+      console.warn("Recherche de localité internationale indisponible :", error);
       return [];
     }
   }
@@ -1875,6 +2245,8 @@
       city: item.city,
       postcode: item.postcode || "",
       context: item.context || "",
+      region: item.region || "",
+      countryCode: item.countryCode || "FR",
       lng: item.lng,
       lat: item.lat
     };
@@ -1904,19 +2276,23 @@
   async function reverseGeocodeApprox(lat, lng) {
     try {
       const response = await fetch(
-        `https://api-adresse.data.gouv.fr/reverse/?lon=${encodeURIComponent(lng)}&lat=${encodeURIComponent(lat)}`
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&addressdetails=1&accept-language=fr`
       );
 
       const data = await response.json();
-      const properties = data.features?.[0]?.properties || {};
+      const properties = data.address || {};
+      const countryCode = geo?.normalizeCountryCode(properties.country_code || "FR") || "FR";
 
       return {
         city:
           properties.city ||
+          properties.town ||
+          properties.village ||
           properties.municipality ||
           properties.name ||
           "",
-        region: properties.context || ""
+        region: properties.state || properties.region || properties.county || "",
+        country_code: countryCode
       };
     } catch {
       return {
@@ -2020,6 +2396,8 @@
       option.dataset.city = suggestion.city;
       option.dataset.lat = String(suggestion.lat);
       option.dataset.lng = String(suggestion.lng);
+      option.dataset.region = suggestion.region || "";
+      option.dataset.countryCode = suggestion.countryCode || "";
 
       citySuggestions.appendChild(option);
     });
@@ -2049,7 +2427,9 @@
       label: option.value,
       city: option.dataset.city || option.value,
       lat: Number(option.dataset.lat),
-      lng: Number(option.dataset.lng)
+      lng: Number(option.dataset.lng),
+      region: option.dataset.region || "",
+      countryCode: option.dataset.countryCode || ""
     };
   }
 
@@ -2060,6 +2440,21 @@
 
     if (cityLatInput) cityLatInput.value = selected.lat;
     if (cityLngInput) cityLngInput.value = selected.lng;
+
+    if (countrySubmit && selected.countryCode && geo) {
+      countrySubmit.value = geo.normalizeCountryCode(selected.countryCode);
+      populateSubmissionRegion();
+    }
+
+    if (
+      regionSubmit &&
+      selected.region &&
+      Array.from(regionSubmit.options).some((option) => normalize(option.value) === normalize(selected.region))
+    ) {
+      const matchingOption = Array.from(regionSubmit.options)
+        .find((option) => normalize(option.value) === normalize(selected.region));
+      regionSubmit.value = matchingOption?.value || regionSubmit.value;
+    }
 
     if (cityHelp) {
       cityHelp.textContent = "Ville validée ✔";
@@ -2127,7 +2522,7 @@
     }
 
     if (error.code === error.POSITION_UNAVAILABLE) {
-      return "Position indisponible. Essayez de nouveau ou filtrez par région.";
+      return "Position indisponible. Essayez de nouveau ou filtrez par pays et territoire.";
     }
 
     if (error.code === error.TIMEOUT) {
@@ -2155,7 +2550,10 @@
 
     if (mapPanel && !mapPanel.classList.contains("is-open")) {
       mapPanel.classList.add("is-open");
-      if (mobileMapToggle) mobileMapToggle.textContent = "Fermer la carte en direct";
+      if (mobileMapToggle) {
+        mobileMapToggle.textContent = "Fermer la carte en direct";
+        mobileMapToggle.setAttribute("aria-expanded", "true");
+      }
     }
 
     if (!map) {
@@ -2281,6 +2679,7 @@
       lng: roundedLng,
       city: place.city || null,
       region: place.region || null,
+      country_code: place.country_code || null,
       page: window.location.pathname || "/",
       device: getDeviceType(),
       user_agent: navigator.userAgent || null
@@ -2314,6 +2713,10 @@
 
   function resetFilters() {
     if (searchInput) searchInput.value = "";
+    if (countryFilter) {
+      countryFilter.value = "";
+      populateAgendaRegionFilter();
+    }
     if (regionFilter) regionFilter.value = "";
     if (typeFilter) typeFilter.value = "";
     if (dateFilter) dateFilter.value = "";
@@ -2357,6 +2760,15 @@
     newsletterFeedback.className = type || "";
   }
 
+  function formatEventPlace(event, separator = ", ") {
+    if (geo) {
+      const place = geo.formatPlace(event);
+      return separator === ", " ? place : place.split(", ").join(separator);
+    }
+
+    return [event?.city, event?.region].filter(Boolean).join(separator);
+  }
+
   function resolveImageUrl(path) {
     if (!path) return "";
 
@@ -2397,6 +2809,72 @@
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
+  }
+
+  function cleanText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function normalizeOptionalWebsite(value) {
+    const raw = cleanText(value);
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return `https://${raw}`;
+  }
+
+  function isValidUrl(value) {
+    try {
+      const url = new URL(value);
+      return ["http:", "https:"].includes(url.protocol);
+    } catch {
+      return false;
+    }
+  }
+
+  function inferAuthorProfileUrlType(value) {
+    try {
+      const host = new URL(value).hostname.toLowerCase();
+
+      if (host.includes("instagram.com")) return "instagram";
+      if (host.includes("facebook.com") || host.includes("fb.me")) return "facebook";
+      if (host.includes("linktr.ee") || host.includes("linktree")) return "linktree";
+      return "site_officiel";
+    } catch {
+      return "autre";
+    }
+  }
+
+  function slugifyAuthorIdentity(value) {
+    return cleanText(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 90);
+  }
+
+  function getR2StorageKey(url) {
+    try {
+      const parsed = new URL(url);
+      return decodeURIComponent(parsed.pathname.replace(/^\/+/, ""));
+    } catch {
+      return "";
+    }
+  }
+
+  function createClientUuid() {
+    if (window.crypto?.randomUUID) {
+      return window.crypto.randomUUID();
+    }
+
+    return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (char) => {
+      const random = window.crypto?.getRandomValues
+        ? window.crypto.getRandomValues(new Uint8Array(1))[0]
+        : Math.floor(Math.random() * 256);
+
+      return (Number(char) ^ (random & (15 >> (Number(char) / 4)))).toString(16);
+    });
   }
 
   function isValidEmail(email) {
