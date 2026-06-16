@@ -1,5 +1,6 @@
 (function () {
   const config = window.DEDICALIVRES_CONFIG;
+  const geo = window.DEDICALIVRES_GEO;
   const container = document.getElementById("event-detail");
 
   if (!config || !container) return;
@@ -56,7 +57,7 @@
 
         <div class="detail-meta detail-info-grid">
           ${data.start_date ? `<p>📅 <strong>Date :</strong> ${formatDateRange(data.start_date, data.end_date)}</p>` : ""}
-          <p>📍 <strong>Lieu :</strong> ${escapeHtml([data.city, data.region].filter(Boolean).join(", ")) || "Non précisé"}</p>
+          <p>📍 <strong>Lieu :</strong> ${escapeHtml(formatEventPlace(data)) || "Non précisé"}</p>
         </div>
 
         ${data.description ? `<div class="detail-description">${escapeHtml(data.description).replace(/\n/g, "<br>")}</div>` : ""}
@@ -242,7 +243,7 @@
 
   function downloadICS(event) {
     const detailUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(event.id)}`;
-    const location = [event.city, event.region].filter(Boolean).join(", ");
+    const location = formatEventPlace(event);
     const start = toICSDate(event.start_date);
     const end = toICSDate(addOneDay(event.end_date || event.start_date));
     const description = `${event.description || ""}\n\nFiche Dédicalivres : ${detailUrl}`;
@@ -311,6 +312,11 @@
   function formatDate(value) {
     if (!value) return "";
     return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
+  }
+
+  function formatEventPlace(event) {
+    if (geo) return geo.formatPlace(event);
+    return [event?.city, event?.region].filter(Boolean).join(", ");
   }
 
   function escapeHtml(value) {

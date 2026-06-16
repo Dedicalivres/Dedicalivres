@@ -361,7 +361,7 @@ body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
     try {
       const { data, error } = await supabaseClient
         .from("events")
-        .select("id,title,city,region,type,start_date,end_date,validated,rejected")
+        .select("id,title,city,country_code,region,type,start_date,end_date,validated,rejected")
         .eq("validated", true)
         .eq("rejected", false)
         .or(`title.ilike.${term},city.ilike.${term},region.ilike.${term},type.ilike.${term}`)
@@ -418,7 +418,8 @@ body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
   }
 
   function renderExistingEventResult(event) {
-    const location = [event.city, event.region].filter(Boolean).join(", ");
+    const location = window.DEDICALIVRES_GEO?.formatPlace(event) ||
+      [event.city, event.region].filter(Boolean).join(", ");
     const date = formatGuideDateRange(event.start_date, event.end_date);
 
     return `
