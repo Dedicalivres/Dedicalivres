@@ -2000,11 +2000,25 @@
         fetchCommuneSuggestions(value, limit)
       ]);
 
-      const suggestions = mergeCitySuggestions(
+      let suggestions = mergeCitySuggestions(
         communeSuggestions,
         adresseSuggestions,
         limit
       );
+
+      if (suggestions.length < limit) {
+        const nominatimSuggestions = await fetchNominatimCitySuggestions(
+          value,
+          "FR",
+          limit
+        );
+
+        suggestions = mergeCitySuggestions(
+          suggestions,
+          nominatimSuggestions,
+          limit
+        );
+      }
 
       citySuggestionCache.set(cacheKey, suggestions);
 
@@ -2197,6 +2211,55 @@
         context: "Deux-Sèvres, Nouvelle-Aquitaine",
         lat: 46.2872,
         lng: -0.415833333333
+      },
+      {
+        city: "Créteil",
+        postcode: "94000",
+        context: "Val-de-Marne, Île-de-France",
+        lat: 48.790367,
+        lng: 2.455572
+      },
+      {
+        city: "Nanterre",
+        postcode: "92000",
+        context: "Hauts-de-Seine, Île-de-France",
+        lat: 48.892427,
+        lng: 2.207126
+      },
+      {
+        city: "Versailles",
+        postcode: "78000",
+        context: "Yvelines, Île-de-France",
+        lat: 48.804865,
+        lng: 2.120355
+      },
+      {
+        city: "Bobigny",
+        postcode: "93000",
+        context: "Seine-Saint-Denis, Île-de-France",
+        lat: 48.906388,
+        lng: 2.445223
+      },
+      {
+        city: "Évry-Courcouronnes",
+        postcode: "91000",
+        context: "Essonne, Île-de-France",
+        lat: 48.624167,
+        lng: 2.429722
+      },
+      {
+        city: "Cergy",
+        postcode: "95000",
+        context: "Val-d’Oise, Île-de-France",
+        lat: 49.035617,
+        lng: 2.060325
+      },
+      {
+        city: "Melun",
+        postcode: "77000",
+        context: "Seine-et-Marne, Île-de-France",
+        lat: 48.539927,
+        lng: 2.660816
       }
     ];
 
@@ -2257,16 +2320,23 @@
     const merged = [];
 
     [...(primary || []), ...(fallback || [])].forEach((item) => {
+      const postcodeKey = normalize(item.postcode);
+      const cityCountryKey = [
+        normalize(item.city),
+        normalize(item.countryCode || "FR")
+      ].join("|");
       const key = [
         normalize(item.city),
-        normalize(item.postcode),
-        Number(item.lat).toFixed(4),
-        Number(item.lng).toFixed(4)
+        postcodeKey,
+        postcodeKey ? "" : normalize(item.context || item.region),
+        normalize(item.countryCode || "FR")
       ].join("|");
 
+      if (!postcodeKey && seen.has(`${cityCountryKey}|has-postcode`)) return;
       if (seen.has(key)) return;
 
       seen.add(key);
+      if (postcodeKey) seen.add(`${cityCountryKey}|has-postcode`);
       merged.push(item);
     });
 
