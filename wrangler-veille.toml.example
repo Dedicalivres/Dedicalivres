@@ -1,0 +1,10 @@
+name = "dedicalivres-veille"
+main = "dedicalivres-veille-worker.js"
+compatibility_date = "2026-06-17"
+
+[vars]
+SUPABASE_URL = "https://pwyetrqyiaxpzjrafpvb.supabase.co"
+ALLOWED_ADMIN_ORIGINS = "https://dedicalivres.fr,https://www.dedicalivres.fr,https://xn--ddicalivres-bbb.fr"
+
+# Secret à ajouter via Cloudflare Dashboard ou wrangler secret put :
+# SUPABASE_SERVICE_ROLE_KEY

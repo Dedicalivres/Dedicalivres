@@ -8,7 +8,8 @@ window.DEDICALIVRES_CONFIG = {
   imageUploadProvider: "r2",
   imageUploadEndpoint: "https://dedicalivres-r2-upload.dedicalivres.workers.dev/",
   r2PublicBaseUrl: "https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev",
-  exportsBaseUrl: "https://dedicalivres-daily-export.dedicalivres.workers.dev/exports"
+  exportsBaseUrl: "https://dedicalivres-daily-export.dedicalivres.workers.dev/exports",
+  watchWorkerEndpoint: "https://dedicalivres-veille.dedicalivres.workers.dev/analyze"
 };
 
 window.getDedicalivresSupabaseClient = function getDedicalivresSupabaseClient() {
