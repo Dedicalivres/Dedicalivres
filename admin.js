@@ -94,7 +94,7 @@ let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
 
-const ADMIN_MODULE_VERSION = "10.9-social-visuals";
+const ADMIN_MODULE_VERSION = "10.10-watch-visible";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const adminModerationCounters = {
   events: 0,
@@ -541,10 +541,32 @@ function loadAdminScript(src) {
     script.onload = () => resolve();
     script.onerror = () => {
       console.warn(`Module admin non chargé : ${src}`);
+      if (src === "admin-watch.js") {
+        renderProtectedModuleError(
+          "tab-watch",
+          "Assistant de veille indisponible",
+          "Le fichier admin-watch.js n’a pas été chargé. Vérifie que ce fichier est bien uploadé avec admin.html, admin.js et config.js, puis vide le cache."
+        );
+      }
       resolve();
     };
     document.body.appendChild(script);
   });
+}
+
+function renderProtectedModuleError(tabId, title, message) {
+  const tab = document.getElementById(tabId);
+  if (!tab) return;
+
+  tab.innerHTML = `
+    <section class="admin-panel admin-empty-panel">
+      <div class="section-head">
+        <h3>${escapeHtml(title)}</h3>
+        <span>Module non chargé</span>
+      </div>
+      <p class="priority-empty">${escapeHtml(message)}</p>
+    </section>
+  `;
 }
 
 function updateAdminModerationCounter(source, value, options = {}) {
