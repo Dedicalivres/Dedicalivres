@@ -5,13 +5,15 @@
 (function () {
   "use strict";
 
-  const VERSION = "2026-06-17-watch-1";
+  const VERSION = "2026-06-18-watch-submissions-2";
   const DEFAULT_WATCH_ENDPOINT = "https://dedicalivres-veille.dedicalivres.workers.dev/analyze";
   const HISTORY_KEY = "dedicalivres_admin_watch_history_v1";
+  const WATCH_PAGE_SIZE = 15;
 
   let initialized = false;
   let client = null;
   let lastResults = [];
+  let watchOffset = 0;
 
   ready(() => waitForAdminAuthentication(initWhenReady));
   window.addEventListener("dedicalivres:admin-authenticated", () => waitForAdminAuthentication(initWhenReady));
@@ -77,8 +79,8 @@
             <div>
               <h3>Veille événements</h3>
               <p>
-                Analyse une URL ou une liste d’URL, puis prépare une fiche candidate à relire
-                et copier dans l’admin. Aucun import automatique.
+                Analyse une URL ou une liste d’URL, puis prépare une fiche candidate à relire.
+                Tu peux l’envoyer dans les soumissions publiques pour la compléter, la valider ou la refuser.
               </p>
             </div>
             <span class="watch-pill">V${VERSION}</span>
@@ -135,9 +137,15 @@
 
           <div class="watch-actions">
             <button id="watch-analyze-btn" class="cyber-btn-primary" type="button">Analyser les URL</button>
+            <button id="watch-next-btn" class="cyber-btn-secondary" type="button" disabled>15 suivants</button>
+            <button id="watch-first-btn" class="cyber-btn-secondary" type="button" disabled>Revenir au début</button>
             <button id="watch-clear-btn" class="cyber-btn-secondary" type="button">Effacer</button>
             <button id="watch-copy-all-btn" class="cyber-btn-secondary" type="button" disabled>Copier toutes les fiches</button>
           </div>
+
+          <p id="watch-page-label" class="watch-page-label">
+            Premier lot de résultats.
+          </p>
 
           <p id="watch-status" class="watch-status" aria-live="polite">
             En attente d’une URL. Le résultat reste à vérifier humainement.
@@ -172,11 +180,28 @@
   }
 
   function bindControls() {
-    document.getElementById("watch-analyze-btn")?.addEventListener("click", analyzeUrls);
+    document.getElementById("watch-analyze-btn")?.addEventListener("click", () => {
+      watchOffset = 0;
+      analyzeUrls();
+    });
+    document.getElementById("watch-next-btn")?.addEventListener("click", () => {
+      watchOffset += WATCH_PAGE_SIZE;
+      analyzeUrls();
+    });
+    document.getElementById("watch-first-btn")?.addEventListener("click", () => {
+      watchOffset = 0;
+      analyzeUrls();
+    });
     document.getElementById("watch-clear-btn")?.addEventListener("click", clearWatch);
     document.getElementById("watch-copy-all-btn")?.addEventListener("click", copyAllResults);
     document.getElementById("watch-health-btn")?.addEventListener("click", testWorkerHealth);
     document.getElementById("watch-clear-history-btn")?.addEventListener("click", clearHistory);
+    ["watch-urls", "watch-country", "watch-type", "watch-mode"].forEach((id) => {
+      document.getElementById(id)?.addEventListener("change", () => {
+        watchOffset = 0;
+        updatePagingControls();
+      });
+    });
   }
 
   async function analyzeUrls() {
@@ -203,18 +228,22 @@
         filters: {
           country: document.getElementById("watch-country")?.value || "Tous",
           type: document.getElementById("watch-type")?.value || "Tous",
-          mode: document.getElementById("watch-mode")?.value || "prepare"
+          mode: document.getElementById("watch-mode")?.value || "prepare",
+          offset: watchOffset,
+          limit: WATCH_PAGE_SIZE
         }
       });
 
       lastResults = Array.isArray(payload.results) ? payload.results : [];
       renderResults(lastResults);
-      setStatus(`${lastResults.length} fiche(s) candidate(s) préparée(s).`);
+      updatePagingControls();
+      setStatus(`${lastResults.length} fiche(s) candidate(s) préparée(s)${watchOffset ? ` · lot à partir du résultat ${watchOffset + 1}` : ""}.`);
       if (copyAll) copyAll.disabled = !lastResults.length;
     } catch (error) {
       console.error("Veille admin :", error);
       lastResults = [];
       renderResults([]);
+      updatePagingControls();
       setStatus(error.message || "Analyse impossible.", "error");
     } finally {
       if (button) {
@@ -301,6 +330,37 @@
         setStatus("Source marquée comme traitée sur cet appareil.");
       });
     });
+
+    container.querySelectorAll("[data-watch-submit]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = Number(button.dataset.watchSubmit);
+        const item = lastResults[index];
+        if (!item) return;
+        createSubmissionFromWatch(item, button);
+      });
+    });
+  }
+
+  function updatePagingControls() {
+    const urls = document.getElementById("watch-urls")?.value.trim() || "";
+    const nextButton = document.getElementById("watch-next-btn");
+    const firstButton = document.getElementById("watch-first-btn");
+    const label = document.getElementById("watch-page-label");
+    const hasQuery = Boolean(urls);
+    const hasFullPage = lastResults.length >= WATCH_PAGE_SIZE;
+
+    if (nextButton) nextButton.disabled = !hasQuery || !hasFullPage;
+    if (firstButton) firstButton.disabled = !hasQuery || watchOffset === 0;
+
+    if (label) {
+      if (!hasQuery) {
+        label.textContent = "Premier lot de résultats.";
+      } else if (!lastResults.length) {
+        label.textContent = watchOffset ? `Aucun résultat à partir du rang ${watchOffset + 1}.` : "Aucun résultat dans le premier lot.";
+      } else {
+        label.textContent = `Résultats ${watchOffset + 1} à ${watchOffset + lastResults.length}.`;
+      }
+    }
   }
 
   function renderResultCard(result, index) {
@@ -345,12 +405,159 @@
         </details>
 
         <div class="watch-result-actions">
+          <button class="cyber-btn-primary" data-watch-submit="${index}" type="button">Envoyer en soumission</button>
           <button class="cyber-btn-primary" data-watch-copy="${index}" type="button">Copier la fiche</button>
           <a class="cyber-btn-secondary" href="${escapeAttr(result.sourceUrl || result.officialUrl || "#")}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>
           <button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>
         </div>
       </article>
     `;
+  }
+
+  async function createSubmissionFromWatch(item, button) {
+    const missing = getSubmissionBlockingFields(item);
+
+    if (missing.length) {
+      setStatus(`Soumission impossible : ${missing.join(", ")} à compléter dans la fiche candidate.`, "warning");
+      return;
+    }
+
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Envoi...";
+    }
+
+    try {
+      const duplicate = await findExistingSubmission(item);
+
+      if (duplicate) {
+        setStatus("Soumission déjà présente ou événement similaire détecté en base.", "warning");
+        if (button) button.textContent = "Déjà présent";
+        return;
+      }
+
+      const payload = buildSubmissionPayload(item);
+      const { error } = await client.from("events").insert([payload]);
+
+      if (error) throw error;
+
+      markHandled(item);
+      renderHistory();
+      setStatus("Soumission créée : elle apparaît maintenant dans la modération des événements.");
+
+      if (button) {
+        button.textContent = "Soumission créée";
+        button.dataset.created = "true";
+      }
+
+      window.dispatchEvent(new CustomEvent("dedicalivres:watch-submission-created", {
+        detail: { id: payload.id, sourceUrl: item.sourceUrl || "" }
+      }));
+    } catch (error) {
+      console.error("Création soumission veille :", error);
+      setStatus(error.message || "Création de soumission impossible.", "error");
+
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Envoyer en soumission";
+      }
+    }
+  }
+
+  function getSubmissionBlockingFields(item) {
+    const missing = [];
+    if (!cleanText(item.title)) missing.push("titre");
+    if (!normalizeIsoDate(item.startDate)) missing.push("date");
+    if (!cleanText(item.city)) missing.push("ville");
+    return missing;
+  }
+
+  async function findExistingSubmission(item) {
+    const title = cleanText(item.title);
+    const city = cleanText(item.city);
+    const startDate = normalizeIsoDate(item.startDate);
+
+    if (!title || !city || !startDate) return null;
+
+    const { data, error } = await client
+      .from("events")
+      .select("id,title,city,start_date,validated,rejected")
+      .eq("start_date", startDate)
+      .ilike("city", city)
+      .limit(10);
+
+    if (error) {
+      console.warn("Vérification doublon veille impossible :", error);
+      return null;
+    }
+
+    const normalizedTitle = normalizeForCompare(title);
+    return (data || []).find((row) => {
+      const rowTitle = normalizeForCompare(row.title || "");
+      return rowTitle === normalizedTitle || rowTitle.includes(normalizedTitle) || normalizedTitle.includes(rowTitle);
+    }) || null;
+  }
+
+  function buildSubmissionPayload(item) {
+    const descriptionParts = [
+      cleanText(item.description),
+      "",
+      "Fiche candidate issue de la veille Dédicalivres.",
+      item.sourceUrl ? `Source à vérifier : ${item.sourceUrl}` : "",
+      item.authors?.length ? `Auteur(s) détecté(s) : ${item.authors.join(", ")}` : "",
+      "À compléter et relire avant validation."
+    ].filter((line, index, arr) => line || (index > 0 && arr[index - 1]));
+
+    return {
+      id: createClientUuid(),
+      title: cleanText(item.title),
+      type: normalizeEventType(item.type),
+      region: cleanText(item.territory || item.region),
+      city: cleanText(item.city),
+      price: "",
+      start_date: normalizeIsoDate(item.startDate),
+      end_date: normalizeIsoDate(item.endDate),
+      website: normalizeUrlValue(item.officialUrl || item.sourceUrl),
+      description: descriptionParts.join("\n").trim(),
+      image_url: normalizeUrlValue(item.imageUrl),
+      validated: false,
+      featured: false,
+      rejected: false,
+      verified: false
+    };
+  }
+
+  function createClientUuid() {
+    if (crypto?.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+      const random = Math.random() * 16 | 0;
+      const value = char === "x" ? random : (random & 0x3 | 0x8);
+      return value.toString(16);
+    });
+  }
+
+  function normalizeEventType(value) {
+    const type = cleanText(value);
+    return ["Salon", "Festival", "Dédicace", "Autre"].includes(type) ? type : "Autre";
+  }
+
+  function normalizeIsoDate(value) {
+    const match = String(value || "").match(/^(20[0-9]{2})-[0-9]{2}-[0-9]{2}$/);
+    return match ? match[0] : "";
+  }
+
+  function normalizeUrlValue(value) {
+    const raw = cleanText(value);
+    return /^https?:\/\//i.test(raw) ? raw : "";
+  }
+
+  function normalizeForCompare(value) {
+    return cleanText(value)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
   }
 
   async function copyAllResults() {
@@ -376,6 +583,8 @@
     if (results) results.innerHTML = `<p class="priority-empty">Aucune analyse lancée pour le moment.</p>`;
     if (copyAll) copyAll.disabled = true;
     lastResults = [];
+    watchOffset = 0;
+    updatePagingControls();
     setStatus("En attente d’une URL. Le résultat reste à vérifier humainement.");
   }
 
@@ -471,6 +680,12 @@
     if (!node) return;
     node.textContent = message;
     node.dataset.tone = tone;
+  }
+
+  function cleanText(value) {
+    return String(value ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function ensureWatchStyles() {
@@ -596,6 +811,13 @@
         margin: 16px 0 0;
         color: var(--cyber-muted);
         font-weight: 800;
+      }
+
+      .watch-page-label {
+        margin: 12px 0 0;
+        color: var(--cyber-cyan);
+        font-size: .92rem;
+        font-weight: 900;
       }
 
       .watch-status[data-tone="error"] {
