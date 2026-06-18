@@ -55,8 +55,14 @@ const editModal = document.getElementById("edit-modal");
 const editId = document.getElementById("edit-id");
 const editTitle = document.getElementById("edit-title");
 const editType = document.getElementById("edit-type");
+const editCountry = document.getElementById("edit-country");
 const editCity = document.getElementById("edit-city");
+const editCitySuggestions = document.getElementById("edit-city-suggestions");
+const editCityHelp = document.getElementById("edit-city-help");
 const editRegion = document.getElementById("edit-region");
+const editLat = document.getElementById("edit-lat");
+const editLng = document.getElementById("edit-lng");
+const editGeocodeBtn = document.getElementById("edit-geocode-btn");
 const editStartDate = document.getElementById("edit-start-date");
 const editEndDate = document.getElementById("edit-end-date");
 const editWebsite = document.getElementById("edit-website");
@@ -93,8 +99,11 @@ let adminMapMode = "pending";
 let archiveEventsLoaded = false;
 let protectedAdminModulesLoaded = false;
 let adminBooting = false;
+let editCityAutocompleteTimer = null;
+let editCitySuggestionCache = new Map();
+let originalEditLocationSignature = "";
 
-const ADMIN_MODULE_VERSION = "10.11-watch-submissions";
+const ADMIN_MODULE_VERSION = "10.12-admin-location-edit";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const adminModerationCounters = {
   events: 0,
@@ -128,6 +137,7 @@ const ADMIN_EVENTS_COLUMNS = [
   "rejected",
   "featured",
   "verified",
+  "country_code",
   "lat",
   "lng",
   "price"
@@ -382,6 +392,10 @@ function bindEvents() {
   saveEditBtn?.addEventListener("click", saveEdition);
   removeEditImageBtn?.addEventListener("click", removeEditImage);
   editImageFile?.addEventListener("change", handleAdminImagePreview);
+  editCity?.addEventListener("input", handleEditCityInput);
+  editCity?.addEventListener("change", handleEditCityChange);
+  editCountry?.addEventListener("change", handleEditCountryChange);
+  editGeocodeBtn?.addEventListener("click", handleEditRelocateClick);
   adminMapToggle?.addEventListener("click", toggleAdminMap);
   bindAdminExportsPanel();
 
@@ -2896,13 +2910,25 @@ function openEditModal(id) {
   editId.value = event.id || "";
   editTitle.value = event.title || "";
   editType.value = event.type || "";
+  if (editCountry) editCountry.value = normalizeAdminCountryCode(event.country_code || "FR");
   editCity.value = event.city || "";
   editRegion.value = event.region || "";
+  if (editLat) editLat.value = Number.isFinite(Number(event.lat)) ? String(event.lat) : "";
+  if (editLng) editLng.value = Number.isFinite(Number(event.lng)) ? String(event.lng) : "";
   editStartDate.value = event.start_date || "";
   editEndDate.value = event.end_date || "";
   editWebsite.value = event.website || "";
   editDescription.value = event.description || "";
   editImageUrl.value = event.image_url || "";
+  originalEditLocationSignature = getEditLocationSignature();
+  clearEditCitySuggestions();
+  const hasExistingCoordinates = Number.isFinite(Number(event.lat)) && Number.isFinite(Number(event.lng));
+  setEditCityHelp(
+    hasExistingCoordinates
+      ? "Localisation existante conservée. Modifie la ville puis relocalise si besoin."
+      : "Choisis une commune ou relance la localisation avant validation.",
+    hasExistingCoordinates ? "success" : ""
+  );
 
   renderEditImagePreview(event.image_url);
   editModal.classList.remove("hidden");
@@ -2910,6 +2936,329 @@ function openEditModal(id) {
 
 function closeEditModal() {
   editModal.classList.add("hidden");
+  clearEditCitySuggestions();
+  originalEditLocationSignature = "";
+}
+
+function handleEditCountryChange() {
+  clearEditCoordinates();
+  clearEditCitySuggestions();
+  setEditCityHelp("Pays modifié : choisis une commune ou clique sur Relocaliser.", "warning");
+}
+
+function handleEditCityInput() {
+  const value = editCity?.value.trim() || "";
+  clearEditCoordinates();
+  clearTimeout(editCityAutocompleteTimer);
+
+  if (value.length < 3) {
+    clearEditCitySuggestions();
+    setEditCityHelp(
+      value ? "Tape au moins 3 caractères pour rechercher une commune." : "Choisis une commune ou relance la localisation.",
+      ""
+    );
+    return;
+  }
+
+  setEditCityHelp("Recherche de communes...", "");
+
+  editCityAutocompleteTimer = setTimeout(async () => {
+    const suggestions = await fetchAdminCitySuggestions(value, editCountry?.value || "FR", 8);
+    renderEditCitySuggestions(suggestions);
+
+    if (suggestions.length) {
+      setEditCityHelp("Choisis la bonne commune dans la liste, ou clique sur Relocaliser.", "");
+    } else {
+      setEditCityHelp("Aucune commune trouvée pour cette saisie.", "error");
+    }
+  }, 300);
+}
+
+async function handleEditCityChange() {
+  const value = editCity?.value.trim() || "";
+  if (!value) {
+    clearEditCoordinates();
+    setEditCityHelp("Ville vide : la fiche ne pourra pas être placée sur la carte.", "warning");
+    return;
+  }
+
+  const selected = findEditCitySuggestion(value);
+  if (selected) {
+    applyEditCitySuggestion(selected);
+    return;
+  }
+
+  const suggestion = await geocodeAdminMunicipality(value, editCountry?.value || "FR");
+  if (suggestion) {
+    applyEditCitySuggestion(suggestion);
+    return;
+  }
+
+  clearEditCoordinates();
+  setEditCityHelp("Ville non reconnue. Essaie une commune plus précise.", "error");
+}
+
+async function handleEditRelocateClick() {
+  await relocateEditLocation({ forceMessage: true });
+}
+
+async function relocateEditLocation(options = {}) {
+  const value = editCity?.value.trim() || "";
+
+  if (!value) {
+    clearEditCoordinates();
+    setEditCityHelp("Renseigne une ville avant de relocaliser.", "warning");
+    return null;
+  }
+
+  if (editGeocodeBtn) {
+    editGeocodeBtn.disabled = true;
+    editGeocodeBtn.textContent = "Recherche...";
+  }
+
+  try {
+    const suggestion = findEditCitySuggestion(value) ||
+      await geocodeAdminMunicipality(value, editCountry?.value || "FR");
+
+    if (!suggestion) {
+      clearEditCoordinates();
+      setEditCityHelp("Ville non localisée. Choisis une suggestion ou précise le pays.", "error");
+      return null;
+    }
+
+    applyEditCitySuggestion(suggestion);
+    if (options.forceMessage) showToast("Localisation mise à jour");
+    return suggestion;
+  } finally {
+    if (editGeocodeBtn) {
+      editGeocodeBtn.disabled = false;
+      editGeocodeBtn.textContent = "Relocaliser";
+    }
+  }
+}
+
+async function fetchAdminCitySuggestions(query, countryCode, limit = 6) {
+  const value = String(query || "").trim();
+  const normalizedCountry = normalizeAdminCountryCode(countryCode || "FR");
+
+  if (value.length < 3) return [];
+
+  const cacheKey = `${normalizedCountry}::${value.toLowerCase()}::${limit}`;
+  if (editCitySuggestionCache.has(cacheKey)) return editCitySuggestionCache.get(cacheKey);
+
+  let suggestions = [];
+
+  if (normalizedCountry === "FR") {
+    suggestions = await fetchFrenchCitySuggestions(value, limit);
+  } else {
+    suggestions = await fetchNominatimCitySuggestions(value, normalizedCountry, limit);
+  }
+
+  editCitySuggestionCache.set(cacheKey, suggestions);
+  return suggestions;
+}
+
+async function fetchFrenchCitySuggestions(query, limit) {
+  try {
+    const response = await fetch(
+      `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=${limit}&type=municipality`
+    );
+
+    if (!response.ok) return [];
+    const data = await response.json();
+
+    return (data.features || [])
+      .map((feature) => {
+        const properties = feature.properties || {};
+        const coords = feature.geometry?.coordinates || [];
+        const city = properties.city || properties.municipality || properties.name || "";
+        const postcode = properties.postcode || "";
+        const region = extractFrenchRegion(properties.context || "");
+        const label = [city, postcode, properties.context].filter(Boolean).join(" — ");
+
+        return {
+          label,
+          city,
+          region,
+          countryCode: "FR",
+          lat: Number(coords[1]),
+          lng: Number(coords[0])
+        };
+      })
+      .filter(isUsableAdminSuggestion);
+  } catch (error) {
+    console.warn("Recherche commune France indisponible :", error);
+    return [];
+  }
+}
+
+async function fetchNominatimCitySuggestions(query, countryCode, limit) {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=${limit}&countrycodes=${countryCode.toLowerCase()}&q=${encodeURIComponent(query)}`
+    );
+
+    if (!response.ok) return [];
+    const data = await response.json();
+
+    return (Array.isArray(data) ? data : [])
+      .map((item) => {
+        const address = item.address || {};
+        const city =
+          address.city ||
+          address.town ||
+          address.village ||
+          address.municipality ||
+          address.hamlet ||
+          String(item.name || "").split(",")[0] ||
+          "";
+        const region = address.state || address.region || address.county || "";
+        const postcode = address.postcode || "";
+        const country = address.country || getAdminCountryName(countryCode);
+        const label = [city, postcode, region, country].filter(Boolean).join(" — ");
+
+        return {
+          label,
+          city,
+          region,
+          countryCode,
+          lat: Number(item.lat),
+          lng: Number(item.lon)
+        };
+      })
+      .filter(isUsableAdminSuggestion);
+  } catch (error) {
+    console.warn("Recherche commune internationale indisponible :", error);
+    return [];
+  }
+}
+
+function renderEditCitySuggestions(suggestions) {
+  if (!editCitySuggestions) return;
+
+  editCitySuggestions.innerHTML = "";
+  suggestions.forEach((suggestion) => {
+    const option = document.createElement("option");
+    option.value = suggestion.label;
+    option.dataset.city = suggestion.city;
+    option.dataset.region = suggestion.region || "";
+    option.dataset.countryCode = suggestion.countryCode || "";
+    option.dataset.lat = String(suggestion.lat);
+    option.dataset.lng = String(suggestion.lng);
+    editCitySuggestions.appendChild(option);
+  });
+}
+
+function findEditCitySuggestion(value) {
+  const normalizedValue = normalizeSearchText(value);
+  if (!editCitySuggestions) return null;
+
+  const option = Array.from(editCitySuggestions.options || []).find((item) => {
+    return normalizeSearchText(item.value) === normalizedValue ||
+      normalizeSearchText(item.dataset.city || "") === normalizedValue;
+  });
+
+  if (!option) return null;
+
+  return {
+    label: option.value,
+    city: option.dataset.city || option.value,
+    region: option.dataset.region || "",
+    countryCode: option.dataset.countryCode || editCountry?.value || "FR",
+    lat: Number(option.dataset.lat),
+    lng: Number(option.dataset.lng)
+  };
+}
+
+function applyEditCitySuggestion(suggestion) {
+  if (!suggestion || !isUsableAdminSuggestion(suggestion)) return;
+
+  if (editCountry) editCountry.value = normalizeAdminCountryCode(suggestion.countryCode || editCountry.value || "FR");
+  if (editCity) editCity.value = suggestion.city || suggestion.label || editCity.value;
+  if (editRegion && suggestion.region) editRegion.value = suggestion.region;
+  if (editLat) editLat.value = String(suggestion.lat);
+  if (editLng) editLng.value = String(suggestion.lng);
+
+  setEditCityHelp("Ville localisée et coordonnées prêtes pour la carte.", "success");
+}
+
+function clearEditCitySuggestions() {
+  if (editCitySuggestions) editCitySuggestions.innerHTML = "";
+}
+
+function clearEditCoordinates() {
+  if (editLat) editLat.value = "";
+  if (editLng) editLng.value = "";
+}
+
+function getEditCoordinates() {
+  const lat = Number(editLat?.value);
+  const lng = Number(editLng?.value);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+function getEditLocationSignature() {
+  return [
+    normalizeAdminCountryCode(editCountry?.value || "FR"),
+    cleanLabel(editCity?.value || ""),
+    cleanLabel(editRegion?.value || "")
+  ].join("|");
+}
+
+function setEditCityHelp(message, tone = "") {
+  if (!editCityHelp) return;
+  editCityHelp.textContent = message;
+  editCityHelp.dataset.tone = tone;
+}
+
+function isUsableAdminSuggestion(suggestion) {
+  return Boolean(
+    suggestion?.city &&
+    Number.isFinite(Number(suggestion.lat)) &&
+    Number.isFinite(Number(suggestion.lng))
+  );
+}
+
+function extractFrenchRegion(context) {
+  const parts = String(context || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return parts[parts.length - 1] || "";
+}
+
+function normalizeAdminCountryCode(value) {
+  const normalized = String(value || "FR").trim().toUpperCase();
+  const aliases = {
+    FRANCE: "FR",
+    BELGIQUE: "BE",
+    BELGIUM: "BE",
+    LUXEMBOURG: "LU",
+    SUISSE: "CH",
+    SWITZERLAND: "CH",
+    MONACO: "MC"
+  };
+  const code = aliases[normalized] || normalized;
+  return ["FR", "BE", "LU", "CH", "MC"].includes(code) ? code : "FR";
+}
+
+function getAdminCountryName(countryCode) {
+  return {
+    FR: "France",
+    BE: "Belgique",
+    LU: "Luxembourg",
+    CH: "Suisse",
+    MC: "Monaco"
+  }[normalizeAdminCountryCode(countryCode)] || "France";
+}
+
+function normalizeSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function renderEditImagePreview(url) {
@@ -2958,6 +3307,22 @@ async function saveEdition() {
 
   try {
     let imageUrl = editImageUrl.value.trim() || null;
+    const locationChanged = getEditLocationSignature() !== originalEditLocationSignature;
+    let coordinates = getEditCoordinates();
+
+    if (locationChanged || (!coordinates && editCity.value.trim())) {
+      const relocated = await relocateEditLocation();
+
+      if (relocated) {
+        coordinates = {
+          lat: Number(relocated.lat),
+          lng: Number(relocated.lng)
+        };
+      } else if (locationChanged) {
+        showToast("Ville non localisée");
+        return;
+      }
+    }
 
     if (selectedAdminImageFile) {
       imageUrl = await uploadAdminImage(selectedAdminImageFile);
@@ -2967,13 +3332,16 @@ async function saveEdition() {
     const payload = {
       title: editTitle.value.trim(),
       type: editType.value,
+      country_code: normalizeAdminCountryCode(editCountry?.value || "FR"),
       city: editCity.value.trim(),
       region: editRegion.value.trim(),
       start_date: editStartDate.value || null,
       end_date: editEndDate.value || null,
       website: editWebsite.value.trim(),
       description: editDescription.value.trim(),
-      image_url: imageUrl
+      image_url: imageUrl,
+      lat: coordinates ? coordinates.lat : null,
+      lng: coordinates ? coordinates.lng : null
     };
 
     const { error } = await supabaseClient

@@ -707,8 +707,39 @@
           <option>Autre</option>
         </select>
 
-        <input id="edit-city" placeholder="Ville" />
-        <input id="edit-region" placeholder="Région" />
+        <select id="edit-country" aria-label="Pays">
+          <option value="FR">France</option>
+          <option value="BE">Belgique</option>
+          <option value="LU">Luxembourg</option>
+          <option value="CH">Suisse</option>
+          <option value="MC">Monaco</option>
+        </select>
+
+        <div class="edit-location-field">
+          <input
+            id="edit-city"
+            list="edit-city-suggestions"
+            placeholder="Ville / commune"
+            autocomplete="off"
+          />
+          <datalist id="edit-city-suggestions"></datalist>
+          <small id="edit-city-help" class="edit-location-help">
+            Choisis une commune ou relance la localisation.
+          </small>
+        </div>
+
+        <input id="edit-region" placeholder="Région / territoire" />
+
+        <button
+          id="edit-geocode-btn"
+          class="cyber-btn-secondary"
+          type="button"
+        >
+          Relocaliser
+        </button>
+
+        <input type="hidden" id="edit-lat" />
+        <input type="hidden" id="edit-lng" />
 
         <input id="edit-start-date" type="date" />
         <input id="edit-end-date" type="date" />
@@ -751,7 +782,7 @@
 ></script>
 
 <script src="config.js?v=shared-client-1"></script>
-<script src="admin.js?v=control-center-9-watch-submissions"></script>
+<script src="admin.js?v=control-center-10-admin-location-edit"></script>
 
 </body>
 </html>

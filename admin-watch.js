@@ -5,7 +5,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "2026-06-18-watch-submissions-2";
+  const VERSION = "2026-06-18-watch-submissions-3";
   const DEFAULT_WATCH_ENDPOINT = "https://dedicalivres-veille.dedicalivres.workers.dev/analyze";
   const HISTORY_KEY = "dedicalivres_admin_watch_history_v1";
   const WATCH_PAGE_SIZE = 15;
@@ -512,6 +512,7 @@
       id: createClientUuid(),
       title: cleanText(item.title),
       type: normalizeEventType(item.type),
+      country_code: normalizeCountryCode(item.country),
       region: cleanText(item.territory || item.region),
       city: cleanText(item.city),
       price: "",
@@ -539,6 +540,15 @@
   function normalizeEventType(value) {
     const type = cleanText(value);
     return ["Salon", "Festival", "Dédicace", "Autre"].includes(type) ? type : "Autre";
+  }
+
+  function normalizeCountryCode(value) {
+    const normalized = cleanText(value).toLowerCase();
+    if (normalized.includes("belg")) return "BE";
+    if (normalized.includes("luxembourg")) return "LU";
+    if (normalized.includes("suisse") || normalized.includes("switzerland")) return "CH";
+    if (normalized.includes("monaco")) return "MC";
+    return "FR";
   }
 
   function normalizeIsoDate(value) {
