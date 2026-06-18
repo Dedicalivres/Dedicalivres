@@ -5,9 +5,11 @@
 (function () {
   "use strict";
 
-  const VERSION = "2026-06-18-watch-submissions-3";
+  const VERSION = "2026-06-18-watch-submissions-4";
   const DEFAULT_WATCH_ENDPOINT = "https://dedicalivres-veille.dedicalivres.workers.dev/analyze";
   const HISTORY_KEY = "dedicalivres_admin_watch_history_v1";
+  const PRODUCTIVE_SOURCES_KEY = "dedicalivres_admin_watch_productive_sources_v1";
+  const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
   const WATCH_PAGE_SIZE = 15;
 
   let initialized = false;
@@ -168,8 +170,8 @@
         <article class="watch-card watch-history-card">
           <div class="watch-card-head">
             <div>
-              <h3>Sources traitées sur cet appareil</h3>
-              <p>Historique local simple, utile pour éviter les doublons lors de la veille.</p>
+              <h3>Sources mémorisées sur cet appareil</h3>
+              <p>Les URL qui donnent plus de 10 fiches complètes sont conservées ici avec l’historique de traitement.</p>
             </div>
             <button id="watch-clear-history-btn" class="cyber-btn-danger" type="button">Vider</button>
           </div>
@@ -236,8 +238,13 @@
 
       lastResults = Array.isArray(payload.results) ? payload.results : [];
       renderResults(lastResults);
+      const productiveSaved = rememberProductiveSources(urls, lastResults);
+      renderHistory();
       updatePagingControls();
-      setStatus(`${lastResults.length} fiche(s) candidate(s) préparée(s)${watchOffset ? ` · lot à partir du résultat ${watchOffset + 1}` : ""}.`);
+      setStatus([
+        `${lastResults.length} fiche(s) candidate(s) préparée(s)${watchOffset ? ` · lot à partir du résultat ${watchOffset + 1}` : ""}.`,
+        productiveSaved ? "Source à fort rendement mémorisée." : ""
+      ].filter(Boolean).join(" "));
       if (copyAll) copyAll.disabled = !lastResults.length;
     } catch (error) {
       console.error("Veille admin :", error);
@@ -613,28 +620,122 @@
     writeHistory([next, ...filtered].slice(0, 80));
   }
 
+  function rememberProductiveSources(rawUrls, results) {
+    const completeCount = countCompleteResults(results);
+    if (completeCount <= PRODUCTIVE_COMPLETE_THRESHOLD) return 0;
+
+    const urls = normalizeWatchUrlInput(rawUrls);
+    if (!urls.length) return 0;
+
+    const stored = readProductiveSources();
+    const now = new Date().toISOString();
+    const country = document.getElementById("watch-country")?.value || "Tous";
+    const type = document.getElementById("watch-type")?.value || "Tous";
+
+    const nextItems = urls.map((sourceUrl) => ({
+      sourceUrl,
+      title: getUrlDisplayName(sourceUrl),
+      completeCount,
+      totalCount: Array.isArray(results) ? results.length : 0,
+      offset: watchOffset,
+      country,
+      type,
+      lastSeenAt: now
+    }));
+
+    const merged = [...nextItems, ...stored]
+      .filter((item, index, array) => {
+        return array.findIndex((candidate) => candidate.sourceUrl === item.sourceUrl) === index;
+      })
+      .slice(0, 40);
+
+    writeProductiveSources(merged);
+    return nextItems.length;
+  }
+
+  function countCompleteResults(results) {
+    return (Array.isArray(results) ? results : []).filter(isCompleteWatchResult).length;
+  }
+
+  function isCompleteWatchResult(result) {
+    const status = normalizeForCompare(result?.status || "");
+    const missing = Array.isArray(result?.missingFields) ? result.missingFields.map(normalizeForCompare) : [];
+    return status === "complet" ||
+      (
+        Number(result?.confidence || 0) >= 82 &&
+        !missing.some((field) => ["titre", "date", "ville"].includes(field))
+      );
+  }
+
+  function normalizeWatchUrlInput(value) {
+    return [...new Set(String(value || "")
+      .split(/\s+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((item) => /^https?:\/\//i.test(item) ? item : `https://${item}`)
+      .map((item) => {
+        try {
+          return new URL(item).toString();
+        } catch {
+          return "";
+        }
+      })
+      .filter(Boolean))];
+  }
+
+  function getUrlDisplayName(sourceUrl) {
+    try {
+      const url = new URL(sourceUrl);
+      return `${url.hostname}${url.pathname}`.replace(/\/+$/, "") || sourceUrl;
+    } catch {
+      return sourceUrl || "Source";
+    }
+  }
+
   function renderHistory() {
     const container = document.getElementById("watch-history");
     if (!container) return;
 
     const history = readHistory();
-    if (!history.length) {
-      container.innerHTML = `<p class="priority-empty">Aucune source marquée comme traitée sur cet appareil.</p>`;
+    const productiveSources = readProductiveSources();
+
+    if (!history.length && !productiveSources.length) {
+      container.innerHTML = `<p class="priority-empty">Aucune source marquée comme traitée ou productive sur cet appareil.</p>`;
       return;
     }
 
-    container.innerHTML = history.slice(0, 12).map((item) => `
-      <a class="watch-history-item" href="${escapeAttr(item.sourceUrl || "#")}" target="_blank" rel="noopener noreferrer">
-        <strong>${escapeHtml(item.title || item.sourceUrl || "Source")}</strong>
-        <span>${escapeHtml([item.date, item.city, item.type].filter(Boolean).join(" · ") || "Source traitée")}</span>
-      </a>
-    `).join("");
+    const productiveHtml = productiveSources.length ? `
+      <section class="watch-history-group">
+        <h4>URL à fort rendement</h4>
+        ${productiveSources.slice(0, 12).map((item) => `
+          <a class="watch-history-item watch-history-item-productive" href="${escapeAttr(item.sourceUrl || "#")}" target="_blank" rel="noopener noreferrer">
+            <strong>${escapeHtml(item.title || item.sourceUrl || "Source productive")}</strong>
+            <span>${escapeHtml(`${item.completeCount || 0} fiches complètes sur ${item.totalCount || 0}${item.offset ? ` · lot depuis ${Number(item.offset) + 1}` : ""} · ${[item.country, item.type].filter(Boolean).join(" · ")}`)}</span>
+          </a>
+        `).join("")}
+      </section>
+    ` : "";
+
+    const historyHtml = history.length ? `
+      <section class="watch-history-group">
+        <h4>Sources traitées</h4>
+        ${history.slice(0, 12).map((item) => `
+          <a class="watch-history-item" href="${escapeAttr(item.sourceUrl || "#")}" target="_blank" rel="noopener noreferrer">
+            <strong>${escapeHtml(item.title || item.sourceUrl || "Source")}</strong>
+            <span>${escapeHtml([item.date, item.city, item.type].filter(Boolean).join(" · ") || "Source traitée")}</span>
+          </a>
+        `).join("")}
+      </section>
+    ` : "";
+
+    container.innerHTML = `${productiveHtml}${historyHtml}`;
   }
 
   function clearHistory() {
     writeHistory([]);
+    writeProductiveSources([]);
     renderHistory();
-    setStatus("Historique local vidé.");
+    setStatus("Historique local et URL à fort rendement vidés.");
   }
 
   function readHistory() {
@@ -648,6 +749,19 @@
 
   function writeHistory(history) {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  }
+
+  function readProductiveSources() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(PRODUCTIVE_SOURCES_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeProductiveSources(sources) {
+    localStorage.setItem(PRODUCTIVE_SOURCES_KEY, JSON.stringify(Array.isArray(sources) ? sources : []));
   }
 
   function getWatchEndpoint(config) {
@@ -960,7 +1074,20 @@
 
       .watch-history {
         display: grid;
+        gap: 16px;
+      }
+
+      .watch-history-group {
+        display: grid;
         gap: 10px;
+      }
+
+      .watch-history-group h4 {
+        margin: 0;
+        color: var(--cyber-cyan);
+        font-size: 1rem;
+        letter-spacing: .05em;
+        text-transform: uppercase;
       }
 
       .watch-history-item {
@@ -972,6 +1099,13 @@
         color: var(--cyber-text);
         background: rgba(255, 255, 255, .04);
         text-decoration: none;
+      }
+
+      .watch-history-item-productive {
+        border-color: rgba(25, 255, 156, .24);
+        background:
+          linear-gradient(90deg, rgba(25, 255, 156, .10), rgba(25, 215, 255, .04)),
+          rgba(255, 255, 255, .04);
       }
 
       .watch-history-item span {
