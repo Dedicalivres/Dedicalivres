@@ -5,7 +5,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "2026-06-18-watch-submissions-4";
+  const VERSION = "2026-06-18-watch-submissions-5";
   const DEFAULT_WATCH_ENDPOINT = "https://dedicalivres-veille.dedicalivres.workers.dev/analyze";
   const HISTORY_KEY = "dedicalivres_admin_watch_history_v1";
   const PRODUCTIVE_SOURCES_KEY = "dedicalivres_admin_watch_productive_sources_v1";
@@ -236,13 +236,13 @@
         }
       });
 
-      lastResults = Array.isArray(payload.results) ? payload.results : [];
+      lastResults = sortWatchResultsByCompleteness(Array.isArray(payload.results) ? payload.results : []);
       renderResults(lastResults);
       const productiveSaved = rememberProductiveSources(urls, lastResults);
       renderHistory();
       updatePagingControls();
       setStatus([
-        `${lastResults.length} fiche(s) candidate(s) préparée(s)${watchOffset ? ` · lot à partir du résultat ${watchOffset + 1}` : ""}.`,
+        `${lastResults.length} fiche(s) candidate(s) préparée(s), classée(s) par complétude${watchOffset ? ` · lot à partir du résultat ${watchOffset + 1}` : ""}.`,
         productiveSaved ? "Source à fort rendement mémorisée." : ""
       ].filter(Boolean).join(" "));
       if (copyAll) copyAll.disabled = !lastResults.length;
@@ -346,6 +346,33 @@
         createSubmissionFromWatch(item, button);
       });
     });
+  }
+
+  function sortWatchResultsByCompleteness(results) {
+    return [...results].map((result, index) => ({ result, index }))
+      .sort((a, b) => {
+        const scoreDiff = getResultCompletenessScore(b.result) - getResultCompletenessScore(a.result);
+        if (scoreDiff) return scoreDiff;
+
+        const missingDiff = getMissingCount(a.result) - getMissingCount(b.result);
+        if (missingDiff) return missingDiff;
+
+        const dateDiff = String(a.result.startDate || "").localeCompare(String(b.result.startDate || ""));
+        if (dateDiff) return dateDiff;
+
+        return a.index - b.index;
+      })
+      .map((item) => item.result);
+  }
+
+  function getResultCompletenessScore(result) {
+    const confidence = Number(result?.confidence || 0);
+    const statusBonus = isCompleteWatchResult(result) ? 1000 : 0;
+    return statusBonus + confidence;
+  }
+
+  function getMissingCount(result) {
+    return Array.isArray(result?.missingFields) ? result.missingFields.length : 0;
   }
 
   function updatePagingControls() {
