@@ -5,7 +5,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "2026-06-18-watch-submissions-5";
+  const VERSION = "2026-06-18-watch-submissions-6-pagination-total";
   const DEFAULT_WATCH_ENDPOINT = "https://dedicalivres-veille.dedicalivres.workers.dev/analyze";
   const HISTORY_KEY = "dedicalivres_admin_watch_history_v1";
   const PRODUCTIVE_SOURCES_KEY = "dedicalivres_admin_watch_productive_sources_v1";
@@ -15,6 +15,7 @@
   let initialized = false;
   let client = null;
   let lastResults = [];
+  let lastPagination = getEmptyPagination();
   let watchOffset = 0;
 
   ready(() => waitForAdminAuthentication(initWhenReady));
@@ -201,6 +202,7 @@
     ["watch-urls", "watch-country", "watch-type", "watch-mode"].forEach((id) => {
       document.getElementById(id)?.addEventListener("change", () => {
         watchOffset = 0;
+        lastPagination = getEmptyPagination();
         updatePagingControls();
       });
     });
@@ -237,18 +239,20 @@
       });
 
       lastResults = sortWatchResultsByCompleteness(Array.isArray(payload.results) ? payload.results : []);
+      lastPagination = normalizeWatchPagination(payload);
       renderResults(lastResults);
       const productiveSaved = rememberProductiveSources(urls, lastResults);
       renderHistory();
       updatePagingControls();
       setStatus([
-        `${lastResults.length} fiche(s) candidate(s) préparée(s), classée(s) par complétude${watchOffset ? ` · lot à partir du résultat ${watchOffset + 1}` : ""}.`,
+        `${lastResults.length} fiche(s) candidate(s) préparée(s), classée(s) par complétude${formatPaginationStatus()}.`,
         productiveSaved ? "Source à fort rendement mémorisée." : ""
       ].filter(Boolean).join(" "));
       if (copyAll) copyAll.disabled = !lastResults.length;
     } catch (error) {
       console.error("Veille admin :", error);
       lastResults = [];
+      lastPagination = getEmptyPagination();
       renderResults([]);
       updatePagingControls();
       setStatus(error.message || "Analyse impossible.", "error");
@@ -375,24 +379,69 @@
     return Array.isArray(result?.missingFields) ? result.missingFields.length : 0;
   }
 
+  function getEmptyPagination() {
+    return {
+      total: null,
+      offset: 0,
+      limit: WATCH_PAGE_SIZE,
+      hasMore: false,
+      hasKnownTotal: false
+    };
+  }
+
+  function normalizeWatchPagination(payload) {
+    const total = Number(payload?.total);
+    const offset = Number(payload?.offset);
+    const limit = Number(payload?.limit);
+    const hasKnownTotal = Number.isFinite(total) && total >= 0;
+    const normalizedOffset = Number.isFinite(offset) && offset >= 0 ? Math.floor(offset) : watchOffset;
+    const normalizedLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : WATCH_PAGE_SIZE;
+
+    return {
+      total: hasKnownTotal ? Math.floor(total) : null,
+      offset: normalizedOffset,
+      limit: normalizedLimit,
+      hasMore: payload?.hasMore === true,
+      hasKnownTotal
+    };
+  }
+
+  function formatPaginationStatus() {
+    if (lastPagination.hasKnownTotal) {
+      return ` · ${lastPagination.total} résultat${lastPagination.total > 1 ? "s" : ""} au total`;
+    }
+
+    return watchOffset ? ` · lot à partir du résultat ${watchOffset + 1}` : "";
+  }
+
   function updatePagingControls() {
     const urls = document.getElementById("watch-urls")?.value.trim() || "";
     const nextButton = document.getElementById("watch-next-btn");
     const firstButton = document.getElementById("watch-first-btn");
     const label = document.getElementById("watch-page-label");
     const hasQuery = Boolean(urls);
-    const hasFullPage = lastResults.length >= WATCH_PAGE_SIZE;
+    const hasKnownTotal = lastPagination.hasKnownTotal;
+    const total = hasKnownTotal ? Number(lastPagination.total) : null;
+    const currentStart = lastResults.length ? watchOffset + 1 : 0;
+    const currentEnd = lastResults.length ? watchOffset + lastResults.length : watchOffset;
+    const hasMore = hasKnownTotal
+      ? currentEnd < total
+      : lastPagination.hasMore === true;
 
-    if (nextButton) nextButton.disabled = !hasQuery || !hasFullPage;
+    if (nextButton) nextButton.disabled = !hasQuery || !hasMore;
     if (firstButton) firstButton.disabled = !hasQuery || watchOffset === 0;
 
     if (label) {
       if (!hasQuery) {
         label.textContent = "Premier lot de résultats.";
       } else if (!lastResults.length) {
-        label.textContent = watchOffset ? `Aucun résultat à partir du rang ${watchOffset + 1}.` : "Aucun résultat dans le premier lot.";
+        label.textContent = hasKnownTotal
+          ? `Aucun résultat à partir du rang ${watchOffset + 1} sur ${total}.`
+          : (watchOffset ? `Aucun résultat à partir du rang ${watchOffset + 1}.` : "Aucun résultat dans le premier lot.");
+      } else if (hasKnownTotal) {
+        label.textContent = `Résultats ${currentStart} à ${currentEnd} sur ${total}.`;
       } else {
-        label.textContent = `Résultats ${watchOffset + 1} à ${watchOffset + lastResults.length}.`;
+        label.textContent = `Résultats ${currentStart} à ${currentEnd}.`;
       }
     }
   }
@@ -627,6 +676,7 @@
     if (results) results.innerHTML = `<p class="priority-empty">Aucune analyse lancée pour le moment.</p>`;
     if (copyAll) copyAll.disabled = true;
     lastResults = [];
+    lastPagination = getEmptyPagination();
     watchOffset = 0;
     updatePagingControls();
     setStatus("En attente d’une URL. Le résultat reste à vérifier humainement.");
@@ -663,7 +713,7 @@
       sourceUrl,
       title: getUrlDisplayName(sourceUrl),
       completeCount,
-      totalCount: Array.isArray(results) ? results.length : 0,
+      totalCount: lastPagination.hasKnownTotal ? lastPagination.total : (Array.isArray(results) ? results.length : 0),
       offset: watchOffset,
       country,
       type,

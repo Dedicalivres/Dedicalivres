@@ -10,12 +10,15 @@
  *
  * Secrets / variables Cloudflare :
  * - SUPABASE_URL
+ * - SUPABASE_PUBLISHABLE_KEY
  * - SUPABASE_SERVICE_ROLE_KEY
  * - ALLOWED_ADMIN_ORIGINS=https://dedicalivres.fr,https://www.dedicalivres.fr
  */
 
-const WORKER_VERSION = "2026-06-17-admin-watch-1";
+const WORKER_VERSION = "2026-06-18-admin-watch-5-pagination-total";
 const MAX_URLS_PER_REQUEST = 20;
+const MAX_RESULTS_PER_REQUEST = 40;
+const MAX_OPALE_LIST_DETAILS = 15;
 const MAX_BODY_BYTES = 48 * 1024;
 const FETCH_TIMEOUT_MS = 12000;
 
@@ -114,15 +117,51 @@ export default {
       }
 
       const results = [];
+      let knownTotal = true;
+      let totalAvailable = 0;
+      let hasPaginationMeta = false;
+      let truncated = urls.length > MAX_URLS_PER_REQUEST;
+      const requestedOffset = normalizeResultOffset(payload.filters?.offset);
+      const requestedLimit = normalizeResultLimit(payload.filters?.limit);
+
       for (const sourceUrl of urls.slice(0, MAX_URLS_PER_REQUEST)) {
-        results.push(await analyzeRemoteUrl(sourceUrl, payload.filters || {}));
+        const analyzed = await analyzeRemoteUrl(sourceUrl, payload.filters || {});
+        const normalized = normalizeAnalysisResult(analyzed);
+        const candidates = normalized.results;
+
+        if (normalized.pagination && Number.isFinite(normalized.pagination.total)) {
+          hasPaginationMeta = true;
+          totalAvailable += normalized.pagination.total;
+        } else {
+          knownTotal = false;
+          totalAvailable += candidates.length;
+        }
+
+        for (const candidate of candidates) {
+          if (results.length >= MAX_RESULTS_PER_REQUEST) {
+            truncated = true;
+            break;
+          }
+          results.push(candidate);
+        }
+
+        if (results.length >= MAX_RESULTS_PER_REQUEST) break;
       }
+
+      const total = hasPaginationMeta && knownTotal ? totalAvailable : null;
+      const hasMore = total !== null
+        ? requestedOffset + results.length < total
+        : truncated;
 
       return jsonResponse({
         ok: true,
         version: WORKER_VERSION,
         count: results.length,
-        truncated: urls.length > MAX_URLS_PER_REQUEST,
+        total,
+        offset: requestedOffset,
+        limit: requestedLimit,
+        hasMore,
+        truncated,
         results
       }, 200, cors);
     } catch (error) {
@@ -142,11 +181,37 @@ async function analyzeRemoteUrl(sourceUrl, filters) {
     return buildErrorCandidate(response.finalUrl || normalizedUrl, "Page vide ou non HTML.");
   }
 
+  if (isOpaleBdAgendaList(response.finalUrl || normalizedUrl, response.html)) {
+    return analyzeOpaleBdAgendaList(response.html, {
+      sourceUrl: response.finalUrl || normalizedUrl,
+      filters,
+      httpStatus: response.status
+    });
+  }
+
   return extractCandidateFromHtml(response.html, {
     sourceUrl: response.finalUrl || normalizedUrl,
     filters,
     httpStatus: response.status
   });
+}
+
+function normalizeAnalysisResult(analyzed) {
+  if (Array.isArray(analyzed)) {
+    return { results: analyzed, pagination: null };
+  }
+
+  if (analyzed && Array.isArray(analyzed.results)) {
+    return {
+      results: analyzed.results,
+      pagination: analyzed.pagination || null
+    };
+  }
+
+  return {
+    results: analyzed ? [analyzed] : [],
+    pagination: null
+  };
 }
 
 async function fetchHtml(url) {
@@ -236,6 +301,240 @@ function extractCandidateFromHtml(html, options = {}) {
   candidate.adminText = buildAdminText(candidate);
 
   return candidate;
+}
+
+async function analyzeOpaleBdAgendaList(html, options = {}) {
+  const rows = extractOpaleBdAgendaRows(html, options.sourceUrl);
+  const filteredRows = filterOpaleBdRows(rows, options.filters || {});
+  const offset = normalizeResultOffset(options.filters?.offset);
+  const limit = normalizeResultLimit(options.filters?.limit);
+  const selectedRows = filteredRows.slice(offset, offset + limit);
+  const pagination = {
+    total: filteredRows.length,
+    offset,
+    limit,
+    hasMore: offset + selectedRows.length < filteredRows.length
+  };
+
+  if (!selectedRows.length) {
+    if (filteredRows.length) {
+      return { results: [], pagination };
+    }
+
+    return {
+      results: [buildErrorCandidate(options.sourceUrl, "Aucune fiche événement Opale BD détectée dans cette page.")],
+      pagination
+    };
+  }
+
+  const results = [];
+  for (const row of selectedRows) {
+    let detail = null;
+    try {
+      detail = await fetchHtml(row.sourceUrl);
+    } catch {
+      detail = null;
+    }
+
+    results.push(buildOpaleBdCandidate(row, detail?.html || "", {
+      filters: options.filters || {},
+      httpStatus: detail?.status || options.httpStatus || null
+    }));
+  }
+
+  return {
+    results,
+    pagination
+  };
+}
+
+function normalizeResultOffset(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return 0;
+  return Math.floor(number);
+}
+
+function normalizeResultLimit(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return MAX_OPALE_LIST_DETAILS;
+  return Math.max(1, Math.min(MAX_OPALE_LIST_DETAILS, Math.floor(number)));
+}
+
+function isOpaleBdAgendaList(url, html) {
+  let host = "";
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    host = "";
+  }
+
+  return host.includes("opalebd.com") &&
+    String(html || "").includes('id="liste_agenda"') &&
+    /\/festivals\/details\/[0-9]+/i.test(String(html || ""));
+}
+
+function extractOpaleBdAgendaRows(html, sourceUrl) {
+  const rows = [];
+  const rowMatches = [...String(html || "").matchAll(/<tr[^>]*class=["'](?:odd|even)["'][^>]*>([\s\S]*?)<\/tr>/gi)];
+
+  for (const rowMatch of rowMatches) {
+    const rowHtml = rowMatch[1] || "";
+    const detailHref = firstMatch(rowHtml, /<td[^>]*class=["']appelation["'][\s\S]*?<a[^>]+href=["']([^"']*\/festivals\/details\/[0-9]+)["'][^>]*>/i);
+    if (!detailHref) continue;
+
+    const cityBlock = firstMatch(rowHtml, /<td[^>]*class=["']lieu["'][\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i);
+    const titleBlock = firstMatch(rowHtml, /<td[^>]*class=["']appelation["'][\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i);
+    const dateBlock = firstMatch(rowHtml, /<td[^>]*class=["']date["'][^>]*>\s*<p>([\s\S]*?)<\/p>/i);
+    const countryId = firstMatch(rowHtml, /\/festivals\/naviguation\/pays\/([0-9]+)/i) ||
+      firstMatch(rowHtml, /\/festivals\/navigation\/pays\/([0-9]+)/i);
+    const categoryId = firstMatch(rowHtml, /manifestations_categories\/c([0-9]+)\.png/i);
+    const locationParts = htmlFragmentToLines(cityBlock);
+    const titleLines = htmlFragmentToLines(titleBlock);
+    const dateRange = detectDateRange(htmlToText(dateBlock));
+
+    rows.push({
+      title: cleanOpaleBdTitle(titleLines.join(" ")),
+      type: mapOpaleBdCategory(categoryId, titleLines.join(" ")),
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+      city: normalizeOpaleBdCity(locationParts[0]),
+      territory: cleanText(locationParts[1] || ""),
+      country: mapOpaleBdCountry(countryId),
+      sourceUrl: absolutizeUrl(detailHref, sourceUrl),
+      evidence: cleanText(`${locationParts.join(" · ")} · ${titleLines.join(" ")} · ${htmlToText(dateBlock)}`),
+      extractionMethod: "opale-bd-list"
+    });
+  }
+
+  return rows;
+}
+
+function filterOpaleBdRows(rows, filters) {
+  const country = String(filters.country || "Tous");
+  const type = String(filters.type || "Tous");
+
+  return rows.filter((row) => {
+    if (country !== "Tous" && row.country && row.country !== country) return false;
+    if (type === "Salons / festivals" && !["Salon", "Festival"].includes(row.type)) return false;
+    if (type === "Dédicaces" && row.type !== "Dédicace") return false;
+    if (type === "Rencontres" && row.type !== "Rencontre") return false;
+    return true;
+  });
+}
+
+function buildOpaleBdCandidate(row, detailHtml, options = {}) {
+  const meta = extractMeta(detailHtml);
+  const detailText = htmlToText(detailHtml);
+  const h1 = cleanText(firstMatch(detailHtml, /<h1[^>]*class=["']niveau1["'][^>]*>([\s\S]*?)<\/h1>/i));
+  const officialUrl = absolutizeUrl(firstMatch(detailHtml, /Son site officiel\s*:\s*<a[^>]+href=["']([^"']+)["']/i), row.sourceUrl);
+  const imageUrl = absolutizeUrl(pick(
+    meta["og:image"],
+    firstMatch(detailHtml, /<img[^>]+id=["']affiche["'][^>]+src=["']([^"']+)["']/i),
+    firstMatch(detailHtml, /<a[^>]+rel=["']lightbox["'][^>]+href=["']([^"']+)["']/i)
+  ), row.sourceUrl).replace(/\?[0-9.]+(\?[0-9.]+)?$/, "");
+  const organization = cleanText(firstMatch(detailHtml, /<li>\s*<b>Organisation\s*:<\/b>\s*([\s\S]*?)<\/li>/i));
+  const authors = extractOpaleBdAuthors(detailHtml);
+  const detailTitle = extractOpaleBdDetailTitle(h1, meta["og:title"]);
+
+  const candidate = {
+    title: cleanText(pick(detailTitle, row.title)),
+    type: row.type,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    time: detectTime(detailText),
+    venue: "",
+    city: row.city,
+    territory: row.territory,
+    country: row.country,
+    address: "",
+    officialUrl: officialUrl || row.sourceUrl,
+    imageUrl,
+    description: buildOpaleBdNeutralDescription(row, organization),
+    organizer: organization,
+    authors,
+    sourceUrl: row.sourceUrl,
+    fetchedAt: new Date().toISOString(),
+    extractionMethod: detailHtml ? "opale-bd-list-detail" : "opale-bd-list",
+    evidence: limitText(row.evidence, 260),
+    httpStatus: options.httpStatus || null
+  };
+
+  candidate.missingFields = getMissingFields(candidate);
+  candidate.filterWarnings = getFilterWarnings(candidate, options.filters || {});
+  candidate.confidence = calculateConfidence(candidate, Boolean(detailHtml)) + (row.extractionMethod === "opale-bd-list" ? 4 : 0);
+  candidate.confidence = Math.max(0, Math.min(100, candidate.confidence));
+  candidate.status = getStatus(candidate);
+  candidate.adminText = buildAdminText(candidate);
+
+  return candidate;
+}
+
+function extractOpaleBdDetailTitle(h1, ogTitle) {
+  const source = cleanText(pick(h1, ogTitle));
+  const split = source.split(/\s+-\s+/);
+  return cleanOpaleBdTitle(split.length > 1 ? split.slice(1).join(" - ") : source);
+}
+
+function extractOpaleBdAuthors(html) {
+  const authors = [];
+  const matches = [...String(html || "").matchAll(/<div[^>]*class=["']liste_syle_metro["'][\s\S]*?<b>([\s\S]*?)<\/b>/gi)];
+
+  for (const match of matches) {
+    const parts = htmlFragmentToLines(match[1]).map(cleanText).filter(Boolean);
+    const name = parts.length > 1 ? `${toTitleCase(parts[1])} ${toTitleCase(parts[0])}` : toTitleCase(parts[0] || "");
+    if (name && !authors.includes(name)) authors.push(name);
+  }
+
+  return authors.slice(0, 10);
+}
+
+function buildOpaleBdNeutralDescription(row, organization) {
+  return limitText([
+    `${row.title} est référencé sur Opale BD à ${row.city || "ville à préciser"}.`,
+    organization ? `Organisation indiquée : ${organization}.` : "",
+    "Fiche candidate à compléter et vérifier sur la source officielle avant publication sur Dédicalivres."
+  ].filter(Boolean).join(" "), 520);
+}
+
+function htmlFragmentToLines(value) {
+  return htmlToText(String(value || "").replace(/<br\s*\/?>/gi, "\n"))
+    .split("\n")
+    .map((line) => cleanText(line))
+    .filter(Boolean);
+}
+
+function cleanOpaleBdTitle(value) {
+  return cleanText(value)
+    .replace(/\(\s*[0-9]+(?:er|ère|eme|ème|éme|e)?\s+édition\s*\)/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function normalizeOpaleBdCity(value) {
+  return toTitleCase(cleanText(value));
+}
+
+function mapOpaleBdCountry(countryId) {
+  const id = String(countryId || "");
+  if (id === "1") return "France";
+  if (id === "2") return "Belgique";
+  if (id === "3") return "Suisse";
+  if (id === "4") return "Luxembourg";
+  return "";
+}
+
+function mapOpaleBdCategory(categoryId, text) {
+  const value = normalizeForSearch(text);
+  if (value.includes("dedicace")) return "Dédicace";
+  if (value.includes("rencontre")) return "Rencontre";
+  if (value.includes("salon")) return "Salon";
+  if (value.includes("festival") || value.includes("week-end") || value.includes("manga")) return "Festival";
+  if (String(categoryId || "") === "5") return "Salon";
+  return "Festival";
+}
+
+function toTitleCase(value) {
+  return cleanText(value).toLocaleLowerCase("fr-FR").replace(/(^|[\s'’-])([a-zà-öø-ÿ])/g, (match, before, letter) => `${before}${letter.toLocaleUpperCase("fr-FR")}`);
 }
 
 function extractJsonLdEvents(html) {
@@ -348,6 +647,15 @@ function detectDateRange(text) {
   const value = String(text || "");
   const isoRange = value.match(/\b(20[0-9]{2}-[01][0-9]-[0-3][0-9])(?:\s*(?:au|to|->|→|-|–)\s*(20[0-9]{2}-[01][0-9]-[0-3][0-9]))?/i);
   if (isoRange) return { startDate: isoRange[1], endDate: isoRange[2] || "" };
+
+  const months = "janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre";
+  const frenchCrossMonthRange = value.match(new RegExp(`\\bdu\\s+([0-3]?[0-9])\\s+(${months})\\s+au\\s+([0-3]?[0-9])\\s+(${months})\\s+(20[0-9]{2})`, "i"));
+  if (frenchCrossMonthRange) {
+    return {
+      startDate: makeIsoDate(frenchCrossMonthRange[5], frenchCrossMonthRange[2], frenchCrossMonthRange[1]),
+      endDate: makeIsoDate(frenchCrossMonthRange[5], frenchCrossMonthRange[4], frenchCrossMonthRange[3])
+    };
+  }
 
   const frenchRange = value.match(/\b(?:du\s*)?([0-3]?[0-9])(?:\s*(?:au|et|-|–)\s*([0-3]?[0-9]))?\s+(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\s+(20[0-9]{2})/i);
   if (frenchRange) {
@@ -524,12 +832,13 @@ async function assertAdminRequest(request, env) {
   const authorization = request.headers.get("authorization") || "";
   const tokenMatch = authorization.match(/^Bearer\s+(.+)$/i);
   const accessToken = tokenMatch?.[1]?.trim() || "";
+  const publicKey = env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!accessToken) throw httpError(401, "Session administrateur absente.");
 
   const authResponse = await fetch(`${trimTrailingSlash(env.SUPABASE_URL)}/auth/v1/user`, {
     headers: {
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      apikey: publicKey,
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/json"
     }
@@ -545,11 +854,7 @@ async function assertAdminRequest(request, env) {
   adminUrl.searchParams.set("limit", "1");
 
   const adminsResponse = await fetch(adminUrl.toString(), {
-    headers: {
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-      Accept: "application/json"
-    }
+    headers: buildSupabaseAdminHeaders(env.SUPABASE_SERVICE_ROLE_KEY)
   });
 
   if (!adminsResponse.ok) throw httpError(403, "Vérification admin impossible.");
@@ -557,6 +862,21 @@ async function assertAdminRequest(request, env) {
   if (!Array.isArray(admins) || !admins.length) throw httpError(403, "Droits administrateur requis.");
 
   return user;
+}
+
+function buildSupabaseAdminHeaders(serviceKey) {
+  const headers = {
+    apikey: serviceKey,
+    Accept: "application/json"
+  };
+
+  // Les nouvelles clés sb_secret_ ne sont pas des JWT. Supabase les accepte
+  // via l'en-tête apikey, mais pas comme Bearer JWT.
+  if (!String(serviceKey || "").startsWith("sb_secret_")) {
+    headers.Authorization = `Bearer ${serviceKey}`;
+  }
+
+  return headers;
 }
 
 async function readJsonBody(request) {
@@ -634,6 +954,7 @@ function jsonResponse(payload, status, headers = {}) {
 function assertEnv(env) {
   const missing = [];
   if (!env.SUPABASE_URL) missing.push("SUPABASE_URL");
+  if (!env.SUPABASE_PUBLISHABLE_KEY && !env.SUPABASE_ANON_KEY) missing.push("SUPABASE_PUBLISHABLE_KEY");
   if (!env.SUPABASE_SERVICE_ROLE_KEY) missing.push("SUPABASE_SERVICE_ROLE_KEY");
   if (missing.length) throw httpError(500, `Configuration Worker incomplète : ${missing.join(", ")}`);
 }
