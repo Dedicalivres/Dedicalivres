@@ -3590,10 +3590,19 @@ function getExportFileUrl(filename) {
   return `${getExportsBaseUrl()}/${String(filename).replace(/^\/+/, "")}`;
 }
 
+function getExportsWorkerBaseUrl() {
+  return getExportsBaseUrl().replace(/\/exports$/i, "");
+}
+
 function bindAdminExportsPanel() {
   document.getElementById("exports-refresh-btn")?.addEventListener("click", async () => {
     if (!(await ensureAdminSession())) return;
     await loadAdminExportsDashboard(true);
+  });
+
+  document.getElementById("exports-regenerate-btn")?.addEventListener("click", async () => {
+    if (!(await ensureAdminSession())) return;
+    await regenerateAdminLatestExports();
   });
 
   document.getElementById("exports-preview-select")?.addEventListener("change", async () => {
@@ -3784,6 +3793,51 @@ async function loadAdminExportsDashboard(force = false) {
     }
     showToast("Erreur chargement exports");
   } finally {
+    if (refreshButton) refreshButton.disabled = false;
+  }
+}
+
+async function regenerateAdminLatestExports() {
+  const status = document.getElementById("exports-status");
+  const regenerateButton = document.getElementById("exports-regenerate-btn");
+  const refreshButton = document.getElementById("exports-refresh-btn");
+
+  if (status) status.textContent = "Régénération des exports...";
+  if (regenerateButton) regenerateButton.disabled = true;
+  if (refreshButton) refreshButton.disabled = true;
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+
+    const accessToken = data?.session?.access_token;
+    if (!accessToken) throw new Error("Session admin introuvable.");
+
+    const response = await fetch(`${getExportsWorkerBaseUrl()}/admin-regenerate`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ source: "dedicalivres-admin" }),
+      cache: "no-store"
+    });
+
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.ok) {
+      throw new Error(result?.error || `HTTP ${response.status}`);
+    }
+
+    adminExportsLoadedAt = null;
+    if (status) status.textContent = `Exports régénérés : ${formatExportDateTime(result.generated_at)}`;
+    showToast("Exports latest régénérés");
+    await loadAdminExportsDashboard(true);
+  } catch (error) {
+    console.warn("Régénération exports impossible", error);
+    if (status) status.textContent = "Régénération impossible";
+    showToast(`Erreur régénération : ${error.message || error}`);
+  } finally {
+    if (regenerateButton) regenerateButton.disabled = false;
     if (refreshButton) refreshButton.disabled = false;
   }
 }
