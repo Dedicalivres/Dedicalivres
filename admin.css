@@ -2079,6 +2079,191 @@ button.pending[data-author-action="pending"] {
   font-weight: 800;
 }
 
+.exports-inventory-section {
+  margin-top: 22px;
+  padding: 18px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(25,215,255,.10), transparent 34%),
+    rgba(255,255,255,.045);
+  border: 1px solid rgba(25,215,255,.18);
+}
+
+.exports-inventory-toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.exports-inventory-toolbar label {
+  display: grid;
+  gap: 6px;
+  color: var(--cyber-muted);
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.exports-inventory-toolbar input,
+.exports-inventory-toolbar select {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid rgba(25,215,255,.18);
+  border-radius: 14px;
+  padding: 0 12px;
+  background: rgba(255,255,255,.92);
+  color: #06111f;
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.exports-inventory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+
+.exports-inventory-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 16px;
+}
+
+.exports-inventory-summary span {
+  padding: 8px 11px;
+  border-radius: 999px;
+  color: var(--cyber-text);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  font-size: .78rem;
+  font-weight: 900;
+}
+
+.exports-inventory-list {
+  display: grid;
+  gap: 14px;
+  max-height: 720px;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.exports-inventory-group {
+  display: grid;
+  gap: 10px;
+}
+
+.exports-inventory-group h5 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 0 2px;
+  color: var(--cyber-cyan);
+  font-size: .95rem;
+  font-weight: 900;
+}
+
+.exports-inventory-group h5 small {
+  color: var(--cyber-muted);
+  font-size: .75rem;
+}
+
+.exports-inventory-group-list {
+  display: grid;
+  gap: 10px;
+}
+
+.exports-inventory-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(190px, .85fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  border-radius: 18px;
+  background: rgba(4,12,18,.58);
+  border: 1px solid rgba(25,215,255,.12);
+}
+
+.exports-inventory-row-main,
+.exports-inventory-row-meta {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.exports-inventory-row strong {
+  color: var(--cyber-text);
+  font-size: .95rem;
+  line-height: 1.25;
+}
+
+.exports-inventory-row span {
+  color: var(--cyber-muted);
+  font-size: .8rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.exports-inventory-status {
+  justify-self: start;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #bfffea !important;
+  background: rgba(25,255,156,.10);
+  border: 1px solid rgba(25,255,156,.16);
+  font-weight: 900;
+}
+
+.exports-inventory-status-pending {
+  color: #ffd58c !important;
+  background: rgba(255,170,20,.12);
+  border-color: rgba(255,170,20,.20);
+}
+
+.exports-inventory-status-rejected {
+  color: #ffb4bd !important;
+  background: rgba(255,71,87,.13);
+  border-color: rgba(255,71,87,.22);
+}
+
+.exports-inventory-status-featured {
+  color: #d7c7ff !important;
+  background: rgba(170,91,255,.14);
+  border-color: rgba(170,91,255,.24);
+}
+
+.exports-inventory-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.exports-inventory-row-actions button,
+.exports-inventory-row-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(25,215,255,.18);
+  background: rgba(25,215,255,.08);
+  color: var(--cyber-cyan);
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+
 .exports-preview-toolbar {
   display: flex;
   align-items: center;
@@ -2121,12 +2306,21 @@ button.pending[data-author-action="pending"] {
 @media (max-width: 680px) {
   .exports-actions a,
   .exports-actions button,
+  .exports-inventory-actions button,
   .exports-preview-toolbar button {
     width: 100%;
   }
 
   .exports-preview-toolbar select {
     width: 100%;
+  }
+
+  .exports-inventory-row {
+    grid-template-columns: 1fr;
+  }
+
+  .exports-inventory-row-actions {
+    justify-content: flex-start;
   }
 }
 

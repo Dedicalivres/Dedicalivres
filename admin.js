@@ -103,8 +103,9 @@ let editCityAutocompleteTimer = null;
 let editCitySuggestionCache = new Map();
 let originalEditLocationSignature = "";
 
-const ADMIN_MODULE_VERSION = "10.16-admin-relocalisation-fix";
+const ADMIN_MODULE_VERSION = "10.17-exports-events-inventory";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
+const ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY = "dedicalivres_admin_inventory_departments_v1";
 const adminModerationCounters = {
   events: 0,
   testimonials: 0,
@@ -708,6 +709,7 @@ function bindTabs() {
 
     if (target === "exports") {
       loadAdminExportsDashboard();
+      loadAdminEventsInventory();
     }
   });
 }
@@ -2904,7 +2906,9 @@ function renderSocialUpcoming() {
 /* MODAL */
 
 function openEditModal(id) {
-  const event = allEvents.find((item) => String(item.id) === String(id));
+  const event =
+    allEvents.find((item) => String(item.id) === String(id)) ||
+    adminInventoryEvents.find((item) => String(item.id) === String(id));
   if (!event) return;
 
   editId.value = event.id || "";
@@ -3097,12 +3101,16 @@ async function fetchFrenchCitySuggestions(query, limit) {
         const city = properties.city || properties.municipality || properties.name || "";
         const postcode = properties.postcode || "";
         const region = extractFrenchRegion(properties.context || "");
+        const department = extractFrenchDepartment(properties.context || "");
+        const departmentCode = extractFrenchDepartmentCode(properties.context || "");
         const label = [city, postcode, properties.context].filter(Boolean).join(" — ");
 
         return {
           label,
           city,
           region,
+          department,
+          departmentCode,
           countryCode: "FR",
           lat: Number(coords[1]),
           lng: Number(coords[0])
@@ -3248,6 +3256,22 @@ function extractFrenchRegion(context) {
     .map((item) => item.trim())
     .filter(Boolean);
   return parts[parts.length - 1] || "";
+}
+
+function extractFrenchDepartment(context) {
+  const parts = String(context || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return parts.length >= 3 ? parts[1] : "";
+}
+
+function extractFrenchDepartmentCode(context) {
+  const parts = String(context || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return /^[0-9AB]{2,3}$/i.test(parts[0] || "") ? parts[0].toUpperCase() : "";
 }
 
 function normalizeAdminCountryCode(value) {
@@ -3554,6 +3578,9 @@ let adminExportsCache = {
   salons: null,
   autres: null
 };
+let adminInventoryEvents = [];
+let adminInventoryLoadedAt = null;
+let adminInventoryLastText = "";
 
 function getExportsBaseUrl() {
   return String(config.exportsBaseUrl || DEFAULT_EXPORTS_BASE_URL).replace(/\/+$/, "");
@@ -3591,6 +3618,40 @@ function bindAdminExportsPanel() {
 
   hydrateAdminExportLinks();
   bindAdminExternalExportLinks();
+  bindAdminEventsInventoryPanel();
+}
+
+function bindAdminEventsInventoryPanel() {
+  const refreshButton = document.getElementById("exports-inventory-refresh-btn");
+  const enrichButton = document.getElementById("exports-inventory-enrich-btn");
+  const copyButton = document.getElementById("exports-inventory-copy-btn");
+  const csvButton = document.getElementById("exports-inventory-csv-btn");
+  const filterIds = [
+    "exports-inventory-search",
+    "exports-inventory-country",
+    "exports-inventory-status-filter",
+    "exports-inventory-type",
+    "exports-inventory-group"
+  ];
+
+  refreshButton?.addEventListener("click", async () => {
+    if (!(await ensureAdminSession())) return;
+    await loadAdminEventsInventory(true);
+  });
+
+  enrichButton?.addEventListener("click", async () => {
+    if (!(await ensureAdminSession())) return;
+    await enrichAdminInventoryDepartments();
+  });
+
+  copyButton?.addEventListener("click", copyAdminInventoryList);
+  csvButton?.addEventListener("click", downloadAdminInventoryCsv);
+
+  filterIds.forEach((id) => {
+    const element = document.getElementById(id);
+    const eventName = element?.tagName === "INPUT" ? "input" : "change";
+    element?.addEventListener(eventName, renderAdminEventsInventory);
+  });
 }
 
 function hydrateAdminExportLinks() {
@@ -3644,6 +3705,9 @@ function bindAdminExternalExportLinks() {
 function resetAdminExportsPanel() {
   adminExportsLoadedAt = null;
   adminExportsLastPreview = "";
+  adminInventoryEvents = [];
+  adminInventoryLoadedAt = null;
+  adminInventoryLastText = "";
   adminExportsCache = {
     global: null,
     dedicaces: null,
@@ -3671,6 +3735,16 @@ function resetAdminExportsPanel() {
 
   const preview = document.getElementById("exports-preview");
   if (preview) preview.textContent = "Sélectionne “Vérifier les exports” pour charger l’aperçu.";
+
+  setText("exports-inventory-status", "Non chargé");
+  setText("exports-inventory-count", "— événement");
+  setText("exports-inventory-duplicates", "— doublon probable");
+  setText("exports-inventory-enriched", "Départements locaux : —");
+
+  const inventory = document.getElementById("exports-inventory-list");
+  if (inventory) {
+    inventory.innerHTML = `<p class="priority-empty">Charge l’inventaire pour consulter les événements enregistrés.</p>`;
+  }
 }
 
 async function loadAdminExportsDashboard(force = false) {
@@ -3712,6 +3786,492 @@ async function loadAdminExportsDashboard(force = false) {
   } finally {
     if (refreshButton) refreshButton.disabled = false;
   }
+}
+
+async function loadAdminEventsInventory(force = false) {
+  if (!window.DEDICALIVRES_ADMIN_AUTHENTICATED) return;
+
+  if (adminInventoryLoadedAt && !force && Date.now() - adminInventoryLoadedAt < 60000) {
+    renderAdminEventsInventory();
+    return;
+  }
+
+  const status = document.getElementById("exports-inventory-status");
+  const refreshButton = document.getElementById("exports-inventory-refresh-btn");
+
+  if (status) status.textContent = "Chargement...";
+  if (refreshButton) refreshButton.disabled = true;
+
+  try {
+    adminInventoryEvents = await fetchAdminInventoryEvents();
+    adminInventoryLoadedAt = Date.now();
+    renderAdminEventsInventory();
+    if (status) status.textContent = `${adminInventoryEvents.length} fiches`;
+  } catch (error) {
+    console.warn("Inventaire événements indisponible", error);
+    adminInventoryEvents = [];
+    adminInventoryLoadedAt = null;
+    renderAdminEventsInventory();
+    if (status) status.textContent = "Erreur";
+    const container = document.getElementById("exports-inventory-list");
+    if (container) {
+      container.innerHTML = `<p class="priority-empty">Inventaire indisponible : ${escapeHtml(error.message || error)}</p>`;
+    }
+    showToast("Erreur chargement inventaire");
+  } finally {
+    if (refreshButton) refreshButton.disabled = false;
+  }
+}
+
+async function fetchAdminInventoryEvents() {
+  const pageSize = 1000;
+  const rows = [];
+
+  for (let from = 0; from < 10000; from += pageSize) {
+    const to = from + pageSize - 1;
+    const { data, error } = await supabaseClient
+      .from("events")
+      .select(ADMIN_EVENTS_COLUMNS)
+      .order("start_date", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+
+    const chunk = Array.isArray(data) ? data : [];
+    rows.push(...chunk);
+
+    if (chunk.length < pageSize) break;
+  }
+
+  return rows;
+}
+
+function renderAdminEventsInventory() {
+  const container = document.getElementById("exports-inventory-list");
+  if (!container) return;
+
+  const cache = readAdminInventoryDepartmentCache();
+  const filteredEvents = getAdminInventoryFilteredEvents();
+  const duplicateGroups = getAdminInventoryDuplicateGroups(filteredEvents);
+  const view = document.getElementById("exports-inventory-group")?.value || "department";
+
+  setText(
+    "exports-inventory-count",
+    `${filteredEvents.length} événement${filteredEvents.length > 1 ? "s" : ""} affiché${filteredEvents.length > 1 ? "s" : ""} / ${adminInventoryEvents.length}`
+  );
+  setText(
+    "exports-inventory-duplicates",
+    `${duplicateGroups.length} groupe${duplicateGroups.length > 1 ? "s" : ""} doublon probable`
+  );
+  setText("exports-inventory-enriched", `Départements locaux : ${Object.keys(cache).length}`);
+
+  if (!adminInventoryEvents.length) {
+    adminInventoryLastText = "";
+    container.innerHTML = `<p class="priority-empty">Charge l’inventaire pour consulter les événements enregistrés.</p>`;
+    return;
+  }
+
+  if (!filteredEvents.length) {
+    adminInventoryLastText = "";
+    container.innerHTML = `<p class="priority-empty">Aucun événement ne correspond aux filtres.</p>`;
+    return;
+  }
+
+  if (view === "duplicates") {
+    renderAdminInventoryDuplicateGroups(container, duplicateGroups);
+    return;
+  }
+
+  const groups = view === "date"
+    ? groupAdminInventoryByDate(filteredEvents)
+    : groupAdminInventoryByDepartment(filteredEvents);
+
+  adminInventoryLastText = buildAdminInventoryText(groups);
+  container.innerHTML = groups.map(renderAdminInventoryGroup).join("");
+  bindAdminInventoryRowActions();
+}
+
+function getAdminInventoryFilteredEvents() {
+  const search = normalizeSearchText(document.getElementById("exports-inventory-search")?.value || "");
+  const country = document.getElementById("exports-inventory-country")?.value || "";
+  const status = document.getElementById("exports-inventory-status-filter")?.value || "";
+  const type = normalizeSearchText(document.getElementById("exports-inventory-type")?.value || "");
+
+  return adminInventoryEvents.filter((event) => {
+    const eventCountry = normalizeAdminCountryCode(event.country_code || "FR");
+    const eventType = normalizeSearchText(event.type || "");
+    const department = getAdminInventoryDepartment(event);
+    const haystack = normalizeSearchText([
+      event.title,
+      event.type,
+      event.city,
+      event.region,
+      department,
+      getAdminCountryName(eventCountry),
+      event.start_date,
+      event.end_date,
+      event.website
+    ].join(" "));
+
+    if (country && eventCountry !== country) return false;
+    if (type && eventType !== type) return false;
+    if (status && getAdminInventoryStatusKey(event) !== status) return false;
+    if (search && !haystack.includes(search)) return false;
+
+    return true;
+  });
+}
+
+function groupAdminInventoryByDepartment(events) {
+  const map = new Map();
+
+  events.forEach((event) => {
+    const key = getAdminInventoryDepartment(event);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(event);
+  });
+
+  return Array.from(map.entries())
+    .map(([label, rows]) => ({ label, rows }))
+    .sort((a, b) => a.label.localeCompare(b.label, "fr"));
+}
+
+function groupAdminInventoryByDate(events) {
+  const map = new Map();
+
+  events.forEach((event) => {
+    const date = event.start_date ? new Date(`${String(event.start_date).slice(0, 10)}T00:00:00`) : null;
+    const label = date && !Number.isNaN(date.getTime())
+      ? new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(date)
+      : "Date à préciser";
+
+    if (!map.has(label)) map.set(label, []);
+    map.get(label).push(event);
+  });
+
+  return Array.from(map.entries()).map(([label, rows]) => ({ label, rows }));
+}
+
+function renderAdminInventoryDuplicateGroups(container, duplicateGroups) {
+  if (!duplicateGroups.length) {
+    adminInventoryLastText = "";
+    container.innerHTML = `<p class="priority-empty">Aucun doublon probable détecté avec les filtres actuels.</p>`;
+    return;
+  }
+
+  const groups = duplicateGroups.map((rows, index) => ({
+    label: `Doublon probable ${index + 1}`,
+    rows
+  }));
+
+  adminInventoryLastText = buildAdminInventoryText(groups);
+  container.innerHTML = groups.map(renderAdminInventoryGroup).join("");
+  bindAdminInventoryRowActions();
+}
+
+function renderAdminInventoryGroup(group) {
+  return `
+    <section class="exports-inventory-group">
+      <h5>
+        <span>${escapeHtml(group.label)}</span>
+        <small>${group.rows.length} événement${group.rows.length > 1 ? "s" : ""}</small>
+      </h5>
+      <div class="exports-inventory-group-list">
+        ${group.rows.map(renderAdminInventoryRow).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderAdminInventoryRow(event) {
+  const id = escapeAttr(event.id || "");
+  const title = escapeHtml(event.title || "Sans titre");
+  const type = cleanLabel(event.type || "Type à préciser");
+  const status = getAdminInventoryStatusLabel(event);
+  const country = getAdminCountryName(event.country_code || "FR");
+  const department = getAdminInventoryDepartment(event);
+  const date = formatAdminInventoryDateRange(event);
+  const place = [event.city, event.region, country].filter(Boolean).map(cleanLabel).join(" · ");
+  const source = event.website ? cleanLabel(event.website) : "Site non renseigné";
+  const eventUrl = `event.html?id=${encodeURIComponent(event.id || "")}`;
+
+  return `
+    <article class="exports-inventory-row">
+      <div class="exports-inventory-row-main">
+        <strong>${title}</strong>
+        <span>${escapeHtml(type)} · ${escapeHtml(date || "Date à préciser")}</span>
+        <span>${escapeHtml(place || "Lieu à préciser")}</span>
+      </div>
+      <div class="exports-inventory-row-meta">
+        <span class="exports-inventory-status exports-inventory-status-${escapeAttr(getAdminInventoryStatusKey(event))}">${escapeHtml(status)}</span>
+        <span>${escapeHtml(department)}</span>
+        <span>${escapeHtml(source)}</span>
+      </div>
+      <div class="exports-inventory-row-actions">
+        <button type="button" data-inventory-edit="${id}">Modifier</button>
+        <a href="${escapeAttr(eventUrl)}" target="_blank" rel="noopener noreferrer">Voir</a>
+      </div>
+    </article>
+  `;
+}
+
+function bindAdminInventoryRowActions() {
+  document.querySelectorAll("[data-inventory-edit]").forEach((button) => {
+    if (button.dataset.inventoryBound === "true") return;
+    button.dataset.inventoryBound = "true";
+    button.addEventListener("click", async () => {
+      if (!(await ensureAdminSession())) return;
+      openEditModal(button.dataset.inventoryEdit);
+    });
+  });
+}
+
+function getAdminInventoryDuplicateGroups(events) {
+  const map = new Map();
+
+  events.forEach((event) => {
+    const key = [
+      normalizeSearchText(event.title || ""),
+      normalizeSearchText(event.city || ""),
+      String(event.start_date || "").slice(0, 10)
+    ].join("|");
+
+    if (key.replace(/\|/g, "").length < 6) return;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(event);
+  });
+
+  return Array.from(map.values()).filter((rows) => rows.length > 1);
+}
+
+function getAdminInventoryStatusKey(event) {
+  if (event?.rejected) return "rejected";
+  if (event?.featured) return "featured";
+  if (event?.validated) return "validated";
+  return "pending";
+}
+
+function getAdminInventoryStatusLabel(event) {
+  return {
+    rejected: "Refusé",
+    featured: "Mis en avant",
+    validated: "Validé",
+    pending: "En attente"
+  }[getAdminInventoryStatusKey(event)] || "À vérifier";
+}
+
+function formatAdminInventoryDateRange(event) {
+  const start = formatDate(event.start_date);
+  const end = formatDate(event.end_date);
+
+  if (start && end && start !== end) return `${start} → ${end}`;
+  return start || end || "";
+}
+
+function getAdminInventoryDepartment(event) {
+  const explicitDepartment =
+    event.department ||
+    event.departement ||
+    event.department_name ||
+    event.departement_nom;
+
+  if (explicitDepartment) return cleanLabel(explicitDepartment);
+
+  const countryCode = normalizeAdminCountryCode(event.country_code || "FR");
+  const cache = readAdminInventoryDepartmentCache();
+  const cacheItem = cache[getAdminInventoryDepartmentCacheKey(event)];
+
+  if (cacheItem?.label) return cleanLabel(cacheItem.label);
+
+  if (countryCode !== "FR") {
+    return cleanLabel(event.region || getAdminCountryName(countryCode) || "Territoire à préciser");
+  }
+
+  return cleanLabel(event.region ? `${event.region} · département à préciser` : "Département à préciser");
+}
+
+function getAdminInventoryDepartmentCacheKey(event) {
+  return [
+    normalizeAdminCountryCode(event?.country_code || "FR"),
+    normalizeSearchText(event?.city || ""),
+    normalizeSearchText(event?.region || "")
+  ].join("|");
+}
+
+function readAdminInventoryDepartmentCache() {
+  try {
+    return JSON.parse(localStorage.getItem(ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY) || "{}") || {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function writeAdminInventoryDepartmentCache(cache) {
+  try {
+    localStorage.setItem(ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY, JSON.stringify(cache || {}));
+  } catch (error) {
+    console.warn("Cache départements inventaire indisponible", error);
+  }
+}
+
+async function enrichAdminInventoryDepartments() {
+  if (!adminInventoryEvents.length) {
+    showToast("Charge l’inventaire avant enrichissement");
+    return;
+  }
+
+  const button = document.getElementById("exports-inventory-enrich-btn");
+  const status = document.getElementById("exports-inventory-status");
+  const cache = readAdminInventoryDepartmentCache();
+  const candidates = adminInventoryEvents.filter((event) => {
+    const countryCode = normalizeAdminCountryCode(event.country_code || "FR");
+    return countryCode === "FR" && event.city && !cache[getAdminInventoryDepartmentCacheKey(event)];
+  });
+  const limitedCandidates = candidates.slice(0, 80);
+  let enriched = 0;
+
+  if (!limitedCandidates.length) {
+    showToast("Départements déjà enrichis");
+    renderAdminEventsInventory();
+    return;
+  }
+
+  if (button) button.disabled = true;
+
+  try {
+    for (let index = 0; index < limitedCandidates.length; index += 1) {
+      const event = limitedCandidates[index];
+      if (status) status.textContent = `Enrichissement ${index + 1}/${limitedCandidates.length}`;
+
+      const suggestions = await fetchAdminCitySuggestions(event.city, "FR", 3);
+      const suggestion = suggestions.find((item) => normalizeSearchText(item.city) === normalizeSearchText(event.city)) || suggestions[0];
+      const departmentLabel = formatAdminInventoryDepartmentLabel(suggestion);
+
+      if (departmentLabel) {
+        cache[getAdminInventoryDepartmentCacheKey(event)] = {
+          label: departmentLabel,
+          department: suggestion.department || "",
+          code: suggestion.departmentCode || "",
+          updatedAt: new Date().toISOString()
+        };
+        enriched += 1;
+      }
+
+      await waitAdminInventory(80);
+    }
+
+    writeAdminInventoryDepartmentCache(cache);
+    renderAdminEventsInventory();
+    showToast(`${enriched} département${enriched > 1 ? "s" : ""} enrichi${enriched > 1 ? "s" : ""}`);
+  } catch (error) {
+    console.warn("Enrichissement départements impossible", error);
+    showToast("Enrichissement interrompu");
+  } finally {
+    if (status) status.textContent = `${adminInventoryEvents.length} fiches`;
+    if (button) button.disabled = false;
+  }
+}
+
+function formatAdminInventoryDepartmentLabel(suggestion) {
+  if (!suggestion?.department && !suggestion?.departmentCode) return "";
+  return [suggestion.departmentCode, suggestion.department].filter(Boolean).join(" - ");
+}
+
+function waitAdminInventory(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function buildAdminInventoryText(groups) {
+  return groups.map((group) => {
+    const lines = group.rows.map((event) => {
+      const parts = [
+        event.title || "Sans titre",
+        event.type || "Type à préciser",
+        formatAdminInventoryDateRange(event) || "Date à préciser",
+        [event.city, event.region, getAdminCountryName(event.country_code || "FR")].filter(Boolean).join(" · ") || "Lieu à préciser",
+        getAdminInventoryStatusLabel(event),
+        event.website || "Site non renseigné",
+        `Fiche : https://dedicalivres.fr/event.html?id=${event.id || ""}`
+      ];
+
+      return `- ${parts.join(" | ")}`;
+    });
+
+    return `${group.label}\n${lines.join("\n")}`;
+  }).join("\n\n");
+}
+
+async function copyAdminInventoryList() {
+  if (!adminInventoryLastText) renderAdminEventsInventory();
+
+  if (!adminInventoryLastText) {
+    showToast("Aucune liste à copier");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(adminInventoryLastText);
+  } catch (error) {
+    fallbackCopyText(adminInventoryLastText);
+  }
+
+  showToast("Inventaire copié");
+}
+
+function downloadAdminInventoryCsv() {
+  const events = getAdminInventoryFilteredEvents();
+
+  if (!events.length) {
+    showToast("Aucun événement à exporter");
+    return;
+  }
+
+  const headers = [
+    "id",
+    "titre",
+    "type",
+    "statut",
+    "date_debut",
+    "date_fin",
+    "ville",
+    "departement_territoire",
+    "region",
+    "pays",
+    "site",
+    "fiche"
+  ];
+  const rows = events.map((event) => [
+    event.id || "",
+    event.title || "",
+    event.type || "",
+    getAdminInventoryStatusLabel(event),
+    event.start_date || "",
+    event.end_date || "",
+    event.city || "",
+    getAdminInventoryDepartment(event),
+    event.region || "",
+    getAdminCountryName(event.country_code || "FR"),
+    event.website || "",
+    `https://dedicalivres.fr/event.html?id=${event.id || ""}`
+  ]);
+  const csv = `\uFEFF${[headers, ...rows].map((row) => row.map(escapeAdminCsvCell).join(";")).join("\n")}`;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `dedicalivres-inventaire-evenements-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast("CSV inventaire généré");
+}
+
+function escapeAdminCsvCell(value) {
+  const text = String(value ?? "").replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim();
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
 async function fetchAdminExportJson(filename) {

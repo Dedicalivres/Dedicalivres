@@ -21,7 +21,7 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=9.1-exports-red-visible" />
+  <link rel="stylesheet" href="admin.css?v=9.2-events-inventory" />
   <link rel="stylesheet" href="admin-cockpit.css?v=2.1-exports-red-visible" />
 </head>
 
@@ -557,6 +557,83 @@
           </article>
         </div>
 
+        <section class="exports-inventory-section" aria-labelledby="exports-inventory-title">
+          <div class="exports-layout-head">
+            <div>
+              <h4 id="exports-inventory-title">INVENTAIRE ÉVÉNEMENTS</h4>
+              <p>Liste de contrôle consultable, triable et exportable pour repérer les doublons et préparer les publications par département ou territoire.</p>
+            </div>
+            <span id="exports-inventory-status" class="exports-layout-badge">Non chargé</span>
+          </div>
+
+          <div class="exports-inventory-toolbar">
+            <label>
+              <span>Recherche</span>
+              <input id="exports-inventory-search" type="search" placeholder="Titre, ville, département..." />
+            </label>
+
+            <label>
+              <span>Pays</span>
+              <select id="exports-inventory-country">
+                <option value="">Tous</option>
+                <option value="FR">France</option>
+                <option value="BE">Belgique</option>
+                <option value="LU">Luxembourg</option>
+                <option value="CH">Suisse</option>
+                <option value="MC">Monaco</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Statut</span>
+              <select id="exports-inventory-status-filter">
+                <option value="">Tous</option>
+                <option value="validated">Validés</option>
+                <option value="pending">En attente</option>
+                <option value="rejected">Refusés</option>
+                <option value="featured">Mis en avant</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Type</span>
+              <select id="exports-inventory-type">
+                <option value="">Tous</option>
+                <option>Salon</option>
+                <option>Festival</option>
+                <option>Dédicace</option>
+                <option>Autre</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Vue</span>
+              <select id="exports-inventory-group">
+                <option value="department">Département / territoire</option>
+                <option value="date">Date</option>
+                <option value="duplicates">Doublons probables</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="exports-inventory-actions">
+            <button id="exports-inventory-refresh-btn" class="cyber-btn-primary" type="button">Charger l’inventaire</button>
+            <button id="exports-inventory-enrich-btn" class="cyber-btn-secondary" type="button">Enrichir départements</button>
+            <button id="exports-inventory-copy-btn" class="cyber-btn-secondary" type="button">Copier la liste</button>
+            <button id="exports-inventory-csv-btn" class="cyber-btn-secondary exports-file-button" type="button">CSV inventaire</button>
+          </div>
+
+          <div class="exports-inventory-summary">
+            <span id="exports-inventory-count">— événement</span>
+            <span id="exports-inventory-duplicates">— doublon probable</span>
+            <span id="exports-inventory-enriched">Départements locaux : —</span>
+          </div>
+
+          <div id="exports-inventory-list" class="exports-inventory-list">
+            <p class="priority-empty">Charge l’inventaire pour consulter les événements enregistrés.</p>
+          </div>
+        </section>
+
         <div class="exports-preview-toolbar">
           <label for="exports-preview-select">Aperçu rapide</label>
           <select id="exports-preview-select">
@@ -782,7 +859,7 @@
 ></script>
 
 <script src="config.js?v=shared-client-1"></script>
-<script src="admin.js?v=control-center-14-admin-relocalisation-fix"></script>
+<script src="admin.js?v=control-center-15-events-inventory"></script>
 
 </body>
 </html>
