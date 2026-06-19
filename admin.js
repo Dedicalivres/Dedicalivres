@@ -103,7 +103,7 @@ let editCityAutocompleteTimer = null;
 let editCitySuggestionCache = new Map();
 let originalEditLocationSignature = "";
 
-const ADMIN_MODULE_VERSION = "10.15-watch-pagination-total";
+const ADMIN_MODULE_VERSION = "10.16-admin-relocalisation-fix";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const adminModerationCounters = {
   events: 0,
@@ -2999,7 +2999,13 @@ async function handleEditCityChange() {
 }
 
 async function handleEditRelocateClick() {
-  await relocateEditLocation({ forceMessage: true });
+  try {
+    await relocateEditLocation({ forceMessage: true });
+  } catch (error) {
+    console.error("Relocalisation admin :", error);
+    setEditCityHelp("Relocalisation indisponible pour le moment. Vérifie la ville puis réessaie.", "error");
+    showToast("Relocalisation impossible");
+  }
 }
 
 async function relocateEditLocation(options = {}) {
@@ -3056,6 +3062,23 @@ async function fetchAdminCitySuggestions(query, countryCode, limit = 6) {
 
   editCitySuggestionCache.set(cacheKey, suggestions);
   return suggestions;
+}
+
+async function geocodeAdminMunicipality(query, countryCode) {
+  const value = String(query || "").trim();
+  if (value.length < 2) return null;
+
+  const suggestions = await fetchAdminCitySuggestions(value, countryCode, 8);
+  if (!suggestions.length) return null;
+
+  const normalizedValue = normalizeSearchText(value);
+  const exact = suggestions.find((suggestion) => {
+    return normalizeSearchText(suggestion.city) === normalizedValue ||
+      normalizeSearchText(suggestion.label).startsWith(`${normalizedValue} `) ||
+      normalizeSearchText(suggestion.label).startsWith(`${normalizedValue} -`);
+  });
+
+  return exact || suggestions[0] || null;
 }
 
 async function fetchFrenchCitySuggestions(query, limit) {
