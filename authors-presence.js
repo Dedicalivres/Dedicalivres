@@ -45,7 +45,7 @@
   async function initAuthorPresence() {
     const { data: event, error } = await supabaseClient
       .from("events")
-      .select("id, title, validated, rejected, start_date, end_date, city, country_code, region, website")
+      .select("id, title, validated, rejected, start_date, end_date, city, region, website")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -190,6 +190,15 @@
           partie auteurs, sans modifier automatiquement l’affichage public actuel.
         </p>
 
+        <label class="legal-consent">
+          <input name="legal_accept" type="checkbox" required />
+          <span>
+            J’autorise l’association Dédicalivres à relire, modérer et publier cette présence auteur
+            ainsi que les liens ou portraits transmis, dans le cadre de l’agenda littéraire.
+            <a href="conditions-utilisation.html" target="_blank" rel="noopener noreferrer">Conditions d’utilisation</a>
+          </span>
+        </label>
+
         <button class="btn-primary" type="submit">Indiquer ma présence</button>
         <p id="author-presence-feedback" aria-live="polite"></p>
       </form>
@@ -223,6 +232,10 @@
       const portraitFile = formData.get("author_portrait");
 
       try {
+        if (formData.get("legal_accept") !== "on") {
+          throw new Error("Merci de valider l’autorisation de relecture, modération et publication avant l’envoi.");
+        }
+
         if (pseudo.length < 2) throw new Error("Merci d’indiquer un pseudo valide.");
         if (authorProfileUrl && !isValidUrl(authorProfileUrl)) throw new Error("Merci d’indiquer un lien auteur valide ou de laisser le champ vide.");
         if (bookOrPublisherUrl && !isValidUrl(bookOrPublisherUrl)) throw new Error("Merci d’indiquer un second lien valide ou de laisser le champ vide.");
@@ -438,16 +451,15 @@
 
     if (event.start_date) schema.startDate = event.start_date;
     if (event.end_date) schema.endDate = event.end_date;
-    if (event.city || event.region || event.country_code) {
-      const countryName = window.DEDICALIVRES_GEO?.getCountryName(event.country_code) || undefined;
+    if (event.city || event.region) {
       schema.location = {
         "@type": "Place",
-        "name": [event.city, event.region, countryName].filter(Boolean).join(", "),
+        "name": [event.city, event.region].filter(Boolean).join(", "),
         "address": {
           "@type": "PostalAddress",
           "addressLocality": event.city || undefined,
           "addressRegion": event.region || undefined,
-          "addressCountry": countryName
+          "addressCountry": "FR"
         }
       };
     }

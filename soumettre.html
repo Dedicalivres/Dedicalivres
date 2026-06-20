@@ -9,15 +9,15 @@
   <link rel="canonical" href="https://dedicalivres.fr/soumettre" />
   <meta name="theme-color" content="#3a1c71" />
   <meta property="og:title" content="Soumettre un événement — Dédicalivres" />
-  <meta property="og:description" content="Ajoutez gratuitement un événement littéraire à l’agenda de l’association Dédicalivres après relecture." />
+  <meta property="og:description" content="Ajoutez un événement littéraire à l’agenda Dédicalivres après relecture." />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://dedicalivres.fr/assets/brand/dedicalivres-association-light.png" />
+  <meta property="og:image" content="https://dedicalivres.fr/banner2.jpg" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="style.css?v=v1-francophone-20260615" />
+  <link rel="stylesheet" href="style.css?v=author-portrait-v2-1" />
   <link rel="stylesheet" href="mascot-guide.css?v=guide-4" />
 </head>
 
@@ -40,11 +40,11 @@
 
 <main class="container submit-page-main">
   <section class="seo-hero submit-hero">
-    <p class="category-kicker">Contribuer à l’agenda associatif</p>
+    <p class="category-kicker">Contribution gratuite</p>
     <h1>Proposer un événement littéraire</h1>
     <p>
       Salon, festival, séance de dédicace, rencontre avec un auteur ou rendez-vous autour du livre :
-      envoyez les informations utiles. L’association les relira avant publication.
+      envoyez les informations utiles, elles seront relues avant publication.
     </p>
   </section>
 
@@ -52,8 +52,8 @@
     <aside class="submit-side-card">
       <strong>Un formulaire clair, une mise en ligne maîtrisée.</strong>
       <p>
-        Notre objectif associatif est simple : garder un agenda fiable pour les lecteurs,
-        sans perdre les organisateurs dans des étapes inutiles.
+        L’objectif est simple : garder un agenda fiable pour les lecteurs, sans perdre les
+        organisateurs dans des étapes inutiles.
       </p>
       <ul>
         <li>Soumission gratuite</li>
@@ -84,37 +84,41 @@
         </label>
 
         <label>
-          <span>Pays</span>
-          <select name="country_code" id="country-submit" required>
-            <option value="FR">France</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="form-grid-2">
-        <label>
-          <span id="region-submit-label">Région</span>
+          <span>Région</span>
           <select name="region" id="region-submit" required>
             <option value="">Choisir</option>
+            <option>Auvergne-Rhône-Alpes</option>
+            <option>Bourgogne-Franche-Comté</option>
+            <option>Bretagne</option>
+            <option>Centre-Val de Loire</option>
+            <option>Corse</option>
+            <option>Grand Est</option>
+            <option>Hauts-de-France</option>
+            <option>Île-de-France</option>
+            <option>Normandie</option>
+            <option>Nouvelle-Aquitaine</option>
+            <option>Occitanie</option>
+            <option>Pays de la Loire</option>
+            <option>Provence-Alpes-Côte d’Azur</option>
           </select>
         </label>
-
-        <label class="city-autocomplete-wrap">
-          <span>Ville / commune</span>
-          <input
-            id="city-input"
-            name="city"
-            list="city-suggestions"
-            placeholder="Commencez à taper puis choisissez la localité"
-            autocomplete="off"
-            required
-          />
-          <datalist id="city-suggestions"></datalist>
-          <small id="city-help" class="field-help">
-            La localité sert à placer correctement l’événement sur la carte.
-          </small>
-        </label>
       </div>
+
+      <label class="city-autocomplete-wrap">
+        <span>Ville</span>
+        <input
+          id="city-input"
+          name="city"
+          list="city-suggestions"
+          placeholder="Commencez à taper puis choisissez la commune"
+          autocomplete="off"
+          required
+        />
+        <datalist id="city-suggestions"></datalist>
+        <small id="city-help" class="field-help">
+          La ville sert à placer correctement l’événement sur la carte.
+        </small>
+      </label>
 
       <input type="hidden" name="lat" id="city-lat" />
       <input type="hidden" name="lng" id="city-lng" />
@@ -155,10 +159,10 @@
       <section id="dedicace-author-fields" class="submission-author-panel" hidden>
         <div class="submission-author-intro">
           <p class="category-kicker">Auteur de la dédicace</p>
-          <h3>Associer l’auteur à cet événement</h3>
+          <h3>Préparer le portrait auteur pour la galerie V2</h3>
           <p>
-            Pour une dédicace, vous pouvez transmettre le nom, un lien et un portrait.
-            Ces éléments seront vérifiés avant publication et prépareront la galerie auteurs.
+            Si votre événement est une dédicace, vous pouvez associer un nom d’auteur
+            et un portrait. L’image sera conservée pour la future galerie auteurs.
           </p>
         </div>
 
@@ -193,16 +197,45 @@
         <div id="image-preview" class="image-preview"></div>
       </div>
 
+      <label class="legal-consent">
+        <input name="legal_accept" type="checkbox" required />
+        <span>
+          J’autorise l’association Dédicalivres à relire, modérer et publier ce contenu
+          sur le site ainsi que sur ses supports de communication, dans le cadre de l’agenda littéraire.
+          <a href="conditions-utilisation.html" target="_blank" rel="noopener noreferrer">Conditions d’utilisation</a>
+        </span>
+      </label>
+
       <button type="submit">Envoyer la proposition</button>
       <p id="form-feedback" class="form-feedback" aria-live="polite"></p>
     </form>
   </section>
 </main>
 
+<footer class="site-footer site-footer-compact container" aria-label="Pied de page Dédicalivres">
+  <div class="site-footer-card">
+    <div class="site-footer-brand">
+      <strong>Association Dédicalivres</strong>
+      <p>Agenda participatif des rencontres autour du livre dans l’espace francophone.</p>
+      <nav class="site-footer-nav site-footer-legal" aria-label="Navigation secondaire et légale">
+        <a href="index.html#agenda">Agenda</a>
+        <a href="soumettre.html">Soumettre</a>
+        <a href="mentions-legales.html">Mentions légales</a>
+        <a href="confidentialite.html">Confidentialité</a>
+        <a href="conditions-utilisation.html">Conditions d’utilisation</a>
+      </nav>
+      <p class="site-footer-small">
+        Informations participatives vérifiées avant publication. Pour une correction ou un retrait :
+        <a href="mailto:dedicalivres@gmail.com">dedicalivres@gmail.com</a>.
+      </p>
+    </div>
+  </div>
+</footer>
+
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js?v=shared-client-1"></script>
-<script src="geography.js?v=v1-francophone-20260615"></script>
-<script src="app.js?v=v1-francophone-20260616-cityfix"></script>
+<script src="app.js?v=author-portrait-v2-1"></script>
 <script src="tracking-v4.js?v=shared-client-1"></script>
 <script>
 (function () {

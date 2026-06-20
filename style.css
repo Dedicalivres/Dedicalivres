@@ -3468,6 +3468,15 @@ button:active,
   box-shadow: 0 18px 46px rgba(58,28,113,.12);
 }
 
+.site-footer-compact .site-footer-card {
+  grid-template-columns: 1fr;
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.site-footer-compact .site-footer-brand p {
+  max-width: 760px;
+}
+
 .home-magazine-card {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
@@ -6745,4 +6754,102 @@ body.testimonials-page .testimonials-empty a:visited {
   .submission-form .image-preview .detail-image-frame {
     height: clamp(138px, 44vw, 190px);
   }
+}
+
+/* =========================================================
+   CADRE LEGAL ET CONSENTEMENTS
+========================================================= */
+
+.legal-page .legal-content {
+  padding-top: clamp(28px, 4vw, 52px);
+}
+
+.legal-hero {
+  margin-bottom: clamp(20px, 4vw, 34px);
+}
+
+.legal-card {
+  padding: clamp(22px, 3.4vw, 34px);
+  margin: 0 0 18px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(255,107,53,.10), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,.96), rgba(249,244,252,.84));
+  border: 1px solid rgba(58,28,113,.10);
+  box-shadow: 0 14px 36px rgba(58,28,113,.10);
+}
+
+.legal-card h2 {
+  margin: 0 0 12px;
+  color: var(--purple);
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.55rem, 2.5vw, 2.15rem);
+}
+
+.legal-card p,
+.legal-card li {
+  color: #4f465f;
+  font-weight: 650;
+  line-height: 1.65;
+}
+
+.legal-card ul {
+  margin: 10px 0 0;
+  padding-left: 1.15rem;
+}
+
+.legal-card a,
+.legal-card a:visited,
+.legal-consent a,
+.legal-consent a:visited {
+  color: var(--purple);
+  font-weight: 900;
+  text-decoration-color: rgba(255,107,53,.55);
+  text-underline-offset: 3px;
+}
+
+.legal-consent {
+  display: grid !important;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.78);
+  border: 1px solid rgba(58,28,113,.12);
+  color: #4f465f;
+  font-size: .95rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.legal-consent input[type="checkbox"] {
+  width: 20px !important;
+  height: 20px !important;
+  margin-top: 2px;
+  accent-color: var(--purple);
+}
+
+.legal-consent span {
+  min-width: 0;
+}
+
+.site-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 14px;
+  font-size: .9rem;
+}
+
+.site-footer-legal a,
+.site-footer-legal a:visited {
+  color: var(--muted);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.site-footer-legal a:hover,
+.site-footer-legal a:focus-visible {
+  color: var(--purple);
 }

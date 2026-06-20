@@ -4,46 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Dédicalivres — Association et agenda littéraire francophone</title>
+  <title>Dédicalivres — Agenda des événements littéraires</title>
 
   <meta
     name="description"
-    content="L’association Dédicalivres rassemble les salons du livre, festivals, dédicaces et rencontres d’auteurs en France, Belgique, Luxembourg, Suisse et Monaco."
+    content="Agenda des salons du livre, festivals littéraires, dédicaces et rencontres littéraires partout en France."
   />
   <link rel="canonical" href="https://dedicalivres.fr/" />
   <meta name="theme-color" content="#3a1c71" />
-  <meta property="og:title" content="Dédicalivres — Association et agenda littéraire francophone" />
+  <meta property="og:title" content="Dédicalivres — Agenda des événements littéraires" />
   <meta
     property="og:description"
-    content="L’association qui rapproche les lecteurs des auteurs grâce à un agenda littéraire francophone participatif et vérifié."
+    content="Trouvez les salons du livre, festivals littéraires, dédicaces et rencontres avec des auteurs partout en France."
   />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://dedicalivres.fr/" />
-  <meta property="og:image" content="https://dedicalivres.fr/assets/brand/dedicalivres-association-light.png" />
+  <meta property="og:image" content="https://dedicalivres.fr/banner2.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
 
   <script type="application/ld+json">
   {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "@id": "https://dedicalivres.fr/#association",
-        "name": "Dédicalivres",
-        "url": "https://dedicalivres.fr/",
-        "logo": "https://dedicalivres.fr/assets/brand/dedicalivres-association-light.png",
-        "description": "Association dédiée à la visibilité des rencontres littéraires francophones."
-      },
-      {
-        "@type": "WebSite",
-        "@id": "https://dedicalivres.fr/#website",
-        "name": "Dédicalivres",
-        "url": "https://dedicalivres.fr/",
-        "publisher": {
-          "@id": "https://dedicalivres.fr/#association"
-        }
-      }
-    ]
+    "@context":"https://schema.org",
+    "@type":"WebSite",
+    "name":"Dédicalivres",
+    "url":"https://dedicalivres.fr"
   }
   </script>
 
@@ -55,9 +39,9 @@
     rel="stylesheet"
   />
 
-  <link rel="preload" as="image" href="assets/brand/dedicalivres-association-transparent.png?v=association-2" />
+  <link rel="preload" as="image" href="banner2.jpg?v=full-optim-1" />
 
-  <link rel="stylesheet" href="style.css?v=v1-francophone-20260615" />
+  <link rel="stylesheet" href="style.css?v=author-portrait-v2-1" />
   <link rel="stylesheet" href="mascot-guide.css?v=guide-4" />
 </head>
 
@@ -81,35 +65,16 @@
   </div>
 </header>
 
-<section class="hero hero-home hero-banner-menu association-hero" aria-label="Dédicalivres, association littéraire francophone">
-  <div class="association-hero-backdrop">
-    <div class="association-hero-copy">
-      <p class="association-hero-kicker">Association culturelle francophone</p>
-      <strong>Le livre crée des rencontres. Nous les rendons visibles.</strong>
-      <p>
-        Un agenda participatif et vérifié pour rapprocher lecteurs, auteurs,
-        librairies et organisateurs.
-      </p>
-    </div>
-
-    <div class="association-hero-brand">
-      <img
-        src="assets/brand/dedicalivres-association-transparent.png?v=association-2"
-        width="1000"
-        height="760"
-        alt="Dédicalivres Association, l’agenda qui rapproche les lecteurs des auteurs"
-        decoding="async"
-        fetchpriority="high"
-      />
-    </div>
-
-    <div class="association-hero-territories">
-      <span>Agenda littéraire francophone</span>
-      <p>France · Belgique · Luxembourg · Suisse · Monaco</p>
-      <small>Salons, festivals, dédicaces et rencontres d’auteurs.</small>
-      <a href="#agenda">Explorer l’agenda</a>
-    </div>
-  </div>
+<section class="hero hero-home hero-banner-menu" aria-label="Bannière Dédicalivres">
+  <img
+    class="hero-banner-image"
+    src="banner2.jpg?v=full-optim-1"
+    width="1983"
+    height="793"
+    alt="Dédicalivres, agenda littéraire en France"
+    decoding="async"
+    fetchpriority="high"
+  />
 
   <nav class="hero-picto-nav" aria-label="Accès rapides Dédicalivres">
     <a class="hero-picto-button" href="#agenda">
@@ -190,12 +155,12 @@
 <section class="home-magazine container" aria-labelledby="home-magazine-title">
   <div class="home-magazine-card">
     <div>
-      <p class="home-magazine-kicker">Une association au service du livre</p>
+      <p class="home-magazine-kicker">Agenda littéraire vivant</p>
       <h1 id="home-magazine-title">Trouvez votre prochaine rencontre autour du livre.</h1>
       <p>
         Salons du livre, festivals littéraires, séances de dédicace et rencontres d’auteurs :
-        l’association Dédicalivres rassemble les rendez-vous à venir pour aider chacun
-        à choisir, sauvegarder et partager les événements qui comptent.
+        Dédicalivres rassemble les rendez-vous à venir pour vous aider à choisir, sauvegarder
+        et partager les événements qui comptent.
       </p>
 
       <div class="home-magazine-actions">
@@ -347,12 +312,21 @@
         placeholder="Rechercher un événement, une ville…"
       />
 
-      <select id="country-filter" aria-label="Filtrer par pays">
-        <option value="">Tous les pays</option>
-      </select>
-
       <select id="region-filter">
-        <option value="">Toutes les subdivisions</option>
+        <option value="">Toutes les régions</option>
+        <option>Auvergne-Rhône-Alpes</option>
+        <option>Bourgogne-Franche-Comté</option>
+        <option>Bretagne</option>
+        <option>Centre-Val de Loire</option>
+        <option>Corse</option>
+        <option>Grand Est</option>
+        <option>Hauts-de-France</option>
+        <option>Île-de-France</option>
+        <option>Normandie</option>
+        <option>Nouvelle-Aquitaine</option>
+        <option>Occitanie</option>
+        <option>Pays de la Loire</option>
+        <option>Provence-Alpes-Côte d’Azur</option>
       </select>
 
       <select id="type-filter">
@@ -400,65 +374,42 @@
 
   <section class="site-manifest">
     <p>
-      <strong>L’association Dédicalivres valorise chaque acteur du livre.</strong>
+      <strong>Dédicalivres valorise chaque acteur du livre.</strong>
       Auteurs autoédités, auteurs publiés, librairies, organisateurs,
       festivals et lecteurs participent tous à faire vivre les rencontres
-      littéraires en France, Belgique, Luxembourg, Suisse et Monaco.
+      littéraires.
     </p>
   </section>
 
 
 </main>
 
-
-<footer class="site-footer container" aria-label="Pied de page Dédicalivres">
+<footer class="site-footer site-footer-compact container" aria-label="Pied de page Dédicalivres">
   <div class="site-footer-card">
     <div class="site-footer-brand">
       <strong>Association Dédicalivres</strong>
-      <p>
-        Une association indépendante qui facilite la découverte des salons du livre,
-        festivals, dédicaces et rencontres d’auteurs dans l’espace francophone.
-      </p>
-
-      <nav class="site-footer-nav" aria-label="Navigation secondaire">
+      <p>Agenda participatif des rencontres autour du livre dans l’espace francophone.</p>
+      <nav class="site-footer-nav site-footer-legal" aria-label="Navigation secondaire et légale">
         <a href="index.html#agenda">Agenda</a>
-        <a href="salons-du-livre.html">Salons & Festivals</a>
-        <a href="dedicaces.html">Dédicaces</a>
-        <a href="temoignages.html">Témoignages</a>
         <a href="soumettre.html">Soumettre</a>
+        <a href="mentions-legales.html">Mentions légales</a>
+        <a href="confidentialite.html">Confidentialité</a>
+        <a href="conditions-utilisation.html">Conditions d’utilisation</a>
       </nav>
-
-      <nav class="site-footer-country-nav" aria-label="Agendas littéraires par pays">
-        <a href="index.html?country=FR#agenda">France</a>
-        <a href="evenements-litteraires-belgique.html">Belgique</a>
-        <a href="evenements-litteraires-luxembourg.html">Luxembourg</a>
-        <a href="evenements-litteraires-suisse.html">Suisse</a>
-        <a href="evenements-litteraires-monaco.html">Monaco</a>
-      </nav>
+      <p class="site-footer-small">
+        Informations participatives vérifiées avant publication. Pour une correction ou un retrait :
+        <a href="mailto:dedicalivres@gmail.com">dedicalivres@gmail.com</a>.
+      </p>
     </div>
-
-    <div class="site-footer-contact">
-      <a class="btn-primary" href="mailto:dedicalivres@gmail.com?subject=Contact%20D%C3%A9dicalivres">
-        Contacter Dédicalivres
-      </a>
-      <a class="btn-secondary" href="https://www.instagram.com/dedicalivres/" target="_blank" rel="noopener noreferrer">
-        Instagram @dedicalivres
-      </a>
-    </div>
-
-    <p class="site-footer-small">
-      Informations participatives vérifiées avant publication. Pour une information officielle,
-      consultez toujours le site de l’événement ou de l’organisateur.
-    </p>
   </div>
 </footer>
+
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="config.js?v=shared-client-1"></script>
-<script src="geography.js?v=v1-francophone-20260615"></script>
-<script src="app.js?v=v1-francophone-20260616-cityfix"></script>
+<script src="app.js?v=author-portrait-v2-1"></script>
 
 <script src="tracking-v4.js?v=shared-client-1"></script>
 <script src="ui-effects-v6.js?v=7.7.5"></script>
@@ -489,7 +440,7 @@
   loadScript("mascot-guide.js?v=shared-client-1");
 
   onIdle(function () {
-    loadScript("author-search-index.js?v=v1-francophone-20260615");
+    loadScript("author-search-index.js?v=author-portrait-v2-1");
 
     if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
       loadScript("custom-cursor.js?v=7.7.5");

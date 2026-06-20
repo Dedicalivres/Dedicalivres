@@ -164,6 +164,11 @@
       const eventTitle = cleanText(formData.get("event_title"));
       const message = cleanText(formData.get("message"));
 
+      if (formData.get("legal_accept") !== "on") {
+        setFeedback("Merci de valider l’autorisation de relecture, modération et publication avant l’envoi.", "error");
+        return;
+      }
+
       if (pseudo.length < 2) {
         setFeedback("Merci d’indiquer un prénom ou pseudo.", "error");
         return;
