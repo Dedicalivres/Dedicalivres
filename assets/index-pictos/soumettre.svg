@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 118 118" role="img" aria-label="Soumettre">
+  <defs>
+    <radialGradient id="submit-bg" cx="50%" cy="45%" r="58%">
+      <stop offset="0%" stop-color="#fbf6ff"/>
+      <stop offset="100%" stop-color="#f0e4f6"/>
+    </radialGradient>
+  </defs>
+  <circle cx="59" cy="59" r="55" fill="#fffdfc"/>
+  <circle cx="59" cy="59" r="43" fill="url(#submit-bg)"/>
+  <g fill="#4b1f7a">
+    <path d="M19 55c6-8 14-13 24-14l13 13-13 13c-9 0-18-4-24-12z"/>
+    <path d="M99 55c-6-8-14-13-24-14L62 54l13 13c9 0 18-4 24-12z"/>
+    <path d="M43 50c4-4 9-6 15-6h8c3 0 5 2 6 4 1 2 0 5-2 7l-4 4 7 7c2 2 2 5 0 7l-2 2c-2 2-5 2-7 0l-5-5-5 5c-2 2-5 2-7 0l-2-2c-2-2-2-5 0-7l6-6-8-10z"/>
+    <path d="M42 70l6 6c2 2 5 2 7 0l4-4 4 4c2 2 5 2 7 0l6-6-6-6-7 7-4-4-4 4-7-7-6 6z" opacity=".9"/>
+  </g>
+  <path d="M40 50l18 18 20-18" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".36"/>
+</svg>

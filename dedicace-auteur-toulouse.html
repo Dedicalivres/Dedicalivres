@@ -10,7 +10,7 @@
 <meta property="og:title" content="Dédicaces d’auteurs à Toulouse — Auteurs indépendants et auto-édités" />
   <meta property="og:description" content="Agenda des dédicaces d’auteurs à Toulouse : auteurs indépendants, auteurs auto-édités, librairies, salons et rencontres littéraires." />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://dedicalivres.fr/banner2.jpg" />
+  <meta property="og:image" content="banner.jpg" />
 
   <script type="application/ld+json">
   {
@@ -29,14 +29,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=fav-anim-1" />
+  <link rel="stylesheet" href="style.css?v=v1-francophone-20260615" />
 </head>
 
 <body data-city="Toulouse" data-event-type="Dédicace">
 
 <header class="header">
   <div class="container header-inner">
-    <a href="index.html"><img src="logo.png" class="logo" width="52" height="52" alt="Dédicalivres" /></a>
+    <a href="index.html"><img src="logo.png" class="logo" alt="Dédicalivres" /></a>
     <nav>
       <a href="index.html">Accueil</a>
       <a href="salons-du-livre.html">Salons</a>
@@ -81,13 +81,29 @@
     <div class="site-footer-brand">
       <strong>Association Dédicalivres</strong>
       <p>Agenda participatif des rencontres autour du livre dans l’espace francophone.</p>
-      <nav class="site-footer-nav site-footer-legal" aria-label="Navigation secondaire et légale">
+
+      <nav class="site-footer-nav" aria-label="Navigation secondaire">
         <a href="index.html#agenda">Agenda</a>
+        <a href="salons-du-livre.html">Salons & Festivals</a>
+        <a href="dedicaces.html">Dédicaces</a>
+        <a href="temoignages.html">Témoignages</a>
         <a href="soumettre.html">Soumettre</a>
+      </nav>
+
+      <nav class="site-footer-country-nav" aria-label="Agendas littéraires par pays">
+        <a href="index.html?country=FR#agenda">France</a>
+        <a href="evenements-litteraires-belgique.html">Belgique</a>
+        <a href="evenements-litteraires-luxembourg.html">Luxembourg</a>
+        <a href="evenements-litteraires-suisse.html">Suisse</a>
+        <a href="evenements-litteraires-monaco.html">Monaco</a>
+      </nav>
+
+      <nav class="site-footer-nav site-footer-legal" aria-label="Navigation légale">
         <a href="mentions-legales.html">Mentions légales</a>
         <a href="confidentialite.html">Confidentialité</a>
         <a href="conditions-utilisation.html">Conditions d’utilisation</a>
       </nav>
+
       <p class="site-footer-small">
         Informations participatives vérifiées avant publication. Pour une correction ou un retrait :
         <a href="mailto:dedicalivres@gmail.com">dedicalivres@gmail.com</a>.
@@ -96,11 +112,10 @@
   </div>
 </footer>
 
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=shared-client-1"></script>
-<script src="tracking-v4.js?v=shared-client-1"></script>
-<script src="seo-pages.js?v=shared-client-1"></script>
+<script src="config.js"></script>
+<script src="geography.js?v=v1-francophone-20260615"></script>
+<script src="seo-pages.js?v=index-optim-10"></script>
 
 </body>
 </html>

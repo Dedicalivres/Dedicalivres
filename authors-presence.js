@@ -45,7 +45,7 @@
   async function initAuthorPresence() {
     const { data: event, error } = await supabaseClient
       .from("events")
-      .select("id, title, validated, rejected, start_date, end_date, city, region, website")
+      .select("id, title, validated, rejected, start_date, end_date, city, country_code, region, website")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -451,15 +451,16 @@
 
     if (event.start_date) schema.startDate = event.start_date;
     if (event.end_date) schema.endDate = event.end_date;
-    if (event.city || event.region) {
+    if (event.city || event.region || event.country_code) {
+      const countryName = window.DEDICALIVRES_GEO?.getCountryName(event.country_code) || undefined;
       schema.location = {
         "@type": "Place",
-        "name": [event.city, event.region].filter(Boolean).join(", "),
+        "name": [event.city, event.region, countryName].filter(Boolean).join(", "),
         "address": {
           "@type": "PostalAddress",
           "addressLocality": event.city || undefined,
           "addressRegion": event.region || undefined,
-          "addressCountry": "FR"
+          "addressCountry": countryName
         }
       };
     }

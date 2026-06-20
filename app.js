@@ -2,6 +2,7 @@
   "use strict";
 
   const config = window.DEDICALIVRES_CONFIG;
+  const geo = window.DEDICALIVRES_GEO;
 
   if (
     !config ||
@@ -43,6 +44,7 @@
   const newsletterFeedback = document.getElementById("newsletter-feedback");
 
   const searchInput = document.getElementById("search-input");
+  const countryFilter = document.getElementById("country-filter");
   const regionFilter = document.getElementById("region-filter");
   const typeFilter = document.getElementById("type-filter");
   const dateFilter = document.getElementById("date-filter");
@@ -63,6 +65,9 @@
   const cityLngInput = document.getElementById("city-lng");
   const cityHelp = document.getElementById("city-help");
   const citySuggestions = document.getElementById("city-suggestions");
+  const countrySubmit = document.getElementById("country-submit");
+  const regionSubmit = document.getElementById("region-submit");
+  const regionSubmitLabel = document.getElementById("region-submit-label");
 
   let map;
   let markersLayer;
@@ -94,6 +99,7 @@
   init();
 
   function init() {
+    initGeographyControls();
     bindEvents();
     bindFavorites();
     bindImagePreview();
@@ -108,21 +114,15 @@
   function initDefaultMapVisibility() {
     if (!mapPanel) return;
 
-    const shouldOpenByDefault =
-      window.matchMedia &&
-      window.matchMedia("(min-width: 781px)").matches;
-
-    mapPanel.classList.toggle("is-open", shouldOpenByDefault);
+    mapPanel.classList.add("is-open");
 
     if (mobileMapToggle) {
-      mobileMapToggle.textContent = shouldOpenByDefault
-        ? "Fermer la carte en direct"
-        : "Carte en direct";
+      mobileMapToggle.textContent = "Fermer la carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", "true");
+      mobileMapToggle.setAttribute("aria-controls", "map-panel");
     }
 
-    if (shouldOpenByDefault) {
-      requestMapRender();
-    }
+    requestMapRender();
   }
 
   function bindEvents() {
@@ -177,6 +177,18 @@
       el?.addEventListener("change", renderFilteredEvents);
     });
 
+    countryFilter?.addEventListener("change", () => {
+      populateAgendaRegionFilter();
+      renderFilteredEvents();
+    });
+
+    countrySubmit?.addEventListener("change", () => {
+      populateSubmissionRegion();
+      clearSelectedCity();
+      clearCitySuggestions();
+      citySuggestionCache.clear();
+    });
+
     dateFilter?.addEventListener("change", () => {
       selectedCalendarDate = "";
       syncCalendarCursorFromMonth(dateFilter.value);
@@ -201,6 +213,90 @@
       });
   }
 
+  function initGeographyControls() {
+    if (!geo) return;
+    const params = new URLSearchParams(window.location.search || "");
+    const requestedCountry = params.get("country") || "";
+    const requestedRegion = params.get("region") || "";
+
+    if (countryFilter) {
+      geo.populateCountrySelect(countryFilter, {
+        includeAll: true,
+        allLabel: "Tous les pays"
+      });
+      if (requestedCountry) {
+        countryFilter.value = geo.normalizeCountryCode(requestedCountry);
+      }
+      populateAgendaRegionFilter();
+      if (
+        requestedRegion &&
+        Array.from(regionFilter?.options || []).some((option) => option.value === requestedRegion)
+      ) {
+        regionFilter.value = requestedRegion;
+      }
+    }
+
+    if (countrySubmit) {
+      geo.populateCountrySelect(countrySubmit, {
+        selected: countrySubmit.value || geo.DEFAULT_COUNTRY_CODE
+      });
+      populateSubmissionRegion();
+    }
+  }
+
+  function populateAgendaRegionFilter() {
+    if (!geo || !regionFilter) return;
+
+    const selectedCountry = countryFilter?.value || "";
+    const selectedRegion = regionFilter.value;
+    regionFilter.innerHTML = "";
+
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = selectedCountry
+      ? `Toutes les ${geo.getSubdivisionLabel(selectedCountry).toLowerCase()}s`
+      : "Tous les territoires";
+    regionFilter.appendChild(emptyOption);
+
+    const countryEntries = selectedCountry
+      ? [[selectedCountry, geo.getCountry(selectedCountry)]]
+      : Object.entries(geo.COUNTRIES);
+
+    countryEntries.forEach(([countryCode, country]) => {
+      const parent = selectedCountry ? regionFilter : document.createElement("optgroup");
+      if (!selectedCountry) parent.label = country.name;
+
+      country.subdivisions.forEach((subdivision) => {
+        const option = document.createElement("option");
+        option.value = subdivision;
+        option.textContent = subdivision;
+        option.dataset.countryCode = countryCode;
+        parent.appendChild(option);
+      });
+
+      if (!selectedCountry) regionFilter.appendChild(parent);
+    });
+
+    if (Array.from(regionFilter.options).some((option) => option.value === selectedRegion)) {
+      regionFilter.value = selectedRegion;
+    }
+  }
+
+  function populateSubmissionRegion() {
+    if (!geo || !regionSubmit || !countrySubmit) return;
+
+    const countryCode = geo.normalizeCountryCode(countrySubmit.value);
+    const currentRegion = regionSubmit.value;
+    geo.populateSubdivisionSelect(regionSubmit, countryCode, {
+      selected: currentRegion,
+      emptyLabel: "Choisir"
+    });
+
+    if (regionSubmitLabel) {
+      regionSubmitLabel.textContent = geo.getSubdivisionLabel(countryCode);
+    }
+  }
+
   function toggleMobileMap() {
     if (!mapPanel) return;
 
@@ -208,9 +304,11 @@
 
     if (mapPanel.classList.contains("is-open")) {
       mobileMapToggle.textContent = "Fermer la carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", "true");
       requestMapRender(filterEvents(allEvents));
     } else {
       mobileMapToggle.textContent = "Carte en direct";
+      mobileMapToggle.setAttribute("aria-expanded", "false");
     }
   }
 
@@ -376,7 +474,12 @@
 
     mapElement.innerHTML = "";
 
-    map = L.map("map").setView([46.603354, 1.888334], 6);
+    const mapView = geo?.getMapView(countryFilter?.value || "") || {
+      center: [47.2, 5.1],
+      zoom: 5
+    };
+
+    map = L.map("map").setView(mapView.center, mapView.zoom);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap contributors"
@@ -394,7 +497,7 @@
 
     const { data, error } = await supabaseClient
       .from("events")
-      .select("id,title,type,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng")
+      .select("id,title,type,country_code,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng")
       .eq("validated", true)
       .eq("rejected", false)
       .order("featured", { ascending: false })
@@ -430,6 +533,7 @@
     const includeMonth = options.includeMonth !== false;
     const includeCalendarDate = options.includeCalendarDate !== false;
     const search = normalize(searchInput?.value || "");
+    const country = countryFilter?.value || "";
     const region = regionFilter?.value || "";
     const type = typeFilter?.value || "";
     const selectedMonth = dateFilter?.value || "";
@@ -451,11 +555,13 @@
         event.title,
         event.city,
         event.region,
+        geo?.getCountryName(event.country_code),
         event.description,
         event.type
       ].join(" "));
 
       if (search && !haystack.includes(search)) return false;
+      if (country && geo?.getCountryCode(event) !== geo.normalizeCountryCode(country)) return false;
       if (region && normalize(event.region) !== normalize(region)) return false;
       if (type && event.type !== type) return false;
       if (selectedMonth && includeMonth && !matchesMonth(event, selectedMonth)) return false;
@@ -856,7 +962,7 @@
             }
 
             <span>
-              📍 ${escapeHtml([event.city, event.region].filter(Boolean).join(", ")) || "Lieu non précisé"}
+              📍 ${escapeHtml(formatEventPlace(event)) || "Lieu non précisé"}
             </span>
           </div>
 
@@ -1058,7 +1164,7 @@
           <strong>${escapeHtml(event.title || "Sans titre")}</strong>
           <span>
             ${escapeHtml(formatDateRange(event.start_date, event.end_date))}
-            ${event.city || event.region ? ` · ${escapeHtml([event.city, event.region].filter(Boolean).join(", "))}` : ""}
+            ${event.city || event.region ? ` · ${escapeHtml(formatEventPlace(event))}` : ""}
           </span>
         </div>
 
@@ -1226,7 +1332,7 @@
   function renderMapFloatingEvent(event) {
     const typeMeta = TYPE_META[event.type] || TYPE_META.Autre;
     const image = resolveImageUrl(event.image_url);
-    const place = [event.city, event.region].filter(Boolean).join(" — ") || "Lieu non précisé";
+    const place = formatEventPlace(event, " — ") || "Lieu non précisé";
     const date = event.start_date
       ? formatDateRange(event.start_date, event.end_date)
       : "Date à préciser";
@@ -1343,6 +1449,7 @@
 
       if (mobileMapToggle) {
         mobileMapToggle.textContent = "Carte en direct";
+        mobileMapToggle.setAttribute("aria-expanded", "false");
       }
     }
 
@@ -1431,6 +1538,9 @@
     const region = (formData.get("region") || "")
       .toString()
       .trim();
+    const countryCode = geo?.normalizeCountryCode(
+      formData.get("country_code") || countryFilter?.value || "FR"
+    ) || "FR";
 
     if (!isValidEmail(email)) {
       setNewsletterFeedback(
@@ -1455,7 +1565,8 @@
         .insert([
           {
             email,
-            region: region || null
+            region: region || null,
+            country_code: countryCode
           }
         ]);
 
@@ -1508,11 +1619,12 @@
 
     const formData = new FormData(form);
 
-    try {
-      if (formData.get("legal_accept") !== "on") {
-        throw new Error("Merci de valider l’autorisation de relecture, modération et publication avant l’envoi.");
-      }
+    if (formData.get("legal_accept") !== "on") {
+      setFormFeedback("Merci de valider l’autorisation de relecture, modération et publication avant l’envoi.", "error");
+      return;
+    }
 
+    try {
       let lat = Number(formData.get("lat"));
       let lng = Number(formData.get("lng"));
 
@@ -1534,6 +1646,7 @@
         id: eventId,
         title: formData.get("title"),
         type: eventType,
+        country_code: geo?.normalizeCountryCode(formData.get("country_code")) || "FR",
         region: formData.get("region"),
         city: formData.get("city"),
         price: formData.get("price"),
@@ -1678,6 +1791,14 @@
     return uploadImageToSupabase(compressed, "event-images");
   }
 
+  function shouldUseR2Upload() {
+    return (
+      config?.imageUploadProvider === "r2" &&
+      typeof config.imageUploadEndpoint === "string" &&
+      config.imageUploadEndpoint.trim()
+    );
+  }
+
   function validateAuthorPortraitFile(file) {
     if (!(file instanceof File) || !file.size) return;
 
@@ -1715,14 +1836,6 @@
       url,
       storageKey: getR2StorageKey(url)
     };
-  }
-
-  function shouldUseR2Upload() {
-    return (
-      config?.imageUploadProvider === "r2" &&
-      typeof config.imageUploadEndpoint === "string" &&
-      config.imageUploadEndpoint.trim()
-    );
   }
 
   async function uploadImageToR2(file, folder, options = {}) {
@@ -1866,25 +1979,124 @@
 
   async function fetchCitySuggestions(query, limit = 6) {
     const value = String(query || "").trim();
+    const countryCode = geo?.normalizeCountryCode(countrySubmit?.value || countryFilter?.value || "FR") || "FR";
 
     if (value.length < 3) return [];
 
-    const cacheKey = `${value.toLowerCase()}::${limit}`;
+    const cacheKey = `${countryCode}::${normalize(value)}::${limit}`;
 
     if (citySuggestionCache.has(cacheKey)) {
       return citySuggestionCache.get(cacheKey);
     }
 
     try {
+      if (countryCode !== "FR") {
+        const internationalSuggestions = await fetchNominatimCitySuggestions(
+          value,
+          countryCode,
+          limit
+        );
+        citySuggestionCache.set(cacheKey, internationalSuggestions);
+        return internationalSuggestions;
+      }
+
+      const [adresseSuggestions, communeSuggestions] = await Promise.all([
+        fetchAdresseCitySuggestions(value, limit),
+        fetchCommuneSuggestions(value, limit)
+      ]);
+
+      let suggestions = mergeCitySuggestions(
+        communeSuggestions,
+        adresseSuggestions,
+        limit
+      );
+
+      if (suggestions.length < limit) {
+        const nominatimSuggestions = await fetchNominatimCitySuggestions(
+          value,
+          "FR",
+          limit
+        );
+
+        suggestions = mergeCitySuggestions(
+          suggestions,
+          nominatimSuggestions,
+          limit
+        );
+      }
+
+      citySuggestionCache.set(cacheKey, suggestions);
+
+      return suggestions;
+    } catch (error) {
+      console.warn("Autocomplétion ville indisponible :", error);
+      return [];
+    }
+  }
+
+  async function fetchNominatimCitySuggestions(value, countryCode, limit) {
+    try {
+      const params = new URLSearchParams({
+        q: value,
+        format: "jsonv2",
+        addressdetails: "1",
+        limit: String(limit),
+        countrycodes: countryCode.toLowerCase(),
+        "accept-language": "fr"
+      });
       const response = await fetch(
-        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(value)}&limit=${limit}&type=municipality`
+        `https://nominatim.openstreetmap.org/search?${params.toString()}`
+      );
+
+      if (!response.ok) return [];
+
+      const payload = await response.json();
+
+      return (Array.isArray(payload) ? payload : [])
+        .map((entry) => {
+          const address = entry.address || {};
+          const city =
+            address.city ||
+            address.town ||
+            address.village ||
+            address.municipality ||
+            address.hamlet ||
+            entry.name ||
+            "";
+          const region =
+            address.state ||
+            address.region ||
+            address.county ||
+            "";
+
+          return buildCitySuggestion({
+            city,
+            postcode: address.postcode || "",
+            context: [region, geo?.getCountryName(countryCode)].filter(Boolean).join(", "),
+            region,
+            countryCode,
+            lat: Number(entry.lat),
+            lng: Number(entry.lon)
+          });
+        })
+        .filter(Boolean);
+    } catch (error) {
+      console.warn("Recherche de localité internationale indisponible :", error);
+      return [];
+    }
+  }
+
+  async function fetchAdresseCitySuggestions(value, limit) {
+    try {
+      const response = await fetch(
+        `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(value)}&limit=${limit}&autocomplete=1&type=municipality`
       );
 
       if (!response.ok) return [];
 
       const data = await response.json();
 
-      const suggestions = (data.features || [])
+      return (data.features || [])
         .map((feature) => {
           const properties = feature.properties || {};
           const coords = feature.geometry?.coordinates || [];
@@ -1898,56 +2110,264 @@
           const postcode = properties.postcode || "";
           const context = properties.context || "";
 
-          const label = [
-            cityName,
-            postcode,
-            context
-          ]
-            .filter(Boolean)
-            .join(" — ");
-
-          return {
-            label,
+          return buildCitySuggestion({
             city: cityName,
             postcode,
             context,
             lng: Number(coords[0]),
             lat: Number(coords[1])
-          };
+          });
         })
-        .filter((item) => {
-          return (
-            item.city &&
-            Number.isFinite(item.lat) &&
-            Number.isFinite(item.lng)
-          );
-        });
-
-      citySuggestionCache.set(cacheKey, suggestions);
-
-      return suggestions;
+        .filter(Boolean);
     } catch (error) {
-      console.warn("Autocomplétion ville indisponible :", error);
+      console.warn("API Adresse indisponible :", error);
       return [];
     }
+  }
+
+  async function fetchCommuneSuggestions(value, limit) {
+    try {
+      const fields = [
+        "nom",
+        "codesPostaux",
+        "departement",
+        "region"
+      ].join(",");
+
+      const params = new URLSearchParams({
+        nom: value,
+        boost: "population",
+        limit: String(limit),
+        fields,
+        format: "geojson",
+        geometry: "centre"
+      });
+
+      const response = await fetch(
+        `https://geo.api.gouv.fr/communes?${params.toString()}`
+      );
+
+      if (!response.ok) return getKnownCitySuggestions(value, limit);
+
+      const payload = await response.json();
+      const entries = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload.features)
+          ? payload.features
+          : [];
+
+      const suggestions = entries
+        .map((entry) => {
+          const commune = entry.properties || entry || {};
+          const coords = getCommuneCoordinates(entry, commune);
+          const postcode = Array.isArray(commune.codesPostaux)
+            ? commune.codesPostaux[0]
+            : "";
+          const context = [
+            commune.departement?.nom,
+            commune.region?.nom
+          ]
+            .filter(Boolean)
+            .join(", ");
+
+          return buildCitySuggestion({
+            city: commune.nom || "",
+            postcode,
+            context,
+            lng: Number(coords[0]),
+            lat: Number(coords[1])
+          });
+        })
+        .filter(Boolean);
+
+      return sortCitySuggestionsByQuery(
+        mergeCitySuggestions(suggestions, getKnownCitySuggestions(value, limit), limit),
+        value
+      );
+    } catch (error) {
+      console.warn("API communes indisponible :", error);
+      return getKnownCitySuggestions(value, limit);
+    }
+  }
+
+  function getCommuneCoordinates(entry, commune) {
+    if (Array.isArray(entry?.geometry?.coordinates)) {
+      return entry.geometry.coordinates;
+    }
+
+    if (Array.isArray(commune?.centre?.coordinates)) {
+      return commune.centre.coordinates;
+    }
+
+    if (Array.isArray(entry?.centre?.coordinates)) {
+      return entry.centre.coordinates;
+    }
+
+    return [];
+  }
+
+  function getKnownCitySuggestions(value, limit = 6) {
+    const normalizedValue = normalize(value);
+
+    const knownCities = [
+      {
+        city: "Aiffres",
+        postcode: "79230",
+        context: "Deux-Sèvres, Nouvelle-Aquitaine",
+        lat: 46.2872,
+        lng: -0.415833333333
+      },
+      {
+        city: "Créteil",
+        postcode: "94000",
+        context: "Val-de-Marne, Île-de-France",
+        lat: 48.790367,
+        lng: 2.455572
+      },
+      {
+        city: "Nanterre",
+        postcode: "92000",
+        context: "Hauts-de-Seine, Île-de-France",
+        lat: 48.892427,
+        lng: 2.207126
+      },
+      {
+        city: "Versailles",
+        postcode: "78000",
+        context: "Yvelines, Île-de-France",
+        lat: 48.804865,
+        lng: 2.120355
+      },
+      {
+        city: "Bobigny",
+        postcode: "93000",
+        context: "Seine-Saint-Denis, Île-de-France",
+        lat: 48.906388,
+        lng: 2.445223
+      },
+      {
+        city: "Évry-Courcouronnes",
+        postcode: "91000",
+        context: "Essonne, Île-de-France",
+        lat: 48.624167,
+        lng: 2.429722
+      },
+      {
+        city: "Cergy",
+        postcode: "95000",
+        context: "Val-d’Oise, Île-de-France",
+        lat: 49.035617,
+        lng: 2.060325
+      },
+      {
+        city: "Melun",
+        postcode: "77000",
+        context: "Seine-et-Marne, Île-de-France",
+        lat: 48.539927,
+        lng: 2.660816
+      }
+    ];
+
+    return knownCities
+      .filter((city) => normalize(city.city).includes(normalizedValue) || normalizedValue.includes(normalize(city.city)))
+      .map(buildCitySuggestion)
+      .filter(Boolean)
+      .slice(0, limit);
+  }
+
+  function sortCitySuggestionsByQuery(suggestions, query) {
+    const normalizedQuery = normalize(query);
+
+    return [...(suggestions || [])].sort((a, b) => {
+      const aCity = normalize(a.city);
+      const bCity = normalize(b.city);
+
+      if (aCity === normalizedQuery && bCity !== normalizedQuery) return -1;
+      if (bCity === normalizedQuery && aCity !== normalizedQuery) return 1;
+      if (aCity.startsWith(normalizedQuery) && !bCity.startsWith(normalizedQuery)) return -1;
+      if (bCity.startsWith(normalizedQuery) && !aCity.startsWith(normalizedQuery)) return 1;
+
+      return aCity.localeCompare(bCity, "fr");
+    });
+  }
+
+  function buildCitySuggestion(item) {
+    if (
+      !item?.city ||
+      !Number.isFinite(item.lat) ||
+      !Number.isFinite(item.lng)
+    ) {
+      return null;
+    }
+
+    const label = [
+      item.city,
+      item.postcode,
+      item.context
+    ]
+      .filter(Boolean)
+      .join(" — ");
+
+    return {
+      label,
+      city: item.city,
+      postcode: item.postcode || "",
+      context: item.context || "",
+      region: item.region || "",
+      countryCode: item.countryCode || "FR",
+      lng: item.lng,
+      lat: item.lat
+    };
+  }
+
+  function mergeCitySuggestions(primary, fallback, limit) {
+    const seen = new Set();
+    const merged = [];
+
+    [...(primary || []), ...(fallback || [])].forEach((item) => {
+      const postcodeKey = normalize(item.postcode);
+      const cityCountryKey = [
+        normalize(item.city),
+        normalize(item.countryCode || "FR")
+      ].join("|");
+      const key = [
+        normalize(item.city),
+        postcodeKey,
+        postcodeKey ? "" : normalize(item.context || item.region),
+        normalize(item.countryCode || "FR")
+      ].join("|");
+
+      if (!postcodeKey && seen.has(`${cityCountryKey}|has-postcode`)) return;
+      if (seen.has(key)) return;
+
+      seen.add(key);
+      if (postcodeKey) seen.add(`${cityCountryKey}|has-postcode`);
+      merged.push(item);
+    });
+
+    return merged.slice(0, limit);
   }
 
   async function reverseGeocodeApprox(lat, lng) {
     try {
       const response = await fetch(
-        `https://api-adresse.data.gouv.fr/reverse/?lon=${encodeURIComponent(lng)}&lat=${encodeURIComponent(lat)}`
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&addressdetails=1&accept-language=fr`
       );
 
       const data = await response.json();
-      const properties = data.features?.[0]?.properties || {};
+      const properties = data.address || {};
+      const countryCode = geo?.normalizeCountryCode(properties.country_code || "FR") || "FR";
 
       return {
         city:
           properties.city ||
+          properties.town ||
+          properties.village ||
           properties.municipality ||
           properties.name ||
           "",
-        region: properties.context || ""
+        region: properties.state || properties.region || properties.county || "",
+        country_code: countryCode
       };
     } catch {
       return {
@@ -2051,6 +2471,8 @@
       option.dataset.city = suggestion.city;
       option.dataset.lat = String(suggestion.lat);
       option.dataset.lng = String(suggestion.lng);
+      option.dataset.region = suggestion.region || "";
+      option.dataset.countryCode = suggestion.countryCode || "";
 
       citySuggestions.appendChild(option);
     });
@@ -2068,7 +2490,10 @@
     if (!citySuggestions) return null;
 
     const option = Array.from(citySuggestions.options || []).find((item) => {
-      return normalize(item.value) === normalizedValue;
+      return (
+        normalize(item.value) === normalizedValue ||
+        normalize(item.dataset.city || "") === normalizedValue
+      );
     });
 
     if (!option) return null;
@@ -2077,7 +2502,9 @@
       label: option.value,
       city: option.dataset.city || option.value,
       lat: Number(option.dataset.lat),
-      lng: Number(option.dataset.lng)
+      lng: Number(option.dataset.lng),
+      region: option.dataset.region || "",
+      countryCode: option.dataset.countryCode || ""
     };
   }
 
@@ -2088,6 +2515,21 @@
 
     if (cityLatInput) cityLatInput.value = selected.lat;
     if (cityLngInput) cityLngInput.value = selected.lng;
+
+    if (countrySubmit && selected.countryCode && geo) {
+      countrySubmit.value = geo.normalizeCountryCode(selected.countryCode);
+      populateSubmissionRegion();
+    }
+
+    if (
+      regionSubmit &&
+      selected.region &&
+      Array.from(regionSubmit.options).some((option) => normalize(option.value) === normalize(selected.region))
+    ) {
+      const matchingOption = Array.from(regionSubmit.options)
+        .find((option) => normalize(option.value) === normalize(selected.region));
+      regionSubmit.value = matchingOption?.value || regionSubmit.value;
+    }
 
     if (cityHelp) {
       cityHelp.textContent = "Ville validée ✔";
@@ -2155,7 +2597,7 @@
     }
 
     if (error.code === error.POSITION_UNAVAILABLE) {
-      return "Position indisponible. Essayez de nouveau ou filtrez par région.";
+      return "Position indisponible. Essayez de nouveau ou filtrez par pays et territoire.";
     }
 
     if (error.code === error.TIMEOUT) {
@@ -2183,7 +2625,10 @@
 
     if (mapPanel && !mapPanel.classList.contains("is-open")) {
       mapPanel.classList.add("is-open");
-      if (mobileMapToggle) mobileMapToggle.textContent = "Fermer la carte en direct";
+      if (mobileMapToggle) {
+        mobileMapToggle.textContent = "Fermer la carte en direct";
+        mobileMapToggle.setAttribute("aria-expanded", "true");
+      }
     }
 
     if (!map) {
@@ -2309,6 +2754,7 @@
       lng: roundedLng,
       city: place.city || null,
       region: place.region || null,
+      country_code: place.country_code || null,
       page: window.location.pathname || "/",
       device: getDeviceType(),
       user_agent: navigator.userAgent || null
@@ -2342,6 +2788,10 @@
 
   function resetFilters() {
     if (searchInput) searchInput.value = "";
+    if (countryFilter) {
+      countryFilter.value = "";
+      populateAgendaRegionFilter();
+    }
     if (regionFilter) regionFilter.value = "";
     if (typeFilter) typeFilter.value = "";
     if (dateFilter) dateFilter.value = "";
@@ -2383,6 +2833,15 @@
 
     newsletterFeedback.textContent = message;
     newsletterFeedback.className = type || "";
+  }
+
+  function formatEventPlace(event, separator = ", ") {
+    if (geo) {
+      const place = geo.formatPlace(event);
+      return separator === ", " ? place : place.split(", ").join(separator);
+    }
+
+    return [event?.city, event?.region].filter(Boolean).join(separator);
   }
 
   function resolveImageUrl(path) {
