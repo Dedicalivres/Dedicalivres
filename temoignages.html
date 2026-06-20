@@ -10,7 +10,7 @@
 <meta property="og:title" content="Témoignages — Dédicalivres" />
   <meta property="og:description" content="Souvenirs de salons du livre, dédicaces, festivals et rencontres avec des auteurs : partagez votre expérience avec Dédicalivres." />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://dedicalivres.fr/banner2.jpg" />
+  <meta property="og:image" content="banner.jpg" />
 
   <script type="application/ld+json">
   {
@@ -25,13 +25,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=fav-anim-1" />
+  <link rel="stylesheet" href="style.css?v=v1-francophone-20260615" />
 </head>
 
 <body class="testimonials-page">
 <header class="header">
   <div class="container header-inner">
-    <a href="index.html" aria-label="Accueil Dédicalivres"><img src="logo.png" class="logo" width="52" height="52" alt="Dédicalivres" /></a>
+    <a href="index.html" aria-label="Accueil Dédicalivres"><img src="logo.png" class="logo" alt="Dédicalivres" /></a>
     <nav aria-label="Navigation principale">
       <a href="index.html#agenda">Agenda</a>
       <a href="salons-du-livre.html">Salons &amp; Festivals</a>
@@ -49,14 +49,14 @@
       <h1>Racontez le petit moment qui a rendu votre livre unique.</h1>
       <p>
         Une discussion, une dédicace, une photo de livre signé, une phrase qui reste :
-        ces souvenirs donnent de la chaleur à l’agenda et aident d’autres lecteurs à oser la rencontre.
+        ces souvenirs donnent de la chaleur à l’agenda de l’association et aident d’autres lecteurs à oser la rencontre.
       </p>
     </div>
 
     <a class="testimonial-hero-card testimonial-memory-card" href="#testimonial-form">
       <span class="memory-card-icon" aria-hidden="true">💬</span>
       <strong>Partager un souvenir</strong>
-      <span>Quelques mots suffisent. On relit avant publication, tranquillement.</span>
+      <span>Quelques mots suffisent. L’association relit avant publication, tranquillement.</span>
     </a>
   </section>
 
@@ -76,9 +76,9 @@
           une anecdote ou une photo suffisent à faire vivre le moment.
         </p>
         <ul>
-          <li>Votre message est relu avant publication</li>
+          <li>Votre message est relu par l’association avant publication</li>
           <li>Votre email ne sera jamais affiché</li>
-          <li>Photo bienvenue si elle apporte une ambiance, une dédicace ou un sourire à regarder</li>
+          <li>Photo facultative, mais conseillée si elle raconte le moment</li>
         </ul>
       </aside>
 
@@ -114,8 +114,8 @@
         <label class="upload-box testimonial-upload-box">
           <input id="testimonial-image-input" name="image" type="file" accept="image/*" />
           <span class="upload-icon">Photo</span>
-          <strong>Ajouter une photo qui garde la trace du moment</strong>
-          <small>Un livre signé, une table de salon, une ambiance chaleureuse : ajoutez seulement ce qui vous fait plaisir. JPG, PNG ou WEBP — idéalement moins de 5 Mo.</small>
+          <strong>Ajouter une photo si elle raconte mieux le moment</strong>
+          <small>Facultatif, mais conseillé quand la dédicace ou l’ambiance vaut le coup d’œil. JPG, PNG ou WEBP — idéalement moins de 5 Mo.</small>
         </label>
 
         <div id="testimonial-image-preview" class="image-preview"></div>
@@ -123,8 +123,8 @@
         <label class="legal-consent">
           <input name="legal_accept" type="checkbox" required />
           <span>
-            J’autorise l’association Dédicalivres à relire, modérer et publier mon souvenir
-            sur le site ainsi que sur ses supports de communication.
+            J’autorise l’association Dédicalivres à relire, modérer et publier mon témoignage
+            s’il est retenu.
             <a href="conditions-utilisation.html" target="_blank" rel="noopener noreferrer">Conditions d’utilisation</a>
           </span>
         </label>
@@ -141,13 +141,29 @@
     <div class="site-footer-brand">
       <strong>Association Dédicalivres</strong>
       <p>Agenda participatif des rencontres autour du livre dans l’espace francophone.</p>
-      <nav class="site-footer-nav site-footer-legal" aria-label="Navigation secondaire et légale">
+
+      <nav class="site-footer-nav" aria-label="Navigation secondaire">
         <a href="index.html#agenda">Agenda</a>
+        <a href="salons-du-livre.html">Salons & Festivals</a>
+        <a href="dedicaces.html">Dédicaces</a>
+        <a href="temoignages.html">Témoignages</a>
         <a href="soumettre.html">Soumettre</a>
+      </nav>
+
+      <nav class="site-footer-country-nav" aria-label="Agendas littéraires par pays">
+        <a href="index.html?country=FR#agenda">France</a>
+        <a href="evenements-litteraires-belgique.html">Belgique</a>
+        <a href="evenements-litteraires-luxembourg.html">Luxembourg</a>
+        <a href="evenements-litteraires-suisse.html">Suisse</a>
+        <a href="evenements-litteraires-monaco.html">Monaco</a>
+      </nav>
+
+      <nav class="site-footer-nav site-footer-legal" aria-label="Navigation légale">
         <a href="mentions-legales.html">Mentions légales</a>
         <a href="confidentialite.html">Confidentialité</a>
         <a href="conditions-utilisation.html">Conditions d’utilisation</a>
       </nav>
+
       <p class="site-footer-small">
         Informations participatives vérifiées avant publication. Pour une correction ou un retrait :
         <a href="mailto:dedicalivres@gmail.com">dedicalivres@gmail.com</a>.
@@ -156,10 +172,10 @@
   </div>
 </footer>
 
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=shared-client-1"></script>
-<script src="testimonials.js?v=full-optim-1"></script>
-<script src="tracking-v4.js?v=shared-client-1"></script>
+<script src="config.js?v=8.7"></script>
+<script src="geography.js?v=v1-francophone-20260615"></script>
+<script src="testimonials.js?v=index-optim-11"></script>
+<script src="tracking-v4.js?v=7.7.1e"></script>
 </body>
 </html>
