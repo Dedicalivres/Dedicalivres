@@ -6114,6 +6114,7 @@ body.testimonials-page .testimonials-empty a:visited {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
 }
 
 .author-pill-button,
@@ -6121,9 +6122,11 @@ body.testimonials-page .testimonials-empty a:visited {
 .author-pill-more {
   position: relative;
   display: inline-flex;
+  max-width: 100%;
   min-height: 34px;
   align-items: center;
   justify-content: center;
+  gap: 7px;
   padding: 8px 13px;
   border-radius: 999px;
   background:
@@ -6135,6 +6138,7 @@ body.testimonials-page .testimonials-empty a:visited {
   font-size: .92rem;
   font-weight: 950;
   line-height: 1.1;
+  overflow: hidden;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.95),
     0 8px 18px rgba(58,28,113,.08);
@@ -6143,6 +6147,14 @@ body.testimonials-page .testimonials-empty a:visited {
     border-color .18s ease,
     box-shadow .18s ease,
     background .18s ease;
+}
+
+.author-pill-button > span:not(.author-pill-avatar),
+.author-pill-more {
+  min-width: 0;
+  max-width: min(22ch, 100%);
+  overflow-wrap: anywhere;
+  text-align: left;
 }
 
 .author-pill-button::after {
@@ -7338,8 +7350,11 @@ body.testimonials-page {
 
 .author-pill-avatar {
   flex: 0 0 auto;
+  display: inline-flex;
   width: 24px;
   height: 24px;
+  max-width: 24px;
+  max-height: 24px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .86);
   border-radius: 50%;
@@ -7352,12 +7367,17 @@ body.testimonials-page {
   display: flex;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  max-height: 100%;
   align-items: center;
   justify-content: center;
 }
 
 .author-pill-avatar img {
+  display: block;
   object-fit: cover;
+  border-radius: inherit;
 }
 
 .author-pill-initials {

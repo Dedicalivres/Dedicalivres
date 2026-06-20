@@ -5,7 +5,16 @@
   const config = window.DEDICALIVRES_CONFIG;
   const geo = window.DEDICALIVRES_GEO;
 
-  if (!root || !geo) return;
+  if (!root) return;
+
+  if (!geo) {
+    root.innerHTML = `
+      <div class="regional-map-fallback">
+        <p>Carte indisponible : les données géographiques ne sont pas encore chargées. Rechargez la page si besoin.</p>
+      </div>
+    `;
+    return;
+  }
 
   const pageMode = document.body.dataset.agendaMode || "global";
   const requestedTypes = (() => {

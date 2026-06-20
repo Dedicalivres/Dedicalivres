@@ -302,7 +302,7 @@
 
   function renderAuthorPillAvatar(author) {
     if (author.portraitUrl) {
-      return `<span class="author-pill-avatar"><img src="${escapeAttribute(author.portraitUrl)}" alt="" loading="lazy" decoding="async" /></span>`;
+      return `<span class="author-pill-avatar"><img src="${escapeAttribute(author.portraitUrl)}" width="24" height="24" alt="" loading="lazy" decoding="async" /></span>`;
     }
 
     return `<span class="author-pill-avatar author-pill-initials" aria-hidden="true">${escapeHtml(getAuthorInitials(author.pseudo))}</span>`;
