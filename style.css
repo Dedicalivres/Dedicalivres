@@ -6115,6 +6115,7 @@ body.testimonials-page .testimonials-empty a:visited {
   flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
+  align-items: flex-start;
 }
 
 .author-pill-button,
@@ -6122,6 +6123,8 @@ body.testimonials-page .testimonials-empty a:visited {
 .author-pill-more {
   position: relative;
   display: inline-flex;
+  flex: 0 1 auto;
+  width: auto;
   max-width: 100%;
   min-height: 34px;
   align-items: center;
@@ -6152,9 +6155,13 @@ body.testimonials-page .testimonials-empty a:visited {
 .author-pill-button > span:not(.author-pill-avatar),
 .author-pill-more {
   min-width: 0;
-  max-width: min(22ch, 100%);
+  max-width: min(24ch, 100%);
   overflow-wrap: anywhere;
-  text-align: left;
+  text-align: center;
+}
+
+.card-authors-present .author-pill-avatar {
+  display: none !important;
 }
 
 .author-pill-button::after {

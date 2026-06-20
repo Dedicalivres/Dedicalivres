@@ -251,17 +251,16 @@
 
     const authorLinks = authors.slice(0, 3).map((author) => {
       const pseudo = escapeHtml(author.pseudo);
-      const avatar = renderAuthorPillAvatar(author);
 
       if (author.slug) {
-        return `<a class="author-pill-button" href="author.html?slug=${encodeURIComponent(author.slug)}">${avatar}<span>${pseudo}</span></a>`;
+        return `<a class="author-pill-button" href="author.html?slug=${encodeURIComponent(author.slug)}"><span>${pseudo}</span></a>`;
       }
 
       if (author.website) {
-        return `<a class="author-pill-button" href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer">${avatar}<span>${pseudo}</span></a>`;
+        return `<a class="author-pill-button" href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer"><span>${pseudo}</span></a>`;
       }
 
-      return `<strong class="author-pill-button author-pill-static">${avatar}<span>${pseudo}</span></strong>`;
+      return `<strong class="author-pill-button author-pill-static"><span>${pseudo}</span></strong>`;
     });
 
     const remaining = authors.length > 3
@@ -298,14 +297,6 @@
     if (!path) return "";
     if (/^https?:\/\//i.test(path)) return path;
     return `${config.assetsBaseUrl || ""}${path}`;
-  }
-
-  function renderAuthorPillAvatar(author) {
-    if (author.portraitUrl) {
-      return `<span class="author-pill-avatar"><img src="${escapeAttribute(author.portraitUrl)}" width="24" height="24" alt="" loading="lazy" decoding="async" /></span>`;
-    }
-
-    return `<span class="author-pill-avatar author-pill-initials" aria-hidden="true">${escapeHtml(getAuthorInitials(author.pseudo))}</span>`;
   }
 
   function getAuthorInitials(value) {
