@@ -63,7 +63,6 @@
   function createAuthorPresenceBlock(event) {
     if (document.getElementById("authors-presence-section")) return;
 
-    const eventTitle = event?.title || "cet événement";
     const section = document.createElement("section");
     section.id = "authors-presence-section";
     section.className = "authors-presence";
@@ -72,50 +71,12 @@
       <div class="authors-presence-header">
         <p class="authors-presence-eyebrow">Participation auteurs</p>
         <h2>Auteurs présents</h2>
-        <p class="authors-presence-seo-intro">
-          Retrouvez ici les auteurs déclarés présents, leurs liens officiels et, lorsque disponible,
-          la page du livre, de la boutique ou de la maison d’édition associée à ${escapeHtml(eventTitle)}.
-        </p>
       </div>
 
       <div id="authors-presence-list" class="author-presence-list"></div>
 
       <p id="authors-presence-empty" class="author-presence-empty" hidden>
         Aucun auteur ne s’est encore déclaré présent pour cet événement.
-      </p>
-
-      <details id="authors-presence-value-box" class="authors-presence-value-box" hidden>
-        <summary>Pourquoi ces liens sont utiles ?</summary>
-        <p>
-          Les liens validés permettent aux visiteurs de découvrir l’auteur, son livre ou sa maison d’édition
-          directement depuis la fiche événement Dédicalivres. Les visuels restent volontairement simples ;
-          la fiche, elle, rassemble les informations cliquables et vérifiées.
-        </p>
-      </details>
-
-      <div class="authors-presence-share-box">
-        <div>
-          <strong>Auteur, libraire ou maison d’édition ?</strong>
-          <p>
-            Partagez cette fiche à votre lectorat : elle centralise la date, le lieu,
-            les informations pratiques et les liens utiles autour de l’événement.
-          </p>
-        </div>
-        <div class="authors-presence-share-actions">
-          <button type="button" class="btn-secondary" id="author-presence-copy-page">
-            Copier le lien de la fiche
-          </button>
-          <a class="btn-secondary" href="#author-presence-form">
-            Ajouter / corriger une présence
-          </a>
-        </div>
-      </div>
-
-      <p class="author-presence-note">
-        Les auteurs indiqués ici se sont déclarés présents via Dédicalivres.
-        Cette information est participative et concerne uniquement les auteurs s’étant enregistrés sur Dédicalivres.
-        Pour une information officielle à jour, notamment en cas d’annulation ou de modification,
-        consultez toujours le site de l’événement.
       </p>
 
       <form id="author-presence-form" class="author-presence-form">
@@ -185,10 +146,7 @@
           </label>
         </div>
 
-        <p class="author-presence-form-help">
-          Les liens et portraits transmis sont vérifiés avant publication. Le portrait prépare la future
-          partie auteurs, sans modifier automatiquement l’affichage public actuel.
-        </p>
+        <p class="author-presence-form-help">Liens et portraits vérifiés avant publication.</p>
 
         <label class="legal-consent">
           <input name="legal_accept" type="checkbox" required />
