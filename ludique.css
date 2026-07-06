@@ -1,0 +1,679 @@
+/* =========================================================
+   DÉDICALIVRES — COUCHE LUDIQUE v2 « symbolique livresque »
+   Remplace ludique.css v1.
+   Retirés : émojis flottants, parallaxe souris, tilt 3D,
+             confettis, traînée de curseur.
+   Ajoutés : 12 animations livresques (SVG/CSS, zéro émoji).
+   Signature conservée : #3a1c71 / #ff6b35
+========================================================= */
+:root{
+  --lud-boing: cubic-bezier(.34,1.56,.64,1);
+  --lud-page: cubic-bezier(.45,.05,.3,1);
+}
+
+/* ---------- Entrée en scène de la bannière (conservée) ---------- */
+.association-hero-copy,
+.association-hero-territories,
+.association-hero-brand{
+  animation: lud-pop .9s var(--lud-boing) both;
+}
+.association-hero-brand{ animation-delay:.15s }
+.association-hero-territories{ animation-delay:.3s }
+@keyframes lud-pop{
+  from{ opacity:0; transform:translateY(26px) scale(.97) }
+  to{ opacity:1; transform:none }
+}
+.association-hero-brand img{
+  animation: lud-breathe 8s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes lud-breathe{
+  0%,100%{ transform:translateY(0) }
+  50%{ transform:translateY(-8px) }
+}
+
+/* =========================================================
+   N°10 — PAGES VOLANTES (remplacent les émojis)
+   Feuillets, livre ouvert et plume au trait SVG,
+   dérive lente, opacité faible, AUCUNE parallaxe souris.
+========================================================= */
+.lud-floatpage{
+  position:absolute; z-index:1; pointer-events:none; user-select:none;
+  opacity:.6;
+  animation: lud-drift 7.5s ease-in-out infinite;
+  will-change: transform;
+}
+.lud-floatpage svg{ filter: drop-shadow(0 4px 8px rgba(58,28,113,.14)) }
+@keyframes lud-drift{
+  0%,100%{ transform: translateY(0) translateX(0) rotate(-7deg) scale(var(--s,1)) }
+  50%{ transform: translateY(-28px) translateX(10px) rotate(8deg) scale(var(--s,1)) }
+}
+
+/* =========================================================
+   N°5 — LA PLUME QUI SOULIGNE (par mot-clé)
+========================================================= */
+.lud-ink-word{
+  color:#ff6b35;
+  position:relative;
+  white-space:nowrap;
+  display:inline-block;
+}
+.lud-ink-underline{
+  position:absolute; left:-3%; bottom:-.14em; width:106%; height:.32em;
+  overflow:visible; pointer-events:none;
+}
+.lud-ink-underline path{
+  fill:none; stroke:#ff6b35; stroke-width:3.4; stroke-linecap:round;
+  vector-effect:non-scaling-stroke;
+  stroke-dasharray:100; stroke-dashoffset:100;
+  animation: lud-draw 1s ease-out forwards;
+}
+@keyframes lud-draw{ to{ stroke-dashoffset:0 } }
+
+/* =========================================================
+   N°2 — LE LIVRE QUI S'OUVRE (cartes d'événements)
+   La carte se comporte comme une couverture qui s'entrouvre :
+   pivot léger sur la tranche gauche + ombre de reliure.
+========================================================= */
+.event-card{
+  position:relative;
+  transform-origin:left center;
+  transform-style:preserve-3d;
+  transition: transform .55s var(--lud-page), box-shadow .45s ease;
+}
+.event-card::before{
+  content:"";
+  position:absolute; left:0; top:0; bottom:0; width:14px;
+  background:linear-gradient(90deg, rgba(38,17,72,.22), transparent);
+  opacity:0; transition:opacity .45s ease;
+  pointer-events:none; z-index:2;
+  border-radius:inherit;
+}
+.event-card:hover{
+  transform: perspective(1100px) rotateY(7deg) translateY(-4px);
+  box-shadow: 14px 22px 44px rgba(58,28,113,.22);
+}
+.event-card:hover::before{ opacity:1 }
+
+/* =========================================================
+   N°3 — LE COIN CORNÉ (survol des cartes)
+========================================================= */
+.event-card::after{
+  content:"";
+  position:absolute; top:0; right:0; width:0; height:0;
+  background:linear-gradient(225deg, transparent 48%, #ff6b35 50%, #e95825);
+  border-radius:0 0 0 14px;
+  box-shadow:-4px 4px 8px rgba(58,28,113,.18);
+  transition: width .4s var(--lud-boing), height .4s var(--lud-boing);
+  pointer-events:none; z-index:3;
+}
+.event-card:hover::after{ width:44px; height:44px }
+/* coin corné permanent (plus petit) sur une carte en favori */
+.event-card.lud-favorited::after{ width:28px; height:28px }
+
+/* =========================================================
+   N°1 — LA PAGE QUI SE TOURNE (événements passés)
+   À l'ouverture du volet, les cartes arrivent en tournant
+   comme des pages.
+========================================================= */
+.past-events-section[open] .event-card{
+  animation: lud-pageturn-in .7s var(--lud-page) both;
+}
+.past-events-section[open] .event-card:nth-child(1){ animation-delay:.05s }
+.past-events-section[open] .event-card:nth-child(2){ animation-delay:.13s }
+.past-events-section[open] .event-card:nth-child(3){ animation-delay:.21s }
+.past-events-section[open] .event-card:nth-child(4){ animation-delay:.29s }
+.past-events-section[open] .event-card:nth-child(5){ animation-delay:.37s }
+.past-events-section[open] .event-card:nth-child(6){ animation-delay:.45s }
+@keyframes lud-pageturn-in{
+  from{ opacity:0; transform: perspective(1100px) rotateY(-70deg) }
+  to{ opacity:1; transform: perspective(1100px) rotateY(0) }
+}
+
+/* =========================================================
+   N°7 — LE FEUILLETAGE (indicateur de chargement)
+========================================================= */
+.lud-loader{
+  display:inline-flex; align-items:center; gap:12px;
+  font-weight:800; font-size:.82rem; letter-spacing:.07em;
+  text-transform:uppercase; color:#3a1c71;
+}
+.lud-loader-book{
+  width:44px; height:30px; position:relative; perspective:300px;
+  flex:none;
+}
+.lud-loader-book i{ display:block; position:absolute; }
+.lud-loader-book .lb-l,
+.lud-loader-book .lb-r{
+  bottom:4px; width:50%; height:22px;
+  background:#f8f2e9; border:1px solid rgba(58,28,113,.18);
+}
+.lud-loader-book .lb-l{ left:0; border-radius:5px 0 0 2px; transform-origin:right; transform:rotateY(22deg) }
+.lud-loader-book .lb-r{ right:0; border-radius:0 5px 2px 0; transform-origin:left; transform:rotateY(-22deg) }
+.lud-loader-book .lb-f{
+  bottom:4px; left:50%; width:50%; height:22px;
+  background:#fffdf8; border:1px solid rgba(58,28,113,.14);
+  border-radius:0 5px 2px 0; transform-origin:left;
+  animation: lud-lb-turn 1.3s var(--lud-page) infinite;
+}
+.lud-loader-book .lb-b{
+  bottom:0; left:0; right:0; height:6px;
+  background:#3a1c71; border-radius:2px 2px 4px 4px;
+}
+@keyframes lud-lb-turn{
+  0%{ transform:rotateY(-22deg) }
+  50%{ transform:rotateY(-158deg) }
+  100%{ transform:rotateY(-22deg) }
+}
+.lud-loader-txt::after{ content:""; animation:lud-dots 1.4s steps(4) infinite }
+@keyframes lud-dots{ 0%{content:""} 25%{content:"."} 50%{content:".."} 75%{content:"..."} }
+
+/* =========================================================
+   N°8 — LE TAMPON EX-LIBRIS (mise en favori)
+========================================================= */
+.lud-stamp{
+  position:fixed; z-index:10000; pointer-events:none;
+  width:110px; height:110px; margin:-55px 0 0 -55px;
+  border:4px solid #ff6b35; border-radius:50%;
+  display:grid; place-items:center; text-align:center;
+  color:#ff6b35; background:rgba(255,255,255,.07);
+  font-family:"Playfair Display", serif;
+  font-weight:800; font-size:.6rem; letter-spacing:.12em; text-transform:uppercase;
+  animation: lud-stamp-hit .9s cubic-bezier(.2,1.4,.4,1) forwards;
+}
+.lud-stamp b{ display:block; font-size:.95rem; letter-spacing:.05em }
+@keyframes lud-stamp-hit{
+  0%{ transform:scale(2.6) rotate(-26deg); opacity:0 }
+  35%{ transform:scale(.92) rotate(-11deg); opacity:1 }
+  50%{ transform:scale(1.06) rotate(-13deg) }
+  70%{ transform:scale(1) rotate(-12deg); opacity:.95 }
+  100%{ transform:scale(1) rotate(-12deg); opacity:0 }
+}
+
+/* Cœur favori : pop conservé (sans confettis) */
+.favorite-btn{ transition: transform .35s var(--lud-boing) !important }
+.favorite-btn:hover{ transform: scale(1.18) rotate(-8deg) }
+.favorite-btn.is-active{ animation: lud-fav-pop .45s var(--lud-boing) }
+@keyframes lud-fav-pop{
+  0%{ transform:scale(1) } 45%{ transform:scale(1.45) rotate(10deg) } 100%{ transform:scale(1) }
+}
+
+/* =========================================================
+   N°9 — LE SURLIGNEUR (chiffres clés)
+========================================================= */
+.lud-hl{ position:relative; white-space:nowrap }
+.lud-hl::before{
+  content:""; position:absolute; inset:.08em -.14em -.04em;
+  background:linear-gradient(100deg, rgba(255,107,53,.30), rgba(255,107,53,.42));
+  border-radius:4px; transform:scaleX(0); transform-origin:left; z-index:-1;
+}
+.lud-hl.lud-sweep::before{ animation: lud-hl-sweep .7s ease-out forwards }
+@keyframes lud-hl-sweep{ to{ transform:scaleX(1) } }
+
+/* =========================================================
+   N°12 — L'ENCRE QUI RÉVÈLE (apparition des sections)
+   Remplace le fondu : un voile d'encre violette se résorbe.
+========================================================= */
+.lud-inkreveal{ position:relative }
+.lud-inkreveal::after{
+  content:""; position:absolute; inset:0; z-index:20;
+  background:
+    radial-gradient(circle at 32% 24%, #4a2590, #3a1c71 55%, #2c1257);
+  border-radius:inherit;
+  clip-path:circle(142% at 50% 42%);
+  transition: clip-path 1s var(--lud-page);
+  pointer-events:none;
+}
+.lud-inkreveal.lud-visible::after{ clip-path:circle(0% at 50% 42%) }
+
+/* ---------- Rubans défilants cliquables ---------- */
+.lud-ticker{
+  background:#3a1c71; color:#fff; overflow:hidden; padding:11px 0;
+  transform: rotate(-1.1deg) scale(1.02);
+  margin:18px 0 8px;
+  box-shadow:0 14px 34px rgba(58,28,113,.28);
+  position:relative; z-index:3;
+}
+.lud-ticker-track{
+  display:flex; gap:0; width:max-content; white-space:nowrap;
+  font-weight:800; letter-spacing:.05em; font-size:.92rem;
+  animation: lud-ticker 30s linear infinite;
+}
+.lud-ticker:hover .lud-ticker-track,
+.lud-ticker:focus-within .lud-ticker-track{ animation-play-state:paused }
+.lud-ticker-track em{ color:#ff6b35; font-style:normal; margin:0 16px }
+.lud-ticker-track a{
+  color:#fff; text-decoration:none; padding:4px 2px; border-radius:6px;
+  transition: color .2s;
+}
+.lud-ticker-track a:hover,
+.lud-ticker-track a:focus-visible{
+  color:#ff6b35; text-decoration:underline; text-underline-offset:4px;
+  outline:none;
+}
+@keyframes lud-ticker{ to{ transform:translateX(-50%) } }
+
+/* Ruban n°2 : événements à 8 jours (orange, inclinaison opposée) */
+.lud-ticker-events{
+  background:linear-gradient(90deg,#e95825,#ff6b35);
+  transform: rotate(1.1deg) scale(1.02);
+  margin:0 0 46px;
+  box-shadow:0 14px 34px rgba(255,107,53,.3);
+}
+.lud-ticker-events .lud-ticker-track{ animation-duration:36s; animation-direction:reverse }
+.lud-ticker-events em{ color:#3a1c71 }
+.lud-ticker-events a:hover,
+.lud-ticker-events a:focus-visible{ color:#261148 }
+.lud-ticker-events .lud-tk-type{
+  display:inline-block; background:rgba(255,255,255,.22);
+  font-size:.7rem; padding:2px 9px; border-radius:20px;
+  margin-right:8px; letter-spacing:.08em; text-transform:uppercase;
+  vertical-align:1px;
+}
+.lud-ticker-events .lud-tk-dep{
+  opacity:.85; font-weight:600; margin-right:8px;
+}
+/* si le ruban événements est absent, redonner sa marge au ruban pays */
+.lud-ticker:last-of-type{ margin-bottom:46px }
+
+/* ---------- Divers conservés ---------- */
+.btn-primary, .btn-secondary{
+  transition: transform .3s var(--lud-boing), box-shadow .3s, background .25s, color .25s !important;
+}
+.btn-primary:hover{ transform: translateY(-3px) scale(1.03) }
+.btn-secondary:hover{ transform: translateY(-3px) }
+.home-magazine-tile{
+  transition: transform .3s var(--lud-boing), box-shadow .3s !important;
+}
+.home-magazine-tile:hover{ transform: translateX(8px) }
+.hero-picto-button{ transition: transform .35s var(--lud-boing) !important }
+.hero-picto-button:hover{ transform: translateY(-7px) scale(1.05) !important }
+
+.agenda-calendar-day{
+  animation: lud-pop .4s var(--lud-boing) both;
+  animation-delay: var(--lud-delay, 0ms);
+  transition: transform .25s var(--lud-boing) !important;
+}
+.agenda-calendar-day:not(.is-empty):hover{ transform:scale(1.12); z-index:2 }
+
+#lud-back-top{
+  position:fixed; bottom:24px; right:24px; width:54px; height:54px;
+  border-radius:50%; border:none; z-index:900;
+  background:linear-gradient(135deg,#ff6b35,#e95825); color:#fff;
+  font-size:22px; cursor:pointer;
+  box-shadow:0 12px 28px rgba(255,107,53,.45);
+  opacity:0; pointer-events:none; transform:translateY(20px);
+  transition: opacity .3s, transform .4s var(--lud-boing);
+}
+#lud-back-top.lud-show{ opacity:1; pointer-events:auto; transform:translateY(0) }
+#lud-back-top:hover{ transform:translateY(-5px) scale(1.08) }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 680px){
+  .lud-floatpage{ display:none }
+  .lud-ticker{ margin:12px 0 30px }
+  .event-card:hover{ transform:none }
+}
+
+/* ---------- Mouvement réduit ---------- */
+@media (prefers-reduced-motion: reduce){
+  .lud-floatpage, .lud-loader-book .lb-f, .lud-ticker-track,
+  .association-hero-brand img, .agenda-calendar-day,
+  .lud-ink-underline path, .lud-stamp,
+  .past-events-section[open] .event-card{ animation:none !important }
+  .lud-ink-underline path{ stroke-dashoffset:0 }
+  .lud-inkreveal::after{ display:none }
+  .event-card, .event-card::after{ transition:none !important }
+  .association-hero-copy,.association-hero-territories,.association-hero-brand{ animation:none !important; opacity:1 }
+}
+
+/* =========================================================
+   PAGES INTÉRIEURES — TRAITEMENT « FRONTISPICE »
+   (salons, dédicaces, régions, villes, témoignages)
+   Contenu inchangé : uniquement du décor et du mouvement.
+========================================================= */
+
+/* ---------- Le hero SEO devient une page de garde ---------- */
+.seo-hero{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+}
+/* lueurs de marque + trame papier discrète */
+.seo-hero::before{
+  content:"";
+  position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(560px 260px at 8% 0%, rgba(255,107,53,.10), transparent 60%),
+    radial-gradient(560px 300px at 94% 100%, rgba(58,28,113,.10), transparent 60%);
+}
+/* fleuron sous le sous-titre */
+.seo-hero::after{
+  content:"✦";
+  display:block;
+  margin:18px auto 0;
+  width:max-content;
+  color:#ff6b35;
+  font-size:1rem;
+  position:relative;
+  animation: lud-twinkle-soft 3.2s ease-in-out infinite;
+}
+@keyframes lud-twinkle-soft{
+  0%,100%{ opacity:.55; transform:scale(1) }
+  50%{ opacity:1; transform:scale(1.25) }
+}
+/* entrée en scène du kicker, du titre et du sous-titre */
+.seo-hero .category-kicker{ animation: lud-pop .7s var(--lud-boing) both }
+.seo-hero h1{ animation: lud-pop .8s var(--lud-boing) .12s both }
+.seo-hero p:not(.category-kicker){ animation: lud-pop .8s var(--lud-boing) .24s both }
+/* le kicker gagne ses filets */
+.seo-hero .category-kicker{
+  display:flex; align-items:center; justify-content:center; gap:14px;
+}
+.seo-hero .category-kicker::before,
+.seo-hero .category-kicker::after{
+  content:""; height:2px; width:38px; border-radius:2px;
+  background:linear-gradient(90deg, transparent, #ff6b35);
+}
+.seo-hero .category-kicker::after{
+  background:linear-gradient(90deg, #ff6b35, transparent);
+}
+
+/* ---------- Titres de sections : filet qui se déploie ---------- */
+.regional-map-head h2,
+.seo-page .section > h2,
+.testimonials-section h2,
+.testimonial-submit-section h2{
+  position:relative;
+  padding-bottom:14px;
+}
+.regional-map-head h2::after,
+.seo-page .section > h2::after,
+.testimonials-section h2::after,
+.testimonial-submit-section h2::after{
+  content:"";
+  position:absolute; left:0; bottom:0;
+  width:88px; height:4px; border-radius:4px;
+  background:linear-gradient(90deg, #ff6b35, #3a1c71);
+  transform:scaleX(0); transform-origin:left;
+  animation: lud-rule-in .8s var(--lud-page) .3s forwards;
+}
+@keyframes lud-rule-in{ to{ transform:scaleX(1) } }
+
+/* ---------- Sélecteur de pays : pastilles à ressort ---------- */
+.regional-country-switcher button{
+  transition: transform .3s var(--lud-boing), box-shadow .3s, border-color .25s, background .25s !important;
+}
+.regional-country-switcher button:hover{
+  transform: translateY(-4px) scale(1.05);
+  box-shadow:0 12px 26px rgba(58,28,113,.18);
+}
+.regional-country-switcher button.is-active{
+  box-shadow:0 0 0 3px rgba(255,107,53,.25), 0 10px 24px rgba(255,107,53,.22);
+  animation: lud-chip-pop .45s var(--lud-boing);
+}
+@keyframes lud-chip-pop{
+  0%{ transform:scale(1) } 50%{ transform:scale(1.08) } 100%{ transform:scale(1) }
+}
+
+/* ---------- Panneau carte régionale : écrin léger ---------- */
+.regional-map-panel{
+  background:
+    radial-gradient(420px 200px at 90% 0%, rgba(255,107,53,.07), transparent 60%),
+    linear-gradient(165deg, #fbf7ff, #fff8f2) !important;
+  border-radius:20px;
+  box-shadow: inset 0 0 0 1px rgba(58,28,113,.08), 0 14px 32px rgba(58,28,113,.1);
+}
+.regional-subdivision-select{
+  transition: border-color .25s, transform .25s var(--lud-boing), box-shadow .25s !important;
+}
+.regional-subdivision-select:focus{
+  transform:scale(1.02);
+  box-shadow:0 0 0 3px rgba(255,107,53,.2);
+}
+
+/* ---------- Révélation douce des blocs intérieurs ---------- */
+.lud-rise{ opacity:0; transform:translateY(30px) }
+.lud-rise.lud-visible{
+  opacity:1; transform:none;
+  transition: opacity .7s ease, transform .7s var(--lud-boing);
+  transition-delay: var(--lud-rise-delay, 0ms);
+}
+
+/* ---------- Fond graphique global des pages intérieures ---------- */
+
+
+/* =========================================================
+   TÉMOIGNAGES — le tableau de liège littéraire
+========================================================= */
+/* cartes légèrement inclinées, redressées au survol */
+.testimonials-grid > *{
+  position:relative;
+  transition: transform .4s var(--lud-boing), box-shadow .4s !important;
+}
+.testimonials-grid > *:nth-child(odd){ transform:rotate(-.9deg) }
+.testimonials-grid > *:nth-child(even){ transform:rotate(.8deg) }
+.testimonials-grid > *:hover{
+  transform:rotate(0) translateY(-6px) scale(1.015);
+  box-shadow:0 22px 46px rgba(58,28,113,.18);
+  z-index:2;
+}
+/* grand guillemet Playfair en filigrane */
+.testimonials-grid > *::before{
+  content:"”";
+  position:absolute; top:-6px; right:14px;
+  font-family:"Playfair Display", serif;
+  font-size:5.5rem; line-height:1;
+  color:rgba(58,28,113,.08);
+  pointer-events:none;
+}
+/* pastille signet en haut de chaque carte */
+.testimonials-grid > *::after{
+  content:"";
+  position:absolute; top:-8px; left:26px;
+  width:14px; height:26px;
+  background:linear-gradient(180deg,#e95825,#ff6b35);
+  clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);
+  opacity:.85;
+  pointer-events:none;
+}
+/* le formulaire de témoignage gagne le même soin */
+.testimonial-form-card{
+  transition: box-shadow .35s !important;
+}
+.testimonial-form-card:focus-within{
+  box-shadow:0 0 0 3px rgba(255,107,53,.18), 0 22px 48px rgba(58,28,113,.16) !important;
+}
+
+/* ---------- Mouvement réduit ---------- */
+@media (prefers-reduced-motion: reduce){
+  .seo-hero .category-kicker,
+  .seo-hero h1,
+  .seo-hero p:not(.category-kicker),
+  .seo-hero::after,
+  .regional-map-head h2::after,
+  .seo-page .section > h2::after,
+  .testimonials-section h2::after,
+  .testimonial-submit-section h2::after,
+  .regional-country-switcher button.is-active{ animation:none !important }
+  .regional-map-head h2::after,
+  .seo-page .section > h2::after,
+  .testimonials-section h2::after,
+  .testimonial-submit-section h2::after{ transform:scaleX(1) }
+  .lud-rise{ opacity:1; transform:none }
+  .testimonials-grid > *{ transform:none !important }
+}
+
+/* =========================================================
+   AMBIANCES DE FOND IMMERSIVES
+   n°3 « Aquarelle d'encre » : toutes les pages.
+   n°2 « Papier à lettres » : page Témoignages.
+   Injectées par ludique.js dans un calque fixe (.lud-ambiance)
+   qui recouvre l'ancien fond — fin du carrelage.
+========================================================= */
+.lud-ambiance{
+  position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden;
+  background:linear-gradient(180deg,#fbf7ff 0%,#fffaf4 55%,#fff6ef 100%);
+}
+.lud-nappe{
+  position:absolute; border-radius:50%; filter:blur(75px);
+  animation: lud-nappe 13s ease-in-out infinite alternate;
+  will-change:transform;
+}
+.lud-nappe-1{ width:640px; height:520px; background:rgba(122,79,208,.26); top:-160px; left:-140px }
+.lud-nappe-2{ width:560px; height:480px; background:rgba(255,140,90,.24); bottom:-140px; right:-120px; animation-delay:-5s }
+.lud-nappe-3{ width:440px; height:400px; background:rgba(201,158,240,.28); top:30%; right:10%; animation-delay:-9s }
+@keyframes lud-nappe{
+  0%{ transform:translate(0,0) scale(1) }
+  100%{ transform:translate(110px,-70px) scale(1.22) }
+}
+/* grain de papier façon aquarelle */
+.lud-grain{
+  position:absolute; inset:0; opacity:.45;
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><filter id="g"><feTurbulence baseFrequency=".9" numOctaves="2"/><feColorMatrix values="0 0 0 0 .23 0 0 0 0 .11 0 0 0 0 .44 0 0 0 .045 0"/></filter><rect width="140" height="140" filter="url(%23g)"/></svg>');
+}
+
+/* ---------- Variante papier à lettres (Témoignages) ---------- */
+.lud-ambiance--papier{
+  background:linear-gradient(180deg,#fffdf9,#fbf5ec);
+}
+.lud-ambiance--papier .lud-nappe{ display:none }
+.lud-lignes{
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(180deg, transparent 0 42px, rgba(58,28,113,.07) 42px 44px);
+  -webkit-mask-image:radial-gradient(120% 100% at 50% 40%, #000 40%, transparent 96%);
+          mask-image:radial-gradient(120% 100% at 50% 40%, #000 40%, transparent 96%);
+}
+.lud-marge{
+  position:absolute; top:0; bottom:0; left:clamp(24px,7vw,110px); width:2.5px;
+  background:linear-gradient(180deg, transparent, rgba(255,107,53,.38) 12%, rgba(255,107,53,.38) 88%, transparent);
+}
+.lud-spirale{
+  position:absolute; left:clamp(2px,2vw,30px); top:50%; transform:translateY(-50%);
+  display:grid; gap:34px;
+}
+.lud-spirale i{
+  width:16px; height:16px; border-radius:50%;
+  border:3px solid rgba(58,28,113,.15); border-left-color:transparent;
+}
+@media (max-width:680px){
+  .lud-marge,.lud-spirale{ display:none }
+}
+
+/* confort : lignes retirées en mode dyslexie, nappes figées en mouvement réduit */
+html.a11y-dyslexie .lud-lignes{ display:none }
+@media (prefers-reduced-motion: reduce){
+  .lud-nappe{ animation:none }
+}
+
+
+/* =========================================================
+   MICRO-VIE PERPÉTUELLE (mouvements visibles au repos)
+========================================================= */
+/* la carte « Partager un souvenir » lévite doucement */
+.testimonial-hero-card,
+.testimonial-memory-card{
+  animation: lud-levite 5.5s ease-in-out infinite;
+}
+@keyframes lud-levite{
+  0%,100%{ transform:translateY(0) rotate(0deg) }
+  50%{ transform:translateY(-10px) rotate(.4deg) }
+}
+/* son icône dodeline */
+.memory-card-icon{
+  display:inline-block;
+  animation: lud-bob 3.2s ease-in-out infinite;
+}
+@keyframes lud-bob{
+  0%,100%{ transform:translateY(0) rotate(-4deg) }
+  50%{ transform:translateY(-7px) rotate(5deg) }
+}
+/* les filets du kicker respirent */
+.seo-hero .category-kicker::before,
+.seo-hero .category-kicker::after{
+  animation: lud-filet 3s ease-in-out infinite;
+}
+@keyframes lud-filet{
+  0%,100%{ width:38px; opacity:1 }
+  50%{ width:58px; opacity:.6 }
+}
+/* le bouton Soumettre du header attire l'œil par une pulsation d'ombre */
+.header .nav-submit-link{
+  animation: lud-halo 3.4s ease-in-out infinite;
+}
+@keyframes lud-halo{
+  0%,100%{ box-shadow:0 0 0 0 rgba(255,107,53,.35) }
+  50%{ box-shadow:0 0 0 9px rgba(255,107,53,0) }
+}
+/* rappel : tout est neutralisé ci-dessous en mouvement réduit */
+@media (prefers-reduced-motion: reduce){
+  .testimonial-hero-card,.testimonial-memory-card,
+  .memory-card-icon,
+  .seo-hero .category-kicker::before,
+  .seo-hero .category-kicker::after,
+  .header .nav-submit-link{ animation:none !important }
+}
+
+/* =========================================================
+   EASTER EGG — pluie de pages
+========================================================= */
+.lud-pagefall{
+  position:fixed; top:-70px; z-index:10000; pointer-events:none;
+  animation: lud-fall 2s ease-in forwards;
+  filter: drop-shadow(0 6px 10px rgba(58,28,113,.2));
+}
+@keyframes lud-fall{
+  0%{ transform:translate(0,0) rotate(0deg); opacity:1 }
+  85%{ opacity:1 }
+  100%{ transform:translate(var(--fx,0), 110vh) rotate(var(--fr,360deg)); opacity:0 }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .lud-pagefall{ animation:none !important }
+}
+
+/* =========================================================
+   CORRECTIFS v12
+========================================================= */
+/* 1. Rubans mobiles : entiers à l'écran, sans inclinaison
+   ni débordement, et espace récupéré au-dessus de la bannière */
+@media (max-width:680px){
+  body{ overflow-x:hidden }
+  .lud-ticker,
+  .lud-ticker-events{
+    transform:none !important;
+    margin:8px 0 0 !important;
+    padding:9px 0 !important;
+  }
+  .lud-ticker-events{ margin-bottom:22px !important }
+  .lud-ticker-track{ font-size:.8rem }
+  /* la bannière se resserre pour laisser les rubans visibles d'emblée */
+  .header{ margin-top:4px !important }
+  .association-hero{
+    padding-top:12px !important;
+    padding-bottom:16px !important;
+    min-height:auto !important;
+  }
+  .association-hero-brand img{ max-height:140px; width:auto }
+  .association-hero-copy{ gap:6px !important }
+}
+
+/* 2. Consentement témoignage : compact, l'action d'abord */
+.legal-consent{
+  padding:10px 14px !important;
+  font-size:.82rem !important;
+  font-weight:600 !important;
+  line-height:1.45 !important;
+  border-radius:12px !important;
+  gap:10px !important;
+  margin:12px 0 10px !important;
+}
+.legal-consent input,
+.legal-consent input[type="checkbox"]{
+  width:19px !important;
+  height:19px !important;
+  min-width:19px !important;
+  transform:none !important;
+  border-radius:5px !important;
+}
+.legal-consent a{ font-weight:800 !important }

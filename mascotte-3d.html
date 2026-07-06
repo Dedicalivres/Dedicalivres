@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dédicalivres — Mascotte 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@500;700;900&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --purple:#3a1c71; --purple-dark:#261148; --orange:#ff6b35; --paper:#fffdfc;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Inter',sans-serif;overflow:hidden;
+  background:
+    radial-gradient(900px 500px at 15% 0%, rgba(255,107,53,.12), transparent 55%),
+    radial-gradient(800px 500px at 90% 100%, rgba(137,84,214,.18), transparent 55%),
+    var(--paper);
+}
+#scene{position:fixed;inset:0;cursor:grab}
+#scene:active{cursor:grabbing}
+.ui{
+  position:fixed;top:24px;left:24px;z-index:10;pointer-events:none;
+}
+.ui h1{
+  font-family:'Playfair Display',serif;color:var(--purple-dark);
+  font-size:clamp(1.4rem,3vw,2.2rem);line-height:1.1;
+}
+.ui p{color:#6b6178;font-weight:600;margin-top:6px;font-size:.92rem}
+.hint{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10;
+  background:rgba(255,255,255,.85);backdrop-filter:blur(10px);
+  border:1px solid rgba(58,28,113,.12);border-radius:40px;
+  padding:10px 22px;font-weight:700;font-size:.85rem;color:var(--purple);
+  box-shadow:0 10px 28px rgba(58,28,113,.15);
+  display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
+}
+.hint span{white-space:nowrap}
+@media (max-width:600px){.hint{width:calc(100% - 32px);font-size:.78rem;gap:10px}}
+</style>
+</head>
+<body>
+<div class="ui">
+  <h1>La mascotte Dédicalivres<br>en 3D ✦</h1>
+  <p>Recréation stylisée du personnage-livre de l'association.</p>
+</div>
+<div class="hint">
+  <span>🖱️ Glisser : tourner</span>
+  <span>👀 Elle suit votre curseur</span>
+  <span>👋 Cliquez-la : elle salue</span>
+</div>
+<div id="scene"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ---------- Couleurs signature ---------- */
+const C = {
+  purple: 0x3a1c71,
+  purpleDark: 0x261148,
+  purpleLight: 0x5d34a5,
+  orange: 0xff6b35,
+  orangeDark: 0xe95825,
+  cream: 0xfff8ef,
+  white: 0xffffff,
+  ink: 0x2a2438
+};
+
+/* ---------- Scène ---------- */
+const container = document.getElementById('scene');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, innerWidth/innerHeight, .1, 100);
+camera.position.set(0, 1.1, 7.2);
+
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+/* ---------- Lumières studio ---------- */
+scene.add(new THREE.AmbientLight(0xffffff, .55));
+const key = new THREE.DirectionalLight(0xfff2e8, 1.0);
+key.position.set(4, 6, 5); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -6; key.shadow.camera.right = 6;
+key.shadow.camera.top = 6; key.shadow.camera.bottom = -6;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xc99ef0, .7);
+rim.position.set(-5, 3, -4); scene.add(rim);
+const warm = new THREE.PointLight(0xff6b35, .5, 12);
+warm.position.set(-2.5, .5, 3); scene.add(warm);
+
+/* ---------- Sol doux ---------- */
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(6, 48),
+  new THREE.ShadowMaterial({opacity:.16})
+);
+ground.rotation.x = -Math.PI/2; ground.position.y = -1.62;
+ground.receiveShadow = true; scene.add(ground);
+
+/* ---------- Matériaux ---------- */
+const mat = (color, rough=.55, metal=0) =>
+  new THREE.MeshStandardMaterial({color, roughness:rough, metalness:metal});
+const mPurple = mat(C.purple, .5);
+const mPurpleDark = mat(C.purpleDark, .5);
+const mCream = mat(C.cream, .8);
+const mOrange = mat(C.orange, .45);
+const mWhite = mat(C.white, .35);
+const mInk = mat(C.ink, .4);
+
+/* ---------- La mascotte : personnage-livre ---------- */
+const mascot = new THREE.Group();
+scene.add(mascot);
+
+/* Corps = livre fermé arrondi (couverture violette, tranche crème) */
+const body = new THREE.Group();
+mascot.add(body);
+
+function roundedBox(w,h,d,r,seg=4){
+  /* boîte arrondie simple par échelle d'une sphère cube-isée */
+  const geo = new THREE.BoxGeometry(w-2*r, h-2*r, d-2*r, seg,seg,seg);
+  const pos = geo.attributes.position;
+  const v = new THREE.Vector3();
+  for(let i=0;i<pos.count;i++){
+    v.fromBufferAttribute(pos,i);
+    const cl = v.clone().clamp(
+      new THREE.Vector3(-(w/2-r), -(h/2-r), -(d/2-r)),
+      new THREE.Vector3(w/2-r, h/2-r, d/2-r)
+    );
+    v.sub(cl).setLength(r).add(cl);
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/* Couverture avant + arrière */
+const coverGeo = roundedBox(2.3, 2.9, .22, .1);
+const coverFront = new THREE.Mesh(coverGeo, mPurple);
+coverFront.position.z = .42; coverFront.castShadow = true;
+const coverBack = new THREE.Mesh(coverGeo, mPurpleDark);
+coverBack.position.z = -.42; coverBack.castShadow = true;
+body.add(coverFront, coverBack);
+
+/* Dos du livre (reliure) */
+const spine = new THREE.Mesh(
+  new THREE.CylinderGeometry(.53, .53, 2.9, 24, 1, false, Math.PI/2, Math.PI),
+  mPurple
+);
+spine.position.x = -1.15; spine.rotation.y = Math.PI; spine.castShadow = true;
+body.add(spine);
+
+/* Pages crème */
+const pages = new THREE.Mesh(roundedBox(2.16, 2.7, .7, .08), mCream);
+pages.castShadow = true;
+body.add(pages);
+
+/* Lignes de pages (stries sur la tranche) */
+for(let i=0;i<5;i++){
+  const line = new THREE.Mesh(
+    new THREE.BoxGeometry(2.1, .012, .015),
+    mat(0xe8ddcc, .9)
+  );
+  line.position.set(0, -1.1 + i*.55, .365);
+  body.add(line);
+}
+
+/* Marque-page orange qui dépasse */
+const bookmark = new THREE.Mesh(new THREE.BoxGeometry(.3, .8, .06), mOrange);
+bookmark.position.set(.55, -1.75, .1);
+bookmark.rotation.z = .12;
+bookmark.castShadow = true;
+body.add(bookmark);
+
+/* Titre embossé : petite plume dorée-orange sur la couverture */
+const emblem = new THREE.Group();
+const quill = new THREE.Mesh(new THREE.ConeGeometry(.09, .5, 12), mOrange);
+quill.rotation.z = -.7; emblem.add(quill);
+const dotEmb = new THREE.Mesh(new THREE.SphereGeometry(.05, 12, 12), mOrange);
+dotEmb.position.set(-.2, -.28, 0); emblem.add(dotEmb);
+emblem.position.set(.35, -.55, .56);
+body.add(emblem);
+
+/* ---------- Visage ---------- */
+const face = new THREE.Group();
+face.position.z = .56;
+body.add(face);
+
+function makeEye(x){
+  const g = new THREE.Group();
+  const white = new THREE.Mesh(new THREE.SphereGeometry(.34, 24, 24), mWhite);
+  white.scale.z = .55; white.castShadow = true;
+  const pupil = new THREE.Mesh(new THREE.SphereGeometry(.15, 20, 20), mInk);
+  pupil.position.z = .17;
+  const glint = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 10), mWhite);
+  glint.position.set(.06, .07, .28);
+  /* paupière pour cligner */
+  const lid = new THREE.Mesh(
+    new THREE.SphereGeometry(.35, 24, 12, 0, Math.PI*2, 0, Math.PI/2),
+    mPurple
+  );
+  lid.scale.z = .58; lid.scale.y = .0; lid.position.y = .33;
+  g.add(white, pupil, glint, lid);
+  g.position.set(x, .75, 0);
+  g.userData = {pupil, lid};
+  return g;
+}
+const eyeL = makeEye(-.48);
+const eyeR = makeEye(.48);
+face.add(eyeL, eyeR);
+
+/* Sourcils expressifs */
+function brow(x, flip){
+  const b = new THREE.Mesh(new THREE.CapsuleGeometry
+    ? new THREE.CapsuleGeometry(.05, .3, 4, 8)
+    : new THREE.CylinderGeometry(.05, .05, .38, 8), mPurpleDark);
+  b.rotation.z = flip ? -.35 : .35;
+  b.position.set(x, 1.22, .05);
+  return b;
+}
+const browL = brow(-.48, false), browR = brow(.48, true);
+face.add(browL, browR);
+
+/* Sourire */
+const smile = new THREE.Mesh(
+  new THREE.TorusGeometry(.28, .05, 10, 24, Math.PI*.85),
+  mInk
+);
+smile.rotation.z = Math.PI + Math.PI*.075;
+smile.position.set(0, .28, .05);
+face.add(smile);
+
+/* Joues orange */
+[-1,1].forEach(s=>{
+  const cheek = new THREE.Mesh(new THREE.SphereGeometry(.11, 14, 14),
+    new THREE.MeshStandardMaterial({color:C.orange, roughness:.7, transparent:true, opacity:.55}));
+  cheek.scale.z = .4;
+  cheek.position.set(s*.78, .3, .03);
+  face.add(cheek);
+});
+
+/* ---------- Bras ---------- */
+function makeArm(side){
+  const g = new THREE.Group();
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(.09, .11, .85, 12), mPurple);
+  arm.position.y = -.42; arm.castShadow = true;
+  const hand = new THREE.Mesh(new THREE.SphereGeometry(.17, 16, 16), mWhite);
+  hand.position.y = -.9; hand.castShadow = true;
+  g.add(arm, hand);
+  g.position.set(side*1.22, .35, 0);
+  g.rotation.z = side * .5;
+  return g;
+}
+const armL = makeArm(-1), armR = makeArm(1);
+body.add(armL, armR);
+
+/* ---------- Pieds ---------- */
+[-1,1].forEach(s=>{
+  const foot = new THREE.Mesh(new THREE.SphereGeometry(.24, 16, 16), mOrange);
+  foot.scale.set(1, .55, 1.3);
+  foot.position.set(s*.5, -1.55, .15);
+  foot.castShadow = true;
+  mascot.add(foot);
+});
+
+/* ---------- Petites étoiles flottantes ---------- */
+const sparkles = [];
+const sparkGeo = new THREE.OctahedronGeometry(.09);
+for(let i=0;i<7;i++){
+  const s = new THREE.Mesh(sparkGeo, i%2 ? mOrange : mat(0xc99ef0, .3));
+  const a = (i/7)*Math.PI*2;
+  s.position.set(Math.cos(a)*2.6, Math.sin(a*1.7)*1.4 + .4, Math.sin(a)*1.6);
+  s.userData = {a, r: 2.4 + Math.random()*.7, sp:.3 + Math.random()*.4, h: Math.random()*2-1};
+  scene.add(s); sparkles.push(s);
+}
+
+/* ---------- Interactions ---------- */
+let mouse = {x:0, y:0};
+let targetRotY = 0, dragRotY = 0, dragging = false, lastX = 0;
+let waveTime = -10;
+
+addEventListener('mousemove', e=>{
+  mouse.x = (e.clientX/innerWidth)*2 - 1;
+  mouse.y = -(e.clientY/innerHeight)*2 + 1;
+  if(dragging){
+    dragRotY += (e.clientX - lastX) * .008;
+    lastX = e.clientX;
+  }
+});
+container.addEventListener('mousedown', e=>{dragging = true; lastX = e.clientX;});
+addEventListener('mouseup', ()=>dragging = false);
+container.addEventListener('touchmove', e=>{
+  const t = e.touches[0];
+  mouse.x = (t.clientX/innerWidth)*2 - 1;
+  mouse.y = -(t.clientY/innerHeight)*2 + 1;
+}, {passive:true});
+
+/* Clic sur la mascotte : salut de la main */
+const raycaster = new THREE.Raycaster();
+container.addEventListener('click', e=>{
+  raycaster.setFromCamera(new THREE.Vector2(
+    (e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1
+  ), camera);
+  if(raycaster.intersectObject(mascot, true).length){
+    waveTime = clock.getElapsedTime();
+  }
+});
+
+/* Clignement */
+let nextBlink = 2, blinkT = -1;
+
+/* ---------- Boucle ---------- */
+const clock = new THREE.Clock();
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function animate(){
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  /* Flottement / respiration */
+  if(!reduceMotion){
+    mascot.position.y = Math.sin(t*1.4)*.09;
+    body.scale.y = 1 + Math.sin(t*1.4)*.015;
+    body.rotation.z = Math.sin(t*.9)*.03;
+  }
+
+  /* Regard qui suit le curseur */
+  const px = THREE.MathUtils.clamp(mouse.x*.1, -.09, .09);
+  const py = THREE.MathUtils.clamp(mouse.y*.08, -.07, .07);
+  [eyeL, eyeR].forEach(eye=>{
+    eye.userData.pupil.position.x += (px - eye.userData.pupil.position.x)*.12;
+    eye.userData.pupil.position.y += (py - eye.userData.pupil.position.y)*.12;
+  });
+
+  /* Le corps s'oriente doucement vers le curseur + rotation du drag */
+  targetRotY = mouse.x*.4 + dragRotY;
+  mascot.rotation.y += (targetRotY - mascot.rotation.y)*.06;
+  mascot.rotation.x += (-mouse.y*.12 - mascot.rotation.x)*.06;
+
+  /* Clignement des yeux */
+  if(t > nextBlink){ blinkT = t; nextBlink = t + 2.4 + Math.random()*3; }
+  const bp = (t - blinkT)/.28;
+  const lidScale = (bp>=0 && bp<=1) ? Math.sin(bp*Math.PI) : 0;
+  [eyeL, eyeR].forEach(eye=>{ eye.userData.lid.scale.y = lidScale; });
+
+  /* Salut de la main droite après un clic */
+  const wt = t - waveTime;
+  if(wt < 1.6){
+    armR.rotation.z = 2.4 + Math.sin(wt*14)*.45;
+    browL.position.y = browR.position.y = 1.3;
+  } else {
+    armR.rotation.z += (0.5 - armR.rotation.z)*.08;
+    browL.position.y += (1.22 - browL.position.y)*.1;
+    browR.position.y += (1.22 - browR.position.y)*.1;
+    /* balancement léger des bras */
+    if(!reduceMotion){
+      armL.rotation.z = -.5 + Math.sin(t*1.4)*.07;
+      if(wt >= 1.6) armR.rotation.z = Math.min(armR.rotation.z, .5 + Math.sin(t*1.4+1)*.07 + .001) ;
+    }
+  }
+
+  /* Étoiles en orbite */
+  sparkles.forEach(s=>{
+    const u = s.userData;
+    const a = u.a + t*u.sp;
+    s.position.x = Math.cos(a)*u.r;
+    s.position.z = Math.sin(a)*u.r*.7;
+    s.position.y = .4 + Math.sin(a*1.6)*1.1*Math.abs(u.h);
+    s.rotation.x = t*1.2; s.rotation.y = t*.9;
+  });
+
+  renderer.render(scene, camera);
+}
+animate();
+
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+})();
+</script>
+</body>
+</html>
