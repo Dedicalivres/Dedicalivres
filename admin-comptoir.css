@@ -1,0 +1,306 @@
+/* =========================================================
+   DÉDICALIVRES — ADMIN « LE COMPTOIR » (couche additive)
+   Thème « bibliothèque de nuit » : quitte le code cyber/matrix.
+   Chargé uniquement sur admin.html, après admin.css et
+   admin-cockpit.css : les surcharges !important sont voulues.
+   Rollback : retirer les 2 lignes comptoir de admin.html.
+========================================================= */
+:root{
+  --cpt-bg-1:#140b24;
+  --cpt-bg-2:#1c1030;
+  --cpt-surface:#231340;
+  --cpt-surface-2:#2b1a4e;
+  --cpt-border:rgba(236,228,247,.11);
+  --cpt-text:#ece4f7;
+  --cpt-muted:#a99cc2;
+  --cpt-violet:#b79be8;
+  --cpt-action:#ff8a4d;
+  --cpt-action-dark:#e96f33;
+  --cpt-ok:#3ecf8e;
+  --cpt-warn:#ffc24d;
+  --cpt-danger:#ff5d5d;
+  --cpt-radius:14px;
+}
+
+/* ---------- Base : fini Orbitron, place à Inter ---------- */
+body{
+  font-family:Inter, system-ui, sans-serif !important;
+  background:
+    radial-gradient(700px 400px at 90% -5%, rgba(255,138,77,.08), transparent 60%),
+    radial-gradient(700px 420px at 0% 100%, rgba(150,105,230,.1), transparent 60%),
+    linear-gradient(180deg, var(--cpt-bg-1), var(--cpt-bg-2)) !important;
+  color:var(--cpt-text) !important;
+}
+h1,h2,h3,h4,button,input,select,textarea{
+  font-family:Inter, system-ui, sans-serif !important;
+  letter-spacing:normal !important;
+  text-transform:none !important;
+}
+h1,h2,h3,h4{ color:var(--cpt-text) !important }
+a{ color:var(--cpt-violet) }
+
+/* ---------- Écran de connexion ---------- */
+.login-screen{ background:transparent !important }
+.login-panel{
+  background:var(--cpt-surface) !important;
+  border:1px solid var(--cpt-border) !important;
+  border-radius:22px !important;
+  box-shadow:0 30px 80px rgba(0,0,0,.5) !important;
+}
+.login-subtitle{ color:var(--cpt-muted) !important }
+
+/* ---------- Panneaux : denses et calmes ---------- */
+.admin-panel, [class*="cyber-card"], .cockpit-quality-panel, .cockpit-security-panel{
+  background:var(--cpt-surface) !important;
+  border:1px solid var(--cpt-border) !important;
+  border-radius:var(--cpt-radius) !important;
+  box-shadow:0 10px 30px rgba(0,0,0,.28) !important;
+  padding:14px 16px !important;
+  color:var(--cpt-text) !important;
+}
+.admin-panel h3{
+  font-size:.82rem !important;
+  font-weight:800 !important;
+  letter-spacing:.06em !important;
+  text-transform:uppercase !important;
+  color:var(--cpt-violet) !important;
+  margin:0 0 10px !important;
+}
+.admin-panel p, .admin-panel li, .admin-panel td, .admin-panel label, .admin-panel span{
+  color:var(--cpt-text);
+}
+[class*="cyber-muted"], .admin-panel small{ color:var(--cpt-muted) !important }
+[class*="cyber-cyan"]{ color:var(--cpt-violet) !important }
+[class*="cyber-border"]{ border-color:var(--cpt-border) !important }
+
+/* ---------- Boutons : l'orange = action, le reste se tait ---------- */
+[class*="cyber-btn-primary"], button[class*="primary"]{
+  background:linear-gradient(135deg, var(--cpt-action), var(--cpt-action-dark)) !important;
+  color:#1a0e2c !important;
+  border:none !important;
+  border-radius:10px !important;
+  font-weight:800 !important;
+  box-shadow:0 8px 20px rgba(255,138,77,.28) !important;
+  padding:9px 16px !important;
+}
+[class*="cyber-btn-secondary"], button[class*="secondary"]{
+  background:var(--cpt-surface-2) !important;
+  color:var(--cpt-text) !important;
+  border:1px solid var(--cpt-border) !important;
+  border-radius:10px !important;
+  font-weight:700 !important;
+  padding:9px 16px !important;
+}
+[class*="cyber-btn-danger"], button[class*="danger"]{
+  background:rgba(255,93,93,.14) !important;
+  color:var(--cpt-danger) !important;
+  border:1px solid rgba(255,93,93,.4) !important;
+  border-radius:10px !important;
+  font-weight:800 !important;
+}
+button:hover{ filter:brightness(1.08) }
+button:focus-visible{ outline:2px solid var(--cpt-action); outline-offset:2px }
+
+/* ---------- Champs ---------- */
+input, select, textarea{
+  background:var(--cpt-bg-2) !important;
+  color:var(--cpt-text) !important;
+  border:1px solid var(--cpt-border) !important;
+  border-radius:10px !important;
+  padding:9px 12px !important;
+}
+input::placeholder, textarea::placeholder{ color:#7f7099 !important }
+
+/* ---------- Onglets : barre du haut condensée (desktop) ---------- */
+.admin-tabs{
+  position:sticky !important;
+  top:0 !important;
+  z-index:60 !important;
+  display:flex !important;
+  gap:4px !important;
+  flex-wrap:nowrap !important;
+  overflow-x:auto !important;
+  padding:10px 12px !important;
+  background:rgba(20,11,36,.9) !important;
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--cpt-border) !important;
+  scrollbar-width:thin;
+}
+.admin-tab{
+  flex:none !important;
+  background:transparent !important;
+  border:1px solid transparent !important;
+  border-radius:10px !important;
+  color:var(--cpt-muted) !important;
+  font-weight:700 !important;
+  font-size:.85rem !important;
+  padding:8px 13px !important;
+  position:relative;
+  white-space:nowrap;
+}
+.admin-tab:hover{ color:var(--cpt-text) !important; background:var(--cpt-surface) !important }
+.admin-tab.active{
+  color:#1a0e2c !important;
+  background:var(--cpt-action) !important;
+  box-shadow:0 6px 16px rgba(255,138,77,.3);
+}
+
+/* Compteur de travail en attente sur l'onglet */
+.cpt-badge{
+  display:inline-grid; place-items:center;
+  min-width:19px; height:19px; padding:0 5px;
+  margin-left:7px; border-radius:20px;
+  background:var(--cpt-danger); color:#fff;
+  font-size:.68rem; font-weight:800;
+  vertical-align:1px;
+}
+.admin-tab.active .cpt-badge{ background:#1a0e2c; color:#fff }
+
+/* ---------- Cartes événements : denses + vignettes R2 ---------- */
+.event-title{ font-weight:800 !important; color:var(--cpt-text) !important; font-size:.95rem !important }
+.event-admin-thumb-placeholder{
+  background:var(--cpt-bg-2) !important;
+  border:1px dashed var(--cpt-border) !important;
+  color:var(--cpt-muted) !important;
+  border-radius:10px !important;
+  font-size:.62rem !important;
+}
+.cpt-thumb{
+  width:64px; height:64px; flex:none;
+  border-radius:10px; overflow:hidden;
+  border:1px solid var(--cpt-border);
+  background:var(--cpt-bg-2);
+}
+.cpt-thumb img{ width:100%; height:100%; object-fit:cover; display:block }
+
+/* ---------- Tableaux compacts ---------- */
+table{ border-collapse:collapse; font-size:.85rem }
+th{ color:var(--cpt-violet) !important; font-weight:800 !important; font-size:.72rem !important; text-transform:uppercase }
+td, th{ border-color:var(--cpt-border) !important; padding:7px 10px !important }
+tr:hover td{ background:rgba(183,155,232,.06) }
+
+/* ---------- Bouton flottant « poster un événement » ---------- */
+#cpt-fab{
+  position:fixed; right:18px; bottom:18px; z-index:90;
+  display:inline-flex; align-items:center; gap:9px;
+  background:linear-gradient(135deg, var(--cpt-action), var(--cpt-action-dark));
+  color:#1a0e2c; border:none; border-radius:50px;
+  font:800 .9rem Inter, sans-serif; padding:14px 20px;
+  box-shadow:0 14px 34px rgba(255,138,77,.4); cursor:pointer;
+}
+#cpt-fab:hover{ transform:translateY(-2px) }
+
+/* =========================================================
+   MOBILE — là où la surveillance se fait vraiment
+========================================================= */
+@media (max-width:760px){
+  body{ padding-bottom:118px !important } /* place pour la barre + le FAB */
+
+  /* la barre d'onglets passe en bas, sous le pouce */
+  .admin-tabs{
+    position:fixed !important;
+    top:auto !important; bottom:0 !important; left:0; right:0;
+    border-bottom:none !important;
+    border-top:1px solid var(--cpt-border) !important;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom)) !important;
+    background:rgba(20,11,36,.96) !important;
+  }
+  .admin-tab{ font-size:.8rem !important; padding:9px 12px !important }
+
+  /* panneaux pleine largeur, marges serrées */
+  .admin-panel{ padding:12px !important; border-radius:12px !important }
+  main, .admin-content, .admin-tab-panel{ padding:8px !important }
+
+  /* les grilles se replient en une colonne */
+  .admin-tab-panel [style*="grid"], .admin-tab-panel .grid{ grid-template-columns:1fr !important }
+
+  #cpt-fab{ bottom:calc(64px + env(safe-area-inset-bottom)) }
+
+  h1, h2{ font-size:1.05rem !important }
+  .cpt-thumb{ width:54px; height:54px }
+}
+
+/* petit confort : scrollbars discrètes */
+::-webkit-scrollbar{ width:9px; height:9px }
+::-webkit-scrollbar-thumb{ background:var(--cpt-surface-2); border-radius:8px }
+::-webkit-scrollbar-track{ background:transparent }
+
+/* =========================================================
+   COMPTOIR v2 — L'ESPACE « AUJOURD'HUI »
+   File d'attente unifiée : événements + auteurs + témoignages
+========================================================= */
+#tab-comptoir{ padding:14px }
+
+/* bandeau de chiffres du jour */
+.cpt-stats{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr));
+  gap:10px; margin-bottom:14px;
+}
+.cpt-stat{
+  background:var(--cpt-surface); border:1px solid var(--cpt-border);
+  border-radius:12px; padding:12px 14px;
+}
+.cpt-stat b{ display:block; font-size:1.5rem; color:var(--cpt-text) }
+.cpt-stat span{ font-size:.7rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--cpt-muted) }
+.cpt-stat.is-hot b{ color:var(--cpt-action) }
+
+/* barre d'outils de la file */
+.cpt-inbox-bar{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; margin-bottom:10px; flex-wrap:wrap;
+}
+.cpt-inbox-bar h3{ margin:0 !important }
+
+/* la file */
+.cpt-inbox{ display:grid; gap:8px }
+.cpt-row{
+  display:flex; align-items:center; gap:12px;
+  background:var(--cpt-surface); border:1px solid var(--cpt-border);
+  border-radius:12px; padding:10px 12px;
+}
+.cpt-row:hover{ border-color:rgba(236,228,247,.24) }
+.cpt-kind{
+  flex:none; font-size:.64rem; font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; padding:4px 9px; border-radius:20px;
+}
+.cpt-kind--event{ background:rgba(183,155,232,.16); color:var(--cpt-violet) }
+.cpt-kind--author{ background:rgba(86,180,233,.14); color:#7ec3ec }
+.cpt-kind--temoignage{ background:rgba(255,138,77,.14); color:var(--cpt-action) }
+.cpt-row .cpt-thumb{ width:46px; height:46px }
+.cpt-row-main{ flex:1; min-width:0 }
+.cpt-row-title{
+  font-weight:800; font-size:.92rem; color:var(--cpt-text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.cpt-row-meta{
+  font-size:.76rem; color:var(--cpt-muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.cpt-row-age{ flex:none; font-size:.72rem; color:var(--cpt-muted); font-weight:600 }
+.cpt-row-actions{ flex:none; display:flex; gap:6px }
+.cpt-act{
+  border:none; border-radius:9px; cursor:pointer;
+  font:800 .78rem Inter, sans-serif; padding:8px 12px;
+}
+.cpt-act--ok{ background:rgba(62,207,142,.16); color:var(--cpt-ok) }
+.cpt-act--ok:hover{ background:rgba(62,207,142,.3) }
+.cpt-act--no{ background:rgba(255,93,93,.12); color:var(--cpt-danger) }
+.cpt-act--no:hover{ background:rgba(255,93,93,.26) }
+.cpt-act--open{ background:var(--cpt-surface-2); color:var(--cpt-text) }
+
+.cpt-empty{
+  text-align:center; padding:34px 16px; color:var(--cpt-muted);
+  background:var(--cpt-surface); border:1px dashed var(--cpt-border);
+  border-radius:12px; font-weight:600;
+}
+.cpt-empty b{ display:block; font-size:1.4rem; margin-bottom:6px; color:var(--cpt-ok) }
+
+/* ---------- mobile : lignes empilées, actions sous le pouce ---------- */
+@media (max-width:760px){
+  .cpt-row{ flex-wrap:wrap; padding:10px }
+  .cpt-row-age{ order:5; margin-left:auto }
+  .cpt-row-actions{ width:100%; order:6 }
+  .cpt-act{ flex:1; padding:11px 8px; font-size:.84rem }
+  .cpt-stats{ grid-template-columns:repeat(2,1fr) }
+}
