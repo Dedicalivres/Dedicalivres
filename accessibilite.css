@@ -1,0 +1,489 @@
+/* =========================================================
+   DÉDICALIVRES — ACCESSIBILITÉ (couche additive)
+   Deux modes activables par le visiteur, mémorisés :
+   1. Confort daltonien : palette Okabe-Ito, distinguable
+      en protanopie, deutéranopie et tritanopie.
+   2. Confort dyslexie : police adaptée, espacement élargi,
+      italiques neutralisées, rubans immobilisés.
+========================================================= */
+
+/* ---------- Police adaptée à la dyslexie (avec repli local) ---------- */
+@font-face{
+  font-family:"OpenDyslexic";
+  src:url("https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/open-dyslexic/otf/OpenDyslexic-Regular.otf") format("opentype");
+  font-weight:400; font-display:swap;
+}
+@font-face{
+  font-family:"OpenDyslexic";
+  src:url("https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/open-dyslexic/otf/OpenDyslexic-Bold.otf") format("opentype");
+  font-weight:700; font-display:swap;
+}
+
+/* =========================================================
+   LE PANNEAU : bouton d'accès universel + deux bascules
+========================================================= */
+.a11y-panel{
+  position:fixed; bottom:24px; left:24px; z-index:950;
+  font-family:Inter, system-ui, sans-serif;
+  display:flex; align-items:center; gap:10px;
+}
+.a11y-label{
+  border:1px solid rgba(58,28,113,.18); border-radius:40px;
+  background:rgba(255,255,255,.92); backdrop-filter:blur(8px);
+  padding:8px 16px; cursor:pointer;
+  font:inherit; text-align:left; line-height:1.25;
+  box-shadow:0 10px 26px rgba(58,28,113,.18);
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), border-color .2s;
+}
+.a11y-label:hover{ transform:translateY(-2px); border-color:#3a1c71 }
+.a11y-label:focus-visible{ outline:3px solid #ff6b35; outline-offset:2px }
+.a11y-label strong{ display:block; font-size:.8rem; color:#3a1c71; letter-spacing:.03em }
+.a11y-label small{ display:block; font-size:.68rem; color:#6b6178; font-weight:600 }
+.a11y-toggle{
+  width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
+  background:#3a1c71; color:#fff;
+  display:grid; place-items:center;
+  box-shadow:0 12px 28px rgba(58,28,113,.4);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1), background .25s;
+}
+.a11y-toggle:hover{ transform:scale(1.08); background:#261148 }
+.a11y-toggle:focus-visible{ outline:3px solid #ff6b35; outline-offset:3px }
+.a11y-toggle svg{ width:30px; height:30px }
+
+.a11y-menu{
+  position:absolute; bottom:68px; left:0;
+  width:min(300px, calc(100vw - 48px));
+  background:#fff; border-radius:18px;
+  border:1px solid rgba(58,28,113,.14);
+  box-shadow:0 24px 54px rgba(38,17,72,.28);
+  padding:18px;
+  opacity:0; transform:translateY(12px) scale(.97);
+  pointer-events:none;
+  transition:opacity .25s ease, transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.a11y-panel.is-open .a11y-menu{
+  opacity:1; transform:none; pointer-events:auto;
+}
+.a11y-menu h2{
+  margin:0 0 4px; font-size:1rem; color:#261148;
+  font-family:Inter, system-ui, sans-serif;
+}
+.a11y-menu > p{
+  margin:0 0 14px; font-size:.8rem; color:#6b6178; line-height:1.5;
+}
+.a11y-option{
+  display:flex; align-items:center; gap:12px; width:100%;
+  padding:12px 14px; margin-bottom:10px;
+  border:2px solid rgba(58,28,113,.15); border-radius:14px;
+  background:#fff; cursor:pointer; text-align:left;
+  font:inherit; color:#2a2438;
+  transition:border-color .2s, background .2s, transform .2s;
+}
+.a11y-option:last-child{ margin-bottom:0 }
+.a11y-option:hover{ border-color:#3a1c71; transform:translateX(3px) }
+.a11y-option:focus-visible{ outline:3px solid #ff6b35; outline-offset:2px }
+.a11y-option .a11y-ico{
+  flex:none; width:38px; height:38px; border-radius:10px;
+  display:grid; place-items:center; font-weight:800;
+  background:#f1e6f7; color:#3a1c71; font-size:1rem;
+}
+.a11y-option strong{ display:block; font-size:.9rem }
+.a11y-option small{ display:block; font-size:.72rem; color:#6b6178; margin-top:2px; line-height:1.35 }
+.a11y-option .a11y-state{
+  margin-left:auto; flex:none;
+  width:40px; height:22px; border-radius:20px;
+  background:#ddd4e8; position:relative; transition:background .25s;
+}
+.a11y-option .a11y-state::after{
+  content:""; position:absolute; top:2px; left:2px;
+  width:18px; height:18px; border-radius:50%; background:#fff;
+  box-shadow:0 2px 5px rgba(0,0,0,.25);
+  transition:left .25s cubic-bezier(.34,1.56,.64,1);
+}
+.a11y-option[aria-pressed="true"]{
+  border-color:#3a1c71; background:#f7f2fc;
+}
+.a11y-option[aria-pressed="true"] .a11y-state{ background:#3a1c71 }
+.a11y-option[aria-pressed="true"] .a11y-state::after{ left:20px }
+
+/* annonce vocale invisible */
+.a11y-live{
+  position:absolute; width:1px; height:1px; margin:-1px;
+  clip-path:inset(50%); overflow:hidden; white-space:nowrap;
+}
+
+/* =========================================================
+   MODE 1 — CONFORT DALTONIEN (palette Okabe-Ito)
+   Bleu #0072B2 remplace le violet, or #E69F00 l'orange.
+   Types d'événements : 4 teintes mutuellement distinguables.
+========================================================= */
+html.a11y-daltonien{
+  --purple:#0072B2;
+  --purple-dark:#004d78;
+  --orange:#E69F00;
+  --orange-dark:#b57d00;
+  --border:rgba(0,114,178,.14);
+  --shadow:0 18px 46px rgba(0,77,120,.16);
+}
+
+/* Types d'événements : badges */
+html.a11y-daltonien .badge-type.type-salon{ color:#0072B2 !important; background:rgba(0,114,178,.12) !important }
+html.a11y-daltonien .badge-type.type-salon i{ background:#0072B2 !important }
+html.a11y-daltonien .badge-type.type-festival{ color:#b57d00 !important; background:rgba(230,159,0,.16) !important }
+html.a11y-daltonien .badge-type.type-festival i{ background:#E69F00 !important }
+html.a11y-daltonien .badge-type.type-dedicace{ color:#a05587 !important; background:rgba(204,121,167,.16) !important }
+html.a11y-daltonien .badge-type.type-dedicace i{ background:#CC79A7 !important }
+html.a11y-daltonien .badge-type.type-autre{ color:#007a59 !important; background:rgba(0,158,115,.14) !important }
+html.a11y-daltonien .badge-type.type-autre i{ background:#009E73 !important }
+
+/* Légende de la carte */
+html.a11y-daltonien .legend-salon{ background:#0072B2 !important }
+html.a11y-daltonien .legend-festival{ background:#E69F00 !important }
+html.a11y-daltonien .legend-dedicace{ background:#CC79A7 !important }
+html.a11y-daltonien .legend-autre{ background:#009E73 !important }
+
+/* Marqueurs Leaflet : la couleur arrive en variable inline,
+   on surcharge la propriété qui la consomme, par teinte d'origine */
+html.a11y-daltonien .event-marker-v5 span[style*="3a1c71"]{ background:#0072B2 !important; color:#0072B2 !important }
+html.a11y-daltonien .event-marker-v5 span[style*="ff6b35"]{ background:#E69F00 !important; color:#E69F00 !important }
+html.a11y-daltonien .event-marker-v5 span[style*="16803c"]{ background:#CC79A7 !important; color:#CC79A7 !important }
+html.a11y-daltonien .event-marker-v5 span[style*="2f6fed"]{ background:#009E73 !important; color:#009E73 !important }
+
+/* Couche ludique : rubans, plume, tampon, coin corné */
+html.a11y-daltonien .lud-ticker{ background:#0072B2 }
+html.a11y-daltonien .lud-ticker-track em{ color:#F0E442 }
+html.a11y-daltonien .lud-ticker-events{ background:linear-gradient(90deg,#b57d00,#E69F00) }
+html.a11y-daltonien .lud-ticker-events em{ color:#004d78 }
+html.a11y-daltonien .lud-ink-underline path{ stroke:#E69F00 }
+html.a11y-daltonien .lud-ink-word{ color:#E69F00 }
+html.a11y-daltonien .lud-stamp{ border-color:#E69F00; color:#b57d00 }
+html.a11y-daltonien .event-card::after{
+  background:linear-gradient(225deg, transparent 48%, #E69F00 50%, #b57d00);
+}
+html.a11y-daltonien .lud-inkreveal::after{
+  background:radial-gradient(circle at 32% 24%, #1a86c4, #0072B2 55%, #004d78);
+}
+html.a11y-daltonien .lud-loader-book .lb-b{ background:#0072B2 }
+html.a11y-daltonien .lud-hl::before{
+  background:linear-gradient(100deg, rgba(230,159,0,.32), rgba(230,159,0,.45));
+}
+html.a11y-daltonien #lud-back-top{ background:linear-gradient(135deg,#E69F00,#b57d00) }
+
+/* Zone premium agenda/carte */
+html.a11y-daltonien .agenda-discovery-showcase{
+  background:
+    radial-gradient(900px 420px at 12% -8%, rgba(230,159,0,.16), transparent 55%),
+    radial-gradient(760px 420px at 92% 108%, rgba(86,180,233,.24), transparent 55%),
+    linear-gradient(150deg, #00405f 0%, #0072B2 52%, #003a56 100%);
+}
+
+/* =========================================================
+   MODE 2 — CONFORT DYSLEXIE
+   Police dédiée, interlignage 1.9, espacement élargi,
+   italiques neutralisées, texte non justifié,
+   rubans immobilisés (le texte mobile gêne la lecture).
+========================================================= */
+html.a11y-dyslexie body,
+html.a11y-dyslexie button,
+html.a11y-dyslexie input,
+html.a11y-dyslexie select,
+html.a11y-dyslexie textarea{
+  font-family:"OpenDyslexic", Verdana, "Trebuchet MS", Arial, sans-serif !important;
+}
+html.a11y-dyslexie h1,
+html.a11y-dyslexie h2,
+html.a11y-dyslexie h3,
+html.a11y-dyslexie h4{
+  font-family:"OpenDyslexic", Verdana, "Trebuchet MS", Arial, sans-serif !important;
+  line-height:1.4 !important;
+}
+html.a11y-dyslexie body{
+  font-size:1.05em;
+  line-height:1.9 !important;
+  letter-spacing:.045em;
+  word-spacing:.14em;
+}
+html.a11y-dyslexie p,
+html.a11y-dyslexie li,
+html.a11y-dyslexie label{
+  line-height:1.9 !important;
+  text-align:left !important;
+  max-width:70ch;
+}
+/* les italiques gênent la lecture : on les redresse en gras */
+html.a11y-dyslexie em,
+html.a11y-dyslexie i:not([class]),
+html.a11y-dyslexie cite{
+  font-style:normal !important;
+  font-weight:700;
+}
+/* rubans : texte immobile, à la ligne, tout reste cliquable */
+html.a11y-dyslexie .lud-ticker{ transform:none }
+html.a11y-dyslexie .lud-ticker-track{
+  animation:none !important;
+  width:100%; white-space:normal; flex-wrap:wrap;
+  justify-content:center; padding:0 16px; row-gap:6px;
+}
+html.a11y-dyslexie .lud-ticker-track > span:nth-child(2){ display:none }
+/* la plume : trait déjà tracé, sans animation */
+html.a11y-dyslexie .lud-ink-underline path{ animation:none; stroke-dashoffset:0 }
+/* calmer les entrées de sections */
+html.a11y-dyslexie .lud-inkreveal::after{ display:none }
+html.a11y-dyslexie .past-events-section[open] .event-card{ animation:none !important }
+
+@media (max-width:680px){
+  .a11y-panel{ bottom:18px; left:14px }
+}
+
+/* ---------- Panneau : groupe ambiance ---------- */
+.a11y-group-label{
+  margin:16px 0 8px; font-size:.72rem; font-weight:800;
+  letter-spacing:.1em; text-transform:uppercase; color:#6b6178;
+}
+.a11y-chips{ display:flex; gap:8px; flex-wrap:wrap }
+.a11y-chip{
+  flex:1; min-width:0; padding:9px 10px;
+  border:2px solid rgba(58,28,113,.15); border-radius:12px;
+  background:#fff; cursor:pointer; font:inherit;
+  font-size:.76rem; font-weight:700; color:#3a1c71;
+  transition:border-color .2s, background .2s, transform .25s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;
+}
+.a11y-chip:hover{ border-color:#3a1c71; transform:translateY(-2px) }
+.a11y-chip:focus-visible{ outline:3px solid #ff6b35; outline-offset:2px }
+.a11y-chip[aria-pressed="true"]{
+  background:#3a1c71; border-color:#3a1c71; color:#fff;
+}
+
+/* =========================================================
+   MODE SOIR — papier encre, texte crème
+   Couvre les surfaces principales ; s'affine page par page.
+========================================================= */
+html.a11y-soir{
+  --purple:#b79be8;
+  --purple-dark:#e9dffa;
+  --orange:#ffa16f;
+  --orange-dark:#ff8a4d;
+  --text:#efe8f8;
+  --muted:#b6a9cc;
+  --paper:rgba(34,20,58,.92);
+  --border:rgba(237,225,252,.12);
+  --shadow:0 18px 46px rgba(0,0,0,.45);
+}
+html.a11y-soir body{
+  color:#efe8f8;
+  background:linear-gradient(180deg,#1c1030,#241143 55%,#1a0e2c) !important;
+}
+/* ambiance : version nocturne */
+html.a11y-soir .lud-ambiance{
+  background:linear-gradient(180deg,#1c1030,#241143 55%,#1a0e2c);
+}
+html.a11y-soir .lud-nappe-1{ background:rgba(150,105,230,.22) }
+html.a11y-soir .lud-nappe-2{ background:rgba(255,140,90,.16) }
+html.a11y-soir .lud-nappe-3{ background:rgba(201,158,240,.18) }
+html.a11y-soir .lud-grain{ opacity:.28 }
+html.a11y-soir .lud-lignes{
+  background:repeating-linear-gradient(180deg, transparent 0 42px, rgba(237,225,252,.06) 42px 44px);
+}
+html.a11y-soir .lud-ambiance--papier{ background:linear-gradient(180deg,#211334,#1a0e2c) }
+/* header */
+html.a11y-soir .header,
+html.a11y-soir .header-inner{
+  background:rgba(30,17,52,.88) !important;
+  border-color:rgba(237,225,252,.12) !important;
+}
+html.a11y-soir .header nav a{ color:#e6dcf6 }
+/* titres et textes courants */
+html.a11y-soir h1, html.a11y-soir h2, html.a11y-soir h3, html.a11y-soir h4{ color:#f1eafb !important }
+html.a11y-soir p, html.a11y-soir li, html.a11y-soir label, html.a11y-soir summary{ color:#cfc2e4 }
+/* surfaces cartes */
+html.a11y-soir .event-card,
+html.a11y-soir .agenda-calendar-panel,
+html.a11y-soir .agenda-map-panel-block,
+html.a11y-soir .home-magazine-card,
+html.a11y-soir .home-magazine-tile,
+html.a11y-soir .saved-events-section,
+html.a11y-soir .past-events-section,
+html.a11y-soir .filters,
+html.a11y-soir .seo-hero,
+html.a11y-soir .seo-text-block,
+html.a11y-soir .testimonial-form-card,
+html.a11y-soir .testimonials-grid > *,
+html.a11y-soir .testimonial-hero-card,
+html.a11y-soir .regional-map-panel{
+  background:linear-gradient(160deg,rgba(43,26,74,.94),rgba(34,20,58,.92)) !important;
+  border-color:rgba(237,225,252,.12) !important;
+  color:#e6dcf6;
+}
+html.a11y-soir .event-card .card-body *{ color:#d9cdee }
+html.a11y-soir .event-card h3, html.a11y-soir .event-card h4{ color:#f1eafb !important }
+/* champs de saisie */
+html.a11y-soir input, html.a11y-soir select, html.a11y-soir textarea{
+  background:#2a1850 !important; color:#efe8f8 !important;
+  border-color:rgba(237,225,252,.2) !important;
+}
+html.a11y-soir input::placeholder, html.a11y-soir textarea::placeholder{ color:#9d8fbb }
+/* calendrier */
+html.a11y-soir .agenda-calendar-day{
+  background:rgba(50,32,84,.8); border-color:rgba(237,225,252,.1); color:#e6dcf6;
+}
+html.a11y-soir .agenda-calendar-day.is-selected{ background:#7a4fd0 }
+/* carte Leaflet légèrement tamisée */
+html.a11y-soir .leaflet-tile-pane{ filter:brightness(.82) contrast(1.05) saturate(.9) }
+/* panneau confort lui-même */
+html.a11y-soir .a11y-menu{ background:#2a1850; border-color:rgba(237,225,252,.16) }
+html.a11y-soir .a11y-menu h2{ color:#f1eafb !important }
+html.a11y-soir .a11y-menu > p{ color:#b6a9cc }
+html.a11y-soir .a11y-option{ background:#241143; border-color:rgba(237,225,252,.16); color:#e6dcf6 }
+html.a11y-soir .a11y-option[aria-pressed="true"]{ background:#33205c; border-color:#b79be8 }
+html.a11y-soir .a11y-option .a11y-ico{ background:#3a2566; color:#d9c9f5 }
+html.a11y-soir .a11y-option small{ color:#a99bc4 }
+html.a11y-soir .a11y-chip{ background:#241143; border-color:rgba(237,225,252,.16); color:#d9c9f5 }
+html.a11y-soir .a11y-chip[aria-pressed="true"]{ background:#b79be8; border-color:#b79be8; color:#241143 }
+html.a11y-soir .a11y-label{ background:rgba(42,24,80,.92); border-color:rgba(237,225,252,.16) }
+html.a11y-soir .a11y-label strong{ color:#d9c9f5 }
+/* rubans : déjà sombres, on éclaircit les liens actifs */
+html.a11y-soir .lud-ticker{ background:#2a1850 }
+
+/* ---------- v6 : le déclencheur vit dans le menu ---------- */
+.a11y-nav-btn{
+  display:inline-flex; align-items:center; gap:7px;
+  border:none; background:none; cursor:pointer;
+  font:600 .92rem Inter, system-ui, sans-serif;
+  color:#2a2438; padding:9px 14px; border-radius:40px;
+  transition:background .25s, color .25s;
+}
+.a11y-nav-btn:hover{ background:#f1e6f7; color:#3a1c71 }
+.a11y-nav-btn:focus-visible{ outline:3px solid #ff6b35; outline-offset:2px }
+html.a11y-soir .a11y-nav-btn{ color:#e6dcf6 }
+html.a11y-soir .a11y-nav-btn:hover{ background:#33205c }
+
+/* quand l'entrée de menu existe, le bouton flottant se retire
+   et le panneau s'ancre en haut à droite, sous le header */
+.a11y-panel--nav .a11y-toggle{ display:none }
+.a11y-panel--nav{ top:78px; right:16px; left:auto; bottom:auto }
+.a11y-panel--nav .a11y-menu{
+  bottom:auto; top:0; left:auto; right:0;
+  transform:translateY(-12px) scale(.97);
+}
+.a11y-panel--nav.is-open .a11y-menu{ transform:none }
+@media (max-width:680px){
+  .a11y-panel--nav{ top:70px; right:10px }
+  .a11y-nav-btn span{ display:none } /* icône seule dans le menu mobile serré */
+  .a11y-nav-btn{ padding:9px 10px }
+}
+
+/* =========================================================
+   v7 — SECTION VITRINE « CONFORT & AMBIANCE »
+========================================================= */
+.a11y-showcase{
+  max-width:1180px; margin:70px auto 40px;
+  padding:clamp(24px,4vw,40px);
+  background:linear-gradient(150deg, rgba(255,255,255,.92), rgba(241,230,247,.6));
+  border:1px solid rgba(58,28,113,.1);
+  border-radius:26px;
+  box-shadow:0 18px 46px rgba(58,28,113,.1);
+  font-family:Inter, system-ui, sans-serif;
+}
+.a11y-showcase-head h2{
+  font-family:"Playfair Display", serif;
+  color:#261148; font-size:clamp(1.3rem,2.6vw,1.9rem); margin:0 0 8px;
+}
+.a11y-showcase-head p{ color:#6b6178; font-weight:600; max-width:62ch; margin:0 0 22px; font-size:.92rem }
+
+.a11y-showcase-grid{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(210px,1fr)); gap:14px;
+}
+.a11y-card{
+  display:flex; flex-direction:column; align-items:flex-start; gap:8px;
+  background:#fff; border:2px solid rgba(58,28,113,.12); border-radius:18px;
+  padding:16px; cursor:pointer; text-align:left; font:inherit; color:#2a2438;
+  transition:border-color .2s, transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
+}
+.a11y-card:hover{ transform:translateY(-3px); border-color:#3a1c71; box-shadow:0 14px 30px rgba(58,28,113,.14) }
+.a11y-card:focus-visible{ outline:3px solid #ff6b35; outline-offset:2px }
+.a11y-card strong{ font-size:.95rem; color:#261148 }
+.a11y-card small{ font-size:.76rem; color:#6b6178; line-height:1.45 }
+.a11y-card-state{
+  margin-top:auto; font-size:.76rem; font-weight:800; color:#3a1c71;
+  background:#f1e6f7; padding:5px 12px; border-radius:20px;
+}
+.a11y-card[aria-pressed="true"]{ border-color:#ff6b35; background:#fff9f5 }
+.a11y-card[aria-pressed="true"] .a11y-card-state{ background:#ff6b35; color:#fff }
+
+/* ---------- Les aperçus ---------- */
+.a11y-card-preview{
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  width:100%; height:56px; border-radius:12px;
+  background:#faf6ff; border:1px solid rgba(58,28,113,.08);
+  overflow:hidden;
+}
+.a11y-card-preview i{ width:16px; height:16px; border-radius:50% }
+.a11y-prev-dys{
+  font-family:"OpenDyslexic", Verdana, sans-serif;
+  font-weight:700; letter-spacing:.12em; font-size:1rem; color:#2a2438;
+  background:#fffdf6;
+}
+.a11y-prev-soir{
+  background:linear-gradient(160deg,#241143,#1a0e2c);
+  flex-direction:column; align-items:flex-start; padding:10px 14px; gap:5px;
+}
+.a11y-prev-soir b{ width:52%; height:7px; border-radius:4px; background:#e9dffa }
+.a11y-prev-soir i{ width:78%; height:4px; border-radius:3px; background:#8d7bb0 }
+.a11y-prev-soir i:last-child{ width:64% }
+.a11y-prev-aqua{
+  background:
+    radial-gradient(30px 24px at 26% 36%, rgba(122,79,208,.5), transparent 70%),
+    radial-gradient(30px 24px at 74% 64%, rgba(255,140,90,.5), transparent 70%),
+    linear-gradient(180deg,#fbf7ff,#fff6ef);
+}
+.a11y-prev-papier{
+  background:
+    repeating-linear-gradient(180deg, transparent 0 10px, rgba(58,28,113,.14) 10px 11px),
+    #fffdf6;
+  position:relative;
+}
+.a11y-prev-papier::before{
+  content:""; position:absolute; top:0; bottom:0; left:12px; width:2px;
+  background:rgba(255,107,53,.5);
+}
+
+/* la carte ambiance contient deux mini-boutons */
+.a11y-card--amb{ cursor:default }
+.a11y-card--amb:hover{ transform:none; box-shadow:none; border-color:rgba(58,28,113,.12) }
+.a11y-amb-choices{ display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100% }
+.a11y-amb{
+  display:flex; flex-direction:column; gap:6px; align-items:stretch;
+  border:2px solid rgba(58,28,113,.12); border-radius:14px; background:#fff;
+  padding:8px; cursor:pointer; font:700 .76rem Inter, sans-serif; color:#3a1c71;
+  text-align:center;
+  transition:border-color .2s, transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.a11y-amb .a11y-card-preview{ height:44px }
+.a11y-amb:hover{ transform:translateY(-2px); border-color:#3a1c71 }
+.a11y-amb:focus-visible{ outline:3px solid #ff6b35; outline-offset:2px }
+.a11y-amb[aria-pressed="true"]{ border-color:#ff6b35; background:#fff9f5 }
+
+/* ---------- Mode soir : la vitrine suit ---------- */
+html.a11y-soir .a11y-showcase{
+  background:linear-gradient(150deg, rgba(43,26,74,.94), rgba(34,20,58,.92));
+  border-color:rgba(237,225,252,.12);
+}
+html.a11y-soir .a11y-showcase-head h2{ color:#f1eafb }
+html.a11y-soir .a11y-showcase-head p{ color:#b6a9cc }
+html.a11y-soir .a11y-card,
+html.a11y-soir .a11y-amb{ background:#241143; border-color:rgba(237,225,252,.16); color:#e6dcf6 }
+html.a11y-soir .a11y-card strong{ color:#f1eafb }
+html.a11y-soir .a11y-card small{ color:#a99bc4 }
+html.a11y-soir .a11y-card-state{ background:#3a2566; color:#d9c9f5 }
+html.a11y-soir .a11y-card[aria-pressed="true"]{ background:#33205c }
+html.a11y-soir .a11y-card-preview{ border-color:rgba(237,225,252,.1) }
+
+@media (max-width:680px){
+  .a11y-showcase{ margin:44px 12px 24px; border-radius:20px }
+  .a11y-showcase-grid{ grid-template-columns:1fr 1fr }
+  .a11y-card--amb{ grid-column:1/-1 }
+}
+@media (max-width:440px){
+  .a11y-showcase-grid{ grid-template-columns:1fr }
+}

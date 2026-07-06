@@ -1,0 +1,346 @@
+/* =========================================================
+   DÉDICALIVRES — AGENDA & CARTE PREMIUM (couche additive)
+   S'ajoute à Style.css + ludique.css. Ne remplace rien.
+   Cible uniquement la zone #agenda-map (.agenda-discovery-showcase).
+   Signature couleur conservée : #3a1c71 / #ff6b35
+========================================================= */
+
+/* ---------- 1. L'ÉCRIN : fond violet profond signature ---------- */
+.agenda-discovery-showcase{
+  position: relative;
+  padding: clamp(18px, 2.6vw, 30px);
+  border-radius: 34px;
+  background:
+    radial-gradient(900px 420px at 12% -8%, rgba(255,107,53,.16), transparent 55%),
+    radial-gradient(760px 420px at 92% 108%, rgba(137,84,214,.28), transparent 55%),
+    linear-gradient(150deg, #2c1257 0%, #3a1c71 52%, #241043 100%);
+  box-shadow:
+    0 30px 80px rgba(38,17,72,.38),
+    inset 0 1px 0 rgba(255,255,255,.09);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Liseré lumineux animé sur le pourtour */
+.agenda-discovery-showcase::before{
+  content:"";
+  position:absolute; inset:0;
+  padding:1.5px;
+  border-radius:34px;
+  background: conic-gradient(
+    from var(--lud-angle, 0deg),
+    rgba(255,107,53,.0) 0%,
+    rgba(255,107,53,.75) 12%,
+    rgba(255,255,255,.35) 22%,
+    rgba(255,107,53,.0) 34%,
+    rgba(201,158,240,.0) 60%,
+    rgba(201,158,240,.55) 72%,
+    rgba(201,158,240,.0) 86%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events:none;
+  animation: lud-border-spin 9s linear infinite;
+}
+@property --lud-angle{
+  syntax:"<angle>"; initial-value:0deg; inherits:false;
+}
+@keyframes lud-border-spin{ to{ --lud-angle:360deg } }
+
+/* Constellation de points façon papier étoilé */
+.agenda-discovery-showcase::after{
+  content:"";
+  position:absolute; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    radial-gradient(rgba(255,255,255,.14) 1px, transparent 1.6px),
+    radial-gradient(rgba(255,255,255,.08) 1px, transparent 1.6px);
+  background-size: 46px 46px, 78px 78px;
+  background-position: 0 0, 23px 31px;
+  mask-image: radial-gradient(120% 90% at 50% 0%, #000 30%, transparent 90%);
+}
+
+/* Halo qui suit la souris (variables posées par agenda-premium.js) */
+.agenda-discovery-showcase .lud-spotlight{
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  background: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, 30%),
+    rgba(255,107,53,.13), transparent 65%
+  );
+  opacity:0; transition: opacity .5s ease;
+}
+.agenda-discovery-showcase:hover .lud-spotlight{ opacity:1 }
+
+/* ---------- 2. Bandeau d'en-tête (map-teaser existant) ---------- */
+.agenda-discovery-showcase .map-teaser{
+  position:relative; z-index:1;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin-bottom: clamp(14px, 2vw, 20px);
+  padding: 0 6px;
+}
+.agenda-discovery-showcase .map-teaser strong{
+  color: #fff;
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  letter-spacing: .01em;
+  text-shadow: 0 2px 18px rgba(38,17,72,.5);
+}
+.agenda-discovery-showcase .map-teaser strong::after{
+  content:"✦";
+  margin-left: 12px;
+  color: #ff6b35;
+  font-size: .7em;
+  vertical-align: middle;
+  animation: lud-twinkle 2.6s ease-in-out infinite;
+  display: inline-block;
+}
+@keyframes lud-twinkle{
+  0%,100%{ opacity:.55; transform:scale(1) rotate(0deg) }
+  50%{ opacity:1; transform:scale(1.35) rotate(24deg) }
+}
+.agenda-discovery-showcase .map-teaser p,
+.agenda-discovery-showcase .map-teaser span{
+  color: rgba(255,255,255,.72);
+}
+
+/* ---------- 3. Les deux panneaux : verre dépoli ---------- */
+.agenda-discovery-showcase .agenda-discovery-grid{
+  position: relative; z-index: 1;
+  gap: clamp(16px, 2.2vw, 24px);
+}
+
+.agenda-discovery-showcase .agenda-calendar-panel,
+.agenda-discovery-showcase .agenda-map-panel-block{
+  border-radius: 26px;
+  background:
+    linear-gradient(160deg, rgba(255,255,255,.97), rgba(248,241,251,.92)) !important;
+  border: 1px solid rgba(255,255,255,.55);
+  box-shadow:
+    0 24px 54px rgba(20,8,40,.35),
+    inset 0 1px 0 rgba(255,255,255,.9);
+  backdrop-filter: blur(6px);
+}
+.agenda-discovery-showcase .agenda-map-panel-block{
+  padding: clamp(14px, 2vw, 20px);
+}
+
+/* ---------- 4. Calendrier : micro-détails précieux ---------- */
+.agenda-discovery-showcase .agenda-calendar-head h3{
+  background: linear-gradient(120deg, #3a1c71, #7a3fb8 65%, #ff6b35 130%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.agenda-discovery-showcase .agenda-calendar-controls{
+  background: rgba(58,28,113,.06);
+  border-color: rgba(58,28,113,.14);
+}
+.agenda-discovery-showcase .calendar-nav-btn{
+  background: #fff;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), background .25s, color .25s, border-color .25s;
+}
+.agenda-discovery-showcase .calendar-nav-btn:hover{
+  background: #3a1c71; color: #fff;
+  transform: scale(1.12);
+}
+
+/* Raccourcis : pilules pleines au survol */
+.agenda-discovery-showcase .agenda-calendar-shortcuts button{
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1), background .25s, color .25s, border-color .25s, box-shadow .25s;
+}
+.agenda-discovery-showcase .agenda-calendar-shortcuts button:hover{
+  background: linear-gradient(135deg, #ff6b35, #e95825);
+  border-color: transparent;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(255,107,53,.4);
+}
+
+/* Jours : relief doux, chiffres nets */
+.agenda-discovery-showcase .agenda-calendar-day{
+  background: rgba(255,255,255,.85);
+  border-color: rgba(58,28,113,.08);
+  box-shadow: 0 2px 6px rgba(58,28,113,.05);
+}
+.agenda-discovery-showcase .agenda-calendar-day.has-events{
+  background:
+    radial-gradient(circle at 85% 16%, rgba(255,107,53,.2), transparent 32%),
+    #fff;
+  border-color: rgba(255,107,53,.28);
+}
+
+/* Aujourd'hui : anneau élégant */
+.agenda-discovery-showcase .agenda-calendar-day.is-today{
+  border-color: transparent;
+  box-shadow:
+    0 0 0 2px #ff6b35,
+    0 0 0 6px rgba(255,107,53,.14);
+}
+
+/* Jour sélectionné : joyau lumineux */
+.agenda-discovery-showcase .agenda-calendar-day.is-selected{
+  background: linear-gradient(140deg, #3a1c71 10%, #5d2ca0 60%, #8a4fd0 115%);
+  box-shadow:
+    0 16px 32px rgba(58,28,113,.4),
+    0 0 0 3px rgba(255,255,255,.85),
+    0 0 0 6px rgba(58,28,113,.25),
+    inset 0 1px 0 rgba(255,255,255,.35);
+}
+
+/* Pastille de compte : petit battement */
+.agenda-discovery-showcase .calendar-day-count{
+  box-shadow: 0 4px 10px rgba(255,107,53,.45);
+  animation: lud-count-beat 2.4s ease-in-out infinite;
+}
+@keyframes lud-count-beat{
+  0%,100%{ transform:scale(1) }
+  12%{ transform:scale(1.18) }
+  24%{ transform:scale(1) }
+}
+
+/* ---------- 5. La carte : hublot précieux ---------- */
+.agenda-discovery-showcase .map-panel{
+  padding: 8px;
+  border-radius: 24px;
+  background: linear-gradient(160deg, #fff, #f6effb) !important;
+  border: 1px solid rgba(58,28,113,.1);
+  box-shadow:
+    0 18px 40px rgba(20,8,40,.22),
+    inset 0 0 0 1px rgba(255,255,255,.8);
+}
+.agenda-discovery-showcase #map{
+  border-radius: 18px;
+  box-shadow: inset 0 0 34px rgba(58,28,113,.16);
+}
+
+/* Fondu du plan Leaflet vers une teinte "papier" de la marque */
+.agenda-discovery-showcase .leaflet-tile-pane{
+  filter: grayscale(.22) sepia(.1) saturate(1.08) brightness(1.02);
+}
+
+/* Contrôles de zoom Leaflet redessinés */
+.agenda-discovery-showcase .leaflet-control-zoom{
+  border: none !important;
+  border-radius: 999px !important;
+  overflow: hidden;
+  box-shadow: 0 10px 26px rgba(58,28,113,.3) !important;
+}
+.agenda-discovery-showcase .leaflet-control-zoom a{
+  width: 38px !important; height: 38px !important;
+  line-height: 38px !important;
+  color: #3a1c71 !important;
+  font-weight: 900 !important;
+  background: rgba(255,255,255,.94) !important;
+  border: none !important;
+  transition: background .2s, color .2s;
+}
+.agenda-discovery-showcase .leaflet-control-zoom a:hover{
+  background: #3a1c71 !important;
+  color: #fff !important;
+}
+
+/* Popups Leaflet aux couleurs de la maison */
+.agenda-discovery-showcase .leaflet-popup-content-wrapper{
+  border-radius: 18px;
+  box-shadow: 0 20px 44px rgba(38,17,72,.35);
+  border: 1px solid rgba(58,28,113,.1);
+}
+.agenda-discovery-showcase .leaflet-popup-tip{
+  box-shadow: 0 8px 18px rgba(38,17,72,.25);
+}
+
+/* Marqueurs : halo pulsant discret */
+.agenda-discovery-showcase .event-marker-v5 span{
+  position: relative;
+}
+.agenda-discovery-showcase .event-marker-v5 span::after{
+  content:"";
+  position:absolute; inset:-7px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  opacity:.45;
+  animation: lud-marker-ping 2.2s ease-out infinite;
+}
+@keyframes lud-marker-ping{
+  0%{ transform:scale(.55); opacity:.55 }
+  80%,100%{ transform:scale(1.35); opacity:0 }
+}
+
+/* ---------- 6. Actions et légende sur fond sombre... devenus clairs ---------- */
+.agenda-discovery-showcase .ux-actions .btn-secondary,
+.agenda-discovery-showcase .ux-actions button{
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s, background .25s, color .25s;
+}
+.agenda-discovery-showcase .ux-actions .btn-secondary:hover{
+  transform: translateY(-3px);
+}
+
+.agenda-discovery-showcase .map-legend-inline{
+  background: rgba(255,255,255,.94);
+  border-color: rgba(58,28,113,.08);
+  box-shadow: 0 10px 26px rgba(20,8,40,.18);
+}
+.agenda-discovery-showcase .legend-dot{
+  animation: lud-legend-breathe 3s ease-in-out infinite;
+}
+.agenda-discovery-showcase .map-legend-inline span:nth-child(3) .legend-dot{ animation-delay:.4s }
+.agenda-discovery-showcase .map-legend-inline span:nth-child(4) .legend-dot{ animation-delay:.8s }
+@keyframes lud-legend-breathe{
+  0%,100%{ transform:scale(1) }
+  50%{ transform:scale(1.22) }
+}
+
+/* Barre d'outils premium injectée par ui-effects-v6 : accordée */
+.agenda-discovery-showcase .map-premium-toolbar button{
+  border-radius: 999px;
+  border: 1px solid rgba(58,28,113,.14);
+  background: rgba(255,255,255,.94);
+  color: #3a1c71;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(20,8,40,.18);
+  transition: background .2s, color .2s, transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.agenda-discovery-showcase .map-premium-toolbar button:hover{
+  background:#3a1c71; color:#fff; transform: translateY(-2px);
+}
+
+/* ---------- 7. Entrée en scène de l'écrin ---------- */
+.agenda-discovery-showcase.lud-reveal{ opacity:0; transform: translateY(46px) scale(.985) }
+.agenda-discovery-showcase.lud-reveal.lud-visible{
+  opacity:1; transform:none;
+  transition: opacity .9s ease, transform .9s cubic-bezier(.34,1.56,.64,1);
+}
+.agenda-discovery-showcase.lud-visible .agenda-calendar-panel{
+  animation: lud-panel-in .8s cubic-bezier(.34,1.56,.64,1) .15s both;
+}
+.agenda-discovery-showcase.lud-visible .agenda-map-panel-block{
+  animation: lud-panel-in .8s cubic-bezier(.34,1.56,.64,1) .3s both;
+}
+@keyframes lud-panel-in{
+  from{ opacity:0; transform:translateY(26px) }
+  to{ opacity:1; transform:none }
+}
+
+/* ---------- 8. Mobile ---------- */
+@media (max-width: 780px){
+  .agenda-discovery-showcase{ border-radius: 26px; padding: 14px }
+  .agenda-discovery-showcase::before{ border-radius: 26px }
+}
+
+/* ---------- 9. Mouvement réduit ---------- */
+@media (prefers-reduced-motion: reduce){
+  .agenda-discovery-showcase::before,
+  .agenda-discovery-showcase .map-teaser strong::after,
+  .agenda-discovery-showcase .calendar-day-count,
+  .agenda-discovery-showcase .event-marker-v5 span::after,
+  .agenda-discovery-showcase .legend-dot{ animation:none !important }
+  .agenda-discovery-showcase.lud-reveal,
+  .agenda-discovery-showcase .agenda-calendar-panel,
+  .agenda-discovery-showcase .agenda-map-panel-block{
+    opacity:1 !important; transform:none !important; animation:none !important;
+  }
+  .agenda-discovery-showcase .lud-spotlight{ display:none }
+}
