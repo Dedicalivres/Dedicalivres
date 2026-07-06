@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Widget partenaires — Affichez l'agenda Dédicalivres sur votre site</title>
+  <meta name="description" content="Librairies, blogs, médiathèques : intégrez gratuitement l'agenda littéraire Dédicalivres sur votre site en copiant deux lignes de code." />
+  <link rel="icon" href="logo.png" />
+  <link rel="stylesheet" href="style.css?v=v1-francophone-20260620-clean-ui" />
+  <link rel="stylesheet" href="ludique.css?v=ludique-14" />
+  <link rel="stylesheet" href="accessibilite.css?v=a11y-7" />
+  <style>
+    .wg-page{max-width:1100px;margin:0 auto;padding:24px clamp(16px,4vw,32px) 60px}
+    .wg-hero{text-align:center;padding:34px 0 26px}
+    .wg-hero h1{font-family:"Playfair Display",serif;color:var(--purple-dark,#261148);font-size:clamp(1.7rem,4vw,2.6rem);line-height:1.12}
+    .wg-hero p{color:var(--muted,#6b6178);font-weight:600;max-width:60ch;margin:12px auto 0}
+    .wg-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,3vw,36px);align-items:start;margin-top:26px}
+    @media(max-width:840px){.wg-grid{grid-template-columns:1fr}}
+    .wg-panel{background:rgba(255,255,255,.92);border:1px solid rgba(58,28,113,.1);border-radius:22px;padding:clamp(18px,3vw,28px);box-shadow:0 14px 36px rgba(58,28,113,.1)}
+    .wg-panel h2{font-family:"Playfair Display",serif;color:var(--purple-dark,#261148);font-size:1.25rem;margin:0 0 14px}
+    .wg-field{margin-bottom:14px}
+    .wg-field label{display:block;font-weight:800;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:#3a1c71;margin-bottom:6px}
+    .wg-field select{width:100%;padding:10px 14px;border-radius:12px;border:2px solid rgba(58,28,113,.15);font:600 .9rem Inter,sans-serif;background:#fff;color:#2a2438}
+    .wg-field select:focus{border-color:#ff6b35;outline:none}
+    .wg-code{position:relative;margin-top:18px}
+    .wg-code textarea{width:100%;min-height:120px;resize:vertical;font:500 .78rem/1.6 ui-monospace,Menlo,Consolas,monospace;background:#241143;color:#e6dcf6;border:none;border-radius:14px;padding:14px 16px}
+    .wg-copy{position:absolute;top:10px;right:10px;border:none;border-radius:20px;background:#ff6b35;color:#fff;font:800 .76rem Inter,sans-serif;padding:8px 15px;cursor:pointer}
+    .wg-copy:hover{background:#e95825}
+    .wg-preview-zone{display:flex;justify-content:center;padding:20px 8px;background:
+      repeating-conic-gradient(rgba(58,28,113,.045) 0 25%, transparent 0 50%) 0 0/26px 26px, #faf6ff;
+      border-radius:16px;border:1px dashed rgba(58,28,113,.18)}
+    .wg-notes{margin-top:18px;font-size:.82rem;color:#6b6178;line-height:1.65}
+    .wg-notes strong{color:#3a1c71}
+    .wg-back{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:800;color:#3a1c71;margin-bottom:8px}
+    .wg-back:hover{color:#e95825}
+    html.a11y-soir .wg-panel{background:rgba(43,26,74,.94);border-color:rgba(237,225,252,.12)}
+    html.a11y-soir .wg-panel h2,html.a11y-soir .wg-hero h1{color:#f1eafb}
+    html.a11y-soir .wg-hero p,html.a11y-soir .wg-notes{color:#b6a9cc}
+    html.a11y-soir .wg-field select{background:#2a1850;color:#efe8f8;border-color:rgba(237,225,252,.2)}
+    html.a11y-soir .wg-preview-zone{background:#1c1030;border-color:rgba(237,225,252,.2)}
+  </style>
+</head>
+<body class="seo-page">
+
+<main class="wg-page">
+  <a class="wg-back" href="index.html">← Retour à l'accueil Dédicalivres</a>
+
+  <div class="wg-hero">
+    <h1>Affichez l'agenda Dédicalivres<br />sur votre site</h1>
+    <p>Librairies, blogs littéraires, médiathèques, offices de tourisme :
+       partagez les prochains salons, festivals et dédicaces vérifiés par l'association —
+       gratuitement, en copiant deux lignes de code.</p>
+  </div>
+
+  <div class="wg-grid">
+
+    <section class="wg-panel" aria-labelledby="wg-conf-title">
+      <h2 id="wg-conf-title">1 · Composez votre widget</h2>
+
+      <div class="wg-field">
+        <label for="wg-pays">Pays</label>
+        <select id="wg-pays">
+          <option value="">Tous les pays</option>
+          <option value="FR">France</option>
+          <option value="BE">Belgique</option>
+          <option value="LU">Luxembourg</option>
+          <option value="CH">Suisse</option>
+          <option value="MC">Monaco</option>
+        </select>
+      </div>
+
+      <div class="wg-field">
+        <label for="wg-type">Type d'événement</label>
+        <select id="wg-type">
+          <option value="">Tous les types</option>
+          <option>Salon</option>
+          <option>Festival</option>
+          <option>Dédicace</option>
+          <option>Autre</option>
+        </select>
+      </div>
+
+      <div class="wg-field">
+        <label for="wg-limit">Nombre d'événements</label>
+        <select id="wg-limit">
+          <option>3</option><option selected>5</option><option>8</option><option>12</option>
+        </select>
+      </div>
+
+      <div class="wg-field">
+        <label for="wg-theme">Thème</label>
+        <select id="wg-theme">
+          <option value="clair" selected>Clair</option>
+          <option value="soir">Soir</option>
+        </select>
+      </div>
+
+      <h2 style="margin-top:22px">2 · Copiez le code chez vous</h2>
+      <div class="wg-code">
+        <textarea id="wg-snippet" readonly aria-label="Code d'intégration du widget"></textarea>
+        <button type="button" class="wg-copy" id="wg-copy">Copier</button>
+      </div>
+
+      <p class="wg-notes">
+        <strong>C'est tout.</strong> Le widget se met à jour automatiquement avec l'agenda vérifié,
+        s'isole du style de votre site (Shadow DOM), et chaque événement renvoie vers sa fiche
+        complète sur dedicalivres.fr. Données participatives vérifiées par l'association —
+        merci de conserver la mention « Voir tout l'agenda ».
+      </p>
+    </section>
+
+    <section class="wg-panel" aria-labelledby="wg-prev-title">
+      <h2 id="wg-prev-title">Aperçu en direct</h2>
+      <div class="wg-preview-zone">
+        <div id="wg-preview" data-dedicalivres data-limit="5" data-theme="clair"></div>
+      </div>
+      <p class="wg-notes">Cet aperçu est le widget réel, branché sur les vraies données :
+         exactement ce que verront les visiteurs du site partenaire.</p>
+    </section>
+
+  </div>
+</main>
+
+<script src="widget.js?v=widget-1" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var prev = document.getElementById("wg-preview");
+  var snippet = document.getElementById("wg-snippet");
+  var fields = { pays: "wg-pays", type: "wg-type", limit: "wg-limit", theme: "wg-theme" };
+
+  function currentAttrs() {
+    var a = {};
+    Object.keys(fields).forEach(function (k) {
+      a[k] = document.getElementById(fields[k]).value;
+    });
+    return a;
+  }
+
+  function update() {
+    var a = currentAttrs();
+    ["pays", "type", "limit", "theme"].forEach(function (k) {
+      if (a[k]) prev.dataset[k] = a[k]; else delete prev.dataset[k];
+    });
+    if (window.DedicalivresWidget) window.DedicalivresWidget.render(prev);
+
+    var attrs = "";
+    if (a.pays) attrs += ' data-pays="' + a.pays + '"';
+    if (a.type) attrs += ' data-type="' + a.type + '"';
+    attrs += ' data-limit="' + a.limit + '"';
+    if (a.theme !== "clair") attrs += ' data-theme="' + a.theme + '"';
+    snippet.value =
+      '<div data-dedicalivres' + attrs + '></div>\n' +
+      '<script src="https://dedicalivres.fr/widget.js" defer><\/script>';
+  }
+
+  Object.values(fields).forEach(function (id) {
+    document.getElementById(id).addEventListener("change", update);
+  });
+
+  document.getElementById("wg-copy").addEventListener("click", function () {
+    snippet.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    if (!ok && navigator.clipboard) navigator.clipboard.writeText(snippet.value);
+    this.textContent = "Copié ✓";
+    var btn = this;
+    setTimeout(function () { btn.textContent = "Copier"; }, 1600);
+  });
+
+  /* premier rendu une fois widget.js prêt */
+  var tries = 0;
+  (function waitWidget() {
+    if (window.DedicalivresWidget) { update(); return; }
+    if (++tries < 40) setTimeout(waitWidget, 100);
+  })();
+});
+</script>
+<script src="ludique.js?v=ludique-14" defer></script>
+<script src="accessibilite.js?v=a11y-7" defer></script>
+</body>
+</html>
