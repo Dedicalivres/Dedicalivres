@@ -708,3 +708,15 @@ html.a11y-soir .lud-reminder-done{ background:#ffb28f !important; color:#241143 
 /* ---------- Bulle « Widget site » dans la picto-nav ---------- */
 .hero-picto-widget .hero-picto-image circle:nth-child(2){ fill:#ffe9df }
 .hero-picto-widget:hover .hero-picto-image{ transform:rotate(-6deg) scale(1.05) }
+
+/* =========================================================
+   PICTO-NAV À 6 BULLES (ajout de « Widget site »)
+   Surcharge du desktop : 5 → 6 colonnes sur une seule ligne.
+   Le mobile garde sa cascade d'origine (2 puis 1 colonne).
+========================================================= */
+@media (min-width: 981px){
+  .hero-picto-nav{
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    width: clamp(400px, 34vw, 680px) !important;
+  }
+}
