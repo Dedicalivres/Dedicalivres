@@ -86,6 +86,7 @@
     setupCalendarStagger();
     setupPageRain();         // easter egg
     injectWidgetLink();      // lien partenaires dans le footer
+    setupReminderButtons();  // bouton rappel .ics sur les cartes
   }
 
   /* =========================================================
@@ -281,6 +282,126 @@
       tile.innerHTML = "<strong>\ud83e\udde9 Widget pour votre site</strong>";
       grid.appendChild(tile);
     }
+  }
+
+  /* =========================================================
+     BOUTON RAPPEL — ajoute un \ud83d\udd14 sur chaque carte qui
+     g\u00e9n\u00e8re un .ics tagu\u00e9 dedicalivres.fr (comme sur la fiche).
+  ========================================================= */
+  var FR_MONTHS = {
+    "janvier":0,"f\u00e9vrier":1,"fevrier":1,"mars":2,"avril":3,"mai":4,"juin":5,
+    "juillet":6,"ao\u00fbt":7,"aout":7,"septembre":8,"octobre":9,"novembre":10,"d\u00e9cembre":11,"decembre":11
+  };
+
+  function parseFrDate(txt) {
+    /* "28 novembre 2026" -> {y,m,d} ; ignore le \u2192 de fin */
+    var m = String(txt).toLowerCase().match(/(\d{1,2})\s+([a-z\u00e9\u00fb]+)\s+(\d{4})/);
+    if (!m) return null;
+    var mon = FR_MONTHS[m[2]];
+    if (mon == null) return null;
+    return { y: +m[3], m: mon, d: +m[1] };
+  }
+
+  function icsDate(o) {
+    return o.y + String(o.m + 1).padStart(2, "0") + String(o.d).padStart(2, "0");
+  }
+  function icsDatePlus1(o) {
+    var dt = new Date(Date.UTC(o.y, o.m, o.d));
+    dt.setUTCDate(dt.getUTCDate() + 1);
+    return dt.getUTCFullYear() + String(dt.getUTCMonth() + 1).padStart(2, "0") + String(dt.getUTCDate()).padStart(2, "0");
+  }
+  function escICS(s) {
+    return String(s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;")
+      .replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  }
+
+  function buildAndDownloadICS(data) {
+    var startO = parseFrDate(data.dateText);
+    if (!startO) { window.open(data.url, "_blank"); return; } /* repli : ouvre la fiche */
+    /* deux dates ? on prend la seconde comme fin */
+    var all = String(data.dateText).match(/\d{1,2}\s+[a-z\u00e9\u00fb]+\s+\d{4}/gi) || [];
+    var endO = all.length > 1 ? parseFrDate(all[all.length - 1]) : startO;
+
+    var lines = [
+      "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Dedicalivres//Agenda//FR",
+      "BEGIN:VEVENT",
+      "UID:" + (data.id || Date.now()) + "@dedicalivres.fr",
+      "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""),
+      "DTSTART;VALUE=DATE:" + icsDate(startO),
+      "DTEND;VALUE=DATE:" + icsDatePlus1(endO),
+      "SUMMARY:" + escICS(data.title),
+      data.place ? "LOCATION:" + escICS(data.place) : "",
+      "DESCRIPTION:" + escICS("\u00c9v\u00e9nement rep\u00e9r\u00e9 sur Dedicalivres.\n\nFiche : " + data.url),
+      "URL:" + data.url,
+      "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY",
+      "DESCRIPTION:" + escICS("Rappel : " + data.title + " (via Dedicalivres)"),
+      "END:VALARM",
+      "END:VEVENT", "END:VCALENDAR"
+    ].filter(Boolean).join("\r\n");
+
+    var blob = new Blob([lines], { type: "text/calendar;charset=utf-8" });
+    var href = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = href;
+    a.download = (data.title || "dedicalivres-evenement")
+      .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) + ".ics";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(href); }, 1000);
+  }
+
+  function addReminderTo(card) {
+    var footer = card.querySelector(".card-footer");
+    if (!footer || footer.querySelector(".lud-reminder")) return;
+
+    var link = footer.querySelector('a.card-link[href*="event.html"]');
+    var titleEl = card.querySelector(".card-title");
+    var metaSpans = card.querySelectorAll(".card-meta span");
+    var dateText = "", place = "";
+    metaSpans.forEach(function (s) {
+      var t = s.textContent.trim();
+      if (/\d{4}/.test(t) && !dateText) dateText = t.replace(/^[^0-9]*/, "");
+      else if (/\d{4}/.test(t) === false && !place) place = t.replace(/^[^A-Za-z\u00c0-\u017f]*/, "");
+    });
+    if (!dateText) return; /* pas de date exploitable : pas de rappel */
+
+    var idMatch = link ? (link.getAttribute("href").match(/id=([^&]+)/) || [])[1] : "";
+    var data = {
+      id: idMatch ? decodeURIComponent(idMatch) : "",
+      title: titleEl ? titleEl.textContent.trim() : "\u00c9v\u00e9nement",
+      dateText: dateText,
+      place: place,
+      url: link ? new URL(link.getAttribute("href"), location.href).href : location.href
+    };
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "card-link lud-reminder";
+    btn.setAttribute("aria-label", "Ajouter un rappel \u00e0 mon agenda");
+    btn.innerHTML = "\ud83d\udd14 Rappel";
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      buildAndDownloadICS(data);
+      btn.classList.add("lud-reminder-done");
+      btn.innerHTML = "\ud83d\udd14 Ajout\u00e9 \u2713";
+      setTimeout(function () {
+        btn.classList.remove("lud-reminder-done");
+        btn.innerHTML = "\ud83d\udd14 Rappel";
+      }, 2200);
+    });
+    footer.appendChild(btn);
+  }
+
+  function injectReminders() {
+    document.querySelectorAll(".event-card:not(.is-past-event)").forEach(addReminderTo);
+  }
+
+  function setupReminderButtons() {
+    injectReminders();
+    window.addEventListener("dedicalivres:cards-rendered", function () {
+      setTimeout(injectReminders, 30);
+    });
   }
 })();
   }

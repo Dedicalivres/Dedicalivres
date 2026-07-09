@@ -677,3 +677,30 @@ html.a11y-dyslexie .lud-lignes{ display:none }
   border-radius:5px !important;
 }
 .legal-consent a{ font-weight:800 !important }
+
+/* =========================================================
+   BOUTON RAPPEL (.ics) sur les cartes
+========================================================= */
+.lud-reminder{
+  border:1.5px solid rgba(255,107,53,.5) !important;
+  color:#e95825 !important;
+  background:#fff9f5 !important;
+  cursor:pointer;
+  font-weight:800;
+  transition:background .2s, transform .25s var(--lud-boing), border-color .2s;
+}
+.lud-reminder:hover{
+  background:#ffe9df !important;
+  border-color:#ff6b35 !important;
+  transform:translateY(-2px);
+}
+.lud-reminder-done{
+  background:#3a1c71 !important;
+  color:#fff !important;
+  border-color:#3a1c71 !important;
+}
+html.a11y-soir .lud-reminder{
+  background:#3a2566 !important; color:#ffb28f !important;
+  border-color:rgba(255,138,77,.5) !important;
+}
+html.a11y-soir .lud-reminder-done{ background:#ffb28f !important; color:#241143 !important }
