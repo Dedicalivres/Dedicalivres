@@ -274,14 +274,24 @@
       a.textContent = "\ud83e\udde9 Widget pour votre site";
       nav.appendChild(a);
     }
-    /* accueil : tuile sobre dans les acc\u00e8s rapides de la carte magazine */
-    var grid = document.querySelector(".home-magazine-grid");
-    if (grid && !grid.querySelector('a[href*="widget-partenaires"]')) {
-      var tile = document.createElement("a");
-      tile.className = "home-magazine-tile";
-      tile.href = "widget-partenaires.html";
-      tile.innerHTML = "<strong>\ud83e\udde9 Widget pour votre site</strong>";
-      grid.appendChild(tile);
+    /* accueil : bulle dans la picto-nav du hero, apr\u00e8s Soumettre */
+    var picto = document.querySelector(".hero-picto-nav");
+    if (picto && !picto.querySelector('a[href*="widget-partenaires"]')) {
+      var b = document.createElement("a");
+      b.className = "hero-picto-button hero-picto-widget";
+      b.href = "widget-partenaires.html";
+      b.innerHTML =
+        '<span class="hero-picto-icon" aria-hidden="true">' +
+          '<svg class="hero-picto-image" viewBox="0 0 118 118" focusable="false">' +
+            '<circle cx="59" cy="59" r="55" fill="#fffdfc"/>' +
+            '<circle cx="59" cy="59" r="43" fill="#ffe9df"/>' +
+            '<g fill="#e95825">' +
+              '<path d="M40 38h16v9c0 3 2 5 5 5s5-2 5-5v-9h14a4 4 0 0 1 4 4v14h-9c-3 0-5 2-5 5s2 5 5 5h9v14a4 4 0 0 1-4 4H66v-9c0-3-2-5-5-5s-5 2-5 5v9H40a4 4 0 0 1-4-4V66h9c3 0 5-2 5-5s-2-5-5-5h-9V42a4 4 0 0 1 4-4z"/>' +
+            '</g>' +
+          '</svg>' +
+        '</span>' +
+        '<span>Widget site</span>';
+      picto.appendChild(b);
     }
   }
 

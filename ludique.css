@@ -704,3 +704,7 @@ html.a11y-soir .lud-reminder{
   border-color:rgba(255,138,77,.5) !important;
 }
 html.a11y-soir .lud-reminder-done{ background:#ffb28f !important; color:#241143 !important }
+
+/* ---------- Bulle « Widget site » dans la picto-nav ---------- */
+.hero-picto-widget .hero-picto-image circle:nth-child(2){ fill:#ffe9df }
+.hero-picto-widget:hover .hero-picto-image{ transform:rotate(-6deg) scale(1.05) }
