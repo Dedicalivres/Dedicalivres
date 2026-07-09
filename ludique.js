@@ -262,14 +262,25 @@
       setTimeout(waitClient, 200);
     
 
-  /* ---------- Lien « Widget pour votre site » dans le footer ---------- */
+  /* ---------- Accès au widget partenaires ---------- */
   function injectWidgetLink() {
+    /* footer : sur toutes les pages */
     var nav = document.querySelector(".site-footer-nav");
-    if (!nav || nav.querySelector('a[href*="widget-partenaires"]')) return;
-    var a = document.createElement("a");
-    a.href = "widget-partenaires.html";
-    a.textContent = "\ud83e\udde9 Widget pour votre site";
-    nav.appendChild(a);
+    if (nav && !nav.querySelector('a[href*="widget-partenaires"]')) {
+      var a = document.createElement("a");
+      a.href = "widget-partenaires.html";
+      a.textContent = "\ud83e\udde9 Widget pour votre site";
+      nav.appendChild(a);
+    }
+    /* accueil : tuile sobre dans les acc\u00e8s rapides de la carte magazine */
+    var grid = document.querySelector(".home-magazine-grid");
+    if (grid && !grid.querySelector('a[href*="widget-partenaires"]')) {
+      var tile = document.createElement("a");
+      tile.className = "home-magazine-tile";
+      tile.href = "widget-partenaires.html";
+      tile.innerHTML = "<strong>\ud83e\udde9 Widget pour votre site</strong>";
+      grid.appendChild(tile);
+    }
   }
 })();
   }
