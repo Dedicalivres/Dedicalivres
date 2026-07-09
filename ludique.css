@@ -710,13 +710,16 @@ html.a11y-soir .lud-reminder-done{ background:#ffb28f !important; color:#241143 
 .hero-picto-widget:hover .hero-picto-image{ transform:rotate(-6deg) scale(1.05) }
 
 /* =========================================================
-   PICTO-NAV À 6 BULLES (ajout de « Widget site »)
-   Surcharge du desktop : 5 → 6 colonnes sur une seule ligne.
-   Le mobile garde sa cascade d'origine (2 puis 1 colonne).
+   PICTO-NAV À 6 BULLES — « Widget site » ajouté
+   Les règles d'origine ciblent .hero-banner-menu .hero-picto-nav
+   et .association-hero .hero-picto-nav en repeat(5) !important.
+   On monte la spécificité (3 classes) pour imposer 6 colonnes
+   sur desktop. Le mobile (<=980px) garde sa cascade d'origine.
 ========================================================= */
 @media (min-width: 981px){
-  .hero-picto-nav{
+  .association-hero.hero-banner-menu .hero-picto-nav{
     grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-    width: clamp(400px, 34vw, 680px) !important;
+    width: min(860px, calc(100% - 40px)) !important;
+    max-width: none !important;
   }
 }
