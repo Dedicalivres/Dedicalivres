@@ -261,7 +261,8 @@
       if (client) { fetchUpcoming(client, afterEl); return; }
       if (++tries > 50) return; /* pas de client : pas de ruban, sans erreur */
       setTimeout(waitClient, 200);
-    
+    })();
+  }
 
   /* ---------- Accès au widget partenaires ---------- */
   function injectWidgetLink() {
@@ -402,8 +403,6 @@
     window.addEventListener("dedicalivres:cards-rendered", function () {
       setTimeout(injectReminders, 30);
     });
-  }
-})();
   }
 
   function isoDate(d) {
