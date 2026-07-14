@@ -8,7 +8,20 @@ window.DEDICALIVRES_CONFIG = {
   imageUploadProvider: "r2",
   imageUploadEndpoint: "https://dedicalivres-r2-upload.dedicalivres.workers.dev/",
   r2PublicBaseUrl: "https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev",
-  exportsBaseUrl: "https://dedicalivres-daily-export.dedicalivres.workers.dev/exports"
+  exportsBaseUrl: "https://dedicalivres-daily-export.dedicalivres.workers.dev/exports",
+
+  // Pont Auto-Matte — l'onglet veille de l'admin utilise l'extracteur local
+  // UNIQUEMENT si le navigateur a été configuré avec :
+  //   localStorage.setItem("automatte_endpoint", "http://localhost:5001/analyze")
+  // Partout ailleurs (iPad, autres postes), cette valeur est undefined et
+  // l'admin continue d'utiliser le Worker Cloudflare habituel.
+  watchWorkerEndpoint: (function () {
+    try {
+      return window.localStorage.getItem("automatte_endpoint") || undefined;
+    } catch (e) {
+      return undefined;
+    }
+  })()
 };
 
 window.getDedicalivresSupabaseClient = function getDedicalivresSupabaseClient() {
