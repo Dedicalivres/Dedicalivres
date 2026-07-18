@@ -487,3 +487,61 @@ html.a11y-soir .a11y-card-preview{ border-color:rgba(237,225,252,.1) }
 @media (max-width:440px){
   .a11y-showcase-grid{ grid-template-columns:1fr }
 }
+
+/* ============================================================
+   MODE SOIR — LISIBILITÉ DES BOUTONS
+   Correctif : en mode soir, les boutons secondaires (fond blanc,
+   texte violet) et les tuiles d'accueil (texte pâle) devenaient
+   illisibles sur le fond violet foncé. On force un contraste franc.
+   Ajout ciblé : ne touche que le mode soir (html.a11y-soir).
+   ============================================================ */
+
+/* Boutons secondaires : fond clair franc + texte foncé lisible */
+html.a11y-soir .btn-secondary,
+html.a11y-soir .card-link,
+html.a11y-soir .calendar-nav-btn,
+html.a11y-soir .calendar-clear-btn {
+  background: #f3ecff !important;
+  color: #2c1257 !important;
+  border-color: #b9a3e0 !important;
+}
+html.a11y-soir .btn-secondary:hover,
+html.a11y-soir .card-link:hover,
+html.a11y-soir .calendar-nav-btn:hover {
+  background: #ffffff !important;
+  color: #241043 !important;
+}
+
+/* Bouton primaire : garder l'orange, texte blanc garanti */
+html.a11y-soir .btn-primary,
+html.a11y-soir #submission-form button {
+  color: #ffffff !important;
+}
+
+/* Boutons des cartes événement (Voir le détail / Site officiel / Favori / Rappel) */
+html.a11y-soir .event-actions a,
+html.a11y-soir .event-actions button,
+html.a11y-soir .favorite-btn,
+html.a11y-soir .favorite-item-actions a,
+html.a11y-soir .favorite-item-actions button {
+  background: #f3ecff !important;
+  color: #2c1257 !important;
+  border-color: #b9a3e0 !important;
+}
+
+/* Tuiles de l'accueil (Agenda, Salons & festivals, Soumettre, Widget…) */
+html.a11y-soir .home-magazine-tile {
+  background: rgba(255,255,255,0.10) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+}
+html.a11y-soir .home-magazine-tile strong,
+html.a11y-soir .home-magazine-tile span {
+  color: #f1e9ff !important;
+}
+html.a11y-soir .home-magazine-tile.primary {
+  background: linear-gradient(135deg, var(--orange), #ff8a54) !important;
+}
+html.a11y-soir .home-magazine-tile.primary strong,
+html.a11y-soir .home-magazine-tile.primary span {
+  color: #ffffff !important;
+}
