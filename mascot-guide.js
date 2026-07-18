@@ -136,13 +136,13 @@
 
   widget.innerHTML = `
     <button class="mascot-guide-button" type="button" aria-expanded="false" aria-controls="mascot-guide-panel">
-      <img class="mascot-guide-avatar" src="mascotte-guide.png" alt="" loading="lazy" decoding="async">
+      <img class="mascot-guide-avatar" src="mascotte-guide.webp" alt="" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='mascotte-guide.png'">
       <span class="mascot-guide-button-label">Guide Dédicalivres</span>
     </button>
 
     <section class="mascot-guide-panel" id="mascot-guide-panel" role="dialog" aria-modal="false" aria-labelledby="mascot-guide-title">
       <div class="mascot-guide-head">
-        <img class="mascot-guide-portrait" src="mascotte-guide.png" alt="" loading="lazy" decoding="async">
+        <img class="mascot-guide-portrait" src="mascotte-guide.webp" alt="" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='mascotte-guide.png'">
         <div>
           <p class="mascot-guide-kicker">Guide optionnel</p>
           <h2 class="mascot-guide-title" id="mascot-guide-title">Bienvenue sur Dédicalivres</h2>
