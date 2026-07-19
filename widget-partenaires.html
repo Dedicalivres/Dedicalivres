@@ -128,6 +128,16 @@
         <button type="button" class="wg-copy" id="wg-copy">Copier</button>
       </div>
 
+      <h2 style="margin-top:22px">Ou partagez un lien direct</h2>
+      <p style="margin:-6px 0 8px;font-size:.9rem;color:#5a5470">
+        Un lien qui ouvre l'agenda déjà réglé — pratique à envoyer par message ou à poster.
+      </p>
+      <div class="wg-code">
+        <input type="text" id="wg-link" readonly aria-label="Lien direct vers l'agenda"
+               style="width:100%;border:1px solid rgba(58,28,113,.2);border-radius:9px;padding:11px 13px;font-family:inherit;font-size:.9rem;color:#3a1c71" />
+        <button type="button" class="wg-copy" id="wg-link-copy">Copier le lien</button>
+      </div>
+
       <p class="wg-notes">
         <strong>C'est tout.</strong> Le widget se met à jour automatiquement avec l'agenda vérifié,
         s'isole du style de votre site (Shadow DOM), et chaque événement renvoie vers sa fiche
@@ -192,6 +202,20 @@ document.addEventListener("DOMContentLoaded", function () {
     snippet.value =
       '<div data-dedicalivres' + attrs + '></div>\n' +
       '<script src="https://dedicalivres.fr/widget.js" defer><\/script>';
+
+    // lien direct partageable vers agenda.html
+    var qs = [];
+    if (a.pays) qs.push("pays=" + a.pays);
+    if (a.type) qs.push("type=" + encodeURIComponent(a.type));
+    if (a.limit && a.limit !== "5") qs.push("limit=" + a.limit);
+    if (a.theme !== "clair") qs.push("theme=" + a.theme);
+    if (autour) qs.push("autour=1");
+    if (autour && rayon) qs.push("rayon=" + rayon);
+    if (rechercheEl.checked) qs.push("recherche=1");
+    var link = document.getElementById("wg-link");
+    if (link) {
+      link.value = "https://dedicalivres.fr/agenda.html" + (qs.length ? "?" + qs.join("&") : "");
+    }
   }
 
   Object.values(fields).forEach(function (id) {
@@ -201,15 +225,19 @@ document.addEventListener("DOMContentLoaded", function () {
   rechercheEl.addEventListener("change", update);
   rayonEl.addEventListener("change", update);
 
-  document.getElementById("wg-copy").addEventListener("click", function () {
-    snippet.select();
-    var ok = false;
-    try { ok = document.execCommand("copy"); } catch (e) {}
-    if (!ok && navigator.clipboard) navigator.clipboard.writeText(snippet.value);
-    this.textContent = "Copié ✓";
-    var btn = this;
-    setTimeout(function () { btn.textContent = "Copier"; }, 1600);
-  });
+  function bindCopy(btnId, field, label) {
+    document.getElementById(btnId).addEventListener("click", function () {
+      field.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) {}
+      if (!ok && navigator.clipboard) navigator.clipboard.writeText(field.value);
+      var btn = this, orig = label;
+      btn.textContent = "Copié ✓";
+      setTimeout(function () { btn.textContent = orig; }, 1600);
+    });
+  }
+  bindCopy("wg-copy", snippet, "Copier");
+  bindCopy("wg-link-copy", document.getElementById("wg-link"), "Copier le lien");
 
   /* premier rendu une fois widget.js prêt */
   var tries = 0;

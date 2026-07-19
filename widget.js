@@ -20,6 +20,8 @@
      data-recherche="1"          affiche un champ "Chercher une ville" : l'utilisateur
        tape une ville (France), le widget trie les événements par distance autour d'elle.
        Utilise l'API Adresse (api-adresse.data.gouv.fr), gratuite et sans clé.
+     data-ville="Rennes"         (avec data-recherche) pré-remplit le champ ET lance
+       la recherche automatiquement au chargement. Idéal pour un lien pré-configuré.
 
    Le widget s'affiche dans un Shadow DOM : ses styles
    n'interfèrent jamais avec ceux du site hôte.
@@ -200,7 +202,8 @@
       source: el.dataset.source || "",
       autour: el.dataset.autour === "1" || el.dataset.autour === "true",
       rayon: parseInt(el.dataset.rayon || "0", 10) || 0,
-      recherche: el.dataset.recherche === "1" || el.dataset.recherche === "true"
+      recherche: el.dataset.recherche === "1" || el.dataset.recherche === "true",
+      ville: (el.dataset.ville || "").trim()
     };
     var root = el.__ddl || (el.__ddl = el.attachShadow ? el.attachShadow({ mode: "open" }) : el);
     root.innerHTML = "<style>" + STYLES + "</style>" +
@@ -312,6 +315,12 @@
           input.addEventListener("keydown", function (ev) {
             if (ev.key === "Enter") { ev.preventDefault(); lancer(); }
           });
+
+          // lien pré-configuré : ville fournie -> on lance tout de suite
+          if (cfg.ville) {
+            input.value = cfg.ville;
+            lancer();
+          }
         }
       }
     }).catch(function () {

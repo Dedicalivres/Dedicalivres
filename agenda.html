@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agenda à proximité — Dédicalivres</title>
+  <meta name="description" content="Trouvez les salons, festivals et dédicaces littéraires près de chez vous. Agenda participatif et gratuit de l'espace francophone." />
+  <link rel="canonical" href="https://dedicalivres.fr/agenda.html" />
+  <meta name="theme-color" content="#3a1c71" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=legal-2" />
+  <link rel="stylesheet" href="ludique.css?v=ludique-21" />
+  <link rel="stylesheet" href="accessibilite.css?v=a11y-7" />
+  <style>
+    .embed-wrap{max-width:560px;margin:0 auto;padding:24px 18px 60px}
+    .embed-intro{text-align:center;margin-bottom:22px}
+    .embed-intro h1{font-family:'Playfair Display',serif;color:#3a1c71;font-size:1.7rem;margin-bottom:8px}
+    .embed-intro p{color:#5a5470;font-size:.98rem}
+    #agenda-widget{margin:0 auto}
+    .embed-cta{text-align:center;margin-top:22px;font-size:.9rem;color:#6b6480}
+    .embed-cta a{color:#3a1c71;font-weight:700}
+    html.a11y-soir .embed-intro h1{color:#e6dcf6}
+    html.a11y-soir .embed-intro p,html.a11y-soir .embed-cta{color:#c9b6e8}
+  </style>
+</head>
+<body class="legal-page">
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" aria-label="Accueil Dédicalivres">
+      <picture><source srcset="logo.webp" type="image/webp"><img src="logo.png" class="logo" width="52" height="52" alt="Dédicalivres" /></picture>
+    </a>
+
+    <nav aria-label="Navigation principale">
+      <a href="index.html#agenda">Agenda</a>
+      <a href="salons-du-livre.html">Salons & Festivals</a>
+      <a href="dedicaces.html">Dédicaces</a>
+      <a href="temoignages.html">Témoignages</a>
+      <a href="soumettre.html" class="nav-submit-link">Soumettre</a>
+    </nav>
+  </div>
+</header>
+
+<main class="embed-wrap">
+  <div class="embed-intro">
+    <h1 id="embed-title">Les rencontres littéraires près de chez vous</h1>
+    <p id="embed-sub">Salons, festivals et dédicaces de l'espace francophone.</p>
+  </div>
+
+  <!-- le widget est configuré dynamiquement depuis l'URL par le script ci-dessous -->
+  <div id="agenda-widget" data-dedicalivres></div>
+
+  <p class="embed-cta">
+    Un agenda vide ne veut pas dire qu'il ne se passe rien —
+    <a href="soumettre.html">proposez un événement</a> ou
+    <a href="index.html">explorez toute la carte</a>.
+  </p>
+</main>
+
+<footer class="site-footer site-footer-compact container" aria-label="Pied de page Dédicalivres">
+  <div class="site-footer-card">
+    <div class="site-footer-brand">
+      <strong>Association Dédicalivres</strong>
+      <p>Agenda participatif des rencontres autour du livre dans l’espace francophone.</p>
+
+      <nav class="site-footer-nav" aria-label="Navigation secondaire">
+        <a href="index.html#agenda">Agenda</a>
+        <a href="salons-du-livre.html">Salons & Festivals</a>
+        <a href="dedicaces.html">Dédicaces</a>
+        <a href="temoignages.html">Témoignages</a>
+        <a href="manifeste.html">Manifeste</a>
+        <a href="widget-partenaires.html">Widget partenaires</a>
+        <a href="soumettre.html">Soumettre</a>
+      </nav>
+
+      <nav class="site-footer-country-nav" aria-label="Agendas littéraires par pays">
+        <a href="index.html?country=FR#agenda">France</a>
+        <a href="evenements-litteraires-belgique.html">Belgique</a>
+        <a href="evenements-litteraires-luxembourg.html">Luxembourg</a>
+        <a href="evenements-litteraires-suisse.html">Suisse</a>
+        <a href="evenements-litteraires-monaco.html">Monaco</a>
+      </nav>
+
+      <nav class="site-footer-nav site-footer-legal" aria-label="Navigation légale">
+        <a href="mentions-legales.html">Mentions légales</a>
+        <a href="confidentialite.html">Confidentialité</a>
+        <a href="conditions-utilisation.html">Conditions d’utilisation</a>
+      </nav>
+
+      <p class="site-footer-small">
+        Informations participatives vérifiées avant publication. Pour une correction ou un retrait :
+        <a href="mailto:dedicalivres@gmail.com">dedicalivres@gmail.com</a>.
+      </p>
+    </div>
+
+<script>
+  // Lit les réglages depuis l'URL et configure le widget AVANT son initialisation.
+  // Exemples :
+  //   agenda.html?ville=Rennes&rayon=100
+  //   agenda.html?type=Salon&pays=FR&limit=8
+  //   agenda.html?autour=1&recherche=1
+  (function () {
+    var params = new URLSearchParams(window.location.search || "");
+    var el = document.getElementById("agenda-widget");
+
+    function set(param, dataAttr) {
+      var v = params.get(param);
+      if (v != null && v !== "") el.setAttribute(dataAttr, v);
+    }
+    set("pays", "data-pays");
+    set("type", "data-type");
+    set("limit", "data-limit");
+    set("theme", "data-theme");
+    set("rayon", "data-rayon");
+    set("source", "data-source");
+
+    // "autour" et "recherche" : présents (=1) ou absents
+    if (params.get("autour") === "1" || params.get("autour") === "true") el.setAttribute("data-autour", "1");
+
+    var ville = (params.get("ville") || "").trim();
+    if (ville) {
+      // une ville implique le mode recherche, avec pré-remplissage + auto-lancement
+      el.setAttribute("data-recherche", "1");
+      el.setAttribute("data-ville", ville);
+    } else if (params.get("recherche") === "1" || params.get("recherche") === "true") {
+      el.setAttribute("data-recherche", "1");
+    }
+
+    // Adapter le titre si un contexte est donné
+    var title = document.getElementById("embed-title");
+    var sub = document.getElementById("embed-sub");
+    if (ville) {
+      title.textContent = "Rencontres littéraires autour de " + ville;
+      sub.textContent = "Les salons, festivals et dédicaces les plus proches.";
+    } else if (params.get("type")) {
+      var t = params.get("type");
+      title.textContent = t.charAt(0).toUpperCase() + t.slice(1) + "s à venir";
+    }
+  })();
+</script>
+<script src="widget.js?v=widget-4" defer></script>
+<script src="ludique.js?v=ludique-21" defer></script>
+<script src="accessibilite.js?v=a11y-7" defer></script>
+</body>
+</html>
