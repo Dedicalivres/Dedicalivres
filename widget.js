@@ -17,6 +17,9 @@
        événements par distance après géolocalisation (avec accord du visiteur).
      data-rayon="100"            (avec data-autour) ne garder que les événements
        à moins de N km. Vide = pas de limite, juste le tri par distance.
+     data-recherche="1"          affiche un champ "Chercher une ville" : l'utilisateur
+       tape une ville (France), le widget trie les événements par distance autour d'elle.
+       Utilise l'API Adresse (api-adresse.data.gouv.fr), gratuite et sans clé.
 
    Le widget s'affiche dans un Shadow DOM : ses styles
    n'interfèrent jamais avec ceux du site hôte.
@@ -74,6 +77,17 @@
     ".w-geo:hover{background:rgba(58,28,113,.11)}\n" +
     ".w-geo:disabled{opacity:.6;cursor:default}\n" +
     ".w .soir .w-geo,.w.soir .w-geo{background:rgba(255,255,255,.08);color:#e6dcf6}\n" +
+    ".w-search{display:flex;gap:6px;padding:10px 12px;border-top:1px solid rgba(58,28,113,.08);background:#faf6ff}\n" +
+    ".w-search input{flex:1;min-width:0;border:1px solid rgba(58,28,113,.2);border-radius:9px;" +
+      "padding:8px 11px;font-family:inherit;font-size:.82rem;color:#2a2438;background:#fff}\n" +
+    ".w-search input:focus{outline:none;border-color:#7a3fb8}\n" +
+    ".w-search button{flex:none;border:0;border-radius:9px;background:#3a1c71;color:#fff;" +
+      "font-family:inherit;font-weight:600;font-size:.82rem;padding:8px 13px;cursor:pointer}\n" +
+    ".w-search button:disabled{opacity:.6;cursor:default}\n" +
+    ".w-search-info{padding:4px 14px 8px;font-size:.74rem;color:#7a5eb0;background:#faf6ff}\n" +
+    ".soir .w-search,.soir .w-search-info{background:#1c1030}\n" +
+    ".soir .w-search input{background:#2a1a45;border-color:rgba(237,225,252,.2);color:#e6dcf6}\n" +
+    ".soir .w-search-info{color:#c9b6e8}\n" +
     ".w-date{flex:none;width:44px;text-align:center;background:#ffe9df;" +
       "border-radius:10px;padding:6px 2px;color:#e95825}\n" +
     ".w-date b{display:block;font-size:1.05rem;line-height:1}\n" +
@@ -132,6 +146,21 @@
     });
   }
 
+  function geocodeVille(ville) {
+    // API Adresse (France) : gratuite, sans clé, officielle.
+    var url = "https://api-adresse.data.gouv.fr/search/?type=municipality&limit=1&q=" +
+      encodeURIComponent(ville);
+    return fetch(url).then(function (r) { return r.json(); }).then(function (json) {
+      var f = json && json.features && json.features[0];
+      if (!f) return null;
+      return {
+        lng: f.geometry.coordinates[0],
+        lat: f.geometry.coordinates[1],
+        label: f.properties.city || f.properties.name || ville
+      };
+    });
+  }
+
   function toRad(v) { return Number(v) * Math.PI / 180; }
 
   function distanceKm(la1, ln1, la2, ln2) {
@@ -170,7 +199,8 @@
       theme: el.dataset.theme === "soir" ? "soir" : "clair",
       source: el.dataset.source || "",
       autour: el.dataset.autour === "1" || el.dataset.autour === "true",
-      rayon: parseInt(el.dataset.rayon || "0", 10) || 0
+      rayon: parseInt(el.dataset.rayon || "0", 10) || 0,
+      recherche: el.dataset.recherche === "1" || el.dataset.recherche === "true"
     };
     var root = el.__ddl || (el.__ddl = el.attachShadow ? el.attachShadow({ mode: "open" }) : el);
     root.innerHTML = "<style>" + STYLES + "</style>" +
@@ -227,6 +257,63 @@
           btn.querySelector("span").textContent = "Localisation refus\u00e9e";
         }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
       };
+
+      // --- Option "Chercher une ville" ---
+      if (cfg.recherche) {
+        var geoList = events.filter(hasCoords);
+        if (geoList.length) {
+          var box = document.createElement("div");
+          box.className = "w-search";
+          box.innerHTML = '<input type="text" placeholder="Chercher une ville\u2026" ' +
+            'aria-label="Chercher une ville" />' +
+            '<button type="button">Voir</button>';
+          var info = document.createElement("div");
+          info.className = "w-search-info";
+          info.style.display = "none";
+          var host = root.querySelector(".w-geo") || list;
+          host.parentNode.insertBefore(box, host.nextSibling);
+          box.parentNode.insertBefore(info, box.nextSibling);
+
+          var input = box.querySelector("input");
+          var go = box.querySelector("button");
+
+          var lancer = function () {
+            var ville = input.value.trim();
+            if (ville.length < 2) return;
+            go.disabled = true; go.textContent = "\u2026";
+            geocodeVille(ville).then(function (loc) {
+              if (!loc) {
+                info.style.display = "block";
+                info.textContent = "Ville introuvable. Essayez une orthographe proche.";
+                go.disabled = false; go.textContent = "Voir";
+                return;
+              }
+              var near = geoList.map(function (e) {
+                var c = Object.create(e);
+                c.__dist = distanceKm(loc.lat, loc.lng, Number(e.lat), Number(e.lng));
+                return c;
+              }).filter(function (e) {
+                return !cfg.rayon || e.__dist <= cfg.rayon;
+              }).sort(function (a, b) { return a.__dist - b.__dist; });
+
+              paint(near);
+              info.style.display = "block";
+              info.textContent = near.length
+                ? "\u00c9v\u00e9nements les plus proches de " + loc.label
+                : "Rien " + (cfg.rayon ? "\u00e0 moins de " + cfg.rayon + " km de " : "autour de ") + loc.label + ".";
+              go.disabled = false; go.textContent = "Voir";
+            }).catch(function () {
+              info.style.display = "block";
+              info.textContent = "Recherche momentan\u00e9ment indisponible.";
+              go.disabled = false; go.textContent = "Voir";
+            });
+          };
+          go.addEventListener("click", lancer);
+          input.addEventListener("keydown", function (ev) {
+            if (ev.key === "Enter") { ev.preventDefault(); lancer(); }
+          });
+        }
+      }
     }).catch(function () {
       list.innerHTML = '<li class="w-empty">Agenda momentan\u00e9ment indisponible.</li>';
     });

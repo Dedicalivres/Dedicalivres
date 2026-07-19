@@ -104,6 +104,13 @@
         </label>
       </div>
 
+      <div class="wg-field">
+        <label class="wg-check">
+          <input type="checkbox" id="wg-recherche" />
+          Champ « Chercher une ville » (événements à proximité)
+        </label>
+      </div>
+
       <div class="wg-field" id="wg-rayon-field" hidden>
         <label for="wg-rayon">Rayon maximum</label>
         <select id="wg-rayon">
@@ -141,13 +148,14 @@
   </div>
 </main>
 
-<script src="widget.js?v=widget-2" defer></script>
+<script src="widget.js?v=widget-3" defer></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   var prev = document.getElementById("wg-preview");
   var snippet = document.getElementById("wg-snippet");
   var fields = { pays: "wg-pays", type: "wg-type", limit: "wg-limit", theme: "wg-theme" };
   var autourEl = document.getElementById("wg-autour");
+  var rechercheEl = document.getElementById("wg-recherche");
   var rayonEl = document.getElementById("wg-rayon");
   var rayonField = document.getElementById("wg-rayon-field");
 
@@ -170,6 +178,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     if (autour) prev.dataset.autour = "1"; else delete prev.dataset.autour;
     if (autour && rayon) prev.dataset.rayon = String(rayon); else delete prev.dataset.rayon;
+    if (rechercheEl.checked) prev.dataset.recherche = "1"; else delete prev.dataset.recherche;
     if (window.DedicalivresWidget) window.DedicalivresWidget.render(prev);
 
     var attrs = "";
@@ -179,6 +188,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (a.theme !== "clair") attrs += ' data-theme="' + a.theme + '"';
     if (autour) attrs += ' data-autour="1"';
     if (autour && rayon) attrs += ' data-rayon="' + rayon + '"';
+    if (rechercheEl.checked) attrs += ' data-recherche="1"';
     snippet.value =
       '<div data-dedicalivres' + attrs + '></div>\n' +
       '<script src="https://dedicalivres.fr/widget.js" defer><\/script>';
@@ -188,6 +198,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById(id).addEventListener("change", update);
   });
   autourEl.addEventListener("change", update);
+  rechercheEl.addEventListener("change", update);
   rayonEl.addEventListener("change", update);
 
   document.getElementById("wg-copy").addEventListener("click", function () {
