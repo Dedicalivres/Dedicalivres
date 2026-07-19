@@ -38,6 +38,8 @@
     html.a11y-soir .wg-hero p,html.a11y-soir .wg-notes{color:#b6a9cc}
     html.a11y-soir .wg-field select{background:#2a1850;color:#efe8f8;border-color:rgba(237,225,252,.2)}
     html.a11y-soir .wg-preview-zone{background:#1c1030;border-color:rgba(237,225,252,.2)}
+    .wg-check{display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600}
+    .wg-check input{width:17px;height:17px;accent-color:#3a1c71;cursor:pointer}
   </style>
 </head>
 <body class="seo-page">
@@ -95,6 +97,24 @@
         </select>
       </div>
 
+      <div class="wg-field">
+        <label class="wg-check">
+          <input type="checkbox" id="wg-autour" />
+          Bouton « Autour de moi » (tri par distance)
+        </label>
+      </div>
+
+      <div class="wg-field" id="wg-rayon-field" hidden>
+        <label for="wg-rayon">Rayon maximum</label>
+        <select id="wg-rayon">
+          <option value="0" selected>Sans limite (tri par distance)</option>
+          <option value="30">30 km</option>
+          <option value="50">50 km</option>
+          <option value="100">100 km</option>
+          <option value="200">200 km</option>
+        </select>
+      </div>
+
       <h2 style="margin-top:22px">2 · Copiez le code chez vous</h2>
       <div class="wg-code">
         <textarea id="wg-snippet" readonly aria-label="Code d'intégration du widget"></textarea>
@@ -121,12 +141,15 @@
   </div>
 </main>
 
-<script src="widget.js?v=widget-1" defer></script>
+<script src="widget.js?v=widget-2" defer></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   var prev = document.getElementById("wg-preview");
   var snippet = document.getElementById("wg-snippet");
   var fields = { pays: "wg-pays", type: "wg-type", limit: "wg-limit", theme: "wg-theme" };
+  var autourEl = document.getElementById("wg-autour");
+  var rayonEl = document.getElementById("wg-rayon");
+  var rayonField = document.getElementById("wg-rayon-field");
 
   function currentAttrs() {
     var a = {};
@@ -138,9 +161,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function update() {
     var a = currentAttrs();
+    var autour = autourEl.checked;
+    var rayon = parseInt(rayonEl.value, 10) || 0;
+    rayonField.hidden = !autour;
+
     ["pays", "type", "limit", "theme"].forEach(function (k) {
       if (a[k]) prev.dataset[k] = a[k]; else delete prev.dataset[k];
     });
+    if (autour) prev.dataset.autour = "1"; else delete prev.dataset.autour;
+    if (autour && rayon) prev.dataset.rayon = String(rayon); else delete prev.dataset.rayon;
     if (window.DedicalivresWidget) window.DedicalivresWidget.render(prev);
 
     var attrs = "";
@@ -148,6 +177,8 @@ document.addEventListener("DOMContentLoaded", function () {
     if (a.type) attrs += ' data-type="' + a.type + '"';
     attrs += ' data-limit="' + a.limit + '"';
     if (a.theme !== "clair") attrs += ' data-theme="' + a.theme + '"';
+    if (autour) attrs += ' data-autour="1"';
+    if (autour && rayon) attrs += ' data-rayon="' + rayon + '"';
     snippet.value =
       '<div data-dedicalivres' + attrs + '></div>\n' +
       '<script src="https://dedicalivres.fr/widget.js" defer><\/script>';
@@ -156,6 +187,8 @@ document.addEventListener("DOMContentLoaded", function () {
   Object.values(fields).forEach(function (id) {
     document.getElementById(id).addEventListener("change", update);
   });
+  autourEl.addEventListener("change", update);
+  rayonEl.addEventListener("change", update);
 
   document.getElementById("wg-copy").addEventListener("click", function () {
     snippet.select();
