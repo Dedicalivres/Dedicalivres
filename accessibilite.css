@@ -573,12 +573,17 @@ html.a11y-soir .association-hero-backdrop {
   background-size: 54px 54px, 54px 54px, auto, auto !important;
 }
 
-/* le logo central : carte claire pour préserver la marque violet/orange */
+/* le logo central : aura lumineuse qui épouse les contours du logo
+   (remplace la carte blanche, trop massive en mode sombre) */
 html.a11y-soir .association-hero-brand {
-  background: rgba(255,253,252,.96);
-  border-radius: 22px;
-  padding: clamp(12px, 2vw, 22px);
-  box-shadow: 0 14px 40px rgba(0,0,0,.35);
+  background: transparent;
+  box-shadow: none;
+}
+html.a11y-soir .association-hero-brand img {
+  filter:
+    drop-shadow(0 0 2px rgba(255,255,255,.6))
+    drop-shadow(0 0 16px rgba(237,225,252,.42))
+    drop-shadow(0 0 46px rgba(183,155,232,.5));
 }
 
 /* les 6 tuiles d'accès rapide (Agenda, Salons…, Widget) */
