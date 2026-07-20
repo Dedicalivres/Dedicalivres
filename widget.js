@@ -9,7 +9,11 @@
    Options (attributs data- sur la div) :
      data-pays="FR|BE|LU|CH|MC"   filtrer par pays
      data-type="Salon|Festival|Dédicace|Autre"
-     data-limit="5"               nombre d'événements (1 à 12)
+     data-limit="8"               nombre d'événements affichés (1 à 12)
+     data-jours="3"               fenêtre : aujourd'hui + N jours (défaut 3 = J à J+3).
+       0 = pas de borne haute (tous les événements à venir). Quand une recherche
+       par ville/département ou la géoloc est active, un pool plus large est chargé
+       automatiquement pour que le tri par distance ait de la matière.
      data-theme="clair|soir"
      data-source="https://.../events.json"
        source JSON alternative (export R2) pour économiser Supabase.
@@ -54,11 +58,16 @@
     });
   }
 
-  function isoToday() {
-    var d = new Date();
+  function isoDate(d) {
     return d.getFullYear() + "-" +
       String(d.getMonth() + 1).padStart(2, "0") + "-" +
       String(d.getDate()).padStart(2, "0");
+  }
+  function isoToday() { return isoDate(new Date()); }
+  function isoDansNJours(n) {
+    var d = new Date();
+    d.setDate(d.getDate() + n);
+    return isoDate(d);
   }
 
   var STYLES = "\n" +
@@ -135,26 +144,38 @@
     '<svg width="20" height="22" viewBox="0 0 40 44" aria-hidden="true">' +
     '<path d="M32 4 Q 18 8 12 20 Q 7 30 8 40 Q 10 32 16 26 L 13 25 Q 20 24 24 18 L 20 18 Q 28 14 32 4 Z" fill="#ff6b35"/></svg>';
 
-  function fetchEvents(cfg) {
+  function fetchEvents(cfg, large) {
     if (cfg.source) {
       return fetch(cfg.source).then(function (r) { return r.json(); }).then(function (json) {
         var list = Array.isArray(json) ? json : (json.events || []);
         var today = isoToday();
+        var borne = (!large && cfg.jours > 0) ? isoDansNJours(cfg.jours) : null;
         return list.filter(function (e) {
           if ((e.end_date || e.start_date) < today) return false;
+          if (borne && String(e.start_date) > borne) return false;
           if (cfg.pays && e.country_code !== cfg.pays) return false;
           if (cfg.type && e.type !== cfg.type) return false;
           return true;
         }).sort(function (a, b) {
           return String(a.start_date).localeCompare(String(b.start_date));
-        }).slice(0, cfg.limit);
+        }).slice(0, large ? 200 : cfg.limit);
       });
     }
+    // "large" (recherche/géoloc lancée) : pool complet à venir, SANS borne haute,
+    // pour que le tri par distance trouve toujours du proche.
+    // Sinon (accueil) : fenêtre J -> J+cfg.jours, liste courte de l'imminent.
+    var poolLimit = large ? 200 : cfg.limit;
+    var borneHaute = (!large && cfg.jours > 0)
+      ? "&start_date=lte." + isoDansNJours(cfg.jours)
+      : "";
+    // inclure aussi les événements EN COURS (commencés avant aujourd'hui mais
+    // pas encore terminés) : on borne sur end_date >= aujourd'hui.
     var url = SUPA + "/rest/v1/events" +
       "?select=id,title,type,city,region,country_code,start_date,end_date,lat,lng" +
       "&validated=eq.true&rejected=eq.false" +
-      "&start_date=gte." + isoToday() +
-      "&order=start_date.asc&limit=" + cfg.limit +
+      "&or=(start_date.gte." + isoToday() + ",end_date.gte." + isoToday() + ")" +
+      borneHaute +
+      "&order=start_date.asc&limit=" + poolLimit +
       (cfg.pays ? "&country_code=eq." + encodeURIComponent(cfg.pays) : "") +
       (cfg.type ? "&type=eq." + encodeURIComponent(cfg.type) : "");
     return fetch(url, {
@@ -253,7 +274,8 @@
     var cfg = {
       pays: (el.dataset.pays || "").toUpperCase(),
       type: el.dataset.type || "",
-      limit: Math.min(12, Math.max(1, parseInt(el.dataset.limit || "5", 10) || 5)),
+      limit: Math.min(12, Math.max(1, parseInt(el.dataset.limit || "8", 10) || 8)),
+      jours: el.dataset.jours != null ? Math.max(0, parseInt(el.dataset.jours, 10) || 0) : 3,
       theme: el.dataset.theme === "soir" ? "soir" : "clair",
       source: el.dataset.source || "",
       autour: el.dataset.autour === "1" || el.dataset.autour === "true",
@@ -271,18 +293,19 @@
     var list = root.querySelector(".w-list");
 
     function paint(events) {
-      list.innerHTML = events.length
-        ? events.map(rowHTML).join("")
+      var vus = events.slice(0, cfg.limit);  // le pool sert au tri, on n'affiche que cfg.limit
+      list.innerHTML = vus.length
+        ? vus.map(rowHTML).join("")
         : '<li class="w-empty">Aucun \u00e9v\u00e9nement \u00e0 venir pour ces crit\u00e8res.</li>';
     }
 
-    fetchEvents(cfg).then(function (events) {
+    fetchEvents(cfg, false).then(function (events) {
       paint(events);
 
       // --- Option "Autour de moi" ---
       if (!cfg.autour || !navigator.geolocation) return;
-      var geoCandidates = events.filter(hasCoords);
-      if (!geoCandidates.length) return;  // aucune coordonnée : on n'affiche pas le bouton
+      // le bouton s'affiche dès que l'option est demandée : au clic, on rechargera
+      // le pool complet, donc pas besoin que la liste courte ait déjà des coordonnées.
 
       var btn = root.querySelector(".w-geo");
       if (!btn) {
@@ -297,20 +320,23 @@
         btn.querySelector("span").textContent = "Localisation\u2026";
         navigator.geolocation.getCurrentPosition(function (pos) {
           var la = pos.coords.latitude, ln = pos.coords.longitude;
-          var near = geoCandidates.map(function (e) {
-            var c = Object.create(e);
-            c.__dist = distanceKm(la, ln, Number(e.lat), Number(e.lng));
-            return c;
-          }).filter(function (e) {
-            return !cfg.rayon || e.__dist <= cfg.rayon;
-          }).sort(function (a, b) { return a.__dist - b.__dist; });
+          // élargir : recharger tout le à-venir pour trouver le plus proche
+          fetchEvents(cfg, true).then(function (tous) {
+            var pool = tous.filter(hasCoords);
+            var near = pool.map(function (e) {
+              var c = Object.create(e);
+              c.__dist = distanceKm(la, ln, Number(e.lat), Number(e.lng));
+              return c;
+            }).filter(function (e) {
+              return !cfg.rayon || e.__dist <= cfg.rayon;
+            }).sort(function (a, b) { return a.__dist - b.__dist; });
 
-          paint(near.length ? near
-            : geoCandidates.slice(0));  // rien dans le rayon : on garde la liste
-          btn.disabled = false;
-          btn.querySelector("span").textContent = near.length
-            ? "Trié par distance"
-            : (cfg.rayon ? "Rien \u00e0 moins de " + cfg.rayon + " km" : "Autour de moi");
+            paint(near.length ? near : pool.slice(0));
+            btn.disabled = false;
+            btn.querySelector("span").textContent = near.length
+              ? "Trié par distance"
+              : (cfg.rayon ? "Rien \u00e0 moins de " + cfg.rayon + " km" : "Autour de moi");
+          });
         }, function () {
           btn.disabled = false;
           btn.querySelector("span").textContent = "Localisation refus\u00e9e";
@@ -319,8 +345,7 @@
 
       // --- Option "Chercher une ville ou un département" ---
       if (cfg.recherche) {
-        var geoList = events.filter(hasCoords);
-        if (geoList.length) {
+        {
           var box = document.createElement("div");
           box.className = "w-search";
           box.innerHTML =
@@ -396,20 +421,24 @@
               }
               // un département a un rayon large par défaut si aucun rayon n'est fixé
               var rayon = cfg.rayon || (l.kind === "departement" ? 60 : 0);
-              var near = geoList.map(function (e) {
-                var c = Object.create(e);
-                c.__dist = distanceKm(l.lat, l.lng, Number(e.lat), Number(e.lng));
-                return c;
-              }).filter(function (e) {
-                return !rayon || e.__dist <= rayon;
-              }).sort(function (a, b) { return a.__dist - b.__dist; });
+              // élargir : recharger tout le à-venir pour trouver du proche
+              fetchEvents(cfg, true).then(function (tous) {
+                var pool = tous.filter(hasCoords);
+                var near = pool.map(function (e) {
+                  var c = Object.create(e);
+                  c.__dist = distanceKm(l.lat, l.lng, Number(e.lat), Number(e.lng));
+                  return c;
+                }).filter(function (e) {
+                  return !rayon || e.__dist <= rayon;
+                }).sort(function (a, b) { return a.__dist - b.__dist; });
 
-              paint(near);
-              info.style.display = "block";
-              info.textContent = near.length
-                ? "\u00c9v\u00e9nements les plus proches de " + l.label
-                : "Rien " + (rayon ? "\u00e0 moins de " + rayon + " km de " : "autour de ") + l.label + ".";
-              go.disabled = false; go.textContent = "Voir";
+                paint(near);
+                info.style.display = "block";
+                info.textContent = near.length
+                  ? "\u00c9v\u00e9nements les plus proches de " + l.label
+                  : "Rien " + (rayon ? "\u00e0 moins de " + rayon + " km de " : "autour de ") + l.label + ".";
+                go.disabled = false; go.textContent = "Voir";
+              });
             }).catch(function () {
               info.style.display = "block";
               info.textContent = "Recherche momentan\u00e9ment indisponible.";
