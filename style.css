@@ -7487,3 +7487,129 @@ body.testimonials-page {
   color: var(--purple);
   font-weight: 900;
 }
+
+/* ============================================================
+   HEADER 3D — boutons en relief assortis au logo 3D
+   (liens de navigation, bouton Soumettre, bouton Confort)
+   Réversible : supprimer ce bloc.
+   ============================================================ */
+
+.header nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.header nav a {
+  padding: 8px 15px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #f3edfb 55%, #e9e0f6 100%);
+  border: 1px solid rgba(58,28,113,.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -2px 3px rgba(58,28,113,.08),
+    0 2px 4px rgba(58,28,113,.14),
+    0 6px 12px rgba(58,28,113,.10);
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.header nav a::after { display: none; }  /* le soulignement n'a plus de sens en pill 3D */
+
+.header nav a:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, #ffffff 0%, #f7f2fd 55%, #efe6fb 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -2px 3px rgba(58,28,113,.07),
+    0 4px 8px rgba(58,28,113,.18),
+    0 10px 20px rgba(58,28,113,.14);
+}
+
+.header nav a:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 2px 5px rgba(58,28,113,.18),
+    0 1px 2px rgba(58,28,113,.10);
+}
+
+/* le CTA Soumettre : orange glossy, comme le « Dédica » du logo */
+.header nav a.nav-submit-link {
+  background: linear-gradient(180deg, #ffb072 0%, #ff8a45 45%, #f26a22 100%) !important;
+  border-color: rgba(190,80,20,.55);
+  color: #fff !important;
+  text-shadow: 0 1px 2px rgba(150,55,10,.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -3px 5px rgba(150,55,10,.35),
+    0 3px 6px rgba(233,88,37,.35),
+    0 8px 16px rgba(233,88,37,.25);
+}
+.header nav a.nav-submit-link:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, #ffbd85 0%, #ff9556 45%, #f97328 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.65),
+    inset 0 -3px 5px rgba(150,55,10,.30),
+    0 5px 10px rgba(233,88,37,.42),
+    0 12px 24px rgba(233,88,37,.30);
+}
+.header nav a.nav-submit-link:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 3px 6px rgba(150,55,10,.45),
+    0 1px 2px rgba(233,88,37,.25);
+}
+
+/* le bouton Confort injecté dans la nav : même famille que les liens */
+.header nav .a11y-nav-btn {
+  padding: 8px 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(58,28,113,.16);
+  background: linear-gradient(180deg, #ffffff 0%, #f3edfb 55%, #e9e0f6 100%);
+  color: var(--purple);
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -2px 3px rgba(58,28,113,.08),
+    0 2px 4px rgba(58,28,113,.14),
+    0 6px 12px rgba(58,28,113,.10);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.header nav .a11y-nav-btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 4px 8px rgba(58,28,113,.18),
+    0 10px 20px rgba(58,28,113,.14);
+}
+
+/* ----- version mode soir des boutons 3D ----- */
+html.a11y-soir .header nav a {
+  background: linear-gradient(180deg, #4a2f7d 0%, #3a2363 55%, #2d1a4e 100%);
+  border-color: rgba(237,225,252,.22);
+  color: #efe4ff;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -2px 3px rgba(0,0,0,.35),
+    0 2px 4px rgba(0,0,0,.4),
+    0 6px 12px rgba(0,0,0,.3);
+}
+html.a11y-soir .header nav a:hover {
+  background: linear-gradient(180deg, #573992 0%, #452a75 55%, #35205c 100%);
+}
+html.a11y-soir .header nav a.nav-submit-link {
+  background: linear-gradient(180deg, #ff9d5c 0%, #f2762f 45%, #d95d18 100%) !important;
+  border-color: rgba(120,45,5,.7);
+  color: #fff !important;
+}
+html.a11y-soir .header nav .a11y-nav-btn {
+  background: linear-gradient(180deg, #4a2f7d 0%, #3a2363 55%, #2d1a4e 100%);
+  border-color: rgba(237,225,252,.22);
+  color: #efe4ff;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -2px 3px rgba(0,0,0,.35),
+    0 2px 4px rgba(0,0,0,.4);
+}
