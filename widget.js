@@ -29,6 +29,9 @@
 (function () {
   "use strict";
 
+  var DEPARTEMENTS = [["01","Ain",46.1,5.35],["02","Aisne",49.56,3.55],["03","Allier",46.39,3.19],["04","Alpes-de-Haute-Provence",44.1,6.24],["05","Hautes-Alpes",44.66,6.35],["06","Alpes-Maritimes",43.94,7.17],["07","Ardèche",44.75,4.42],["08","Ardennes",49.69,4.55],["09","Ariège",42.96,1.52],["10","Aube",48.31,4.15],["11","Aude",43.06,2.55],["12","Aveyron",44.32,2.6],["13","Bouches-du-Rhône",43.54,5.1],["14","Calvados",49.1,-0.3],["15","Cantal",45.05,2.66],["16","Charente",45.7,0.2],["17","Charente-Maritime",45.75,-0.8],["18","Cher",47.1,2.5],["19","Corrèze",45.35,1.85],["2A","Corse-du-Sud",41.86,8.9],["2B","Haute-Corse",42.4,9.2],["21","Côte-d'Or",47.35,4.8],["22","Côtes-d'Armor",48.4,-2.85],["23","Creuse",46.05,2.0],["24","Dordogne",45.15,0.72],["25","Doubs",47.16,6.35],["26","Drôme",44.7,5.15],["27","Eure",49.1,1.0],["28","Eure-et-Loir",48.44,1.4],["29","Finistère",48.25,-4.05],["30","Gard",43.95,4.2],["31","Haute-Garonne",43.4,1.3],["32","Gers",43.65,0.55],["33","Gironde",44.85,-0.55],["34","Hérault",43.65,3.45],["35","Ille-et-Vilaine",48.15,-1.65],["36","Indre",46.8,1.55],["37","Indre-et-Loire",47.25,0.7],["38","Isère",45.25,5.6],["39","Jura",46.75,5.75],["40","Landes",43.95,-0.75],["41","Loir-et-Cher",47.6,1.35],["42","Loire",45.75,4.2],["43","Haute-Loire",45.1,3.85],["44","Loire-Atlantique",47.35,-1.6],["45","Loiret",47.9,2.3],["46","Lot",44.6,1.6],["47","Lot-et-Garonne",44.35,0.45],["48","Lozère",44.55,3.5],["49","Maine-et-Loire",47.4,-0.55],["50","Manche",49.05,-1.3],["51","Marne",48.95,4.35],["52","Haute-Marne",48.1,5.15],["53","Mayenne",48.25,-0.65],["54","Meurthe-et-Moselle",48.75,6.15],["55","Meuse",49.0,5.4],["56","Morbihan",47.85,-2.8],["57","Moselle",49.05,6.65],["58","Nièvre",47.1,3.55],["59","Nord",50.45,3.15],["60","Oise",49.4,2.4],["61","Orne",48.6,0.1],["62","Pas-de-Calais",50.5,2.35],["63","Puy-de-Dôme",45.75,3.15],["64","Pyrénées-Atlantiques",43.25,-0.85],["65","Hautes-Pyrénées",43.1,0.15],["66","Pyrénées-Orientales",42.6,2.55],["67","Bas-Rhin",48.65,7.55],["68","Haut-Rhin",47.9,7.25],["69","Rhône",45.75,4.6],["70","Haute-Saône",47.65,6.15],["71","Saône-et-Loire",46.65,4.55],["72","Sarthe",47.95,0.2],["73","Savoie",45.5,6.4],["74","Haute-Savoie",46.05,6.45],["75","Paris",48.86,2.35],["76","Seine-Maritime",49.65,1.0],["77","Seine-et-Marne",48.6,2.95],["78","Yvelines",48.8,1.9],["79","Deux-Sèvres",46.55,-0.35],["80","Somme",49.95,2.35],["81","Tarn",43.8,2.15],["82","Tarn-et-Garonne",44.05,1.3],["83","Var",43.45,6.2],["84","Vaucluse",44.05,5.15],["85","Vendée",46.65,-1.3],["86","Vienne",46.55,0.55],["87","Haute-Vienne",45.9,1.25],["88","Vosges",48.15,6.35],["89","Yonne",47.85,3.55],["90","Territoire de Belfort",47.63,6.85],["91","Essonne",48.53,2.25],["92","Hauts-de-Seine",48.85,2.24],["93","Seine-Saint-Denis",48.91,2.48],["94","Val-de-Marne",48.78,2.47],["95","Val-d'Oise",49.08,2.2],["971","Guadeloupe",16.24,-61.55],["972","Martinique",14.64,-61.02],["973","Guyane",4.0,-53.0],["974","La Réunion",-21.13,55.53],["976","Mayotte",-12.82,45.16]];
+
+
   var PIN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" ' +
     'xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13' +
     's7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" ' +
@@ -87,6 +90,20 @@
       "font-family:inherit;font-weight:600;font-size:.82rem;padding:8px 13px;cursor:pointer}\n" +
     ".w-search button:disabled{opacity:.6;cursor:default}\n" +
     ".w-search-info{padding:4px 14px 8px;font-size:.74rem;color:#7a5eb0;background:#faf6ff}\n" +
+    ".w-search-wrap{position:relative;flex:1;min-width:0}\n" +
+    ".w-suggest{position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:20;" +
+      "background:#fff;border:1px solid rgba(58,28,113,.18);border-radius:10px;" +
+      "box-shadow:0 8px 24px rgba(58,28,113,.16);max-height:210px;overflow-y:auto}\n" +
+    ".w-suggest-item{padding:9px 12px;font-size:.82rem;cursor:pointer;display:flex;" +
+      "align-items:center;gap:8px;border-bottom:1px solid rgba(58,28,113,.05)}\n" +
+    ".w-suggest-item:last-child{border-bottom:0}\n" +
+    ".w-suggest-item:hover,.w-suggest-item.active{background:#f3ecff}\n" +
+    ".w-suggest-tag{font-size:.66rem;font-weight:700;padding:2px 6px;border-radius:5px;" +
+      "background:#ece3ff;color:#6b3fb0;flex:none}\n" +
+    ".w-suggest-tag.dep{background:#ffe6d6;color:#c2571f}\n" +
+    ".soir .w-suggest{background:#2a1a45;border-color:rgba(237,225,252,.2)}\n" +
+    ".soir .w-suggest-item{color:#e6dcf6;border-color:rgba(237,225,252,.08)}\n" +
+    ".soir .w-suggest-item:hover,.soir .w-suggest-item.active{background:#3a2566}\n" +
     ".soir .w-search,.soir .w-search-info{background:#1c1030}\n" +
     ".soir .w-search input{background:#2a1a45;border-color:rgba(237,225,252,.2);color:#e6dcf6}\n" +
     ".soir .w-search-info{color:#c9b6e8}\n" +
@@ -158,9 +175,48 @@
       return {
         lng: f.geometry.coordinates[0],
         lat: f.geometry.coordinates[1],
-        label: f.properties.city || f.properties.name || ville
+        label: f.properties.city || f.properties.name || ville,
+        kind: "ville"
       };
     });
+  }
+
+  // Suggestions à la frappe : communes ET départements (via l'API Adresse).
+  function chercherDepartements(q) {
+    var n = q.trim().toLowerCase();
+    if (!n) return [];
+    // normaliser (sans accents) pour comparer les noms
+    function sansAccent(x) {
+      return x.normalize ? x.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : x;
+    }
+    var nn = sansAccent(n);
+    return DEPARTEMENTS.filter(function (d) {
+      var code = d[0].toLowerCase(), nom = sansAccent(d[1].toLowerCase());
+      return code === nn || nom.indexOf(nn) === 0 || nom.indexOf(" " + nn) > -1;
+    }).slice(0, 3).map(function (d) {
+      return { lat: d[2], lng: d[3], label: d[1], sub: "D\u00e9partement " + d[0], kind: "departement" };
+    });
+  }
+
+  function chercherSuggestions(q) {
+    var base = "https://api-adresse.data.gouv.fr/search/?autocomplete=1&limit=5&q=" +
+      encodeURIComponent(q);
+    // deux requêtes : communes + centres de département (municipality couvre les 2
+    // si on ne fixe pas le type, mais on force la présence de départements en doublant).
+    return fetch(base + "&type=municipality").then(function (r) { return r.json(); })
+      .then(function (json) {
+        var out = (json.features || []).map(function (f) {
+          return {
+            lat: f.geometry.coordinates[1],
+            lng: f.geometry.coordinates[0],
+            label: f.properties.city || f.properties.name,
+            sub: (f.properties.context || ""),   // ex : "35, Ille-et-Vilaine, Bretagne"
+            kind: "ville"
+          };
+        });
+        // ajouter les départements correspondants en tête
+        return chercherDepartements(q).concat(out);
+      }).catch(function () { return chercherDepartements(q); });
   }
 
   function toRad(v) { return Number(v) * Math.PI / 180; }
@@ -261,14 +317,17 @@
         }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
       };
 
-      // --- Option "Chercher une ville" ---
+      // --- Option "Chercher une ville ou un département" ---
       if (cfg.recherche) {
         var geoList = events.filter(hasCoords);
         if (geoList.length) {
           var box = document.createElement("div");
           box.className = "w-search";
-          box.innerHTML = '<input type="text" placeholder="Chercher une ville\u2026" ' +
-            'aria-label="Chercher une ville" />' +
+          box.innerHTML =
+            '<div class="w-search-wrap">' +
+              '<input type="text" placeholder="Ville ou d\u00e9partement\u2026" ' +
+              'autocomplete="off" aria-label="Chercher une ville ou un d\u00e9partement" />' +
+            '</div>' +
             '<button type="button">Voir</button>';
           var info = document.createElement("div");
           info.className = "w-search-info";
@@ -277,44 +336,126 @@
           host.parentNode.insertBefore(box, host.nextSibling);
           box.parentNode.insertBefore(info, box.nextSibling);
 
+          var wrap = box.querySelector(".w-search-wrap");
           var input = box.querySelector("input");
           var go = box.querySelector("button");
+          var suggestBox = null;
+          var choix = null;       // suggestion retenue {lat,lng,label}
+          var debounce = null;
+          var activeIx = -1;
+          var current = [];
 
-          var lancer = function () {
-            var ville = input.value.trim();
-            if (ville.length < 2) return;
+          function fermerSuggest() {
+            if (suggestBox) { suggestBox.remove(); suggestBox = null; }
+            activeIx = -1; current = [];
+          }
+
+          function afficherSuggest(items) {
+            fermerSuggest();
+            if (!items.length) return;
+            current = items;
+            suggestBox = document.createElement("div");
+            suggestBox.className = "w-suggest";
+            items.forEach(function (it, i) {
+              var row = document.createElement("div");
+              row.className = "w-suggest-item";
+              var tag = it.kind === "departement" ? '<span class="w-suggest-tag dep">D\u00e9p.</span>'
+                                                   : '<span class="w-suggest-tag">Ville</span>';
+              row.innerHTML = tag + "<span>" + (it.label || "") +
+                (it.sub ? ' <span style="opacity:.6">\u00b7 ' + it.sub + "</span>" : "") + "</span>";
+              row.addEventListener("mousedown", function (ev) {
+                ev.preventDefault();
+                retenir(it);
+              });
+              suggestBox.appendChild(row);
+            });
+            wrap.appendChild(suggestBox);
+          }
+
+          function retenir(it) {
+            choix = it;
+            input.value = it.label;
+            fermerSuggest();
+            lancer();
+          }
+
+          function lancer() {
+            var q = input.value.trim();
+            if (q.length < 2) return;
+            fermerSuggest();
             go.disabled = true; go.textContent = "\u2026";
-            geocodeVille(ville).then(function (loc) {
-              if (!loc) {
+
+            // si aucune suggestion retenue, on géocode le texte brut
+            var loc = choix ? Promise.resolve(choix) : geocodeVille(q);
+            Promise.resolve(loc).then(function (l) {
+              if (!l) {
                 info.style.display = "block";
-                info.textContent = "Ville introuvable. Essayez une orthographe proche.";
+                info.textContent = "Lieu introuvable. Essayez une orthographe proche.";
                 go.disabled = false; go.textContent = "Voir";
                 return;
               }
+              // un département a un rayon large par défaut si aucun rayon n'est fixé
+              var rayon = cfg.rayon || (l.kind === "departement" ? 60 : 0);
               var near = geoList.map(function (e) {
                 var c = Object.create(e);
-                c.__dist = distanceKm(loc.lat, loc.lng, Number(e.lat), Number(e.lng));
+                c.__dist = distanceKm(l.lat, l.lng, Number(e.lat), Number(e.lng));
                 return c;
               }).filter(function (e) {
-                return !cfg.rayon || e.__dist <= cfg.rayon;
+                return !rayon || e.__dist <= rayon;
               }).sort(function (a, b) { return a.__dist - b.__dist; });
 
               paint(near);
               info.style.display = "block";
               info.textContent = near.length
-                ? "\u00c9v\u00e9nements les plus proches de " + loc.label
-                : "Rien " + (cfg.rayon ? "\u00e0 moins de " + cfg.rayon + " km de " : "autour de ") + loc.label + ".";
+                ? "\u00c9v\u00e9nements les plus proches de " + l.label
+                : "Rien " + (rayon ? "\u00e0 moins de " + rayon + " km de " : "autour de ") + l.label + ".";
               go.disabled = false; go.textContent = "Voir";
             }).catch(function () {
               info.style.display = "block";
               info.textContent = "Recherche momentan\u00e9ment indisponible.";
               go.disabled = false; go.textContent = "Voir";
             });
-          };
-          go.addEventListener("click", lancer);
+          }
+
+          // frappe : autocomplétion après 3 lettres, avec anti-rebond
+          input.addEventListener("input", function () {
+            choix = null;  // la frappe annule la sélection précédente
+            var q = input.value.trim();
+            if (debounce) clearTimeout(debounce);
+            if (q.length < 3) { fermerSuggest(); return; }
+            debounce = setTimeout(function () {
+              chercherSuggestions(q).then(afficherSuggest);
+            }, 220);
+          });
+
+          // navigation clavier dans les suggestions
           input.addEventListener("keydown", function (ev) {
+            if (suggestBox && current.length) {
+              if (ev.key === "ArrowDown") {
+                ev.preventDefault();
+                activeIx = (activeIx + 1) % current.length;
+              } else if (ev.key === "ArrowUp") {
+                ev.preventDefault();
+                activeIx = (activeIx - 1 + current.length) % current.length;
+              } else if (ev.key === "Enter") {
+                ev.preventDefault();
+                if (activeIx >= 0) { retenir(current[activeIx]); return; }
+                lancer(); return;
+              } else if (ev.key === "Escape") {
+                fermerSuggest(); return;
+              } else { return; }
+              var rows = suggestBox.querySelectorAll(".w-suggest-item");
+              rows.forEach(function (r, i) { r.classList.toggle("active", i === activeIx); });
+              return;
+            }
             if (ev.key === "Enter") { ev.preventDefault(); lancer(); }
           });
+
+          input.addEventListener("blur", function () {
+            setTimeout(fermerSuggest, 150);  // laisser le mousedown se déclencher
+          });
+
+          go.addEventListener("click", lancer);
 
           // lien pré-configuré : ville fournie -> on lance tout de suite
           if (cfg.ville) {
