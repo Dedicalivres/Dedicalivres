@@ -115,15 +115,17 @@
     set("rayon", "data-rayon");
     set("source", "data-source");
 
-    // "autour" et "recherche" : présents (=1) ou absents
-    if (params.get("autour") === "1" || params.get("autour") === "true") el.setAttribute("data-autour", "1");
+    // Sur cette page autonome, la recherche par ville et la géoloc sont
+    // affichées PAR DÉFAUT (c'est le plus intuitif). On peut les désactiver
+    // explicitement avec ?recherche=0 ou ?autour=0.
+    if (params.get("autour") !== "0") el.setAttribute("data-autour", "1");
 
     var ville = (params.get("ville") || "").trim();
     if (ville) {
-      // une ville implique le mode recherche, avec pré-remplissage + auto-lancement
+      // une ville fournie : pré-remplissage + auto-lancement de la recherche
       el.setAttribute("data-recherche", "1");
       el.setAttribute("data-ville", ville);
-    } else if (params.get("recherche") === "1" || params.get("recherche") === "true") {
+    } else if (params.get("recherche") !== "0") {
       el.setAttribute("data-recherche", "1");
     }
 
