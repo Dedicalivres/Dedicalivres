@@ -545,3 +545,121 @@ html.a11y-soir .home-magazine-tile.primary strong,
 html.a11y-soir .home-magazine-tile.primary span {
   color: #ffffff !important;
 }
+
+/* ============================================================
+   MODE SOIR — HERO D'ACCUEIL (correctif « voile »)
+   Cause : .association-hero force un fond clair (#fffdfc !important)
+   que le mode soir ne couvrait pas, pendant que les TEXTES passaient
+   en clair (variables soir) -> texte clair sur fond clair, illisible.
+   Idem pour les 6 tuiles .hero-picto-button (fond blanc + texte pâle).
+   Correction : on assombrit ces surfaces comme le reste du site.
+   ============================================================ */
+
+/* le grand fond du hero d'accueil */
+html.a11y-soir .association-hero {
+  background:
+    linear-gradient(90deg, rgba(255,107,53,.10), transparent 28%),
+    linear-gradient(270deg, rgba(122,63,184,.16), transparent 34%),
+    linear-gradient(165deg, #2b1a4a, #221439 70%) !important;
+  box-shadow: 0 20px 54px rgba(0,0,0,.35) !important;
+}
+/* le quadrillage décoratif du backdrop, adapté au sombre */
+html.a11y-soir .association-hero-backdrop {
+  background:
+    linear-gradient(rgba(237,225,252,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(237,225,252,.04) 1px, transparent 1px),
+    radial-gradient(circle at 16% 30%, rgba(255,107,53,.14), transparent 30%),
+    radial-gradient(circle at 84% 28%, rgba(183,155,232,.12), transparent 32%) !important;
+  background-size: 54px 54px, 54px 54px, auto, auto !important;
+}
+
+/* le logo central : carte claire pour préserver la marque violet/orange */
+html.a11y-soir .association-hero-brand {
+  background: rgba(255,253,252,.96);
+  border-radius: 22px;
+  padding: clamp(12px, 2vw, 22px);
+  box-shadow: 0 14px 40px rgba(0,0,0,.35);
+}
+
+/* les 6 tuiles d'accès rapide (Agenda, Salons…, Widget) */
+html.a11y-soir .hero-picto-button {
+  background: rgba(255,255,255,.09) !important;
+  border: 1px solid rgba(237,225,252,.2) !important;
+  color: #f1e9ff !important;
+}
+html.a11y-soir .hero-picto-button:hover {
+  background: rgba(255,255,255,.16) !important;
+}
+html.a11y-soir .hero-picto-button * {
+  color: #f1e9ff !important;
+}
+/* le cercle d'icône garde une pastille claire pour le contraste du picto */
+html.a11y-soir .hero-picto-icon {
+  background: rgba(255,253,252,.94) !important;
+}
+
+/* ============================================================
+   MODE SOIR — SUITE DU CORRECTIF « VOILES » (section agenda,
+   calendrier, bandeaux date/lieu des cartes, lien retour widget)
+   Constats mesurés : #agenda posait un film blanc rgba(255,255,255,.76)
+   sur le fond sombre ; les raccourcis et jours du calendrier gardaient
+   leurs fonds clairs avec textes pâlis ; idem .card-meta span.
+   ============================================================ */
+
+/* le conteneur de la section agenda : film blanc -> surface sombre */
+html.a11y-soir #agenda {
+  background: linear-gradient(160deg, rgba(43,26,74,.94), rgba(34,20,58,.92)) !important;
+  box-shadow: 0 20px 56px rgba(0,0,0,.35) !important;
+}
+
+/* raccourcis « Aujourd'hui / Demain / Ce mois » */
+html.a11y-soir .agenda-calendar-shortcuts button {
+  background: rgba(255,255,255,.09) !important;
+  border-color: rgba(237,225,252,.22) !important;
+  color: #e6dcf6 !important;
+}
+html.a11y-soir .agenda-calendar-shortcuts button:hover,
+html.a11y-soir .agenda-calendar-shortcuts button:focus-visible {
+  background: rgba(255,255,255,.16) !important;
+  color: #ffffff !important;
+}
+
+/* jours du calendrier : cases neutres et cases avec événements */
+html.a11y-soir .agenda-discovery-showcase .agenda-calendar-day {
+  background: rgba(255,255,255,.06) !important;
+  border-color: rgba(237,225,252,.12) !important;
+  color: #e6dcf6 !important;
+}
+html.a11y-soir .agenda-discovery-showcase .agenda-calendar-day.has-events {
+  background:
+    radial-gradient(circle at 85% 16%, rgba(255,107,53,.28), transparent 34%),
+    rgba(255,255,255,.12) !important;
+  border-color: rgba(255,138,77,.5) !important;
+  color: #ffffff !important;
+}
+html.a11y-soir .agenda-discovery-showcase .agenda-calendar-day .calendar-day-number,
+html.a11y-soir .agenda-discovery-showcase .agenda-calendar-day span {
+  color: inherit !important;
+}
+/* le jour sélectionné garde son dégradé violet (déjà sombre), on renforce l'anneau */
+html.a11y-soir .agenda-discovery-showcase .agenda-calendar-day.is-selected {
+  box-shadow:
+    0 16px 32px rgba(0,0,0,.5),
+    0 0 0 3px rgba(255,161,111,.9),
+    inset 0 1px 0 rgba(255,255,255,.25) !important;
+}
+
+/* bandeaux date et lieu des cartes événement */
+html.a11y-soir .card-meta span {
+  background: rgba(255,255,255,.08) !important;
+  border-color: rgba(237,225,252,.16) !important;
+  color: #e6dcf6 !important;
+}
+html.a11y-soir .card-meta span:first-child {
+  background: rgba(183,155,232,.16) !important;
+  color: #efe4ff !important;
+}
+
+/* lien « Retour à l'accueil » de la page widget-partenaires */
+html.a11y-soir .wg-back { color: #e6dcf6 !important; }
+html.a11y-soir .wg-back:hover { color: #ffa16f !important; }
