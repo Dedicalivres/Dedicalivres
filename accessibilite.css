@@ -573,17 +573,21 @@ html.a11y-soir .association-hero-backdrop {
   background-size: 54px 54px, 54px 54px, auto, auto !important;
 }
 
-/* le logo central : aura lumineuse qui épouse les contours du logo
-   (remplace la carte blanche, trop massive en mode sombre) */
+/* le logo central : carte givrée (glassmorphism) — détache le logo du fond
+   sombre avec élégance, sans halo diffus ni pavé blanc. */
 html.a11y-soir .association-hero-brand {
-  background: transparent;
-  box-shadow: none;
+  background: rgba(255,253,252,.10);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 26px;
+  padding: clamp(16px, 2.2vw, 26px);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  box-shadow:
+    0 18px 50px rgba(0,0,0,.4),
+    inset 0 1px 0 rgba(255,255,255,.22);
 }
 html.a11y-soir .association-hero-brand img {
-  filter:
-    drop-shadow(0 0 2px rgba(255,255,255,.6))
-    drop-shadow(0 0 16px rgba(237,225,252,.42))
-    drop-shadow(0 0 46px rgba(183,155,232,.5));
+  filter: none;
 }
 
 /* les 6 tuiles d'accès rapide (Agenda, Salons…, Widget) */
