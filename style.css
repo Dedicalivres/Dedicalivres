@@ -7613,3 +7613,28 @@ html.a11y-soir .header nav .a11y-nav-btn {
     inset 0 -2px 3px rgba(0,0,0,.35),
     0 2px 4px rgba(0,0,0,.4);
 }
+
+/* ----- pictogrammes des liens du header (trait, s'adaptent au thème) ----- */
+.header nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.nav-ico {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  transition: transform .18s ease;
+}
+/* au survol, le picto s'anime légèrement */
+.header nav a:hover .nav-ico {
+  transform: translateY(-1px) scale(1.12) rotate(-3deg);
+}
+.header nav a.nav-submit-link:hover .nav-ico {
+  transform: translateX(2px) scale(1.1);   /* l'avion "décolle" */
+}
+/* sur le CTA orange, l'icône est blanche pleine */
+.header nav a.nav-submit-link .nav-ico { stroke: #fff; }
