@@ -573,32 +573,23 @@ html.a11y-soir .association-hero-backdrop {
   background-size: 54px 54px, 54px 54px, auto, auto !important;
 }
 
-/* le logo central : fondu radial violet + ombre portée — le logo s'intègre
-   au fond (émerge d'une lueur de la même famille), sans cadre ni carte qui
-   le "pose". L'ombre l'ancre légèrement en 3D. */
-html.a11y-soir .association-hero-brand {
+/* le logo central : deux variantes selon le mode.
+   - clair : logo aux éléments violet foncé (fait pour fond blanc)
+   - sombre : mêmes formes, éléments éclaircis (fait pour fond nuit)
+   Aucun cadre ni fondu : chaque version est lisible telle quelle sur son fond. */
+.association-hero-brand {
   position: relative;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
 }
-html.a11y-soir .association-hero-brand::before {
-  content: "";
-  position: absolute;
-  inset: -8%;
-  z-index: 0;
-  background: radial-gradient(ellipse 52% 48% at 50% 48%,
-    rgba(140,100,200,.34), transparent 66%);
-  filter: blur(6px);
-  pointer-events: none;
+.association-hero-brand .brand-logo {
+  display: block;
+  width: min(100%, 560px);
+  height: auto;
+  margin: 0 auto;
 }
-html.a11y-soir .association-hero-brand img {
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 16px 26px rgba(0,0,0,.45));
-}
+.association-hero-brand .brand-logo--sombre { display: none; }
+
+html.a11y-soir .association-hero-brand .brand-logo--clair { display: none; }
+html.a11y-soir .association-hero-brand .brand-logo--sombre { display: block; }
 
 /* les 6 tuiles d'accès rapide (Agenda, Salons…, Widget) */
 html.a11y-soir .hero-picto-button {
