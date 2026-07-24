@@ -117,7 +117,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="live-config.js"></script>
+<script src="../config.js"></script>
 <script src="live-core.js"></script>
 <script>
 (function () {
@@ -129,8 +129,10 @@
   LIVE.pluie();
 
   if (LIVE.mode === 'demo') {
+    // On propage ?demo=1 : sans lui, la page suivante repasserait en mode réel.
+    const q = new URLSearchParams(location.search).get('demo') === '1' ? '?demo=1' : '';
     $('liensDemo').innerHTML =
-      '<a class="role-btn" href="salle.html">👁 Visiteur</a> <a class="role-btn" href="regie.html">🎛 Régie</a>';
+      '<a class="role-btn" href="salle.html' + q + '">👁 Visiteur</a> <a class="role-btn" href="regie.html' + q + '">🎛 Régie</a>';
   }
 
   /* ================= Onglets ================= */
@@ -155,14 +157,11 @@
     $('autoBtn').textContent = s.auto_enchainement
       ? '⏵ Enchaînement auto : ACTIVÉ' : '⏸ Enchaînement auto : EN PAUSE';
 
-    const ban = LIVE.image(s.banniere_url);
-    if (ban) {
+    if (s.banniere_url) {
       const p = $('banPrev');
-      p.style.backgroundImage = 'url(' + ban + ')';
+      p.style.backgroundImage = 'url(' + s.banniere_url + ')';
       p.textContent = '';
-      if (!$('banUrl').matches(':focus') && s.banniere_url.indexOf('media:') !== 0) {
-        $('banUrl').value = s.banniere_url;
-      }
+      if (!$('banUrl').matches(':focus')) $('banUrl').value = s.banniere_url;
     }
 
     rendrePrep();
@@ -190,7 +189,7 @@
         '<label class="chip" style="cursor:pointer">📁 Couverture' +
           '<input type="file" data-cov-fichier="' + b.id + '" accept="image/*" hidden></label>' +
         '<input class="big-input" data-cov="' + b.id + '" type="url" placeholder="…ou adresse d\'une image en ligne (https://…)" ' +
-          'value="' + esc((b.couverture_url || '').indexOf('media:') === 0 ? '' : (b.couverture_url || '')) + '" ' +
+          'value="' + esc(b.couverture_url || '') + '" ' +
           'style="flex:1 0 100%;padding:8px 10px;font-size:.84rem">';
       pb.appendChild(d);
     });
@@ -223,14 +222,16 @@
   $('ckTest').addEventListener('change', rendrePrep);
   $('banGo').onclick = () => LIVE.api.majBanniere($('banUrl').value.trim());
 
-  // Téléversement : on redimensionne côté navigateur avant d'envoyer.
-  // Bannière large (1600 px), couvertures plus modestes (700 px).
+  // Téléversement : compression côté navigateur puis dépôt sur R2, via le
+  // même Worker que les témoignages. On ne stocke que l'URL renvoyée.
+  // Bannière large (1600 px), couvertures plus modestes (800 px).
   async function televerser(fichier, cible, livre, maxPx) {
     if (!fichier) return;
-    LIVE.toast('Préparation de l\'image…');
+    LIVE.toast('Envoi de l\'image…');
     try {
-      const img = await LIVE.preparerImage(fichier, maxPx);
-      await LIVE.api.televerserMedia(cible, img.base64, img.mime, livre);
+      const url = await LIVE.envoyerImage(fichier, maxPx);
+      if (cible === 'banniere') await LIVE.api.majBanniere(url);
+      else await LIVE.api.majLivre(livre, { couverture_url: url });
       LIVE.toast(cible === 'banniere' ? 'Bannière en place ✓' : 'Couverture en place ✓');
     } catch (e) { LIVE.toast(e.message || 'Envoi impossible'); }
   }
@@ -242,7 +243,7 @@
   $('prepBooks').addEventListener('change', function (e) {
     const f = e.target.closest('[data-cov-fichier]');
     if (!f) return;
-    televerser(f.files[0], 'couverture', f.dataset.covFichier, 700);
+    televerser(f.files[0], 'couverture', f.dataset.covFichier, 800);
     f.value = '';
   });
 

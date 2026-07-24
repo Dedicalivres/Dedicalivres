@@ -118,7 +118,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="live-config.js"></script>
+<script src="../config.js"></script>
 <script src="live-core.js"></script>
 <script>
 (function () {
@@ -131,9 +131,11 @@
   /* -- Passerelles vers les autres interfaces, en mode demo seulement.
         En production un visiteur ne doit jamais voir ces adresses.   -- */
   if (LIVE.mode === 'demo') {
+    // On propage ?demo=1 : sans lui, la page suivante repasserait en mode réel.
+    const q = new URLSearchParams(location.search).get('demo') === '1' ? '?demo=1' : '';
     $('liensDemo').innerHTML =
-      '<a class="role-btn" href="auteur.html">🖋 Autrice</a> ' +
-      '<a class="role-btn" href="regie.html">🎛 Régie</a>';
+      '<a class="role-btn" href="auteur.html' + q + '">🖋 Autrice</a> ' +
+      '<a class="role-btn" href="regie.html' + q + '">🎛 Régie</a>';
   }
 
   const chat = LIVE.creerChat($('slotVisiteur'), false);
@@ -151,10 +153,9 @@
     $('presence').textContent = LIVE.etat.presence || '—';
     $('cinePresence').textContent = LIVE.etat.presence || '—';
 
-    const ban = LIVE.image(s.banniere_url);
-    if (ban) {
+    if (s.banniere_url) {
       const b = $('bannerV');
-      b.style.backgroundImage = 'url(' + ban + ')';
+      b.style.backgroundImage = 'url(' + s.banniere_url + ')';
       b.style.display = '';
     }
     brancherSiBesoin(s.video_id);

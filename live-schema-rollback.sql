@@ -4,11 +4,10 @@
 --  site n'est touchee : tout le module vit sous le prefixe live_.
 -- =====================================================================
 
-drop function if exists live_creer_session(text, text, text, text, text);
+drop function if exists live_creer_session(text, text, text, text, bigint);
 drop function if exists live_purger_contacts();
 drop function if exists live_console_auteur(uuid, text);
 drop function if exists live_moderer(uuid, text, uuid, text);
-drop function if exists live_televerser_media(uuid, text, text, text, text, uuid);
 drop function if exists live_maj_banniere(uuid, text, text);
 drop function if exists live_maj_livre(uuid, text, uuid, integer, integer, text, boolean);
 drop function if exists live_maj_statut(uuid, text, text);
@@ -28,7 +27,6 @@ drop function if exists live_verif(uuid, text, text);
 drop table if exists live_order_contacts cascade;
 drop table if exists live_order_items    cascade;
 drop table if exists live_orders         cascade;
-drop table if exists live_medias         cascade;
 drop table if exists live_messages       cascade;
 drop table if exists live_books          cascade;
 drop table if exists live_session_secrets cascade;

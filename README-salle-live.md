@@ -7,15 +7,17 @@ du site existant. S'il n'est pas retenu, un seul script suffit à l'effacer enti
 
 ## 1. Mise en route
 
-### Sans rien déployer (mode démonstration)
+> **À lire d'abord si le module a déjà été déposé : `NETTOYAGE-RACINE.md`.**
 
-Copiez le dossier `dedicaces-live/` à la racine du dépôt et poussez avec GitHub Desktop.
+### Déploiement
+
+Copiez les dossiers `dedicaces-live/` et `supabase/` tels quels à la racine du dépôt.
 
 > **Aucun fichier de ce module ne s'appelle `index.html`.** C'est délibéré : une page nommée
 > ainsi écrase la page d'accueil du site si le dossier n'est pas conservé lors du dépôt.
 > La page visiteur s'appelle donc `salle.html`. Ne la renommez pas.
 
-Les trois adresses fonctionnent immédiatement, sans base de données :
+Les trois adresses :
 
 | Interface | Adresse |
 |---|---|
@@ -23,23 +25,28 @@ Les trois adresses fonctionnent immédiatement, sans base de données :
 | Autrice  | `dedicalivres.fr/dedicaces-live/auteur.html` |
 | Régie    | `dedicalivres.fr/dedicaces-live/regie.html` |
 
-L'état vit dans le navigateur et se synchronise **entre les onglets d'une même machine** :
-ouvrez les trois côte à côte et jouez le parcours complet. Le bandeau supérieur affiche
+### Aucune configuration à renseigner
+
+Le module lit `config.js` du site et réutilise `getDedicalivresSupabaseClient()` :
+même instance, même clé, aucun réglage propre. Il n'y a plus de fichier de configuration
+du module.
+
+- `config.js` chargé → **mode réel**, connecté à la base.
+- `config.js` absent, ou adresse en `?demo=1` → **mode démonstration** : état local,
+  données d'exemple, aucun réseau.
+
+Le mode démonstration se synchronise **entre les onglets d'une même machine** : ouvrez les
+trois adresses côte à côte avec `?demo=1` et jouez le parcours complet. Les liens de
+passage d'une interface à l'autre conservent le paramètre. Le bandeau affiche
 « DÉMO — données locales ».
 
-Portée : un navigateur, une machine. Pour tester à plusieurs, passez à l'étape suivante.
-
-### Avec la base (mode réel)
+### Mise en service de la base
 
 1. Dans le SQL Editor de Supabase, exécuter `supabase/live-schema.sql`.
 2. Puis `supabase/live-seed.sql`. Il crée une salle de test et **affiche les trois adresses
    avec leurs jetons dans le panneau de messages**. C'est le seul moment où les jetons
    apparaissent dans un résultat ; copiez-les. (En cas d'oubli, la requête de rappel est
    en commentaire à la fin du fichier.)
-3. Renseigner les deux valeurs dans `dedicaces-live/live-config.js`.
-
-Le basculement est total : aucune autre modification de code. Les pages ignorent dans quel
-mode elles tournent.
 
 **Aucun lien depuis le menu.** Les trois pages portent `noindex, nofollow` et ne sont
 atteignables que par leur adresse. En mode démonstration seulement, des liens relient les
@@ -103,34 +110,34 @@ l'API directement.
 
 ## 4. Les images
 
-Bannière et couvertures se chargent depuis l'appareil, comme dans la maquette. Le navigateur
-les **redimensionne et les réencode en WebP avant l'envoi**, en visant un poids plutôt qu'une
-dimension : une photo très détaillée est compressée davantage qu'une image lisse. Une photo
-de téléphone de 11 Mo redescend automatiquement sous la limite.
+Bannière et couvertures se chargent depuis l'appareil. Le navigateur les compresse
+(fond blanc, JPEG qualité 0.82, comme `testimonials.js`) puis les dépose sur **votre
+Worker Cloudflare vers R2** — le même que les témoignages, dans un dossier `salle-live`
+distinct. Seule l'URL renvoyée est stockée en base.
 
-Un champ « adresse d'image » reste disponible pour pointer vers un fichier déjà en ligne.
+Bannière réduite à 1600 px, couvertures à 800 px. Un champ « adresse d'image » reste
+disponible pour pointer vers un fichier déjà en ligne.
 
-Les images sont stockées en base (`live_medias`), **volontairement hors du canal temps réel** :
-une couverture pèse une centaine de kilo-octets, la diffuser à chaque spectateur à chaque
-modification saturerait le canal. Elles sont lues une fois puis mises en cache par le client.
+Aucune image n'est stockée en base : pas de plafond de poids, diffusion par CDN, et une
+seule façon de téléverser dans tout le site.
 
-> **Pourquoi pas Supabase Storage** : sans authentification, ouvrir l'écriture dans un bucket
-> revient à offrir un dépôt de fichiers anonyme à tout internet. La voie propre — une Edge
-> Function délivrant une URL signée après contrôle du jeton — impose le CLI Supabase, donc un
-> outil de plus hors du flux GitHub Desktop. À reconsidérer le jour où un vrai compte autrice
-> existera.
+> Le format reste le JPEG, par prudence : c'est ce que votre Worker reçoit déjà des
+> témoignages, et je n'ai pas pu vérifier qu'il accepte le WebP. Si c'est le cas, passer
+> en WebP gagnerait 25 à 30 % de poids — un mot et je fais la bascule.
 
 ---
 
-## 5. Reste à faire
+## 5. Rattachement à l'agenda
 
-**Rattachement à l'agenda.** `live_sessions.event_id` est pour l'instant un texte libre.
-Le `ALTER TABLE` qui pose la vraie clé étrangère est prêt, en commentaire, en section 7 de
-`live-schema.sql` : deux identifiants à remplacer le jour où le nom de la table événements
-et de sa clé primaire sont connus. Aucune donnée n'est perdue entre-temps.
+`live_sessions.event_id` pointe sur `public.events(id)` — un entier, conformément à vos
+pages générées (`.../evenement/<slug>-1099.html`).
 
-**Ajout au menu.** Rien à prévoir de particulier : les trois pages sont autonomes, ajouter
-l'entrée visiteur au menu se fera d'une ligne, comme pour n'importe quelle page.
+Le lien est facultatif : une salle peut vivre sans événement d'agenda, et la suppression
+d'un événement détache la salle (`on delete set null`) au lieu de la détruire. Un
+identifiant inexistant est refusé par la base.
+
+Pour rattacher une salle à un événement, passer son identifiant en cinquième argument de
+`live_creer_session(...)`.
 
 ---
 
@@ -144,35 +151,43 @@ dedicaces-live/
   live-salle.css     feuille commune, extraite de la maquette sans retouche
                      + un bloc ajouté en fin de fichier, commenté et réversible
   live-core.js       couche de données, temps réel, chat, images
-  live-config.js     les deux valeurs Supabase à renseigner
 
 supabase/
   live-schema.sql            migration complète (tables, RLS, RPC, Realtime)
   live-seed.sql              salle de test + affichage des jetons
   live-schema-rollback.sql   effacement intégral du module
+
+README-salle-live.md   cette notice
+NETTOYAGE-RACINE.md    à lire si le module a déjà été déposé à plat
 ```
 
-Le CSS d'origine n'a pas été modifié en place. La seule addition est un bloc commenté en fin
-de fichier, supprimable sans effet de bord.
+Six tables, toutes préfixées `live_`. Le CSS d'origine n'a pas été modifié en place :
+la seule addition est un bloc commenté en fin de fichier, supprimable sans effet de bord.
 
 ---
 
 ## 7. Vérifications effectuées
 
 Migration exécutée sur un PostgreSQL 16 réel, avec les rôles Supabase reconstitués
-(`anon` disposant des mêmes droits qu'en production, la RLS faisant seule le filtrage).
-Les trois interfaces jouées sous Chromium, en poste et en mobile.
+(`anon` disposant des mêmes droits qu'en production, la RLS faisant seule le filtrage)
+et une table `events` reproduisant la vôtre. Les trois interfaces jouées sous Chromium,
+en poste et en mobile.
 
-- Parcours complet à trois interfaces : 18 vérifications, aucune erreur JavaScript
+- Parcours complet à trois interfaces : 21 vérifications, aucune erreur JavaScript
 - Garde-fous base : double encaissement, survente, double affichage, double « Réalisée »
 - Lectures interdites : jetons et coordonnées renvoient zéro ligne à `anon`
-- Téléversement : jeton exigé, rôle régie refusé, formats et poids contrôlés,
-  ancienne image supprimée au remplacement, images effacées avec la salle
+- Clé étrangère : rattachement valide accepté, événement inexistant refusé,
+  suppression d'un événement détache la salle sans la perdre
+- Upload R2 : requête interceptée et vérifiée — POST multipart, champs `file` et
+  `folder`, dossier `salle-live`, JPEG, URL de réponse exploitée
+- Trois modes de démarrage : `config.js` présent, `?demo=1`, `config.js` absent
+- Navigation croisée entre les trois interfaces, sans 404
 - Injection HTML dans le chat : neutralisée
-- Mobile : aucun débordement horizontal sur les trois pages
-- Retour arrière : ne laisse aucune table
+- Mobile : aucun débordement horizontal
+- Retour arrière : ne laisse aucune table `live_`, et `events` reste intacte
 
-Trois défauts ont été trouvés et corrigés en cours de route : des révocations de droits
+Quatre défauts trouvés et corrigés au fil des tests : des révocations de droits
 inopérantes (`REVOKE ... FROM anon` ne retire rien tant que `PUBLIC` conserve le droit),
-un double encaissement qui décrémentait le stock deux fois, et un enchaînement automatique
-qui pouvait sauter un tour de file.
+un double encaissement qui décrémentait le stock deux fois, un enchaînement automatique
+qui pouvait sauter un tour de file, et une signature de fonction restée en `text` après
+le passage de `event_id` en `bigint`.

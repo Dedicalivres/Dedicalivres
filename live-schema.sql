@@ -36,7 +36,7 @@ create extension if not exists pgcrypto;
 create table if not exists live_sessions (
   id                uuid primary key default gen_random_uuid(),
   slug              text unique not null,
-  event_id          text,                      -- rattachement V1, voir section 6
+  event_id          bigint references events(id) on delete set null,
   titre             text not null,
   sous_titre        text,
   auteur_nom        text not null,
@@ -143,32 +143,6 @@ comment on table live_order_contacts is
    via live_console_auteur(). Purge par live_purger_contacts().';
 
 -- ---------------------------------------------------------------------
---  Images (banniere, couvertures) stockees en base, encodees en base64.
---
---  Pourquoi pas Supabase Storage : sans authentification, ouvrir
---  l'ecriture dans un bucket revient a offrir un depot de fichiers
---  anonyme a tout internet. La voie propre (Edge Function delivrant une
---  URL signee apres controle du jeton) impose le CLI Supabase, donc un
---  outil de plus hors du flux GitHub Desktop. Ici l'ecriture passe par
---  la meme RPC a jeton que le reste : rien de nouveau a deployer.
---
---  Cette table est VOLONTAIREMENT absente de la publication Realtime.
---  Une couverture pese ~100 ko en base64 ; la diffuser a chaque
---  spectateur a chaque modification saturerait le canal temps reel.
---  Les images sont donc lues une fois puis mises en cache par le client.
--- ---------------------------------------------------------------------
-create table if not exists live_medias (
-  id         uuid primary key default gen_random_uuid(),
-  session_id uuid not null references live_sessions(id) on delete cascade,
-  mime       text not null default 'image/webp',
-  donnees    text not null,          -- base64 nu, sans prefixe data:
-  octets     integer not null,
-  cree_a     timestamptz not null default now()
-);
-
-create index if not exists live_medias_session_idx on live_medias(session_id);
-
--- ---------------------------------------------------------------------
 --  Chat de la salle
 -- ---------------------------------------------------------------------
 create table if not exists live_messages (
@@ -220,10 +194,6 @@ create policy live_order_items_lecture on live_order_items
 -- Le chat est lu en entier : le drapeau 'masque' est un choix d'affichage,
 -- pas un secret. Le filtrer en RLS empecherait la propagation Realtime de
 -- la moderation (le message resterait affiche chez les visiteurs).
-drop policy if exists live_medias_lecture on live_medias;
-create policy live_medias_lecture on live_medias
-  for select to anon, authenticated using (true);
-
 drop policy if exists live_messages_lecture on live_messages;
 create policy live_messages_lecture on live_messages
   for select to anon, authenticated using (true);
@@ -581,58 +551,6 @@ begin
    where id = p_book and session_id = p_session;
 end $$;
 
--- Televersement d'une image. p_cible vaut 'banniere' ou 'couverture'.
--- p_donnees est du base64 nu (sans le prefixe data:image/...;base64,).
--- L'ancienne image referencee est supprimee au passage : pas d'orphelins.
-create or replace function live_televerser_media(
-  p_session uuid, p_token text, p_cible text,
-  p_donnees text, p_mime text default 'image/webp',
-  p_livre uuid default null
-) returns uuid
-language plpgsql security definer set search_path = public as $$
-declare v_id uuid; v_ancien text; v_taille integer;
-begin
-  perform live_verif(p_session, p_token, 'auteur');
-
-  v_taille := length(coalesce(p_donnees, ''));
-  if v_taille = 0 then
-    raise exception 'Image vide';
-  end if;
-  -- ~400 ko de base64, soit ~300 ko d'image reelle. Le client redimensionne
-  -- avant l'envoi ; cette borne est le garde-fou de derniere ligne.
-  if v_taille > 400000 then
-    raise exception 'Image trop lourde (% ko) : redimensionnez-la', v_taille / 1024;
-  end if;
-  if p_mime not in ('image/webp','image/jpeg','image/png') then
-    raise exception 'Format d''image non accepte';
-  end if;
-
-  insert into live_medias (session_id, mime, donnees, octets)
-  values (p_session, p_mime, p_donnees, v_taille)
-  returning id into v_id;
-
-  if p_cible = 'banniere' then
-    select banniere_url into v_ancien from live_sessions where id = p_session;
-    update live_sessions set banniere_url = 'media:' || v_id where id = p_session;
-  elsif p_cible = 'couverture' then
-    select couverture_url into v_ancien from live_books
-     where id = p_livre and session_id = p_session;
-    update live_books set couverture_url = 'media:' || v_id
-     where id = p_livre and session_id = p_session;
-    if not found then
-      raise exception 'Livre inconnu dans cette salle';
-    end if;
-  else
-    raise exception 'Cible d''image inconnue';
-  end if;
-
-  if v_ancien like 'media:%' then
-    delete from live_medias where id = substring(v_ancien from 7)::uuid;
-  end if;
-
-  return v_id;
-end $$;
-
 create or replace function live_maj_banniere(p_session uuid, p_token text, p_url text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
@@ -700,7 +618,7 @@ revoke execute on function live_purger_contacts() from public, anon, authenticat
 -- c'est la seule fonction qui expose les jetons en clair, une fois.
 create or replace function live_creer_session(
   p_slug text, p_titre text, p_auteur_nom text,
-  p_sous_titre text default null, p_event_id text default null
+  p_sous_titre text default null, p_event_id bigint default null
 ) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare v_id uuid; v_ta text; v_tr text;
@@ -715,7 +633,7 @@ begin
   return jsonb_build_object('session_id', v_id, 'token_auteur', v_ta, 'token_regie', v_tr);
 end $$;
 
-revoke execute on function live_creer_session(text, text, text, text, text)
+revoke execute on function live_creer_session(text, text, text, text, bigint)
   from public, anon, authenticated;
 
 -- =====================================================================
@@ -743,20 +661,17 @@ begin
 end $$;
 
 -- =====================================================================
---  7. RATTACHEMENT A L'AGENDA V1  — A ACTIVER
---  live_sessions.event_id est pour l'instant un simple texte libre, afin
---  que la migration passe sans connaitre le nom exact de la table
---  evenements. Une fois ce nom confirme, remplacer par une vraie cle
---  etrangere en adaptant les deux identifiants ci-dessous :
+--  7. RATTACHEMENT A L'AGENDA
+--  live_sessions.event_id pointe directement sur public.events(id),
+--  dont la cle primaire est un entier (les pages generees se terminent
+--  par leur identifiant : .../evenement/<slug>-1099.html).
+--  Le rattachement est facultatif : une salle peut exister sans
+--  evenement d'agenda, et la suppression d'un evenement laisse la salle
+--  en place (on delete set null) plutot que de la detruire.
 --
---    alter table live_sessions
---      alter column event_id type uuid using event_id::uuid,
---      add constraint live_sessions_event_fk
---        foreign key (event_id) references <TABLE_EVENEMENTS>(<PK>)
---        on delete set null;
---
---  Tant que la contrainte n'est pas posee, aucune donnee n'est perdue :
---  l'identifiant est simplement stocke sans verification d'integrite.
+--  Rappel : la lecture publique de events est deja filtree par la
+--  politique "Public can read validated events" (validated = true and
+--  rejected = false). Ce module ne la modifie pas.
 -- =====================================================================
 
 -- =====================================================================

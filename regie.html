@@ -67,7 +67,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="live-config.js"></script>
+<script src="../config.js"></script>
 <script src="live-core.js"></script>
 <script>
 (function () {
@@ -78,8 +78,10 @@
   LIVE.pluie();
 
   if (LIVE.mode === 'demo') {
+    // On propage ?demo=1 : sans lui, la page suivante repasserait en mode réel.
+    const q = new URLSearchParams(location.search).get('demo') === '1' ? '?demo=1' : '';
     $('liensDemo').innerHTML =
-      '<a class="role-btn" href="salle.html">👁 Visiteur</a> <a class="role-btn" href="auteur.html">🖋 Autrice</a>';
+      '<a class="role-btn" href="salle.html' + q + '">👁 Visiteur</a> <a class="role-btn" href="auteur.html' + q + '">🖋 Autrice</a>';
   }
 
   const chat = LIVE.creerChat($('slotAnim'), true);

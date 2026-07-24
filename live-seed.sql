@@ -20,7 +20,8 @@ begin
          'test-maelle',
          'Maelle Kerbrat dedicace « Les Brumes de l''Aber » en direct',
          'Maelle Kerbrat',
-         'Commandez sur la boutique de l''autrice, envoyez votre pseudo — et suivez votre place dans la file.'
+         'Commandez sur la boutique de l''autrice, envoyez votre pseudo — et suivez votre place dans la file.',
+         null   -- identifiant d'evenement de l'agenda, ex. 1099 ; null = salle independante
        );
   v_id := (v->>'session_id')::uuid;
 

@@ -29,10 +29,17 @@
      1. Contexte : mode, role, parametres d'URL
      ============================================================ */
 
-  const CFG = window.LIVE_CONFIG || {};
-  const MODE = (CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY) ? 'supabase' : 'demo';
-
+  // Le module se branche sur la configuration du site (config.js) et sur son
+  // client Supabase partage : pas de seconde instance, pas de cle dupliquee.
+  // Si config.js est absent (page ouverte seule) ou si l'adresse porte
+  // ?demo=1, on bascule en mode demonstration : etat local, aucun reseau.
+  const CFG = window.DEDICALIVRES_CONFIG || {};
   const params = new URLSearchParams(location.search);
+
+  const siteConfigure = !!(CFG.supabaseUrl && CFG.supabaseAnonKey &&
+                           typeof window.getDedicalivresSupabaseClient === 'function');
+  const MODE = (siteConfigure && params.get('demo') !== '1') ? 'supabase' : 'demo';
+
   const ROLE = document.body.dataset.role || 'visiteur';
 
   const LIVE = {
@@ -61,80 +68,7 @@
 
   LIVE.livre = id => LIVE.etat.books.find(b => b.id === id);
 
-  /* -- Images -------------------------------------------------------
-     Une image vaut soit une vraie adresse https, soit une reference
-     interne 'media:<uuid>' resolue depuis le cache. Le cache evite de
-     retelecharger les couvertures a chaque evenement temps reel.
-     ------------------------------------------------------------------ */
-  const cacheImages = {};
-  LIVE.cacheImages = cacheImages;
-
-  LIVE.image = function (ref) {
-    if (!ref) return null;
-    if (ref.indexOf('media:') === 0) return cacheImages[ref.slice(6)] || null;
-    return ref;
-  };
-
-  // Redimensionne et reencode avant envoi. Sans cela une photo de
-  // telephone (4 Mo) partirait telle quelle et serait refusee par la base.
-  //
-  // On vise un POIDS, pas seulement une dimension : a dimension egale, une
-  // photo tres detaillee pese plusieurs fois plus qu'une image lisse, et
-  // un simple redimensionnement laissait passer des images hors limite.
-  // On baisse donc la qualite, puis la taille, jusqu'a tenir dans le budget.
-  const BUDGET_B64 = 380000;   // marge sous le plafond serveur (400 000)
-
-  LIVE.preparerImage = function (fichier, maxPx) {
-    return new Promise(function (resolu, rejete) {
-      if (!fichier || !/^image\//.test(fichier.type)) {
-        return rejete(new Error('Ce fichier n\'est pas une image'));
-      }
-      const lecteur = new FileReader();
-      lecteur.onerror = () => rejete(new Error('Lecture du fichier impossible'));
-      lecteur.onload = function () {
-        const img = new Image();
-        img.onerror = () => rejete(new Error('Image illisible'));
-        img.onload = function () {
-          const c = document.createElement('canvas');
-          const ctx = c.getContext('2d');
-          // WebP quand le navigateur sait l'ecrire, JPEG sinon.
-          c.width = 1; c.height = 1;
-          const supporteWebp = c.toDataURL('image/webp').indexOf('data:image/webp') === 0;
-          const mime = supporteWebp ? 'image/webp' : 'image/jpeg';
-
-          function encoder(px, q) {
-            const ech = Math.min(1, px / Math.max(img.width, img.height));
-            c.width = Math.max(1, Math.round(img.width * ech));
-            c.height = Math.max(1, Math.round(img.height * ech));
-            ctx.clearRect(0, 0, c.width, c.height);
-            ctx.drawImage(img, 0, 0, c.width, c.height);
-            return c.toDataURL(mime, q);
-          }
-
-          let px = maxPx, uri = null;
-          // 4 paliers de qualite, puis on reduit la taille de 20 % et on
-          // recommence. En pratique une photo normale sort au premier essai.
-          for (let tour = 0; tour < 6; tour++) {
-            for (const q of [0.82, 0.7, 0.6, 0.5]) {
-              uri = encoder(px, q);
-              if (uri.length - uri.indexOf(',') - 1 <= BUDGET_B64) {
-                return resolu({
-                  base64: uri.slice(uri.indexOf(',') + 1), mime: mime, apercu: uri,
-                  largeur: c.width, hauteur: c.height,
-                });
-              }
-            }
-            px = Math.round(px * 0.8);
-          }
-          rejete(new Error('Image trop lourde même après compression — réduisez-la avant l\'envoi'));
-        };
-        img.src = lecteur.result;
-      };
-      lecteur.readAsDataURL(fichier);
-    });
-  };
-
-  // Libelle d'un lot : "Brumes + Phare ×2"
+  // Libelle d'un lot : "Brumes + Phare ×2" (court) ou titres complets.
   LIVE.lot = function (order, complet) {
     return (order.items || []).map(function (i) {
       const b = LIVE.livre(i.book);
@@ -144,12 +78,79 @@
     }).join(' + ');
   };
 
+  // Couverture : simple URL publique (R2), ou visuel de repli colore.
   LIVE.couverture = function (b, extra) {
     extra = extra || '';
-    const src = LIVE.image(b && b.couverture_url);
+    const src = b && b.couverture_url;
     return src
       ? 'background-image:url(' + esc(src) + ');background-size:cover;background-position:center;color:transparent;' + extra
       : extra;
+  };
+
+  /* -- Images -------------------------------------------------------
+     Les couvertures et la banniere sont de simples URL publiques,
+     deposees via le Worker Cloudflare deja utilise par les temoignages
+     (config.imageUploadEndpoint -> R2). Aucun stockage d'image en base :
+     pas de plafond de poids, diffusion par CDN, et une seule facon de
+     televerser dans tout le site.
+     ------------------------------------------------------------------ */
+
+  // Compression alignee sur celle de testimonials.js : fond blanc, JPEG 0.82.
+  // maxPx varie selon l'usage (banniere large, couverture plus modeste).
+  LIVE.compresserImage = function (fichier, maxPx) {
+    return new Promise(function (resolu, rejete) {
+      if (!fichier || !/^image\//.test(fichier.type)) {
+        return rejete(new Error('Ce fichier n\'est pas une image'));
+      }
+      const img = new Image();
+      const url = URL.createObjectURL(fichier);
+      img.onerror = function () { URL.revokeObjectURL(url); rejete(new Error('Image illisible')); };
+      img.onload = function () {
+        const ratio = Math.min(1, maxPx / img.width, maxPx / img.height);
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width * ratio));
+        c.height = Math.max(1, Math.round(img.height * ratio));
+        const ctx = c.getContext('2d');
+        if (!ctx) { URL.revokeObjectURL(url); return resolu(fichier); }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function (blob) {
+          URL.revokeObjectURL(url);
+          if (!blob) return resolu(fichier);
+          resolu(new File([blob],
+            Date.now() + '-' + Math.random().toString(36).slice(2) + '.jpg',
+            { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.82);
+      };
+      img.src = url;
+    });
+  };
+
+  // Compresse puis depose sur R2, et renvoie l'URL publique.
+  // En mode demonstration il n'y a pas de reseau : on rend une image
+  // locale (data:) pour que l'apercu fonctionne quand meme.
+  LIVE.envoyerImage = async function (fichier, maxPx) {
+    const compresse = await LIVE.compresserImage(fichier, maxPx);
+
+    if (MODE === 'demo' || !CFG.imageUploadEndpoint) {
+      return await new Promise(function (r) {
+        const fr = new FileReader();
+        fr.onload = () => r(fr.result);
+        fr.readAsDataURL(compresse);
+      });
+    }
+
+    const corps = new FormData();
+    corps.append('file', compresse, compresse.name || 'image.jpg');
+    corps.append('folder', 'salle-live');
+
+    const rep = await fetch(CFG.imageUploadEndpoint, { method: 'POST', body: corps });
+    const res = await rep.json().catch(() => ({}));
+    if (!rep.ok || !res.url) {
+      throw new Error(res.error || 'Envoi de l\'image impossible');
+    }
+    return res.url;
   };
 
   let toastTimer;
@@ -337,12 +338,6 @@
     async basculerAuto() { demo.session.auto_enchainement = !demo.session.auto_enchainement; notifier(); return demo.session.auto_enchainement; },
     async majLivre(id, champs) { Object.assign(LIVE.livre(id) || {}, champs); notifier(); },
     async majBanniere(url) { demo.session.banniere_url = url || null; notifier(); },
-    async televerserMedia(cible, base64, mime, livre) {
-      const uri = 'data:' + mime + ';base64,' + base64;
-      if (cible === 'banniere') demo.session.banniere_url = uri;
-      else { const b = LIVE.livre(livre); if (b) b.couverture_url = uri; }
-      notifier();
-    },
     async moderer(id, action) {
       const m = demo.messages.find(x => x.id === id); if (!m) return;
       if (action === 'epingler') m.epingle = !m.epingle; else m.masque = !m.masque;
@@ -377,12 +372,9 @@
 
   function client() {
     if (sb) return sb;
-    if (!window.supabase || !window.supabase.createClient) {
-      throw new Error('Bibliothèque supabase-js absente de la page');
-    }
-    sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
-      auth: { persistSession: false },
-    });
+    // Instance unique partagee avec le reste du site (config.js).
+    sb = window.getDedicalivresSupabaseClient();
+    if (!sb) throw new Error('Client Supabase indisponible — vérifiez config.js');
     return sb;
   }
 
@@ -396,18 +388,6 @@
   const S = () => LIVE.sessionId;
   const K = () => LIVE.token;
 
-  // Ne telecharge que les images encore absentes du cache : une couverture
-  // est lue une seule fois, meme si la salle se rafraichit cent fois.
-  async function chargerImages(refs) {
-    const ids = (refs || [])
-      .filter(r => r && r.indexOf('media:') === 0)
-      .map(r => r.slice(6))
-      .filter(id => !cacheImages[id]);
-    if (!ids.length) return;
-    const { data } = await client().from('live_medias').select('id,mime,donnees').in('id', ids);
-    (data || []).forEach(m => { cacheImages[m.id] = 'data:' + m.mime + ';base64,' + m.donnees; });
-  }
-
   const apiSupabase = {
     async charger() {
       const c = client();
@@ -420,9 +400,6 @@
       LIVE.etat.session = ses.data;
       LIVE.etat.books = bks.data || [];
       LIVE.etat.messages = msg.data || [];
-
-      await chargerImages([ses.data && ses.data.banniere_url]
-        .concat((bks.data || []).map(b => b.couverture_url)));
 
       if (LIVE.role === 'auteur') {
         // Seule voie d'acces aux coordonnees : RPC protegee par jeton.
@@ -458,9 +435,6 @@
     basculerAuto: () => rpc('live_basculer_auto',  { p_session: S(), p_token: K() }),
     majStatut: st => rpc('live_maj_statut',        { p_session: S(), p_token: K(), p_statut: st }),
     majBanniere: url => rpc('live_maj_banniere',   { p_session: S(), p_token: K(), p_url: url }),
-    televerserMedia: (cible, base64, mime, livre) => rpc('live_televerser_media', {
-      p_session: S(), p_token: K(), p_cible: cible,
-      p_donnees: base64, p_mime: mime, p_livre: livre || null }),
     majLivre: (id, ch) => rpc('live_maj_livre', {
       p_session: S(), p_token: K(), p_book: id,
       p_prix_cents: ch.prix_cents ?? null, p_stock: ch.stock ?? null,
@@ -504,7 +478,7 @@
   LIVE.souscrire = fn => impl.souscrire(fn);
   ['passerCommande', 'envoyerMessage', 'marquerSms', 'encaisser', 'ajouterDedicace',
    'annuler', 'lancer', 'terminer', 'reordonner', 'brancherVideo', 'basculerAuto', 'majStatut',
-   'majLivre', 'majBanniere', 'televerserMedia', 'moderer'].forEach(function (n) {
+   'majLivre', 'majBanniere', 'moderer'].forEach(function (n) {
     LIVE.api[n] = function () {
       return Promise.resolve(impl[n].apply(impl, arguments)).catch(function (e) {
         toast(e.message || 'Opération refusée');
