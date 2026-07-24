@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Régie · Salle de dédicace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Caveat:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="live-salle.css">
+</head>
+<body data-role="regie">
+
+<canvas id="rain" style="position:fixed;inset:0;z-index:0;pointer-events:none"></canvas>
+
+<div class="roles">
+  <span class="lab">Régie</span>
+  <span class="role-btn on">🎛 Animateur</span>
+  <span id="liensDemo"></span>
+  <span class="live"><span class="dot"></span>EN DIRECT</span>
+  <span class="presence"><b id="presence">—</b>&nbsp;CONNECTÉS</span>
+  <span class="lab" id="modeBadge"></span>
+</div>
+
+<div class="wrap">
+  <section class="view on">
+    <div class="kicker" id="kicker">Régie · Dédicalivres</div>
+    <h1>Pilotage du direct</h1>
+    <p class="sub">Vous ordonnez la file, lancez chaque dédicace à l'écran, et gardez la main sur le chat.</p>
+
+    <div class="panel holo" style="margin-top:14px">
+      <h2 class="sec">Branchement du direct <span class="rule"></span> <span class="tag">live_sessions.video_id</span></h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input class="big-input" id="vidInput" type="text" placeholder="Identifiant ou URL YouTube Live (ex. dQw4w9WgXcQ)" style="flex:1;min-width:220px">
+        <button class="chip on" id="vidGo" style="padding:12px 18px">▶ Brancher</button>
+        <button class="chip" id="vidOff" style="padding:12px 18px">✕ Débrancher</button>
+      </div>
+      <p class="hint">Le direct est composé dans <b>StreamYard</b> puis diffusé vers un YouTube Live <b>non répertorié</b>. Coller l'identifiant ici suffit à basculer la salle — y compris sur un direct de secours en pleine émission. <span id="vidEtat"></span></p>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi holo"><div class="n" id="kAtt">0</div><div class="l">En file</div></div>
+      <div class="kpi holo"><div class="n amber" id="kCours">0</div><div class="l">À l'écran</div></div>
+      <div class="kpi holo"><div class="n green" id="kFait">0</div><div class="l">Réalisées</div></div>
+      <div class="kpi holo"><div class="n" id="kPres">—</div><div class="l">Connectés</div></div>
+    </div>
+
+    <div class="anim-grid">
+      <div class="panel holo">
+        <h2 class="sec">File des dédicaces <span class="rule"></span> <span class="tag">▲▼ réordonner · ▶ lancer à l'écran</span></h2>
+        <ul class="fq" id="fileAnim"></ul>
+      </div>
+      <aside class="chat holo">
+        <h2 class="sec" style="padding:14px 14px 0">Chat — modération <span class="rule"></span> <span class="tag">survolez un message</span></h2>
+        <div class="chat-slot" id="slotAnim"></div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <span><b>Régie</b> — accès par jeton, ne partagez pas cette adresse</span>
+  <span>Commande → lien SMS → encaissement → file → écran</span>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="live-config.js"></script>
+<script src="live-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = LIVE.esc;
+
+  LIVE.pluie();
+
+  if (LIVE.mode === 'demo') {
+    $('liensDemo').innerHTML =
+      '<a class="role-btn" href="./">👁 Visiteur</a> <a class="role-btn" href="auteur.html">🖋 Autrice</a>';
+  }
+
+  const chat = LIVE.creerChat($('slotAnim'), true);
+
+  /* ================= Branchement vidéo ================= */
+  function idDepuis(v) {
+    const m = v.match(/(?:v=|live\/|youtu\.be\/|embed\/)([\w-]{11})/);
+    return m ? m[1] : (/^[\w-]{11}$/.test(v.trim()) ? v.trim() : null);
+  }
+  $('vidGo').onclick = function () {
+    const id = idDepuis($('vidInput').value);
+    if (!id) return LIVE.toast('Identifiant YouTube non reconnu');
+    LIVE.api.brancherVideo(id).then(() => LIVE.toast('Direct branché sur la salle ▶')).catch(() => {});
+  };
+  $('vidOff').onclick = () =>
+    LIVE.api.brancherVideo(null).then(() => LIVE.toast('Direct débranché')).catch(() => {});
+
+  /* ================= Rendu ================= */
+  function rendre() {
+    const s = LIVE.etat.session;
+    if (!s) return;
+    $('kicker').textContent = 'Régie · ' + (s.animateur_nom || 'Dédicalivres');
+    $('presence').textContent = LIVE.etat.presence || '—';
+    $('kPres').textContent = LIVE.etat.presence || '—';
+    $('vidEtat').innerHTML = s.video_id
+      ? 'Actuellement branché sur <b style="color:var(--ok)">' + esc(s.video_id) + '</b>.'
+      : 'Aucun direct branché pour le moment.';
+    if (!$('vidInput').matches(':focus') && s.video_id && !$('vidInput').value) {
+      $('vidInput').value = s.video_id;
+    }
+
+    const att = LIVE.etat.orders.filter(o => o.statut === 'att').sort((a, b) => a.position - b.position);
+    const cours = LIVE.etat.orders.filter(o => o.statut === 'cours');
+    const fait = LIVE.etat.orders.filter(o => o.statut === 'fait');
+    $('kAtt').textContent = att.length;
+    $('kCours').textContent = cours.length;
+    $('kFait').textContent = fait.length;
+
+    const fn = $('fileAnim'); fn.innerHTML = '';
+    const tout = [].concat(cours, att, fait);
+    if (!tout.length) {
+      fn.innerHTML = '<li class="empty">File vide — dès que l\'autrice encaisse une commande, elle apparaît ici.</li>';
+    }
+    tout.forEach(function (q) {
+      const li = document.createElement('li'); li.className = q.statut;
+      let acts = '';
+      if (q.statut === 'att') {
+        const i = att.indexOf(q);
+        acts =
+          '<button data-up="' + q.id + '" ' + (i === 0 ? 'disabled' : '') + ' aria-label="Monter dans la file">▲</button>' +
+          '<button data-dn="' + q.id + '" ' + (i === att.length - 1 ? 'disabled' : '') + ' aria-label="Descendre dans la file">▼</button>' +
+          '<button class="go" data-go="' + q.id + '" ' + (cours.length ? 'disabled' : '') + '>▶ À l\'écran</button>';
+      }
+      if (q.statut === 'cours') acts = '<button class="done" data-done="' + q.id + '">✓ Réalisée</button>';
+      li.innerHTML =
+        '<span class="pos">' + (q.statut === 'cours' ? '🖋' : q.statut === 'fait' ? '✓' : '#' + (att.indexOf(q) + 1)) + '</span>' +
+        '<span class="pseudo">' + esc(q.pseudo) + '</span>' +
+        '<span class="bk">· ' + esc(LIVE.lot(q)) + '</span>' +
+        (q.message ? '<div class="dmsg">« ' + esc(q.message) + ' »</div>' : '') +
+        '<span class="acts">' + acts + '</span>';
+      fn.appendChild(li);
+    });
+
+    chat.rendre();
+  }
+
+  $('fileAnim').addEventListener('click', function (e) {
+    const go = e.target.closest('[data-go]'), done = e.target.closest('[data-done]');
+    const up = e.target.closest('[data-up]'), dn = e.target.closest('[data-dn]');
+    if (go)   LIVE.api.lancer(go.dataset.go).then(() => LIVE.toast('Dédicace lancée à l\'écran 🖋')).catch(() => {});
+    if (done) LIVE.api.terminer(done.dataset.done).then(() => LIVE.toast('Réalisée ✓')).catch(() => {});
+    if (up)   LIVE.api.reordonner(up.dataset.up, 'haut').catch(() => {});
+    if (dn)   LIVE.api.reordonner(dn.dataset.dn, 'bas').catch(() => {});
+  });
+
+  LIVE.demarrer(rendre);
+})();
+</script>
+</body>
+</html>

@@ -1,444 +1,366 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>Dédicalivres — Association et agenda littéraire francophone</title>
-
-  <meta
-    name="description"
-    content="L’association Dédicalivres rassemble les salons du livre, festivals, dédicaces et rencontres d’auteurs en France, Belgique, Luxembourg, Suisse et Monaco."
-  />
-  <link rel="canonical" href="https://dedicalivres.fr/" />
-  <meta name="theme-color" content="#3a1c71" />
-  <meta property="og:title" content="Dédicalivres — Association et agenda littéraire francophone" />
-  <meta
-    property="og:description"
-    content="L’association qui rapproche les lecteurs des auteurs grâce à un agenda littéraire francophone participatif et vérifié."
-  />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://dedicalivres.fr/" />
-  <meta property="og:image" content="https://dedicalivres.fr/assets/brand/dedicalivres-association-light.png" />
-  <meta name="twitter:card" content="summary_large_image" />
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "@id": "https://dedicalivres.fr/#association",
-        "name": "Dédicalivres",
-        "url": "https://dedicalivres.fr/",
-        "logo": "https://dedicalivres.fr/assets/brand/dedicalivres-association-light.png",
-        "description": "Association dédiée à la visibilité des rencontres littéraires francophones."
-      },
-      {
-        "@type": "WebSite",
-        "@id": "https://dedicalivres.fr/#website",
-        "name": "Dédicalivres",
-        "url": "https://dedicalivres.fr/",
-        "publisher": {
-          "@id": "https://dedicalivres.fr/#association"
-        }
-      }
-    ]
-  }
-  </script>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet"
-  />
-
-  <link rel="preload" as="image" href="assets/brand/logo-association-3d.webp" />
-
-  <link rel="stylesheet" href="style.css?v=hero-slim-1" />
-  <link rel="stylesheet" href="mascot-guide.css?v=guide-4" />
-  <link rel="stylesheet" href="ludique.css?v=ludique-21" />
-  <link rel="stylesheet" href="accessibilite.css?v=a11y-9" />
-  <link rel="stylesheet" href="agenda-premium.css?v=premium-1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Salle de dédicace en direct · Dédicalivres</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Caveat:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="live-salle.css">
 </head>
+<body data-role="visiteur">
 
-<body data-agenda-mode="global">
+<canvas id="rain" style="position:fixed;inset:0;z-index:0;pointer-events:none"></canvas>
 
-<header class="header">
-  <div class="container header-inner">
+<div class="roles">
+  <span class="lab">Salle de dédicace</span>
+  <span class="role-btn on">👁 Visiteur</span>
+  <span id="liensDemo"></span>
+  <span class="live"><span class="dot"></span>EN DIRECT</span>
+  <span class="presence"><b id="presence">—</b>&nbsp;CONNECTÉS</span>
+  <span class="lab" id="modeBadge"></span>
+</div>
 
-    <a href="index.html" aria-label="Accueil Dédicalivres">
-      <picture><source srcset="logo.webp" type="image/webp"><img src="logo.png" class="logo" width="52" height="52" alt="Dédicalivres" /></picture>
-    </a>
+<div class="wrap">
+  <section class="view on">
+    <div id="bannerV" class="holo" style="display:none;height:150px;background-size:cover;background-position:center;margin-bottom:14px"></div>
+    <div class="kicker" id="kicker">Projection en cours</div>
+    <h1 id="titre">Chargement de la salle…</h1>
+    <p class="sub" id="sousTitre"></p>
 
-    <nav aria-label="Navigation principale">
-      <a href="index.html#agenda">
-        <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 9h16M8 3v4M16 3v4" stroke-linecap="round"/><rect x="7.5" y="12" width="2.4" height="2.4" rx=".5" stroke="none" fill="currentColor"/><rect x="14.1" y="12" width="2.4" height="2.4" rx=".5" stroke="none" fill="currentColor"/></svg>
-        <span>Agenda</span>
-      </a>
-      <a href="salons-du-livre.html">
-        <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20v-8l8-6 8 6v8" stroke-linejoin="round"/><path d="M9 20v-5h6v5" stroke-linejoin="round"/><path d="M12 6V3h5l-1.5 1.5L17 6h-5" stroke-linejoin="round"/></svg>
-        <span>Salons &amp; Festivals</span>
-      </a>
-      <a href="dedicaces.html">
-        <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 5.5l3 3L9 18l-4 1 1-4 9.5-9.5z" stroke-linejoin="round"/><path d="M13.5 7.5l3 3" stroke-linecap="round"/></svg>
-        <span>Dédicaces</span>
-      </a>
-      <a href="temoignages.html">
-        <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h11a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-4 3v-3H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z" stroke-linejoin="round"/><path d="M20 9v6a2 2 0 0 1-2 2" stroke-linecap="round"/></svg>
-        <span>Témoignages</span>
-      </a>
-      <a href="widget-partenaires.html">
-        <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Widget</span>
-      </a>
-      <a href="soumettre.html" class="nav-submit-link">
-        <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-7-7 16-2.5-6.5L4 12z" stroke-linejoin="round"/></svg>
-        <span>Soumettre</span>
-      </a>
-    </nav>
-
-  </div>
-</header>
-
-<section class="hero hero-home hero-banner-menu association-hero" aria-label="Dédicalivres, association littéraire francophone">
-  <div class="association-hero-backdrop">
-    <div class="association-hero-copy">
-      <p class="association-hero-kicker">Association culturelle francophone</p>
-      <strong>Le livre crée des rencontres. Nous les rendons visibles.</strong>
-      <p>
-        Un agenda participatif et vérifié pour rapprocher lecteurs, auteurs,
-        librairies et organisateurs.
-      </p>
-    </div>
-
-    <div class="association-hero-brand">
-      <img
-        class="brand-logo brand-logo--clair"
-        src="assets/brand/logo-3d-clair.webp?v=logo3d-1"
-        width="820"
-        height="687"
-        alt="Dédicalivres Association, l’agenda qui rapproche les lecteurs des auteurs"
-        decoding="async"
-        fetchpriority="high"
-      />
-      <img
-        class="brand-logo brand-logo--sombre"
-        src="assets/brand/logo-3d-sombre.webp?v=logo3d-1"
-        width="820"
-        height="687"
-        alt=""
-        aria-hidden="true"
-        decoding="async"
-      />
-    </div>
-
-    <div class="association-hero-territories">
-      <span>Agenda littéraire francophone</span>
-      <p>France · Belgique · Luxembourg · Suisse · Monaco</p>
-      <small>Salons, festivals, dédicaces et rencontres d’auteurs.</small>
-      <a href="#agenda">Explorer l’agenda</a>
-    </div>
-  </div>
-
-</section>
-
-<section class="home-magazine container" aria-labelledby="home-magazine-title">
-  <div class="home-magazine-card">
-    <div>
-      <p class="home-magazine-kicker">Une association au service du livre</p>
-      <h1 id="home-magazine-title">Trouvez votre prochaine rencontre autour du livre.</h1>
-      <p>
-        Salons, festivals, dédicaces et rencontres d’auteurs :
-        l’association Dédicalivres rassemble les rendez-vous littéraires à venir.
-      </p>
-
-      <div class="home-magazine-actions">
-        <a class="btn-primary" href="#agenda">Explorer les événements</a>
-        <a class="btn-secondary" href="/evenement/index.html">Tous les salons, festivals et dédicaces</a>
-        <a class="btn-secondary" href="soumettre.html">Soumettre un événement</a>
-      </div>
-    </div>
-
-    <div class="home-magazine-grid" aria-label="Accès rapides">
-      <a class="home-magazine-tile primary" href="#agenda">
-        <strong>Événements à venir</strong>
-      </a>
-      <a class="home-magazine-tile purple" href="#saved-events">
-        <strong>Mes événements sauvegardés</strong>
-      </a>
-      <a class="home-magazine-tile" href="#agenda-map">
-        <strong>Carte en direct</strong>
-      </a>
-    </div>
-  </div>
-</section>
-
-<main class="container">
-
-  <section id="agenda" class="section">
-
-    <h2>Événements à venir</h2>
-
-    <div id="agenda-map" class="agenda-map-showcase agenda-discovery-showcase">
-      <div class="map-teaser">
-        <div>
-          <strong>Carte et calendrier en direct</strong>
+    <div class="stage">
+      <main>
+        <div class="videos" style="grid-template-columns:1fr">
+          <div>
+            <div class="feed author holo" id="liveFeed"><span class="frame"><i></i><i></i><i></i><i></i></span>
+              <div class="scene" id="liveScene">
+                <div style="font-family:var(--hud);font-size:.66rem;letter-spacing:.24em;color:var(--holo);text-transform:uppercase">◈ Flux de la régie</div>
+                <div style="font-size:.78rem;color:var(--texte-2);text-align:center;padding:0 18px;max-width:34ch">
+                  Le direct n'est pas encore branché. La file et le chat fonctionnent déjà.</div>
+              </div>
+              <div id="ytHolder" style="position:absolute;inset:0;z-index:2;display:none"><div id="ytPlayer" style="width:100%;height:100%"></div></div>
+              <button id="soundInvite" style="display:none;position:absolute;inset:0;z-index:4;background:rgba(4,7,14,.55);backdrop-filter:blur(2px);
+                font-family:var(--hud);font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;color:#fff">🔊 Activer le son</button>
+              <div class="feed-tag"><span class="mini"></span><b id="onAir">—</b><span class="role">/ à l'antenne</span></div>
+              <div class="cam-label">◇ Vidéo en pause</div>
+              <div class="ctrl">
+                <button data-cam aria-label="Mettre la vidéo en pause ou la relancer" title="Vidéo">🎥</button>
+                <button data-son aria-label="Couper ou rétablir le son" title="Son">🔊</button>
+                <button data-full aria-label="Plein écran" title="Plein écran">⛶</button>
+              </div>
+            </div>
+            <div class="beam"></div>
+          </div>
         </div>
-      </div>
 
-      <div class="agenda-discovery-grid">
-        <section class="agenda-calendar-panel" aria-labelledby="agenda-calendar-title">
-          <div class="agenda-calendar-head">
-            <div>
-              <p class="category-kicker">Explorer par date</p>
-              <h3 id="agenda-calendar-title">Calendrier des rencontres</h3>
-            </div>
-
-            <div class="agenda-calendar-controls" aria-label="Navigation du calendrier">
-              <button id="calendar-prev" class="calendar-nav-btn" type="button" aria-label="Mois précédent">‹</button>
-              <strong id="calendar-current-month">Mois</strong>
-              <button id="calendar-next" class="calendar-nav-btn" type="button" aria-label="Mois suivant">›</button>
-            </div>
-          </div>
-
-          <div class="agenda-calendar-shortcuts" aria-label="Raccourcis de dates">
-            <button type="button" data-calendar-shortcut="today">Aujourd’hui</button>
-            <button type="button" data-calendar-shortcut="tomorrow">Demain</button>
-            <button type="button" data-calendar-shortcut="month">Ce mois</button>
-          </div>
-
-          <div class="agenda-calendar-weekdays" aria-hidden="true">
-            <span>Lun</span>
-            <span>Mar</span>
-            <span>Mer</span>
-            <span>Jeu</span>
-            <span>Ven</span>
-            <span>Sam</span>
-            <span>Dim</span>
-          </div>
-
-          <div id="agenda-calendar-grid" class="agenda-calendar-grid" aria-live="polite"></div>
-
-          <div class="agenda-calendar-footer">
-            <p id="agenda-calendar-selection">Sélectionnez une date.</p>
-            <button id="calendar-clear-date" class="calendar-clear-btn" type="button" hidden>
-              Toutes les dates
-            </button>
-          </div>
-        </section>
-
-        <section class="agenda-map-panel-block" aria-label="Vue carte des événements">
-          <div class="ux-actions">
-
-            <button
-              id="mobile-map-toggle"
-              class="btn-secondary mobile-map-toggle"
-              type="button"
-            >
-              Carte en direct
-            </button>
-
-            <button id="locate-me" class="btn-secondary" type="button">
-              Me localiser
-            </button>
-
-            <p id="locate-status" class="locate-status" aria-live="polite"></p>
-
-            <div class="map-legend-inline" aria-label="Légende de la carte en direct">
-              <span class="map-legend-title">Légende :</span>
-              <span><i class="legend-dot legend-salon"></i>Salon</span>
-              <span><i class="legend-dot legend-festival"></i>Festival</span>
-              <span><i class="legend-dot legend-dedicace"></i>Dédicace</span>
-            </div>
-
-          </div>
-
-          <aside
-            class="map-panel"
-            id="map-panel"
-            aria-label="Carte des événements"
-          >
-            <div id="map"></div>
-          </aside>
-        </section>
-      </div>
-    </div>
-
-    <section id="saved-events" class="section saved-events-section is-empty" aria-labelledby="saved-events-title">
-      <div class="saved-events-head">
-        <div>
-          <p class="category-kicker">Mes repères</p>
-          <h2 id="saved-events-title">Mes événements sauvegardés</h2>
+        <div class="pupitre holo" aria-live="polite">
+          <div class="lab">Dédicace en cours d'écriture</div>
+          <div class="line idle" id="dedicLine">En attente de la prochaine dédicace…</div>
+          <div class="for" id="dedicFor"></div>
         </div>
-        <button id="clear-favorites" class="btn-secondary" type="button">Vider mes favoris</button>
-      </div>
-      <div id="favorites-list" class="favorites-list" aria-live="polite">
-        <article class="empty-state">Aucun favori pour le moment.</article>
-      </div>
-    </section>
 
-    <p id="results-count">Chargement…</p>
+        <div class="fileV holo">
+          <h2 class="sec">File des dédicaces <span class="rule"></span> <span class="tag" id="fileCountV"></span></h2>
+          <ol id="fileVisiteur"></ol>
+        </div>
 
-    <div class="filters">
+        <h2 class="sec" style="margin-top:20px">Bibliothèque projetée <span class="rule"></span> <span class="tag">vente assurée par l'autrice</span></h2>
+        <div class="books" id="books"></div>
+      </main>
 
-      <input
-        id="search-input"
-        type="search"
-        placeholder="Rechercher un événement, une ville…"
-      />
-
-      <select id="country-filter" aria-label="Filtrer par pays">
-        <option value="">Tous les pays</option>
-      </select>
-
-      <select id="region-filter">
-        <option value="">Toutes les subdivisions</option>
-      </select>
-
-      <select id="type-filter">
-        <option value="">Tous les types</option>
-        <option>Salon</option>
-        <option>Festival</option>
-        <option>Dédicace</option>
-        <option>Autre</option>
-      </select>
-
-      <select id="date-filter">
-        <option value="">Tous les mois</option>
-      </select>
-
-      <button id="apply-filters" class="btn-primary" type="button">
-        Filtrer
-      </button>
-
-      <button id="reset-filters" class="btn-secondary" type="button">
-        Réinitialiser
-      </button>
-
+      <aside class="chat holo">
+        <h2 class="sec" style="padding:14px 14px 0">Canal d'échange <span class="rule"></span></h2>
+        <div class="chat-slot" id="slotVisiteur"></div>
+      </aside>
     </div>
-
-    <section
-      id="events-grid"
-      class="events-grid"
-      aria-live="polite"
-    ></section>
-
-    <details id="past-events" class="past-events-section">
-      <summary>
-        <span>Événements passés</span>
-        <small id="past-events-count">Chargement…</small>
-      </summary>
-
-      <div
-        id="past-events-grid"
-        class="events-grid past-events-grid"
-        aria-live="polite"
-      ></div>
-    </details>
-
   </section>
+</div>
 
-</main>
-
-<footer class="site-footer container" aria-label="Pied de page Dédicalivres">
-  <div class="site-footer-card">
-    <div class="site-footer-brand">
-      <strong>Association Dédicalivres</strong>
-      <p>Agenda associatif des rencontres autour du livre.</p>
-
-      <nav class="site-footer-nav" aria-label="Navigation secondaire">
-        <a href="index.html#agenda">Agenda</a>
-        <a href="salons-du-livre.html">Salons & Festivals</a>
-        <a href="dedicaces.html">Dédicaces</a>
-        <a href="/evenement/index.html">Tous les événements</a>
-        <a href="temoignages.html">Témoignages</a>
-        <a href="manifeste.html">Manifeste</a>
-        <a href="widget-partenaires.html">Widget partenaires</a>
-        <a href="soumettre.html">Soumettre</a>
-      </nav>
-
-      <nav class="site-footer-country-nav" aria-label="Agendas littéraires par pays">
-        <a href="index.html?country=FR#agenda">France</a>
-        <a href="evenements-litteraires-belgique.html">Belgique</a>
-        <a href="evenements-litteraires-luxembourg.html">Luxembourg</a>
-        <a href="evenements-litteraires-suisse.html">Suisse</a>
-        <a href="evenements-litteraires-monaco.html">Monaco</a>
-      </nav>
-
-      <nav class="site-footer-nav site-footer-legal" aria-label="Navigation légale">
-        <a href="mentions-legales.html">Mentions légales</a>
-        <a href="confidentialite.html">Confidentialité</a>
-        <a href="conditions-utilisation.html">Conditions d’utilisation</a>
-      </nav>
-    </div>
-
-    <div class="site-footer-contact">
-      <a class="btn-primary" href="mailto:dedicalivres@gmail.com?subject=Contact%20D%C3%A9dicalivres">
-        Contacter Dédicalivres
-      </a>
-      <a class="btn-secondary" href="https://www.instagram.com/dedicalivres/" target="_blank" rel="noopener noreferrer">
-        Instagram @dedicalivres
-      </a>
-    </div>
-
-    <p class="site-footer-small">
-      Données participatives vérifiées. Infos officielles : site de l’organisateur.
-    </p>
+<div class="sheet-veil" id="sheetVeil"></div>
+<aside class="sheet" id="sheet" aria-label="Composer votre commande">
+  <div class="s-head">
+    <div class="s-title">Votre commande</div>
+    <div class="s-price" id="shTotal">—</div>
+    <button class="s-close" id="shClose" aria-label="Fermer">✕</button>
   </div>
+  <div class="s-port" id="shPort"></div>
+  <div class="steps">1 · Composez votre lot</div>
+  <ul class="fq" id="shBooks" style="gap:4px"></ul>
+  <div class="steps">2 · Votre dédicace</div>
+  <input class="big-input" id="shPseudo" type="text" maxlength="30" placeholder="Votre pseudo / prénom (annoncé à l'écran)">
+  <div style="height:8px"></div>
+  <input class="big-input script" id="shMsg" type="text" maxlength="120" placeholder="Un mot particulier ? ex. le 1er pour maman, le 2e pour moi">
+  <div class="steps">3 · Vos coordonnées — paiement par SMS &amp; expédition</div>
+  <input class="big-input" id="shTel" type="tel" maxlength="17" placeholder="06 12 34 56 78" inputmode="tel" autocomplete="tel">
+  <div style="height:8px"></div>
+  <input class="big-input" id="shAdr" type="text" maxlength="80" placeholder="Adresse (n° et rue)" autocomplete="street-address">
+  <div style="height:8px"></div>
+  <div style="display:flex;gap:8px">
+    <input class="big-input" id="shCp" type="text" maxlength="5" placeholder="CP" inputmode="numeric" autocomplete="postal-code" style="flex:0 0 96px">
+    <input class="big-input" id="shVille" type="text" maxlength="40" placeholder="Ville" autocomplete="address-level2">
+  </div>
+  <button class="btn-amber" id="shPay" style="margin-top:14px">Choisissez au moins un livre</button>
+  <p class="pay-note">L'autrice vous envoie par <b style="color:var(--texte)">SMS un lien de paiement sécurisé</b> du montant exact — vous payez sans quitter le direct.<br>Coordonnées utilisées uniquement pour le paiement et l'expédition de votre commande, supprimées après envoi.</p>
+</aside>
+
+<div id="cineTop"><span class="badge-live" style="padding:3px 9px"><span class="dot"></span>DIRECT</span><span><b id="cinePresence">—</b> CONNECTÉS</span></div>
+<div id="cineDedic"></div>
+<div id="cineChat"></div>
+<button class="cine-btn" id="cineBooks">📚 Les livres</button>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <span><b>Dédicalivres — salle de dédicace en direct</b></span>
+  <span>Commande → lien SMS → encaissement → file → écran</span>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="config.js?v=shared-client-1"></script>
-<script src="geography.js?v=v1-francophone-20260620-map-authors"></script>
-<script src="app.js?v=v1-francophone-20260616-cityfix"></script>
-
-<script src="tracking-v4.js?v=shared-client-1"></script>
-<script src="ui-effects-v6.js?v=7.7.5"></script>
-<script src="ludique.js?v=ludique-21" defer></script>
-<script src="accessibilite.js?v=a11y-7" defer></script>
-<script src="agenda-premium.js?v=premium-1" defer></script>
-
+<script src="live-config.js"></script>
+<script src="live-core.js"></script>
 <script>
 (function () {
-  "use strict";
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = LIVE.esc, euro = LIVE.euro;
 
-  function loadScript(src) {
-    if (document.querySelector(`script[src="${src}"]`)) return;
+  LIVE.pluie();
 
-    const script = document.createElement("script");
-    script.src = src;
-    script.async = true;
-    document.body.appendChild(script);
+  /* -- Passerelles vers les autres interfaces, en mode demo seulement.
+        En production un visiteur ne doit jamais voir ces adresses.   -- */
+  if (LIVE.mode === 'demo') {
+    $('liensDemo').innerHTML =
+      '<a class="role-btn" href="auteur.html">🖋 Autrice</a> ' +
+      '<a class="role-btn" href="regie.html">🎛 Régie</a>';
   }
 
-  function onIdle(callback) {
-    if ("requestIdleCallback" in window) {
-      window.requestIdleCallback(callback, { timeout: 2200 });
-      return;
+  const chat = LIVE.creerChat($('slotVisiteur'), false);
+
+  /* ================= Rendu ================= */
+  function rendre() {
+    const s = LIVE.etat.session;
+    if (!s) return;
+
+    $('titre').textContent = s.titre;
+    $('sousTitre').textContent = s.sous_titre || '';
+    $('onAir').textContent = s.auteur_nom + (s.animateur_nom ? ' & ' + s.animateur_nom : '');
+    $('shPort').textContent = 'Port unique ' + euro(s.port_cents) +
+      ' quel que soit le nombre de livres · chaque exemplaire dédicacé en direct';
+    $('presence').textContent = LIVE.etat.presence || '—';
+    $('cinePresence').textContent = LIVE.etat.presence || '—';
+
+    const ban = LIVE.image(s.banniere_url);
+    if (ban) {
+      const b = $('bannerV');
+      b.style.backgroundImage = 'url(' + ban + ')';
+      b.style.display = '';
+    }
+    brancherSiBesoin(s.video_id);
+
+    /* -- pupitre : la dédicace à l'écran -- */
+    const cur = LIVE.etat.orders.find(o => o.statut === 'cours');
+    const line = $('dedicLine'), forEl = $('dedicFor');
+    if (cur) {
+      const T = [
+        s.auteur_nom + ' dédicace en ce moment l\'exemplaire de ' + cur.pseudo + '…',
+        'La plume court sur la page… c\'est pour ' + cur.pseudo + ' ✨',
+        cur.pseudo + ', votre livre est entre les mains de ' + s.auteur_nom + '…',
+        'Quelques mots rien que pour ' + cur.pseudo + '…'];
+      const txt = T[String(cur.id).length % T.length];
+      if (line.dataset.cur !== String(cur.id)) {
+        line.dataset.cur = cur.id;
+        line.classList.remove('idle', 'writing'); void line.offsetWidth;
+        line.textContent = txt; line.classList.add('writing');
+        forEl.innerHTML = 'Commande de <b>' + esc(cur.pseudo) + '</b> · ' + esc(LIVE.lot(cur, true));
+      }
+      const cd = $('cineDedic'); cd.textContent = txt; cd.classList.add('on');
+    } else {
+      line.dataset.cur = ''; line.classList.remove('writing'); line.classList.add('idle');
+      line.textContent = 'En attente de la prochaine dédicace…'; forEl.textContent = '';
+      $('cineDedic').classList.remove('on');
     }
 
-    window.setTimeout(callback, 900);
+    /* -- file publique -- */
+    const fv = $('fileVisiteur'); fv.innerHTML = '';
+    const att = LIVE.etat.orders.filter(o => o.statut === 'att').sort((a, b) => a.position - b.position);
+    $('fileCountV').textContent = att.length + ' en attente';
+    const ordre = [].concat(
+      LIVE.etat.orders.filter(o => o.statut === 'cours'), att,
+      LIVE.etat.orders.filter(o => o.statut === 'fait'));
+    if (!ordre.length) {
+      fv.innerHTML = '<li class="empty">La file est ouverte — première commande, première dédicace !</li>';
+    }
+    let pos = 0;
+    ordre.forEach(function (q) {
+      const li = document.createElement('li'); li.className = q.statut;
+      const p = q.statut === 'cours' ? '🖋' : q.statut === 'fait' ? '✓' : '#' + (++pos);
+      li.innerHTML = '<span class="pos">' + p + '</span><span class="pseudo">' + esc(q.pseudo) + '</span>' +
+        '<span class="bk">· ' + esc(LIVE.lot(q, true)) + '</span>' +
+        '<span class="st">' + (q.statut === 'cours' ? 'À l\'écran' : q.statut === 'fait' ? 'Réalisée' : 'En file') + '</span>';
+      fv.appendChild(li);
+    });
+
+    rendreVitrine();
+    if (ouvert) rendreVolet();
+    chat.rendre();
   }
 
-  loadScript("mascot-guide.js?v=shared-client-1");
+  /* ================= Vitrine ================= */
+  function rendreVitrine() {
+    const zone = $('books'); zone.innerHTML = '';
+    LIVE.etat.books.forEach(function (b) {
+      const el = document.createElement('div'); el.className = 'book holo';
+      el.innerHTML = '<div class="cover ' + esc(b.couleur) + '" style="' + LIVE.couverture(b) + '">' + esc(b.titre) + '</div>' +
+        '<div class="info"><div class="title">' + esc(b.titre) + '</div>' +
+        '<div class="meta">' + esc(b.meta || '') + '</div>' +
+        '<div class="row"><span class="price">' + euro(b.prix_cents) + '</span>' +
+        '<button class="b-buy">Commander ↗</button></div></div>';
+      el.querySelector('.b-buy').onclick = () => ouvrirVolet(b);
+      zone.appendChild(el);
+    });
+  }
 
-  onIdle(function () {
-    loadScript("author-search-index.js?v=v1-francophone-20260620-author-chips");
+  /* ================= Volet de commande ================= */
+  let sel = {}, ouvert = false;
 
-    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      loadScript("custom-cursor.js?v=7.7.5");
-    }
+  function ouvrirVolet(b) {
+    sel = {}; sel[b.id] = 1; ouvert = true; rendreVolet();
+    $('sheet').classList.add('open'); $('sheetVeil').classList.add('open');
+  }
+  function fermerVolet() {
+    ouvert = false;
+    $('sheet').classList.remove('open'); $('sheetVeil').classList.remove('open');
+  }
+  function rendreVolet() {
+    const ul = $('shBooks'); ul.innerHTML = '';
+    LIVE.etat.books.forEach(function (b) {
+      const n = sel[b.id] || 0;
+      const li = document.createElement('li');
+      li.style.cssText = 'border-color:' + (n ? 'rgba(255,180,84,.5)' : 'rgba(99,211,255,.18)');
+      li.innerHTML = '<div class="cover ' + esc(b.couleur) + '" style="' +
+          LIVE.couverture(b, 'width:28px;height:42px;font-size:0') + '"></div>' +
+        '<span class="pseudo" style="font-size:.88rem">' + esc(b.titre) + '</span>' +
+        '<span class="bk">' + euro(b.prix_cents) + '</span>' +
+        '<span class="acts">' +
+        '<button class="stk" data-m="' + b.id + '" aria-label="Retirer un exemplaire">−</button>' +
+        '<span class="stock-n" style="width:24px;font-size:.9rem;' + (n ? '' : 'color:var(--texte-2);text-shadow:none') + '">' + n + '</span>' +
+        '<button class="stk" data-p="' + b.id + '" aria-label="Ajouter un exemplaire">+</button>' +
+        '</span>';
+      ul.appendChild(li);
+    });
+    const port = LIVE.etat.session.port_cents;
+    const tot = Object.keys(sel).reduce((s, id) => s + LIVE.livre(id).prix_cents * sel[id], 0);
+    $('shTotal').textContent = tot > 0 ? euro(tot + port) : '—';
+    $('shPay').textContent = tot > 0
+      ? 'Valider ma commande · ' + euro(tot + port) + ' port inclus'
+      : 'Choisissez au moins un livre';
+  }
+  $('shBooks').addEventListener('click', function (e) {
+    const m = e.target.closest('[data-m]'), p = e.target.closest('[data-p]');
+    if (m) { const id = m.dataset.m; if (sel[id]) { sel[id]--; if (!sel[id]) delete sel[id]; } rendreVolet(); }
+    if (p) { const id = p.dataset.p; sel[id] = (sel[id] || 0) + 1; rendreVolet(); }
   });
+  $('shClose').onclick = fermerVolet;
+  $('sheetVeil').onclick = fermerVolet;
 
-  if (window.location.hash === "#soumettre" || window.location.hash === "#submission-form") {
-    window.location.replace("soumettre.html");
+  $('shPay').onclick = async function () {
+    const items = Object.keys(sel).filter(id => sel[id] > 0).map(id => ({ book: id, n: sel[id] }));
+    if (!items.length) return LIVE.toast('Choisissez au moins un livre');
+    const p = $('shPseudo'), t = $('shTel'), a = $('shAdr'), cp = $('shCp'), v = $('shVille');
+    if (!p.value.trim()) { LIVE.toast('Indiquez votre pseudo pour la dédicace'); return p.focus(); }
+    if (t.value.replace(/\D/g, '').length < 10) { LIVE.toast('Numéro de téléphone incomplet'); return t.focus(); }
+    if (!a.value.trim() || cp.value.replace(/\D/g, '').length < 5 || !v.value.trim()) {
+      LIVE.toast('Adresse d\'expédition incomplète');
+      return (!a.value.trim() ? a : cp.value.length < 5 ? cp : v).focus();
+    }
+    this.disabled = true;
+    try {
+      await LIVE.api.passerCommande({
+        pseudo: p.value.trim(), message: $('shMsg').value.trim(), items: items,
+        tel: t.value.trim(), adresse: a.value.trim(), cp: cp.value.trim(), ville: v.value.trim(),
+      });
+      sessionStorage.setItem('live_pseudo', p.value.trim());
+      [p, t, a, cp, v, $('shMsg')].forEach(el => { el.value = ''; });
+      sel = {}; fermerVolet();
+      LIVE.toast('Commande validée — votre lien de paiement arrive par SMS 📲');
+    } catch (e) { /* message déjà affiché */ }
+    this.disabled = false;
+  };
+
+  /* ================= Flux vidéo YouTube ================= */
+  let player = null, ytPret = false, camOn = true, sonOn = false, attente = null, idCourant = null;
+  const feed = $('liveFeed');
+  const btnCam = feed.querySelector('[data-cam]'), btnSon = feed.querySelector('[data-son]');
+  const invite = $('soundInvite');
+
+  window.onYouTubeIframeAPIReady = function () { ytPret = true; if (attente) brancher(attente); };
+  (function () { const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s); })();
+
+  function brancherSiBesoin(id) {
+    if (id === idCourant) return;
+    idCourant = id;
+    if (id) brancher(id); else debrancher();
   }
+  function brancher(id) {
+    if (!ytPret) { attente = id; return; }
+    attente = null;
+    $('ytHolder').style.display = ''; $('liveScene').style.display = 'none';
+    invite.style.display = 'flex';
+    if (player) { player.loadVideoById(id); player.mute(); }
+    else player = new YT.Player('ytPlayer', {
+      videoId: id,
+      playerVars: { enablejsapi: 1, rel: 0, modestbranding: 1, playsinline: 1, autoplay: 1 },
+      events: { onReady: e => { e.target.mute(); e.target.playVideo(); } },
+    });
+    camOn = true; sonOn = false;
+    btnCam.textContent = '🎥'; btnCam.classList.remove('off');
+    btnSon.textContent = '🔇'; btnSon.classList.add('off');
+    feed.classList.remove('cam-off');
+  }
+  function debrancher() {
+    if (player) player.stopVideo();
+    $('ytHolder').style.display = 'none'; $('liveScene').style.display = '';
+    invite.style.display = 'none';
+  }
+  function setSon(on) {
+    sonOn = on;
+    if (player) { on ? player.unMute() : player.mute(); }
+    btnSon.textContent = on ? '🔊' : '🔇'; btnSon.classList.toggle('off', !on);
+    invite.style.display = (on || !player) ? 'none' : 'flex';
+  }
+  invite.onclick = () => { setSon(true); LIVE.toast('Son activé'); };
+  btnSon.onclick = () => { setSon(!sonOn); LIVE.toast(sonOn ? 'Son activé' : 'Son coupé'); };
+  btnCam.onclick = function () {
+    camOn = !camOn;
+    if (player) { camOn ? player.playVideo() : player.pauseVideo(); }
+    feed.classList.toggle('cam-off', !camOn);
+    btnCam.textContent = camOn ? '🎥' : '⛔'; btnCam.classList.toggle('off', !camOn);
+    LIVE.toast(camOn ? 'Vidéo relancée' : 'Vidéo en pause — le chat et la file continuent');
+  };
+
+  /* -- plein écran adaptatif -- */
+  let cinema = false;
+  const btnFull = feed.querySelector('[data-full]');
+  function setCinema(on) {
+    cinema = on;
+    document.body.classList.toggle('cinema', on);
+    feed.classList.toggle('cinema', on);
+    btnFull.textContent = on ? '✕' : '⛶';
+    btnFull.setAttribute('aria-label', on ? 'Quitter le plein écran' : 'Plein écran');
+    if (on) $('cineChat').appendChild(chat); else $('slotVisiteur').appendChild(chat);
+    rendre();
+  }
+  btnFull.onclick = () => setCinema(!cinema);
+  addEventListener('keydown', e => { if (e.key === 'Escape' && cinema) setCinema(false); });
+  $('cineBooks').onclick = function () {
+    setCinema(false);
+    $('books').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  LIVE.demarrer(rendre);
 })();
 </script>
-
 </body>
 </html>

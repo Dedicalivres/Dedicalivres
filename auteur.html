@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Console autrice · Salle de dédicace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Caveat:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="live-salle.css">
+</head>
+<body data-role="auteur">
+
+<canvas id="rain" style="position:fixed;inset:0;z-index:0;pointer-events:none"></canvas>
+
+<div class="roles">
+  <span class="lab">Console</span>
+  <span class="role-btn on amber">🖋 Autrice</span>
+  <span id="liensDemo"></span>
+  <span class="live"><span class="dot"></span>EN DIRECT</span>
+  <span class="presence"><b id="presence">—</b>&nbsp;CONNECTÉS</span>
+  <span class="lab" id="modeBadge"></span>
+</div>
+
+<div class="wrap">
+  <section class="view on">
+    <div class="kicker" id="kicker">Console autrice</div>
+    <h1 id="titre">Mon stock &amp; mes dédicaces</h1>
+    <p class="sub">Avant le live : préparez visuels, tarifs et liens. Pendant : confirmez, dédicacez, la file fait le reste.</p>
+
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="chip on" id="tabPrep">🛠 Préparation</button>
+      <button class="chip" id="tabLive">🔴 En direct</button>
+      <button class="chip" id="btnOuvrir" style="margin-left:auto">▶ Ouvrir la salle</button>
+    </div>
+
+    <!-- ===== PRÉPARATION ===== -->
+    <div id="autPrep">
+      <div class="aut-grid">
+        <div>
+          <div class="panel holo">
+            <h2 class="sec">Ma bannière de salle <span class="rule"></span> <span class="tag">affichée en haut de la page visiteurs</span></h2>
+            <div id="banPrev" style="height:110px;border:1px dashed var(--holo-line);display:flex;align-items:center;justify-content:center;color:var(--texte-2);font-size:.82rem;background-size:cover;background-position:center;text-align:center;padding:8px">Aucune bannière — format conseillé 1600×400</div>
+            <div class="form-lab">Charger depuis mon appareil</div>
+            <label class="btn-amber" style="display:block;text-align:center;cursor:pointer">📁 Choisir une image
+              <input type="file" id="banFile" accept="image/*" hidden></label>
+            <div class="form-lab">…ou coller une adresse d'image déjà en ligne</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input class="big-input" id="banUrl" type="url" placeholder="https://…/ma-banniere.webp" style="flex:1;min-width:200px">
+              <button class="chip" id="banGo" style="padding:12px 18px">Appliquer</button>
+            </div>
+            <p class="hint">Une photo de vous en dédicace, votre univers, vos couvertures en éventail… C'est la première chose que verront les lecteurs. L'image est redimensionnée automatiquement avant l'envoi.</p>
+          </div>
+
+          <div class="panel holo" style="margin-top:18px">
+            <h2 class="sec">Check-list du direct <span class="rule"></span> <span class="tag" id="ckCount"></span></h2>
+            <div id="ckLinks"></div>
+            <label class="stock-line" style="cursor:pointer"><input type="checkbox" id="ckTest" style="accent-color:var(--braise)"> <span class="t">Test grandeur nature à 1 € réalisé (lien → SMS → paiement → encaissement)</span></label>
+            <div class="form-lab">Mon modèle de SMS (à garder dans mes notes)</div>
+            <textarea class="big-input" id="smsTpl" rows="3" style="resize:vertical;font-size:.86rem">Bonjour {prénom}, voici le lien de paiement de votre commande Dédicalivres ({montant}, port inclus) : {lien}. Votre dédicace sera faite en direct !</textarea>
+          </div>
+        </div>
+
+        <div class="panel holo">
+          <h2 class="sec">Mes livres, tarifs &amp; stock <span class="rule"></span></h2>
+          <div id="prepBooks"></div>
+          <p class="hint">Le <b>tarif affiché</b> aux lecteurs = votre prix (prix unique du livre). Le <b>stock</b> = les exemplaires posés sur votre table, prêts à dédicacer et expédier. Les couvertures se renseignent par adresse d'image : elles remplacent les visuels de repli partout dans la salle.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EN DIRECT ===== -->
+    <div id="autLive" style="display:none">
+      <div class="aut-grid">
+        <div>
+          <div class="panel holo">
+            <h2 class="sec">En attente de paiement <span class="rule"></span> <span class="tag" id="pendCount"></span></h2>
+            <ul class="fq" id="pendList"></ul>
+            <p class="hint">Les lecteurs valident leur commande depuis la salle avec leur numéro. Touchez <b>📲 Envoyer le lien</b> : votre SMS s'ouvre pré-rempli, vous y collez le lien SumUp du montant affiché. Le paiement arrive ? <b>✓ Encaissé</b> — la dédicace entre en file, <b>sans rien saisir</b>.</p>
+          </div>
+
+          <div class="panel holo" style="margin-top:18px">
+            <h2 class="sec">Nouvelle dédicace confirmée <span class="rule"></span> <span class="tag">saisie manuelle (secours)</span></h2>
+            <div class="form-lab">1 · Le livre commandé</div>
+            <div class="chips" id="bookChips"></div>
+            <div class="form-lab">2 · Le pseudo / prénom (tel qu'annoncé à l'écran)</div>
+            <input class="big-input" id="inPseudo" type="text" maxlength="30" placeholder="ex. Julie">
+            <div class="form-lab">3 · Mot particulier demandé (optionnel)</div>
+            <input class="big-input script" id="inMsg" type="text" maxlength="90" placeholder="ex. pour ma maman qui aime la mer">
+            <button class="btn-amber" id="btnAdd">🖋 Ajouter à la file</button>
+            <p class="hint">Le stock du livre choisi diminue automatiquement. <b>Astuce :</b> gardez votre téléphone SumUp à côté — un « bip » de paiement = une ligne ici.</p>
+          </div>
+
+          <div class="panel holo" style="margin-top:18px">
+            <h2 class="sec">Mon stock d'exemplaires à dédicacer <span class="rule"></span></h2>
+            <div id="stockList"></div>
+          </div>
+        </div>
+
+        <div class="panel holo">
+          <h2 class="sec">Mes dédicaces <span class="rule"></span> <span class="tag" id="fileCountA"></span></h2>
+          <button class="chip on" id="autoBtn" style="margin-bottom:12px">⏵ Enchaînement auto : ACTIVÉ</button>
+          <ul class="fq" id="fileAuteur"></ul>
+          <p class="hint">Touchez <b>✓ Réalisée</b> après avoir montré la page à la caméra : la <b>suivante passe automatiquement à l'écran</b>. Besoin de souffler ? Mettez l'enchaînement en pause — la file reste consultable, la régie peut relancer manuellement.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <span><b>Console autrice</b> — accès par jeton, ne partagez pas cette adresse</span>
+  <span>Commande → lien SMS → encaissement → file → écran</span>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="live-config.js"></script>
+<script src="live-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = LIVE.esc, euro = LIVE.euro;
+  let selBook = null;
+
+  LIVE.pluie();
+
+  if (LIVE.mode === 'demo') {
+    $('liensDemo').innerHTML =
+      '<a class="role-btn" href="./">👁 Visiteur</a> <a class="role-btn" href="regie.html">🎛 Régie</a>';
+  }
+
+  /* ================= Onglets ================= */
+  function setTab(prep) {
+    $('tabPrep').classList.toggle('on', prep);
+    $('tabLive').classList.toggle('on', !prep);
+    $('autPrep').style.display = prep ? '' : 'none';
+    $('autLive').style.display = prep ? 'none' : '';
+  }
+  $('tabPrep').onclick = () => setTab(true);
+  $('tabLive').onclick = () => setTab(false);
+
+  /* ================= Rendu ================= */
+  function rendre() {
+    const s = LIVE.etat.session;
+    if (!s) return;
+    $('kicker').textContent = 'Console autrice · ' + s.auteur_nom;
+    $('presence').textContent = LIVE.etat.presence || '—';
+    $('btnOuvrir').textContent = s.statut === 'live' ? '⏹ Fermer la salle' : '▶ Ouvrir la salle';
+    $('btnOuvrir').classList.toggle('on', s.statut === 'live');
+    $('autoBtn').classList.toggle('on', s.auto_enchainement);
+    $('autoBtn').textContent = s.auto_enchainement
+      ? '⏵ Enchaînement auto : ACTIVÉ' : '⏸ Enchaînement auto : EN PAUSE';
+
+    const ban = LIVE.image(s.banniere_url);
+    if (ban) {
+      const p = $('banPrev');
+      p.style.backgroundImage = 'url(' + ban + ')';
+      p.textContent = '';
+      if (!$('banUrl').matches(':focus') && s.banniere_url.indexOf('media:') !== 0) {
+        $('banUrl').value = s.banniere_url;
+      }
+    }
+
+    rendrePrep();
+    rendreStock();
+    rendreChips();
+    rendreAttente();
+    rendreFile();
+  }
+
+  /* -- préparation : tarifs, stock, couvertures -- */
+  function rendrePrep() {
+    const pb = $('prepBooks');
+    if (pb.contains(document.activeElement)) return;   // ne pas voler le focus en pleine saisie
+    pb.innerHTML = '';
+    LIVE.etat.books.forEach(function (b) {
+      const d = document.createElement('div');
+      d.className = 'stock-line'; d.style.flexWrap = 'wrap';
+      d.innerHTML =
+        '<div class="cover ' + esc(b.couleur) + '" style="' + LIVE.couverture(b, 'width:38px;height:56px;font-size:0') + '"></div>' +
+        '<span class="t">' + esc(b.titre) + '</span>' +
+        '<label class="bk" style="display:flex;align-items:center;gap:5px">Tarif ' +
+          '<input class="big-input" data-prix="' + b.id + '" type="number" min="1" step="0.5" value="' + (b.prix_cents / 100) + '" style="width:78px;padding:7px 8px;font-size:.92rem"> €</label>' +
+        '<label class="bk" style="display:flex;align-items:center;gap:5px">Stock ' +
+          '<input class="big-input" data-stk="' + b.id + '" type="number" min="0" value="' + b.stock + '" style="width:68px;padding:7px 8px;font-size:.92rem"></label>' +
+        '<label class="chip" style="cursor:pointer">📁 Couverture' +
+          '<input type="file" data-cov-fichier="' + b.id + '" accept="image/*" hidden></label>' +
+        '<input class="big-input" data-cov="' + b.id + '" type="url" placeholder="…ou adresse d\'une image en ligne (https://…)" ' +
+          'value="' + esc((b.couverture_url || '').indexOf('media:') === 0 ? '' : (b.couverture_url || '')) + '" ' +
+          'style="flex:1 0 100%;padding:8px 10px;font-size:.84rem">';
+      pb.appendChild(d);
+    });
+
+    const ck = $('ckLinks'); ck.innerHTML = '';
+    const port = LIVE.etat.session.port_cents;
+    LIVE.etat.books.forEach(function (b) {
+      const l = document.createElement('label');
+      l.className = 'stock-line'; l.style.cursor = 'pointer';
+      l.innerHTML = '<input type="checkbox" data-lien="' + b.id + '" ' + (b.lien_pret ? 'checked' : '') +
+        ' style="accent-color:var(--braise)">' +
+        '<span class="t">Lien SumUp créé — ' + esc(b.titre_court) + ' · <b style="color:var(--braise)">' +
+        euro(b.prix_cents + port) + '</b> port inclus</span>';
+      ck.appendChild(l);
+    });
+    const faits = LIVE.etat.books.filter(b => b.lien_pret).length + ($('ckTest').checked ? 1 : 0);
+    $('ckCount').textContent = faits + '/' + (LIVE.etat.books.length + 1) + ' prêt' + (faits > 1 ? 's' : '');
+  }
+
+  $('prepBooks').addEventListener('change', function (e) {
+    const px = e.target.closest('[data-prix]'), st = e.target.closest('[data-stk]'), cv = e.target.closest('[data-cov]');
+    if (px) LIVE.api.majLivre(px.dataset.prix, { prix_cents: Math.round(Math.max(1, parseFloat(px.value) || 1) * 100) });
+    if (st) LIVE.api.majLivre(st.dataset.stk, { stock: Math.max(0, parseInt(st.value, 10) || 0) });
+    if (cv && cv.value.trim()) LIVE.api.majLivre(cv.dataset.cov, { couverture_url: cv.value.trim() });
+  });
+  $('ckLinks').addEventListener('change', function (e) {
+    const c = e.target.closest('[data-lien]');
+    if (c) LIVE.api.majLivre(c.dataset.lien, { lien_pret: c.checked });
+  });
+  $('ckTest').addEventListener('change', rendrePrep);
+  $('banGo').onclick = () => LIVE.api.majBanniere($('banUrl').value.trim());
+
+  // Téléversement : on redimensionne côté navigateur avant d'envoyer.
+  // Bannière large (1600 px), couvertures plus modestes (700 px).
+  async function televerser(fichier, cible, livre, maxPx) {
+    if (!fichier) return;
+    LIVE.toast('Préparation de l\'image…');
+    try {
+      const img = await LIVE.preparerImage(fichier, maxPx);
+      await LIVE.api.televerserMedia(cible, img.base64, img.mime, livre);
+      LIVE.toast(cible === 'banniere' ? 'Bannière en place ✓' : 'Couverture en place ✓');
+    } catch (e) { LIVE.toast(e.message || 'Envoi impossible'); }
+  }
+
+  $('banFile').addEventListener('change', function (e) {
+    televerser(e.target.files[0], 'banniere', null, 1600);
+    e.target.value = '';
+  });
+  $('prepBooks').addEventListener('change', function (e) {
+    const f = e.target.closest('[data-cov-fichier]');
+    if (!f) return;
+    televerser(f.files[0], 'couverture', f.dataset.covFichier, 700);
+    f.value = '';
+  });
+
+  $('btnOuvrir').onclick = function () {
+    const ouvrir = LIVE.etat.session.statut !== 'live';
+    LIVE.api.majStatut(ouvrir ? 'live' : 'termine')
+      .then(() => LIVE.toast(ouvrir
+        ? 'Salle ouverte — les lecteurs peuvent commander'
+        : 'Salle fermée — plus de nouvelle commande'))
+      .catch(() => {});
+  };
+
+  /* -- stock rapide -- */
+  function rendreStock() {
+    const sl = $('stockList'); sl.innerHTML = '';
+    LIVE.etat.books.forEach(function (b) {
+      const d = document.createElement('div'); d.className = 'stock-line';
+      d.innerHTML =
+        '<div class="cover ' + esc(b.couleur) + '" style="' + LIVE.couverture(b, 'width:34px;height:50px;font-size:0') + '"></div>' +
+        '<span class="t">' + esc(b.titre) + '</span>' +
+        '<button class="stk" data-s="-' + b.id + '" aria-label="Retirer un exemplaire">−</button>' +
+        '<span class="stock-n ' + (b.stock <= 5 ? 'low' : '') + '">' + b.stock + '</span>' +
+        '<button class="stk" data-s="+' + b.id + '" aria-label="Ajouter un exemplaire">+</button>';
+      sl.appendChild(d);
+    });
+  }
+  $('stockList').addEventListener('click', function (e) {
+    const b = e.target.closest('.stk'); if (!b) return;
+    const s = b.dataset.s, id = s.slice(1), livre = LIVE.livre(id);
+    const n = s[0] === '+' ? livre.stock + 1 : Math.max(0, livre.stock - 1);
+    LIVE.api.majLivre(id, { stock: n });
+  });
+
+  /* -- saisie manuelle -- */
+  function rendreChips() {
+    const chips = $('bookChips'); chips.innerHTML = '';
+    if (!selBook && LIVE.etat.books.length) selBook = LIVE.etat.books[0].id;
+    LIVE.etat.books.forEach(function (b) {
+      const c = document.createElement('button');
+      c.className = 'chip' + (selBook === b.id ? ' on' : '');
+      c.textContent = b.titre_court + ' · ' + b.stock;
+      c.disabled = b.stock <= 0;
+      c.onclick = () => { selBook = b.id; rendreChips(); };
+      chips.appendChild(c);
+    });
+  }
+  $('btnAdd').onclick = async function () {
+    const p = $('inPseudo');
+    if (!p.value.trim()) { LIVE.toast('Indiquez le pseudo à annoncer'); return p.focus(); }
+    try {
+      await LIVE.api.ajouterDedicace(p.value.trim(), $('inMsg').value.trim(), selBook, 1);
+      p.value = ''; $('inMsg').value = '';
+      LIVE.toast('Dédicace ajoutée à la file ◆');
+    } catch (e) { /* message déjà affiché */ }
+  };
+
+  /* -- en attente de paiement : le seul endroit où apparaissent les coordonnées -- */
+  function rendreAttente() {
+    const pl = $('pendList'); pl.innerHTML = '';
+    const port = LIVE.etat.session.port_cents;
+    const pend = LIVE.etat.orders.filter(o => o.statut === 'pay');
+    $('pendCount').textContent = pend.length ? pend.length + ' à confirmer' : '';
+    if (!pend.length) {
+      pl.innerHTML = '<li class="empty">Aucune commande annoncée pour l\'instant.</li>';
+      return;
+    }
+    pend.forEach(function (q) {
+      const li = document.createElement('li'); li.className = 'pay';
+      const adr = [q.adresse, [q.cp, q.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+      li.innerHTML =
+        '<span class="pos">' + (q.sms_envoye ? '📲' : '🕐') + '</span>' +
+        '<span class="pseudo">' + esc(q.pseudo) + '</span>' +
+        '<span class="bk">· ' + esc(LIVE.lot(q)) + ' · ' + euro(q.total_cents) + ' port inclus · ' + esc(q.tel || '') + '</span>' +
+        (q.message ? '<div class="dmsg">« ' + esc(q.message) + ' »</div>' : '') +
+        (adr ? '<div class="bk" style="width:100%">📦 ' + esc(adr) + '</div>' : '') +
+        '<span class="acts">' +
+        (q.sms_envoye
+          ? '<span class="bk" style="color:var(--ok)">lien envoyé ✓</span>'
+          : '<a class="go" data-sms="' + q.id + '" href="' + esc(lienSms(q)) + '">📲 Envoyer le lien</a>') +
+        '<button class="done" data-pay="' + q.id + '" ' + (q.sms_envoye ? '' : 'disabled') + '>✓ Encaissé</button>' +
+        '<button data-del="' + q.id + '" aria-label="Retirer la commande">✕</button>' +
+        '</span>';
+      pl.appendChild(li);
+    });
+  }
+  // Lien sms: pré-rempli. La séparation ?body= / &body= diffère selon
+  // les plateformes : iOS et macOS attendent &, Android accepte ?.
+  function lienSms(q) {
+    const corps = ($('smsTpl').value || '')
+      .replace('{prénom}', q.pseudo)
+      .replace('{montant}', euro(q.total_cents))
+      .replace('{lien}', '');
+    const tel = (q.tel || '').replace(/[^\d+]/g, '');
+    const sep = /(iPhone|iPad|Macintosh)/.test(navigator.userAgent) ? '&' : '?';
+    return 'sms:' + tel + sep + 'body=' + encodeURIComponent(corps);
+  }
+
+  $('pendList').addEventListener('click', function (e) {
+    const sms = e.target.closest('[data-sms]'), pay = e.target.closest('[data-pay]'), del = e.target.closest('[data-del]');
+    // Le lien s'ouvre tout seul ; on ne fait qu'enregistrer l'envoi,
+    // ce qui déverrouille « Encaissé ».
+    if (sms) LIVE.api.marquerSms(sms.dataset.sms).catch(() => {});
+    if (pay) LIVE.api.encaisser(pay.dataset.pay).then(() => LIVE.toast('Encaissé ✓ — dédicace en file ◆')).catch(() => {});
+    if (del) LIVE.api.annuler(del.dataset.del).then(() => LIVE.toast('Commande retirée')).catch(() => {});
+  });
+
+  /* -- ma file -- */
+  function rendreFile() {
+    const fa = $('fileAuteur'); fa.innerHTML = '';
+    const att = LIVE.etat.orders.filter(o => o.statut === 'att').sort((a, b) => a.position - b.position);
+    $('fileCountA').textContent = att.length + ' en attente';
+    const tout = [].concat(
+      LIVE.etat.orders.filter(o => o.statut === 'cours'), att,
+      LIVE.etat.orders.filter(o => o.statut === 'fait'));
+    if (!tout.length) {
+      fa.innerHTML = '<li class="empty">Aucune dédicace pour l\'instant — le premier encaissement lancera la file.</li>';
+      return;
+    }
+    let n = 0;
+    tout.forEach(function (q) {
+      const li = document.createElement('li'); li.className = q.statut;
+      const adr = [q.adresse, [q.cp, q.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+      li.innerHTML =
+        '<span class="pos">' + (q.statut === 'cours' ? '🖋' : q.statut === 'fait' ? '✓' : '#' + (++n)) + '</span>' +
+        '<span class="pseudo">' + esc(q.pseudo) + '</span>' +
+        '<span class="bk">· ' + esc(LIVE.lot(q)) + '</span>' +
+        (q.message ? '<div class="dmsg">« ' + esc(q.message) + ' »</div>' : '') +
+        (adr ? '<div class="bk" style="width:100%">📦 ' + esc(adr) + '</div>' : '') +
+        '<span class="acts">' +
+        (q.statut === 'cours' ? '<button class="done" data-done="' + q.id + '">✓ Réalisée</button>' : '') +
+        '</span>';
+      fa.appendChild(li);
+    });
+  }
+  $('fileAuteur').addEventListener('click', function (e) {
+    const d = e.target.closest('[data-done]');
+    if (d) LIVE.api.terminer(d.dataset.done).then(() => LIVE.toast('Réalisée ✓')).catch(() => {});
+  });
+  $('autoBtn').onclick = () => LIVE.api.basculerAuto();
+
+  LIVE.demarrer(rendre);
+})();
+</script>
+</body>
+</html>
