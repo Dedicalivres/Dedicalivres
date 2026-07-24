@@ -10,11 +10,16 @@ du site existant. S'il n'est pas retenu, un seul script suffit à l'effacer enti
 ### Sans rien déployer (mode démonstration)
 
 Copiez le dossier `dedicaces-live/` à la racine du dépôt et poussez avec GitHub Desktop.
+
+> **Aucun fichier de ce module ne s'appelle `index.html`.** C'est délibéré : une page nommée
+> ainsi écrase la page d'accueil du site si le dossier n'est pas conservé lors du dépôt.
+> La page visiteur s'appelle donc `salle.html`. Ne la renommez pas.
+
 Les trois adresses fonctionnent immédiatement, sans base de données :
 
 | Interface | Adresse |
 |---|---|
-| Visiteur | `dedicalivres.fr/dedicaces-live/` |
+| Visiteur | `dedicalivres.fr/dedicaces-live/salle.html` |
 | Autrice  | `dedicalivres.fr/dedicaces-live/auteur.html` |
 | Régie    | `dedicalivres.fr/dedicaces-live/regie.html` |
 
@@ -133,7 +138,7 @@ l'entrée visiteur au menu se fera d'une ligne, comme pour n'importe quelle page
 
 ```
 dedicaces-live/
-  index.html         interface visiteur (publique)
+  salle.html         interface visiteur (publique)
   auteur.html        console autrice   (?s=<salle>&k=<jeton>)
   regie.html         régie             (?s=<salle>&k=<jeton>)
   live-salle.css     feuille commune, extraite de la maquette sans retouche

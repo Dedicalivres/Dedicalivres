@@ -37,7 +37,7 @@ begin
     (v_id, 'Sophie29',        'visiteur', 'Bonsoir de Brest !', false),
     (v_id, 'Maelle Kerbrat',  'auteur',   'Posez-moi tout ce que vous voulez pendant que je dedicace.', false);
 
-  raise notice E'\n\n=====  SALLE DE TEST CREEE  =====\nVisiteur : /dedicaces-live/?s=%\nAutrice  : /dedicaces-live/auteur.html?s=%&k=%\nRegie    : /dedicaces-live/regie.html?s=%&k=%\n=================================\n',
+  raise notice E'\n\n=====  SALLE DE TEST CREEE  =====\nVisiteur : /dedicaces-live/salle.html?s=%\nAutrice  : /dedicaces-live/auteur.html?s=%&k=%\nRegie    : /dedicaces-live/regie.html?s=%&k=%\n=================================\n',
     v_id, v_id, v->>'token_auteur', v_id, v->>'token_regie';
 end $$;
 

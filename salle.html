@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Salle de dédicace en direct · Dédicalivres</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Caveat:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="live-salle.css">
+</head>
+<body data-role="visiteur">
+
+<canvas id="rain" style="position:fixed;inset:0;z-index:0;pointer-events:none"></canvas>
+
+<div class="roles">
+  <span class="lab">Salle de dédicace</span>
+  <span class="role-btn on">👁 Visiteur</span>
+  <span id="liensDemo"></span>
+  <span class="live"><span class="dot"></span>EN DIRECT</span>
+  <span class="presence"><b id="presence">—</b>&nbsp;CONNECTÉS</span>
+  <span class="lab" id="modeBadge"></span>
+</div>
+
+<div class="wrap">
+  <section class="view on">
+    <div id="bannerV" class="holo" style="display:none;height:150px;background-size:cover;background-position:center;margin-bottom:14px"></div>
+    <div class="kicker" id="kicker">Projection en cours</div>
+    <h1 id="titre">Chargement de la salle…</h1>
+    <p class="sub" id="sousTitre"></p>
+
+    <div class="stage">
+      <main>
+        <div class="videos" style="grid-template-columns:1fr">
+          <div>
+            <div class="feed author holo" id="liveFeed"><span class="frame"><i></i><i></i><i></i><i></i></span>
+              <div class="scene" id="liveScene">
+                <div style="font-family:var(--hud);font-size:.66rem;letter-spacing:.24em;color:var(--holo);text-transform:uppercase">◈ Flux de la régie</div>
+                <div style="font-size:.78rem;color:var(--texte-2);text-align:center;padding:0 18px;max-width:34ch">
+                  Le direct n'est pas encore branché. La file et le chat fonctionnent déjà.</div>
+              </div>
+              <div id="ytHolder" style="position:absolute;inset:0;z-index:2;display:none"><div id="ytPlayer" style="width:100%;height:100%"></div></div>
+              <button id="soundInvite" style="display:none;position:absolute;inset:0;z-index:4;background:rgba(4,7,14,.55);backdrop-filter:blur(2px);
+                font-family:var(--hud);font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;color:#fff">🔊 Activer le son</button>
+              <div class="feed-tag"><span class="mini"></span><b id="onAir">—</b><span class="role">/ à l'antenne</span></div>
+              <div class="cam-label">◇ Vidéo en pause</div>
+              <div class="ctrl">
+                <button data-cam aria-label="Mettre la vidéo en pause ou la relancer" title="Vidéo">🎥</button>
+                <button data-son aria-label="Couper ou rétablir le son" title="Son">🔊</button>
+                <button data-full aria-label="Plein écran" title="Plein écran">⛶</button>
+              </div>
+            </div>
+            <div class="beam"></div>
+          </div>
+        </div>
+
+        <div class="pupitre holo" aria-live="polite">
+          <div class="lab">Dédicace en cours d'écriture</div>
+          <div class="line idle" id="dedicLine">En attente de la prochaine dédicace…</div>
+          <div class="for" id="dedicFor"></div>
+        </div>
+
+        <div class="fileV holo">
+          <h2 class="sec">File des dédicaces <span class="rule"></span> <span class="tag" id="fileCountV"></span></h2>
+          <ol id="fileVisiteur"></ol>
+        </div>
+
+        <h2 class="sec" style="margin-top:20px">Bibliothèque projetée <span class="rule"></span> <span class="tag">vente assurée par l'autrice</span></h2>
+        <div class="books" id="books"></div>
+      </main>
+
+      <aside class="chat holo">
+        <h2 class="sec" style="padding:14px 14px 0">Canal d'échange <span class="rule"></span></h2>
+        <div class="chat-slot" id="slotVisiteur"></div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<div class="sheet-veil" id="sheetVeil"></div>
+<aside class="sheet" id="sheet" aria-label="Composer votre commande">
+  <div class="s-head">
+    <div class="s-title">Votre commande</div>
+    <div class="s-price" id="shTotal">—</div>
+    <button class="s-close" id="shClose" aria-label="Fermer">✕</button>
+  </div>
+  <div class="s-port" id="shPort"></div>
+  <div class="steps">1 · Composez votre lot</div>
+  <ul class="fq" id="shBooks" style="gap:4px"></ul>
+  <div class="steps">2 · Votre dédicace</div>
+  <input class="big-input" id="shPseudo" type="text" maxlength="30" placeholder="Votre pseudo / prénom (annoncé à l'écran)">
+  <div style="height:8px"></div>
+  <input class="big-input script" id="shMsg" type="text" maxlength="120" placeholder="Un mot particulier ? ex. le 1er pour maman, le 2e pour moi">
+  <div class="steps">3 · Vos coordonnées — paiement par SMS &amp; expédition</div>
+  <input class="big-input" id="shTel" type="tel" maxlength="17" placeholder="06 12 34 56 78" inputmode="tel" autocomplete="tel">
+  <div style="height:8px"></div>
+  <input class="big-input" id="shAdr" type="text" maxlength="80" placeholder="Adresse (n° et rue)" autocomplete="street-address">
+  <div style="height:8px"></div>
+  <div style="display:flex;gap:8px">
+    <input class="big-input" id="shCp" type="text" maxlength="5" placeholder="CP" inputmode="numeric" autocomplete="postal-code" style="flex:0 0 96px">
+    <input class="big-input" id="shVille" type="text" maxlength="40" placeholder="Ville" autocomplete="address-level2">
+  </div>
+  <button class="btn-amber" id="shPay" style="margin-top:14px">Choisissez au moins un livre</button>
+  <p class="pay-note">L'autrice vous envoie par <b style="color:var(--texte)">SMS un lien de paiement sécurisé</b> du montant exact — vous payez sans quitter le direct.<br>Coordonnées utilisées uniquement pour le paiement et l'expédition de votre commande, supprimées après envoi.</p>
+</aside>
+
+<div id="cineTop"><span class="badge-live" style="padding:3px 9px"><span class="dot"></span>DIRECT</span><span><b id="cinePresence">—</b> CONNECTÉS</span></div>
+<div id="cineDedic"></div>
+<div id="cineChat"></div>
+<button class="cine-btn" id="cineBooks">📚 Les livres</button>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <span><b>Dédicalivres — salle de dédicace en direct</b></span>
+  <span>Commande → lien SMS → encaissement → file → écran</span>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="live-config.js"></script>
+<script src="live-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = LIVE.esc, euro = LIVE.euro;
+
+  LIVE.pluie();
+
+  /* -- Passerelles vers les autres interfaces, en mode demo seulement.
+        En production un visiteur ne doit jamais voir ces adresses.   -- */
+  if (LIVE.mode === 'demo') {
+    $('liensDemo').innerHTML =
+      '<a class="role-btn" href="auteur.html">🖋 Autrice</a> ' +
+      '<a class="role-btn" href="regie.html">🎛 Régie</a>';
+  }
+
+  const chat = LIVE.creerChat($('slotVisiteur'), false);
+
+  /* ================= Rendu ================= */
+  function rendre() {
+    const s = LIVE.etat.session;
+    if (!s) return;
+
+    $('titre').textContent = s.titre;
+    $('sousTitre').textContent = s.sous_titre || '';
+    $('onAir').textContent = s.auteur_nom + (s.animateur_nom ? ' & ' + s.animateur_nom : '');
+    $('shPort').textContent = 'Port unique ' + euro(s.port_cents) +
+      ' quel que soit le nombre de livres · chaque exemplaire dédicacé en direct';
+    $('presence').textContent = LIVE.etat.presence || '—';
+    $('cinePresence').textContent = LIVE.etat.presence || '—';
+
+    const ban = LIVE.image(s.banniere_url);
+    if (ban) {
+      const b = $('bannerV');
+      b.style.backgroundImage = 'url(' + ban + ')';
+      b.style.display = '';
+    }
+    brancherSiBesoin(s.video_id);
+
+    /* -- pupitre : la dédicace à l'écran -- */
+    const cur = LIVE.etat.orders.find(o => o.statut === 'cours');
+    const line = $('dedicLine'), forEl = $('dedicFor');
+    if (cur) {
+      const T = [
+        s.auteur_nom + ' dédicace en ce moment l\'exemplaire de ' + cur.pseudo + '…',
+        'La plume court sur la page… c\'est pour ' + cur.pseudo + ' ✨',
+        cur.pseudo + ', votre livre est entre les mains de ' + s.auteur_nom + '…',
+        'Quelques mots rien que pour ' + cur.pseudo + '…'];
+      const txt = T[String(cur.id).length % T.length];
+      if (line.dataset.cur !== String(cur.id)) {
+        line.dataset.cur = cur.id;
+        line.classList.remove('idle', 'writing'); void line.offsetWidth;
+        line.textContent = txt; line.classList.add('writing');
+        forEl.innerHTML = 'Commande de <b>' + esc(cur.pseudo) + '</b> · ' + esc(LIVE.lot(cur, true));
+      }
+      const cd = $('cineDedic'); cd.textContent = txt; cd.classList.add('on');
+    } else {
+      line.dataset.cur = ''; line.classList.remove('writing'); line.classList.add('idle');
+      line.textContent = 'En attente de la prochaine dédicace…'; forEl.textContent = '';
+      $('cineDedic').classList.remove('on');
+    }
+
+    /* -- file publique -- */
+    const fv = $('fileVisiteur'); fv.innerHTML = '';
+    const att = LIVE.etat.orders.filter(o => o.statut === 'att').sort((a, b) => a.position - b.position);
+    $('fileCountV').textContent = att.length + ' en attente';
+    const ordre = [].concat(
+      LIVE.etat.orders.filter(o => o.statut === 'cours'), att,
+      LIVE.etat.orders.filter(o => o.statut === 'fait'));
+    if (!ordre.length) {
+      fv.innerHTML = '<li class="empty">La file est ouverte — première commande, première dédicace !</li>';
+    }
+    let pos = 0;
+    ordre.forEach(function (q) {
+      const li = document.createElement('li'); li.className = q.statut;
+      const p = q.statut === 'cours' ? '🖋' : q.statut === 'fait' ? '✓' : '#' + (++pos);
+      li.innerHTML = '<span class="pos">' + p + '</span><span class="pseudo">' + esc(q.pseudo) + '</span>' +
+        '<span class="bk">· ' + esc(LIVE.lot(q, true)) + '</span>' +
+        '<span class="st">' + (q.statut === 'cours' ? 'À l\'écran' : q.statut === 'fait' ? 'Réalisée' : 'En file') + '</span>';
+      fv.appendChild(li);
+    });
+
+    rendreVitrine();
+    if (ouvert) rendreVolet();
+    chat.rendre();
+  }
+
+  /* ================= Vitrine ================= */
+  function rendreVitrine() {
+    const zone = $('books'); zone.innerHTML = '';
+    LIVE.etat.books.forEach(function (b) {
+      const el = document.createElement('div'); el.className = 'book holo';
+      el.innerHTML = '<div class="cover ' + esc(b.couleur) + '" style="' + LIVE.couverture(b) + '">' + esc(b.titre) + '</div>' +
+        '<div class="info"><div class="title">' + esc(b.titre) + '</div>' +
+        '<div class="meta">' + esc(b.meta || '') + '</div>' +
+        '<div class="row"><span class="price">' + euro(b.prix_cents) + '</span>' +
+        '<button class="b-buy">Commander ↗</button></div></div>';
+      el.querySelector('.b-buy').onclick = () => ouvrirVolet(b);
+      zone.appendChild(el);
+    });
+  }
+
+  /* ================= Volet de commande ================= */
+  let sel = {}, ouvert = false;
+
+  function ouvrirVolet(b) {
+    sel = {}; sel[b.id] = 1; ouvert = true; rendreVolet();
+    $('sheet').classList.add('open'); $('sheetVeil').classList.add('open');
+  }
+  function fermerVolet() {
+    ouvert = false;
+    $('sheet').classList.remove('open'); $('sheetVeil').classList.remove('open');
+  }
+  function rendreVolet() {
+    const ul = $('shBooks'); ul.innerHTML = '';
+    LIVE.etat.books.forEach(function (b) {
+      const n = sel[b.id] || 0;
+      const li = document.createElement('li');
+      li.style.cssText = 'border-color:' + (n ? 'rgba(255,180,84,.5)' : 'rgba(99,211,255,.18)');
+      li.innerHTML = '<div class="cover ' + esc(b.couleur) + '" style="' +
+          LIVE.couverture(b, 'width:28px;height:42px;font-size:0') + '"></div>' +
+        '<span class="pseudo" style="font-size:.88rem">' + esc(b.titre) + '</span>' +
+        '<span class="bk">' + euro(b.prix_cents) + '</span>' +
+        '<span class="acts">' +
+        '<button class="stk" data-m="' + b.id + '" aria-label="Retirer un exemplaire">−</button>' +
+        '<span class="stock-n" style="width:24px;font-size:.9rem;' + (n ? '' : 'color:var(--texte-2);text-shadow:none') + '">' + n + '</span>' +
+        '<button class="stk" data-p="' + b.id + '" aria-label="Ajouter un exemplaire">+</button>' +
+        '</span>';
+      ul.appendChild(li);
+    });
+    const port = LIVE.etat.session.port_cents;
+    const tot = Object.keys(sel).reduce((s, id) => s + LIVE.livre(id).prix_cents * sel[id], 0);
+    $('shTotal').textContent = tot > 0 ? euro(tot + port) : '—';
+    $('shPay').textContent = tot > 0
+      ? 'Valider ma commande · ' + euro(tot + port) + ' port inclus'
+      : 'Choisissez au moins un livre';
+  }
+  $('shBooks').addEventListener('click', function (e) {
+    const m = e.target.closest('[data-m]'), p = e.target.closest('[data-p]');
+    if (m) { const id = m.dataset.m; if (sel[id]) { sel[id]--; if (!sel[id]) delete sel[id]; } rendreVolet(); }
+    if (p) { const id = p.dataset.p; sel[id] = (sel[id] || 0) + 1; rendreVolet(); }
+  });
+  $('shClose').onclick = fermerVolet;
+  $('sheetVeil').onclick = fermerVolet;
+
+  $('shPay').onclick = async function () {
+    const items = Object.keys(sel).filter(id => sel[id] > 0).map(id => ({ book: id, n: sel[id] }));
+    if (!items.length) return LIVE.toast('Choisissez au moins un livre');
+    const p = $('shPseudo'), t = $('shTel'), a = $('shAdr'), cp = $('shCp'), v = $('shVille');
+    if (!p.value.trim()) { LIVE.toast('Indiquez votre pseudo pour la dédicace'); return p.focus(); }
+    if (t.value.replace(/\D/g, '').length < 10) { LIVE.toast('Numéro de téléphone incomplet'); return t.focus(); }
+    if (!a.value.trim() || cp.value.replace(/\D/g, '').length < 5 || !v.value.trim()) {
+      LIVE.toast('Adresse d\'expédition incomplète');
+      return (!a.value.trim() ? a : cp.value.length < 5 ? cp : v).focus();
+    }
+    this.disabled = true;
+    try {
+      await LIVE.api.passerCommande({
+        pseudo: p.value.trim(), message: $('shMsg').value.trim(), items: items,
+        tel: t.value.trim(), adresse: a.value.trim(), cp: cp.value.trim(), ville: v.value.trim(),
+      });
+      sessionStorage.setItem('live_pseudo', p.value.trim());
+      [p, t, a, cp, v, $('shMsg')].forEach(el => { el.value = ''; });
+      sel = {}; fermerVolet();
+      LIVE.toast('Commande validée — votre lien de paiement arrive par SMS 📲');
+    } catch (e) { /* message déjà affiché */ }
+    this.disabled = false;
+  };
+
+  /* ================= Flux vidéo YouTube ================= */
+  let player = null, ytPret = false, camOn = true, sonOn = false, attente = null, idCourant = null;
+  const feed = $('liveFeed');
+  const btnCam = feed.querySelector('[data-cam]'), btnSon = feed.querySelector('[data-son]');
+  const invite = $('soundInvite');
+
+  window.onYouTubeIframeAPIReady = function () { ytPret = true; if (attente) brancher(attente); };
+  (function () { const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s); })();
+
+  function brancherSiBesoin(id) {
+    if (id === idCourant) return;
+    idCourant = id;
+    if (id) brancher(id); else debrancher();
+  }
+  function brancher(id) {
+    if (!ytPret) { attente = id; return; }
+    attente = null;
+    $('ytHolder').style.display = ''; $('liveScene').style.display = 'none';
+    invite.style.display = 'flex';
+    if (player) { player.loadVideoById(id); player.mute(); }
+    else player = new YT.Player('ytPlayer', {
+      videoId: id,
+      playerVars: { enablejsapi: 1, rel: 0, modestbranding: 1, playsinline: 1, autoplay: 1 },
+      events: { onReady: e => { e.target.mute(); e.target.playVideo(); } },
+    });
+    camOn = true; sonOn = false;
+    btnCam.textContent = '🎥'; btnCam.classList.remove('off');
+    btnSon.textContent = '🔇'; btnSon.classList.add('off');
+    feed.classList.remove('cam-off');
+  }
+  function debrancher() {
+    if (player) player.stopVideo();
+    $('ytHolder').style.display = 'none'; $('liveScene').style.display = '';
+    invite.style.display = 'none';
+  }
+  function setSon(on) {
+    sonOn = on;
+    if (player) { on ? player.unMute() : player.mute(); }
+    btnSon.textContent = on ? '🔊' : '🔇'; btnSon.classList.toggle('off', !on);
+    invite.style.display = (on || !player) ? 'none' : 'flex';
+  }
+  invite.onclick = () => { setSon(true); LIVE.toast('Son activé'); };
+  btnSon.onclick = () => { setSon(!sonOn); LIVE.toast(sonOn ? 'Son activé' : 'Son coupé'); };
+  btnCam.onclick = function () {
+    camOn = !camOn;
+    if (player) { camOn ? player.playVideo() : player.pauseVideo(); }
+    feed.classList.toggle('cam-off', !camOn);
+    btnCam.textContent = camOn ? '🎥' : '⛔'; btnCam.classList.toggle('off', !camOn);
+    LIVE.toast(camOn ? 'Vidéo relancée' : 'Vidéo en pause — le chat et la file continuent');
+  };
+
+  /* -- plein écran adaptatif -- */
+  let cinema = false;
+  const btnFull = feed.querySelector('[data-full]');
+  function setCinema(on) {
+    cinema = on;
+    document.body.classList.toggle('cinema', on);
+    feed.classList.toggle('cinema', on);
+    btnFull.textContent = on ? '✕' : '⛶';
+    btnFull.setAttribute('aria-label', on ? 'Quitter le plein écran' : 'Plein écran');
+    if (on) $('cineChat').appendChild(chat); else $('slotVisiteur').appendChild(chat);
+    rendre();
+  }
+  btnFull.onclick = () => setCinema(!cinema);
+  addEventListener('keydown', e => { if (e.key === 'Escape' && cinema) setCinema(false); });
+  $('cineBooks').onclick = function () {
+    setCinema(false);
+    $('books').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  LIVE.demarrer(rendre);
+})();
+</script>
+</body>
+</html>
