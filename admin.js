@@ -2287,6 +2287,7 @@ function renderEventCard(event) {
       </div>
 
       <div class="event-actions">
+        <button class="event-action social-copy" data-action="instagram-pack" data-id="${event.id}" type="button" title="Préparer les trois tuiles Instagram">▣ <span>Insta</span></button>
         <button class="event-action validate" data-action="validate" data-id="${event.id}" type="button" title="Valider">✔ <span>Valider</span></button>
         <button class="event-action reject" data-action="reject" data-id="${event.id}" type="button" title="Refuser">✖ <span>Refuser</span></button>
         <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button" title="${event.featured ? "Retirer la mise en avant" : "Mettre en avant"}">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
@@ -2334,6 +2335,7 @@ function bindEventActions() {
       if (action === "featured") await toggleFeatured(id);
       if (action === "edit") openEditModal(id);
       if (action === "copy-social") await copySocialPost(id);
+      if (action === "instagram-pack") await createInstagramPack(id, button);
       if (action === "delete") await deleteRejectedEvent(id);
     });
   });
@@ -2365,6 +2367,74 @@ async function copySocialPost(id) {
     console.warn("Copie presse-papiers indisponible :", error);
     fallbackCopyText(text);
     showToast("Texte prêt à copier");
+  }
+}
+
+async function createInstagramPack(id, button) {
+  if (!(await ensureAdminSession())) return;
+
+  const event = allEvents.find((item) => String(item.id) === String(id));
+  if (!event) {
+    showToast("Événement introuvable");
+    return;
+  }
+  if (!event.validated || event.rejected) {
+    showToast("Le pack Instagram est réservé aux événements validés");
+    return;
+  }
+
+  const venueImageUrl = window.prompt(
+    "Image du lieu (facultative)\n\nColle l’URL d’une image dont tu as le droit d’usage. Sans image, une tuile éditoriale sera créée.",
+    ""
+  );
+  if (venueImageUrl !== null && venueImageUrl.trim() && !/^https?:\/\//i.test(venueImageUrl.trim())) {
+    showToast("L’image du lieu doit utiliser une URL http(s)");
+    return;
+  }
+
+  const previousLabel = button?.innerHTML;
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = "⌛ <span>Prépare…</span>";
+  }
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    const accessToken = data?.session?.access_token;
+    if (!accessToken) throw new Error("Session administrateur introuvable.");
+
+    const response = await fetch(getExportsWorkerBaseUrl() + "/admin-event-pack", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + accessToken,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        event_id: event.id,
+        venue_image_url: venueImageUrl?.trim() || ""
+      }),
+      cache: "no-store"
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.ok) {
+      throw new Error(result?.error || "HTTP " + response.status);
+    }
+
+    const packUrl = result.files?.find((file) => file.label === "Pack Instagram")?.url;
+    if (!packUrl) throw new Error("Lien du pack absent de la réponse.");
+
+    window.open(packUrl, "_blank", "noopener,noreferrer");
+    recordAdminAction("Pack Instagram préparé", event.title || "Événement");
+    showToast("Pack Instagram prêt dans un nouvel onglet");
+  } catch (error) {
+    console.warn("Pack Instagram impossible", error);
+    showToast("Erreur pack Instagram : " + (error.message || error));
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = previousLabel;
+    }
   }
 }
 
