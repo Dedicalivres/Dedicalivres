@@ -44,6 +44,69 @@
   white-space: nowrap;
 }
 
+.admin-simple-hub {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 18px 18px;
+  border-left: 4px solid var(--status-info);
+}
+
+.admin-simple-kicker {
+  display: block;
+  color: var(--status-info);
+  font-size: .76rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.admin-simple-hub h3 {
+  margin: 5px 0;
+}
+
+.admin-simple-hub p {
+  margin: 0;
+  color: var(--cyber-muted);
+}
+
+.admin-simple-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Vue essentielle : trois destinations et les décisions immédiates uniquement. */
+body.admin-simple-mode .admin-tab:not([data-tab="overview"]):not([data-tab="events"]):not([data-tab="social"]) {
+  display: none;
+}
+
+body.admin-simple-mode #admin-simple-hub {
+  display: flex;
+}
+
+body.admin-simple-mode #tab-overview > .admin-map-panel,
+body.admin-simple-mode #tab-overview > .priority-grid,
+body.admin-simple-mode #tab-overview > .admin-panel:not(#admin-simple-hub):not(#admin-mission-panel),
+body.admin-simple-mode #admin-action-priority-panel,
+body.admin-simple-mode #traffic-overview-panel {
+  display: none !important;
+}
+
+body.admin-simple-mode #tab-overview .stats-grid .stat-card:nth-child(n+3) {
+  display: none;
+}
+
+body.admin-simple-mode #tab-events .toolbar select:not(#filter-status) {
+  display: none;
+}
+
+body.admin-simple-mode #tab-social .instagram-generator-card,
+body.admin-simple-mode #tab-social .social-help-card {
+  display: none;
+}
+
 .admin-tab[data-tab="premium"] {
   opacity: .72;
 }
@@ -67,6 +130,12 @@
   .social-publication-hub {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .admin-simple-hub {
+    align-items: flex-start;
+    flex-direction: column;
+    margin: 0 8px 12px;
   }
 }
 

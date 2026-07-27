@@ -22,7 +22,7 @@
   />
 
   <link rel="stylesheet" href="admin.css?v=9.2-events-inventory" />
-  <link rel="stylesheet" href="admin-cockpit.css?v=2.1-exports-red-visible" />
+  <link rel="stylesheet" href="admin-cockpit.css?v=admin-simple-1" />
   <link rel="stylesheet" href="admin-comptoir.css?v=comptoir-2" />
 </head>
 
@@ -85,6 +85,15 @@
         type="button"
       >
         + Nouvel événement
+      </button>
+
+      <button
+        id="admin-view-mode-btn"
+        class="cyber-btn-secondary"
+        type="button"
+        aria-pressed="false"
+      >
+        Mode essentiel
       </button>
 
       <button
@@ -186,6 +195,18 @@
           <strong id="stats-visits">0</strong>
         </article>
 
+      </section>
+
+      <section id="admin-simple-hub" class="admin-panel admin-simple-hub" aria-label="Actions essentielles">
+        <div>
+          <span class="admin-simple-kicker">Pilotage rapide</span>
+          <h3>L’essentiel pour aujourd’hui</h3>
+          <p>Consulte les compteurs, ajoute un événement ou prépare une publication.</p>
+        </div>
+        <div class="admin-simple-actions">
+          <button id="admin-simple-create-event" class="cyber-btn-primary" type="button">+ Nouvel événement</button>
+          <button id="admin-simple-publication" class="cyber-btn-secondary" type="button">Préparer une publication</button>
+        </div>
       </section>
 
       <!-- ============================================= -->
@@ -869,7 +890,7 @@
 ></script>
 
 <script src="config.js?v=shared-client-1"></script>
-<script src="admin.js?v=admin-refonte-1"></script>
+<script src="admin.js?v=admin-refonte-2"></script>
 
 <script src="admin-comptoir.js?v=admin-refonte-1" defer></script>
 </body>

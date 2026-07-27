@@ -74,6 +74,9 @@ const removeEditImageBtn = document.getElementById("remove-edit-image");
 const saveEditBtn = document.getElementById("save-edit-btn");
 const closeEditModalBtn = document.getElementById("close-edit-modal");
 const createEventBtn = document.getElementById("create-event-btn");
+const adminViewModeBtn = document.getElementById("admin-view-mode-btn");
+const adminSimpleCreateEventBtn = document.getElementById("admin-simple-create-event");
+const adminSimplePublicationBtn = document.getElementById("admin-simple-publication");
 
 const premiumContainer = document.getElementById("premium-container");
 const premiumCount = document.getElementById("premium-count");
@@ -107,6 +110,7 @@ let adminEditorMode = "edit";
 
 const ADMIN_MODULE_VERSION = "10.18-admin-refonte";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
+const ADMIN_VIEW_MODE_KEY = "dedicalivres_admin_view_mode_v1";
 const ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY = "dedicalivres_admin_inventory_departments_v1";
 const adminModerationCounters = {
   events: 0,
@@ -158,6 +162,7 @@ const ADMIN_LOCATION_COLUMNS = [
 
 init();
 ensureAdminObservatoryStyles();
+applyAdminViewMode();
 
 function ensureAdminObservatoryStyles() {
   if (document.getElementById("admin-observatory-styles")) return;
@@ -386,6 +391,9 @@ function bindEvents() {
   });
 
   createEventBtn?.addEventListener("click", openCreateEventModal);
+  adminSimpleCreateEventBtn?.addEventListener("click", openCreateEventModal);
+  adminSimplePublicationBtn?.addEventListener("click", () => switchAdminTab("social"));
+  adminViewModeBtn?.addEventListener("click", toggleAdminViewMode);
 
   searchInput?.addEventListener("input", renderEvents);
   filterStatus?.addEventListener("change", renderEvents);
@@ -411,6 +419,49 @@ function bindEvents() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeEditModal();
   });
+}
+
+function getAdminViewMode() {
+  try {
+    const saved = localStorage.getItem(ADMIN_VIEW_MODE_KEY);
+    if (saved === "simple" || saved === "complete") return saved;
+  } catch {
+    // Le mode reste utilisable même si le navigateur bloque le stockage local.
+  }
+
+  return window.matchMedia?.("(max-width: 900px)").matches ? "simple" : "complete";
+}
+
+function applyAdminViewMode(mode = getAdminViewMode()) {
+  const isSimple = mode === "simple";
+  document.body.classList.toggle("admin-simple-mode", isSimple);
+
+  if (adminViewModeBtn) {
+    adminViewModeBtn.textContent = isSimple ? "Mode complet" : "Mode essentiel";
+    adminViewModeBtn.setAttribute("aria-pressed", String(isSimple));
+    adminViewModeBtn.title = isSimple
+      ? "Afficher tous les modules de l’administration"
+      : "N’afficher que les actions essentielles";
+  }
+
+  if (isSimple) {
+    const activeTab = document.querySelector(".admin-tab.active");
+    const allowed = ["overview", "events", "social"];
+    if (activeTab && !allowed.includes(activeTab.dataset.tab || "")) {
+      switchAdminTab("overview");
+    }
+  }
+}
+
+function toggleAdminViewMode() {
+  const nextMode = getAdminViewMode() === "simple" ? "complete" : "simple";
+  try {
+    localStorage.setItem(ADMIN_VIEW_MODE_KEY, nextMode);
+  } catch {
+    // Le choix s’applique pour la session en cours si le stockage est indisponible.
+  }
+  applyAdminViewMode(nextMode);
+  showToast(nextMode === "simple" ? "Mode essentiel activé" : "Mode complet activé");
 }
 
 /* LOGIN */
