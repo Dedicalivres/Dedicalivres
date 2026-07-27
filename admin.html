@@ -63,8 +63,8 @@
       <div class="status-dot"></div>
 
       <div>
-        <h2>CENTRE DE CONTRÔLE</h2>
-        <p>Dédicalivres · modération, qualité, publications</p>
+        <h2>ADMINISTRATION DÉDICALIVRES</h2>
+        <p>Événements, qualité et publications</p>
       </div>
 
     </div>
@@ -77,6 +77,14 @@
         type="button"
       >
         Actualiser
+      </button>
+
+      <button
+        id="create-event-btn"
+        class="cyber-btn-primary"
+        type="button"
+      >
+        + Nouvel événement
       </button>
 
       <button
@@ -99,7 +107,7 @@
   <nav class="admin-tabs">
 
     <button class="admin-tab active" data-tab="overview" type="button">
-      Tableau de bord
+      Accueil
     </button>
 
     <button class="admin-tab" data-tab="events" type="button">
@@ -107,7 +115,7 @@
     </button>
 
     <button class="admin-tab" data-tab="moderation" type="button">
-      Modération
+      À traiter
     </button>
 
     <button class="admin-tab" data-tab="quality" type="button">
@@ -115,27 +123,27 @@
     </button>
 
     <button class="admin-tab" data-tab="stats" type="button">
-      Statistiques
+      Analyse
     </button>
 
     <button class="admin-tab" data-tab="premium" type="button">
-      Premium
+      Premium · pause
     </button>
 
     <button class="admin-tab" data-tab="exports" type="button">
-      Exports
+      Exports & données
     </button>
 
     <button class="admin-tab" data-tab="watch" type="button">
-      Veille
+      Veille & imports
     </button>
 
     <button class="admin-tab" data-tab="social" type="button">
-      Réseaux
+      Publication
     </button>
 
     <button class="admin-tab" data-tab="settings" type="button">
-      Sécurité
+      Système
     </button>
 
   </nav>
@@ -424,7 +432,7 @@
     <section id="tab-exports" class="admin-tab-panel">
       <section class="admin-panel admin-exports-panel">
         <div class="section-head">
-          <h3>EXPORTS & PUBLICATIONS</h3>
+          <h3>BIBLIOTHÈQUE D’EXPORTS</h3>
           <span id="exports-status">En attente de vérification</span>
         </div>
 
@@ -687,20 +695,20 @@
     <section id="tab-settings" class="admin-tab-panel">
       <section class="admin-panel cockpit-security-panel">
         <div class="section-head">
-          <h3>SÉCURITÉ & RETOUR ARRIÈRE</h3>
-          <span>État de contrôle local</span>
+          <h3>SYSTÈME & CONTRÔLES</h3>
+          <span>Indicateurs déclaratifs : pas un audit de sécurité</span>
         </div>
 
         <div id="control-security-grid" class="cockpit-status-grid"></div>
 
         <div class="cockpit-security-note">
-          <strong>Sauvegarde locale vérifiée</strong>
-          <span>/Users/jeanchristopheleguilly/SupabaseBackups/dedicalivres/2026-05-25_21-24-15</span>
+          <strong>Sauvegarde et restauration</strong>
+          <span>Les sauvegardes restent gérées hors de l’interface. Aucun statut ne doit être interprété comme une vérification en direct.</span>
         </div>
 
         <div class="cockpit-security-note">
-          <strong>Rapport des changements</strong>
-          <span>SUPABASE_APPLIED_CHANGES_2026-05-25.md</span>
+          <strong>Premium</strong>
+          <span>Module éditorial en pause : il utilise uniquement la mise en avant existante, sans offre commerciale active.</span>
         </div>
       </section>
     </section>
@@ -861,8 +869,8 @@
 ></script>
 
 <script src="config.js?v=shared-client-1"></script>
-<script src="admin.js?v=control-center-15-events-inventory"></script>
+<script src="admin.js?v=admin-refonte-1"></script>
 
-<script src="admin-comptoir.js?v=comptoir-2" defer></script>
+<script src="admin-comptoir.js?v=admin-refonte-1" defer></script>
 </body>
 </html>

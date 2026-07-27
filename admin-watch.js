@@ -83,7 +83,7 @@
               <h3>Veille événements</h3>
               <p>
                 Analyse une URL ou une liste d’URL, puis prépare une fiche candidate à relire.
-                Tu peux l’envoyer dans les soumissions publiques pour la compléter, la valider ou la refuser.
+                Cette entrée web complète Auto-Matte local : les deux chemins rejoignent la même modération. Vérifie les doublons avant validation.
               </p>
             </div>
             <span class="watch-pill">V${VERSION}</span>

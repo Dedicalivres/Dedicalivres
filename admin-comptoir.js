@@ -47,8 +47,8 @@
   document.addEventListener("DOMContentLoaded", function () {
 
     /* ---------- 2. Onglets réordonnés par fréquence d'usage ---------- */
-    var ORDER = ["moderation", "events", "overview", "premium", "social",
-                 "exports", "quality", "watch", "stats", "settings"];
+    var ORDER = ["overview", "events", "moderation", "social", "quality",
+                 "watch", "exports", "stats", "premium", "settings"];
     var tabsBar = document.querySelector(".admin-tabs");
     if (tabsBar) {
       ORDER.forEach(function (name) {
@@ -62,7 +62,8 @@
        Réutilise les globaux d'admin.js : supabaseClient,
        ensureAdminSession, validateEvent, rejectEvent, showToast.
     ========================================================= */
-    setupComptoirTab(tabsBar);
+    // La file « Aujourd’hui » est désormais rendue par le tableau d’accueil
+    // du noyau admin. On ne crée plus un deuxième onglet concurrent.
 
 
     /* ---------- 3. Compteurs de travail en attente ---------- */
@@ -105,25 +106,8 @@
       }
     });
 
-    /* ---------- 4. Bouton flottant « Poster un événement » ---------- */
-    if (!document.getElementById("cpt-fab")) {
-      var fab = document.createElement("button");
-      fab.id = "cpt-fab";
-      fab.type = "button";
-      fab.innerHTML = "✒️ <span>Poster un événement</span>";
-      fab.addEventListener("click", function () {
-        var tab = document.querySelector('.admin-tab[data-tab="events"]');
-        if (tab) tab.click();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        /* focus sur le premier champ utile du panneau événements */
-        setTimeout(function () {
-          var panel = document.getElementById("tab-events");
-          var field = panel && panel.querySelector("input, select, textarea, button");
-          if (field) field.focus();
-        }, 350);
-      });
-      document.body.appendChild(fab);
-    }
+    // Le raccourci « + Nouvel événement » est dans l’en-tête et ouvre
+    // désormais un véritable formulaire de création.
   });
 
   /* ---------- L'espace Aujourd'hui ---------- */

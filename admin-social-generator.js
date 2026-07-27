@@ -117,6 +117,19 @@
   function injectInterface(tab) {
     tab.innerHTML = `
       <section class="social-generator-shell" data-social-generator-version="${VERSION}">
+        <article class="social-card social-publication-hub">
+          <div class="social-card-head">
+            <div>
+              <h3>Publication</h3>
+              <p>Prépare ici les textes, puis crée un pack visuel depuis la fiche d’un événement validé.</p>
+            </div>
+          </div>
+          <div class="social-generator-actions">
+            <button id="social-open-events" class="cyber-btn-primary" type="button">Choisir un événement</button>
+            <button id="social-open-exports" class="cyber-btn-secondary" type="button">Bibliothèque d’exports</button>
+          </div>
+        </article>
+
         <article class="social-card instagram-generator-card">
           <div class="social-card-head">
             <div>
@@ -236,6 +249,12 @@
     document.getElementById("social-generate-post")?.addEventListener("click", generatePost);
     document.getElementById("social-copy-post")?.addEventListener("click", copyPost);
     document.getElementById("social-clear-selection")?.addEventListener("click", clearSelection);
+    document.getElementById("social-open-events")?.addEventListener("click", () => {
+      document.querySelector('.admin-tab[data-tab="events"]')?.click();
+    });
+    document.getElementById("social-open-exports")?.addEventListener("click", () => {
+      document.querySelector('.admin-tab[data-tab="exports"]')?.click();
+    });
   }
 
   function populateRegionFilter() {

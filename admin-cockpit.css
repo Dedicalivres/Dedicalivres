@@ -30,6 +30,44 @@
 
 .admin-tabs {
   align-items: stretch;
+  gap: 8px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topbar-right .cyber-btn-primary {
+  white-space: nowrap;
+}
+
+.admin-tab[data-tab="premium"] {
+  opacity: .72;
+}
+
+.admin-tab[data-tab="settings"]::before {
+  background: var(--status-neutral);
+}
+
+.social-publication-hub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.social-publication-hub .social-card-head {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .social-publication-hub {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .admin-tab {

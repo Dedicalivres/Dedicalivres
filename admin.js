@@ -73,6 +73,7 @@ const editImageUrl = document.getElementById("edit-image-url");
 const removeEditImageBtn = document.getElementById("remove-edit-image");
 const saveEditBtn = document.getElementById("save-edit-btn");
 const closeEditModalBtn = document.getElementById("close-edit-modal");
+const createEventBtn = document.getElementById("create-event-btn");
 
 const premiumContainer = document.getElementById("premium-container");
 const premiumCount = document.getElementById("premium-count");
@@ -102,8 +103,9 @@ let adminBooting = false;
 let editCityAutocompleteTimer = null;
 let editCitySuggestionCache = new Map();
 let originalEditLocationSignature = "";
+let adminEditorMode = "edit";
 
-const ADMIN_MODULE_VERSION = "10.17-exports-events-inventory";
+const ADMIN_MODULE_VERSION = "10.18-admin-refonte";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY = "dedicalivres_admin_inventory_departments_v1";
 const adminModerationCounters = {
@@ -382,6 +384,8 @@ function bindEvents() {
       refreshBtn.textContent = previousLabel || "Actualiser";
     }
   });
+
+  createEventBtn?.addEventListener("click", openCreateEventModal);
 
   searchInput?.addEventListener("input", renderEvents);
   filterStatus?.addEventListener("change", renderEvents);
@@ -952,7 +956,7 @@ function renderAdminMissionControl() {
       ${renderMissionTile("Qualité", buckets.qualityLow.length, "quality-low", buckets.qualityLow.length ? "danger" : "ok")}
       ${renderMissionTile("GPS", buckets.missingCoords.length, "missing-coords", buckets.missingCoords.length ? "danger" : "ok")}
       ${renderMissionTile("Publication", buckets.soon.length, "soon", buckets.soon.length ? "info" : "neutral")}
-      ${renderMissionTile("Santé", criticalTotal, "settings", criticalTotal ? "warning" : "ok")}
+      ${renderMissionTile("À corriger", criticalTotal, "quality-low", criticalTotal ? "warning" : "ok")}
     </div>
   `;
 
@@ -1499,12 +1503,12 @@ function renderSecurityControlCenter() {
   if (!controlSecurityGrid) return;
 
   controlSecurityGrid.innerHTML = [
-    renderControlMetric("Backup", "OK", "ok", "local vérifié"),
-    renderControlMetric("RLS", "OK", "ok", "policies durcies"),
-    renderControlMetric("Storage", "OK", "ok", "uploads limités"),
-    renderControlMetric("Admin", "OK", "ok", "helper privé"),
-    renderControlMetric("À finir", "2", "warning", "unaccent + Auth password"),
-    renderControlMetric("Rollback", "Prêt", "info", "SQL exporté")
+    renderControlMetric("Session admin", window.DEDICALIVRES_ADMIN_AUTHENTICATED ? "Active" : "Absente", window.DEDICALIVRES_ADMIN_AUTHENTICATED ? "ok" : "warning", "contrôle navigateur"),
+    renderControlMetric("Base événements", allEvents.length ? "Accessible" : "À vérifier", allEvents.length ? "info" : "warning", "lecture depuis l’admin"),
+    renderControlMetric("RLS", "À auditer", "neutral", "contrôle Supabase requis"),
+    renderControlMetric("Stockage", "À auditer", "neutral", "contrôle R2 / Supabase requis"),
+    renderControlMetric("Sauvegardes", "Externe", "neutral", "hors de l’interface web"),
+    renderControlMetric("Retour arrière", "Documenté", "info", "appliquer après vérification")
   ].join("");
 }
 
@@ -2981,6 +2985,10 @@ function openEditModal(id) {
     adminInventoryEvents.find((item) => String(item.id) === String(id));
   if (!event) return;
 
+  adminEditorMode = "edit";
+  document.querySelector("#edit-modal .edit-header h3").textContent = "MODIFIER L’ÉVÉNEMENT";
+  if (saveEditBtn) saveEditBtn.textContent = "ENREGISTRER";
+
   editId.value = event.id || "";
   editTitle.value = event.title || "";
   editType.value = event.type || "";
@@ -3008,10 +3016,38 @@ function openEditModal(id) {
   editModal.classList.remove("hidden");
 }
 
+function openCreateEventModal() {
+  adminEditorMode = "create";
+  selectedAdminImageFile = null;
+  editId.value = "";
+  editTitle.value = "";
+  editType.value = "Salon";
+  if (editCountry) editCountry.value = "FR";
+  editCity.value = "";
+  editRegion.value = "";
+  if (editLat) editLat.value = "";
+  if (editLng) editLng.value = "";
+  editStartDate.value = "";
+  editEndDate.value = "";
+  editWebsite.value = "";
+  editDescription.value = "";
+  editImageUrl.value = "";
+  if (editImageFile) editImageFile.value = "";
+  clearEditCitySuggestions();
+  renderEditImagePreview("");
+  originalEditLocationSignature = getEditLocationSignature();
+  setEditCityHelp("Renseigne au minimum le titre, la ville et la date. La fiche sera publiée après création.");
+  document.querySelector("#edit-modal .edit-header h3").textContent = "NOUVEL ÉVÉNEMENT";
+  if (saveEditBtn) saveEditBtn.textContent = "CRÉER ET PUBLIER";
+  editModal.classList.remove("hidden");
+  setTimeout(() => editTitle?.focus(), 50);
+}
+
 function closeEditModal() {
   editModal.classList.add("hidden");
   clearEditCitySuggestions();
   originalEditLocationSignature = "";
+  adminEditorMode = "edit";
 }
 
 function handleEditCountryChange() {
@@ -3414,7 +3450,8 @@ async function saveEdition() {
   if (!(await ensureAdminSession())) return;
 
   const id = editId.value;
-  if (!id) return;
+  const isCreation = adminEditorMode === "create";
+  if (!id && !isCreation) return;
 
   const submitButton = saveEditBtn;
   if (submitButton) {
@@ -3461,25 +3498,30 @@ async function saveEdition() {
       lng: coordinates ? coordinates.lng : null
     };
 
-    const { error } = await supabaseClient
-      .from("events")
-      .update(payload)
-      .eq("id", id);
+    if (!payload.title || !payload.city || !payload.start_date) {
+      showToast("Titre, ville et date sont obligatoires");
+      return;
+    }
+
+    const request = isCreation
+      ? supabaseClient.from("events").insert({ ...payload, validated: true, rejected: false })
+      : supabaseClient.from("events").update(payload).eq("id", id);
+    const { error } = await request;
 
     if (error) throw error;
 
     selectedAdminImageFile = null;
     closeEditModal();
     await loadDashboard();
-    recordAdminAction("Événement modifié", payload.title || "Sans titre");
-    showToast("Événement modifié");
+    recordAdminAction(isCreation ? "Événement créé" : "Événement modifié", payload.title || "Sans titre");
+    showToast(isCreation ? "Événement créé et publié" : "Événement modifié");
   } catch (error) {
     console.error("Erreur édition admin :", error);
     showToast("Erreur édition");
   } finally {
     if (submitButton) {
       submitButton.disabled = false;
-      submitButton.textContent = "ENREGISTRER";
+      submitButton.textContent = adminEditorMode === "create" ? "CRÉER ET PUBLIER" : "ENREGISTRER";
     }
   }
 }
