@@ -2383,19 +2383,17 @@ async function createInstagramPack(id, button) {
     return;
   }
 
-  const venueImageUrl = window.prompt(
-    "Image du lieu (facultative)\n\nColle l’URL d’une image dont tu as le droit d’usage. Sans image, une tuile éditoriale sera créée.",
-    ""
-  );
-  if (venueImageUrl !== null && venueImageUrl.trim() && !/^https?:\/\//i.test(venueImageUrl.trim())) {
-    showToast("L’image du lieu doit utiliser une URL http(s)");
-    return;
-  }
-
   const previousLabel = button?.innerHTML;
   if (button) {
     button.disabled = true;
     button.innerHTML = "⌛ <span>Prépare…</span>";
+  }
+  // Ouvre la fenêtre dans le geste utilisateur : sinon Safari/Chrome peut
+  // bloquer l’onglet après l’attente de la réponse du Worker.
+  const packWindow = window.open("", "_blank");
+  if (packWindow) {
+    packWindow.document.title = "Préparation du pack Instagram…";
+    packWindow.document.body.innerHTML = "<p style='font:16px system-ui;padding:24px'>Préparation du pack Instagram…</p>";
   }
 
   try {
@@ -2410,10 +2408,7 @@ async function createInstagramPack(id, button) {
         Authorization: "Bearer " + accessToken,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        event_id: event.id,
-        venue_image_url: venueImageUrl?.trim() || ""
-      }),
+      body: JSON.stringify({ event_id: event.id }),
       cache: "no-store"
     });
     const result = await response.json().catch(() => null);
@@ -2424,10 +2419,15 @@ async function createInstagramPack(id, button) {
     const packUrl = result.files?.find((file) => file.label === "Pack Instagram")?.url;
     if (!packUrl) throw new Error("Lien du pack absent de la réponse.");
 
-    window.open(packUrl, "_blank", "noopener,noreferrer");
+    if (packWindow) {
+      packWindow.location.replace(packUrl);
+    } else {
+      window.location.assign(packUrl);
+    }
     recordAdminAction("Pack Instagram préparé", event.title || "Événement");
     showToast("Pack Instagram prêt dans un nouvel onglet");
   } catch (error) {
+    packWindow?.close();
     console.warn("Pack Instagram impossible", error);
     showToast("Erreur pack Instagram : " + (error.message || error));
   } finally {
