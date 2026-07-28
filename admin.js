@@ -1327,7 +1327,10 @@ function renderCustomAdminEventList(events, label) {
     return;
   }
 
-  eventsContainer.innerHTML = events.map(renderEventCard).join("");
+  eventsContainer.innerHTML = [...events]
+    .sort(compareAdminEventsChronologically)
+    .map(renderEventCard)
+    .join("");
   bindEventActions();
 
   document.getElementById("tab-events")?.scrollIntoView({
@@ -2126,7 +2129,21 @@ function getFilteredEvents() {
     if (status === "missing-image") return !event.image_url;
 
     return true;
-  });
+  }).sort(compareAdminEventsChronologically);
+}
+
+function compareAdminEventsChronologically(a, b) {
+  const aDate = String(a?.start_date || "").slice(0, 10);
+  const bDate = String(b?.start_date || "").slice(0, 10);
+
+  if (!aDate && !bDate) {
+    return String(a?.title || "").localeCompare(String(b?.title || ""), "fr");
+  }
+  if (!aDate) return 1;
+  if (!bDate) return -1;
+
+  return aDate.localeCompare(bDate)
+    || String(a?.title || "").localeCompare(String(b?.title || ""), "fr");
 }
 
 

@@ -88,13 +88,12 @@ body.admin-simple-mode #admin-simple-hub {
 
 body.admin-simple-mode #tab-overview > .admin-map-panel,
 body.admin-simple-mode #tab-overview > .priority-grid,
-body.admin-simple-mode #tab-overview > .admin-panel:not(#admin-simple-hub):not(#admin-mission-panel),
-body.admin-simple-mode #admin-action-priority-panel,
-body.admin-simple-mode #traffic-overview-panel {
+body.admin-simple-mode #tab-overview > .admin-panel:not(#admin-simple-hub):not(#admin-mission-panel):not(#traffic-overview-panel),
+body.admin-simple-mode #admin-action-priority-panel {
   display: none !important;
 }
 
-body.admin-simple-mode #tab-overview .stats-grid .stat-card:nth-child(n+3) {
+body.admin-simple-mode #tab-overview .stats-grid .stat-card-featured-premium {
   display: none;
 }
 
