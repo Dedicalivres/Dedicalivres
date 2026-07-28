@@ -77,13 +77,29 @@
   gap: 10px;
 }
 
-/* Vue essentielle : trois destinations et les décisions immédiates uniquement. */
-body.admin-simple-mode .admin-tab:not([data-tab="overview"]):not([data-tab="events"]):not([data-tab="social"]) {
+/* Vue essentielle : pilotage, événements, file de travail et ajout rapide. */
+.admin-simple-nav-create {
   display: none;
+}
+
+body.admin-simple-mode .admin-tab:not([data-tab="overview"]):not([data-tab="events"]):not([data-tab="moderation"]):not(.admin-simple-nav-create) {
+  display: none;
+}
+
+body.admin-simple-mode .admin-simple-nav-create {
+  display: inline-flex;
 }
 
 body.admin-simple-mode #admin-simple-hub {
   display: flex;
+}
+
+.admin-simple-work-panel {
+  display: none;
+}
+
+body.admin-simple-mode .admin-simple-work-panel {
+  display: block;
 }
 
 body.admin-simple-mode #tab-overview > .admin-map-panel,

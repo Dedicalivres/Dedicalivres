@@ -76,7 +76,8 @@ const closeEditModalBtn = document.getElementById("close-edit-modal");
 const createEventBtn = document.getElementById("create-event-btn");
 const adminViewModeBtn = document.getElementById("admin-view-mode-btn");
 const adminSimpleCreateEventBtn = document.getElementById("admin-simple-create-event");
-const adminSimplePublicationBtn = document.getElementById("admin-simple-publication");
+const adminSimpleWorkQueueBtn = document.getElementById("admin-simple-work-queue");
+const adminSimpleNavCreateBtn = document.getElementById("admin-simple-nav-create");
 
 const premiumContainer = document.getElementById("premium-container");
 const premiumCount = document.getElementById("premium-count");
@@ -392,7 +393,8 @@ function bindEvents() {
 
   createEventBtn?.addEventListener("click", openCreateEventModal);
   adminSimpleCreateEventBtn?.addEventListener("click", openCreateEventModal);
-  adminSimplePublicationBtn?.addEventListener("click", () => switchAdminTab("social"));
+  adminSimpleNavCreateBtn?.addEventListener("click", openCreateEventModal);
+  adminSimpleWorkQueueBtn?.addEventListener("click", () => switchAdminTab("moderation"));
   adminViewModeBtn?.addEventListener("click", toggleAdminViewMode);
 
   searchInput?.addEventListener("input", renderEvents);
@@ -446,7 +448,7 @@ function applyAdminViewMode(mode = getAdminViewMode()) {
 
   if (isSimple) {
     const activeTab = document.querySelector(".admin-tab.active");
-    const allowed = ["overview", "events", "social"];
+    const allowed = ["overview", "events", "moderation"];
     if (activeTab && !allowed.includes(activeTab.dataset.tab || "")) {
       switchAdminTab("overview");
     }
@@ -1120,6 +1122,8 @@ function renderModerationCommandCenter() {
       handleModerationCommand(button.dataset.moderationAction || "all");
     });
   });
+
+  renderSimpleWorkPanel(moderationTab, panel);
 }
 
 function renderModerationCommandCard(label, value, action, tone, detail) {
@@ -1130,6 +1134,41 @@ function renderModerationCommandCard(label, value, action, tone, detail) {
       <small>${escapeHtml(detail || "")}</small>
     </button>
   `;
+}
+
+function renderSimpleWorkPanel(moderationTab, moderationPanel) {
+  let panel = document.getElementById("admin-simple-work-panel");
+
+  if (!panel) {
+    panel = document.createElement("section");
+    panel.id = "admin-simple-work-panel";
+    panel.className = "admin-panel admin-simple-work-panel";
+    moderationPanel.insertAdjacentElement("afterend", panel);
+  }
+
+  const buckets = getControlBuckets();
+
+  panel.innerHTML = `
+    <div class="section-head">
+      <h3>FICHES À CORRIGER</h3>
+      <span>Accès direct aux principales anomalies</span>
+    </div>
+
+    <div class="admin-action-priority-grid">
+      ${renderPriorityActionCard("pending", buckets.pending.length, "Événements en attente", buckets.pending.length ? "is-warning" : "is-ok")}
+      ${renderPriorityActionCard("missing-image", buckets.missingImage.length, "Validés sans image", buckets.missingImage.length ? "is-warning" : "is-ok")}
+      ${renderPriorityActionCard("missing-coords", buckets.missingCoords.length, "Sans coordonnées", buckets.missingCoords.length ? "is-danger" : "is-ok")}
+      ${renderPriorityActionCard("quality-low", buckets.qualityLow.length, "Qualité faible", buckets.qualityLow.length ? "is-danger" : "is-ok")}
+      ${renderPriorityActionCard("featured-past", buckets.featuredPast.length, "Mis en avant passés", buckets.featuredPast.length ? "is-danger" : "is-ok")}
+      ${renderPriorityActionCard("soon", buckets.soon.length, "Dans les 14 jours", buckets.soon.length ? "is-warning" : "is-ok")}
+    </div>
+  `;
+
+  panel.querySelectorAll("[data-priority-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      applyPriorityAction(button.dataset.priorityAction);
+    });
+  });
 }
 
 function handleModerationCommand(action) {
