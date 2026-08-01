@@ -109,7 +109,7 @@ let editCitySuggestionCache = new Map();
 let originalEditLocationSignature = "";
 let adminEditorMode = "edit";
 
-const ADMIN_MODULE_VERSION = "10.18-admin-refonte";
+const ADMIN_MODULE_VERSION = "10.25-exports-charter-extract";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const ADMIN_VIEW_MODE_KEY = "dedicalivres_admin_view_mode_v1";
 const ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY = "dedicalivres_admin_inventory_departments_v1";
@@ -869,6 +869,7 @@ async function loadEvents() {
 
   archiveEventsLoaded = includeArchives;
   allEvents = Array.isArray(data) ? data : [];
+  populateManualExportRegions();
 }
 
 async function handleArchiveFilterChange() {
@@ -3568,6 +3569,12 @@ async function saveEdition() {
 
   try {
     let imageUrl = editImageUrl.value.trim() || null;
+    const rawWebsite = editWebsite.value.trim();
+    const website = normalizeAdminWebsite(rawWebsite);
+    if (rawWebsite && !website) {
+      showToast("Le site officiel doit commencer par http:// ou https://");
+      return;
+    }
     const locationChanged = getEditLocationSignature() !== originalEditLocationSignature;
     let coordinates = getEditCoordinates();
 
@@ -3598,7 +3605,7 @@ async function saveEdition() {
       region: editRegion.value.trim(),
       start_date: editStartDate.value || null,
       end_date: editEndDate.value || null,
-      website: editWebsite.value.trim(),
+      website,
       description: editDescription.value.trim(),
       image_url: imageUrl,
       lat: coordinates ? coordinates.lat : null,
@@ -3768,6 +3775,15 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function normalizeAdminWebsite(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !/^https?:\/\//i.test(raw)) return "";
+  const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  if (candidate.length > 2048) return "";
+  return (window.DEDICALIVRES_SAFE_EXTERNAL_URL || (() => ""))(candidate);
+}
+
 function formatDate(value) {
   if (!value) return "";
 
@@ -3846,7 +3862,130 @@ function bindAdminExportsPanel() {
 
   hydrateAdminExportLinks();
   bindAdminExternalExportLinks();
+  bindAdminManualExportPanel();
   bindAdminEventsInventoryPanel();
+}
+
+function bindAdminManualExportPanel() {
+  const button = document.getElementById("exports-manual-extract-btn");
+  if (!button || button.dataset.bound === "true") return;
+
+  button.dataset.bound = "true";
+  setDefaultManualExportDates();
+  populateManualExportRegions();
+  button.addEventListener("click", generateAdminManualExport);
+}
+
+function setDefaultManualExportDates() {
+  const start = document.getElementById("exports-manual-date-start");
+  const end = document.getElementById("exports-manual-date-end");
+  if (!start || !end) return;
+
+  const today = new Date();
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + 30);
+  if (!start.value) start.value = toAdminInputDate(today);
+  if (!end.value) end.value = toAdminInputDate(endDate);
+}
+
+function toAdminInputDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function populateManualExportRegions() {
+  const select = document.getElementById("exports-manual-region");
+  if (!select) return;
+
+  const current = select.value;
+  const regions = getKnownRegions();
+  select.replaceChildren(new Option("Tous les territoires", ""));
+  regions.forEach((region) => select.appendChild(new Option(region, region)));
+  if (regions.includes(current)) select.value = current;
+}
+
+async function generateAdminManualExport() {
+  if (!(await ensureAdminSession())) return;
+
+  const button = document.getElementById("exports-manual-extract-btn");
+  const status = document.getElementById("exports-manual-status");
+  const links = document.getElementById("exports-manual-links");
+  const dateStart = document.getElementById("exports-manual-date-start")?.value || "";
+  const dateEnd = document.getElementById("exports-manual-date-end")?.value || "";
+  const formats = Array.from(document.querySelectorAll('input[name="exports-manual-format"]:checked'))
+    .map((input) => input.value);
+
+  if (!dateStart || !dateEnd || dateStart > dateEnd) {
+    if (status) status.textContent = "Dates invalides";
+    showToast("Vérifie la période d’extraction");
+    return;
+  }
+  if (!formats.length) {
+    if (status) status.textContent = "Choisis au moins un fichier";
+    showToast("Choisis au moins un format");
+    return;
+  }
+
+  if (button) button.disabled = true;
+  if (links) links.replaceChildren();
+  if (status) status.textContent = "Génération en cours...";
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+
+    const accessToken = data?.session?.access_token;
+    if (!accessToken) throw new Error("Session admin introuvable.");
+
+    const response = await fetch(`${getExportsWorkerBaseUrl()}/admin-extract`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        category: document.getElementById("exports-manual-category")?.value || "all",
+        countryCode: document.getElementById("exports-manual-country")?.value || "ALL",
+        region: document.getElementById("exports-manual-region")?.value || "",
+        dateStart,
+        dateEnd,
+        visualFormat: document.getElementById("exports-manual-visual-format")?.value || "post",
+        formats
+      }),
+      cache: "no-store"
+    });
+
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.ok) throw new Error(result?.error || `HTTP ${response.status}`);
+
+    renderAdminManualExportLinks(result.files || []);
+    if (status) status.textContent = `Extraction prête : ${result.event_count || 0} événement${result.event_count > 1 ? "s" : ""}`;
+    showToast("Extraction personnalisée prête");
+  } catch (error) {
+    console.warn("Extraction manuelle impossible", error);
+    if (status) status.textContent = "Extraction impossible";
+    showToast(`Erreur extraction : ${error.message || error}`);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+function renderAdminManualExportLinks(files) {
+  const links = document.getElementById("exports-manual-links");
+  if (!links) return;
+
+  links.replaceChildren();
+  files.forEach((file) => {
+    if (!file?.url) return;
+    const link = document.createElement("a");
+    link.href = file.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = `Ouvrir ${file.label || "fichier"}`;
+    links.appendChild(link);
+  });
 }
 
 function bindAdminEventsInventoryPanel() {
