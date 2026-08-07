@@ -109,7 +109,7 @@ let editCitySuggestionCache = new Map();
 let originalEditLocationSignature = "";
 let adminEditorMode = "edit";
 
-const ADMIN_MODULE_VERSION = "10.25-exports-charter-extract";
+const ADMIN_MODULE_VERSION = "10.26-local-instagram-pack";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const ADMIN_VIEW_MODE_KEY = "dedicalivres_admin_view_mode_v1";
 const ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY = "dedicalivres_admin_inventory_departments_v1";
@@ -2500,46 +2500,16 @@ async function createInstagramPack(id, button) {
     button.disabled = true;
     button.innerHTML = "⌛ <span>Prépare…</span>";
   }
-  // Ouvre la fenêtre dans le geste utilisateur : sinon Safari/Chrome peut
-  // bloquer l’onglet après l’attente de la réponse du Worker.
-  const packWindow = window.open("", "_blank");
-  if (packWindow) {
-    packWindow.document.title = "Préparation du pack Instagram…";
-    packWindow.document.body.innerHTML = "<p style='font:16px system-ui;padding:24px'>Préparation du pack Instagram…</p>";
-  }
-
   try {
-    const { data, error } = await supabaseClient.auth.getSession();
-    if (error) throw error;
-    const accessToken = data?.session?.access_token;
-    if (!accessToken) throw new Error("Session administrateur introuvable.");
-
-    const response = await fetch(getExportsWorkerBaseUrl() + "/admin-event-pack", {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + accessToken,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ event_id: event.id }),
-      cache: "no-store"
-    });
-    const result = await response.json().catch(() => null);
-    if (!response.ok || !result?.ok) {
-      throw new Error(result?.error || "HTTP " + response.status);
+    const generator = window.DEDICALIVRES_SOCIAL_GENERATOR;
+    if (typeof generator?.createEventPack !== "function") {
+      throw new Error("Le générateur Instagram local n’est pas chargé. Recharge la page.");
     }
 
-    const packUrl = result.files?.find((file) => file.label === "Pack Instagram")?.url;
-    if (!packUrl) throw new Error("Lien du pack absent de la réponse.");
-
-    if (packWindow) {
-      packWindow.location.replace(packUrl);
-    } else {
-      window.location.assign(packUrl);
-    }
+    await generator.createEventPack(event);
     recordAdminAction("Pack Instagram préparé", event.title || "Événement");
-    showToast("Pack Instagram prêt dans un nouvel onglet");
+    showToast("Pack Instagram téléchargé");
   } catch (error) {
-    packWindow?.close();
     console.warn("Pack Instagram impossible", error);
     showToast("Erreur pack Instagram : " + (error.message || error));
   } finally {

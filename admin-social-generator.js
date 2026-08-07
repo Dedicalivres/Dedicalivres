@@ -6,7 +6,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "7.9.1-brand-format-outline";
+  const VERSION = "7.9.2-local-event-pack";
   const REGIONS = [
     "Auvergne-Rhône-Alpes",
     "Bourgogne-Franche-Comté",
@@ -62,6 +62,11 @@
   let filteredEvents = [];
   const selectedIds = new Set();
   const fallbackObjectUrls = [];
+
+  window.DEDICALIVRES_SOCIAL_GENERATOR = {
+    version: VERSION,
+    createEventPack: createSingleEventPack
+  };
 
   ready(() => {
     waitForAdminAuthentication(initWhenReady);
@@ -713,6 +718,59 @@
     } finally {
       if (button) button.disabled = false;
     }
+  }
+
+  async function createSingleEventPack(rawEvent) {
+    const event = repairEventText(rawEvent || {});
+    if (!event.id) throw new Error("Événement introuvable.");
+
+    const visualFormat = getSelectedVisualFormat();
+    const slides = await renderEventSlides(event);
+    const folderName = `01-${slugifyFileName(event.title || "evenement")}`;
+    const caption = buildIndividualPostComment(event, 0).replace(
+      /^--- COMMENTAIRE[^\n]*\n+/,
+      ""
+    );
+    const zipFiles = [
+      {
+        path: "texte-publication.txt",
+        blob: new Blob([caption], { type: "text/plain;charset=utf-8" })
+      },
+      {
+        path: "manifest.txt",
+        blob: new Blob([
+          [
+            "Pack Instagram Dédicalivres",
+            `Événement : ${event.title || "Événement"}`,
+            `Identifiant : ${event.id}`,
+            `Date : ${formatDateRange(event.start_date, event.end_date) || "à préciser"}`,
+            `Format : ${visualFormat.label} (${visualFormat.width}×${visualFormat.height})`,
+            "Contenu : 3 slides PNG + texte de publication"
+          ].join("\n")
+        ], { type: "text/plain;charset=utf-8" })
+      }
+    ];
+
+    slides.forEach((blob, slideIndex) => {
+      zipFiles.push({
+        path: `${folderName}/slide-${slideIndex + 1}.png`,
+        blob
+      });
+    });
+
+    const zipBlob = await createZipBlob(zipFiles);
+    const zipName = `instagram-${visualFormat.suffix}-${slugifyFileName(event.title || "evenement")}-${event.id}.zip`;
+    const downloads = document.getElementById("social-extraction-downloads");
+
+    if (downloads) {
+      renderZipDownload(zipBlob, zipName);
+      const status = document.getElementById("social-extraction-status");
+      if (status) status.textContent = `ZIP prêt : ${zipName}`;
+    } else {
+      downloadBlob(zipBlob, zipName);
+    }
+
+    return { ok: true, name: zipName };
   }
 
   function buildGroupPostText(chosen, dateStart, dateEnd) {
