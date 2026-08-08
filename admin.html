@@ -21,16 +21,15 @@
     crossorigin=""
   />
 
-  <link rel="stylesheet" href="admin.css?v=9.2-events-inventory" />
-  <link rel="stylesheet" href="admin-cockpit.css?v=admin-simple-3" />
-  <link rel="stylesheet" href="admin-comptoir.css?v=comptoir-2" />
+  <link rel="stylesheet" href="admin.css?v=9.4-instagram-real-format" />
+  <link rel="stylesheet" href="admin-cockpit.css?v=2.3-instagram-real-format" />
 </head>
 
 <body class="cyber-admin">
 
 <section id="login-screen" class="login-screen">
   <div class="login-panel">
-    <picture><source srcset="logo.webp" type="image/webp"><img src="logo.png" alt="Dédicalivres" class="cyber-logo" width="52" height="52" /></picture>
+    <img src="logo.png" alt="Dédicalivres" class="cyber-logo" width="52" height="52" />
 
     <h1>ADMIN CONTROL</h1>
     <p class="login-subtitle">
@@ -63,8 +62,8 @@
       <div class="status-dot"></div>
 
       <div>
-        <h2>ADMINISTRATION DÉDICALIVRES</h2>
-        <p>Événements, qualité et publications</p>
+        <h2>CENTRE DE CONTRÔLE</h2>
+        <p>Dédicalivres · modération, qualité, publications</p>
       </div>
 
     </div>
@@ -77,23 +76,6 @@
         type="button"
       >
         Actualiser
-      </button>
-
-      <button
-        id="create-event-btn"
-        class="cyber-btn-primary"
-        type="button"
-      >
-        + Nouvel événement
-      </button>
-
-      <button
-        id="admin-view-mode-btn"
-        class="cyber-btn-secondary"
-        type="button"
-        aria-pressed="false"
-      >
-        Mode essentiel
       </button>
 
       <button
@@ -116,7 +98,7 @@
   <nav class="admin-tabs">
 
     <button class="admin-tab active" data-tab="overview" type="button">
-      Accueil
+      Tableau de bord
     </button>
 
     <button class="admin-tab" data-tab="events" type="button">
@@ -124,7 +106,7 @@
     </button>
 
     <button class="admin-tab" data-tab="moderation" type="button">
-      À traiter
+      Modération
     </button>
 
     <button class="admin-tab" data-tab="quality" type="button">
@@ -132,31 +114,27 @@
     </button>
 
     <button class="admin-tab" data-tab="stats" type="button">
-      Analyse
+      Statistiques
     </button>
 
     <button class="admin-tab" data-tab="premium" type="button">
-      Premium · pause
+      Premium
     </button>
 
     <button class="admin-tab" data-tab="exports" type="button">
-      Exports & données
+      Exports
     </button>
 
     <button class="admin-tab" data-tab="watch" type="button">
-      Veille & imports
+      Veille
     </button>
 
     <button class="admin-tab" data-tab="social" type="button">
-      Publication
+      Réseaux
     </button>
 
     <button class="admin-tab" data-tab="settings" type="button">
-      Système
-    </button>
-
-    <button id="admin-simple-nav-create" class="admin-tab admin-simple-nav-create" type="button">
-      + Ajouter
+      Sécurité
     </button>
 
   </nav>
@@ -199,18 +177,6 @@
           <strong id="stats-visits">0</strong>
         </article>
 
-      </section>
-
-      <section id="admin-simple-hub" class="admin-panel admin-simple-hub" aria-label="Actions essentielles">
-        <div>
-          <span class="admin-simple-kicker">Pilotage rapide</span>
-          <h3>L’essentiel pour aujourd’hui</h3>
-          <p>Consulte les compteurs, ajoute un événement ou prépare une publication.</p>
-        </div>
-        <div class="admin-simple-actions">
-          <button id="admin-simple-create-event" class="cyber-btn-primary" type="button">+ Nouvel événement</button>
-          <button id="admin-simple-work-queue" class="cyber-btn-secondary" type="button">Voir les éléments à traiter</button>
-        </div>
       </section>
 
       <!-- ============================================= -->
@@ -457,7 +423,7 @@
     <section id="tab-exports" class="admin-tab-panel">
       <section class="admin-panel admin-exports-panel">
         <div class="section-head">
-          <h3>BIBLIOTHÈQUE D’EXPORTS</h3>
+          <h3>EXPORTS & PUBLICATIONS</h3>
           <span id="exports-status">En attente de vérification</span>
         </div>
 
@@ -488,81 +454,6 @@
           <a id="exports-csv-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">CSV global</a>
           <a id="exports-publications-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Publications globales</a>
         </div>
-
-        <section class="exports-manual-section" aria-labelledby="exports-manual-title">
-          <div class="exports-layout-head">
-            <div>
-              <h4 id="exports-manual-title">NOUVELLE EXTRACTION</h4>
-              <p>Génère les fichiers à partir des événements validés, avec les mêmes critères que les tuiles et le même fond visuel.</p>
-            </div>
-            <span class="exports-layout-badge">Charte 2026</span>
-          </div>
-
-          <div class="exports-inventory-toolbar exports-manual-toolbar">
-            <label>
-              <span>Catégorie</span>
-              <select id="exports-manual-category">
-                <option value="all">Tous les événements</option>
-                <option value="dedicaces">Dédicaces</option>
-                <option value="salons_festivals">Salons / Festivals</option>
-                <option value="salons">Salons</option>
-                <option value="festivals">Festivals</option>
-                <option value="autres">Autres événements</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Pays</span>
-              <select id="exports-manual-country">
-                <option value="ALL">Tous les pays</option>
-                <option value="FR">France</option>
-                <option value="BE">Belgique</option>
-                <option value="LU">Luxembourg</option>
-                <option value="CH">Suisse</option>
-                <option value="MC">Monaco</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Région</span>
-              <select id="exports-manual-region">
-                <option value="">Tous les territoires</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Date de début</span>
-              <input id="exports-manual-date-start" type="date" />
-            </label>
-
-            <label>
-              <span>Date de fin</span>
-              <input id="exports-manual-date-end" type="date" />
-            </label>
-
-            <label>
-              <span>Format visuel</span>
-              <select id="exports-manual-visual-format">
-                <option value="post">Post carré · 2048×2048</option>
-                <option value="story">Story verticale · 1536×2752</option>
-              </select>
-            </label>
-          </div>
-
-          <fieldset class="exports-manual-formats">
-            <legend>Fichiers à générer</legend>
-            <label><input type="checkbox" name="exports-manual-format" value="json" checked /> JSON</label>
-            <label><input type="checkbox" name="exports-manual-format" value="csv" checked /> CSV</label>
-            <label><input type="checkbox" name="exports-manual-format" value="markdown" checked /> Publications</label>
-            <label><input type="checkbox" name="exports-manual-format" value="html" checked /> Galerie visuelle</label>
-          </fieldset>
-
-          <div class="exports-manual-actions">
-            <button id="exports-manual-extract-btn" class="cyber-btn-primary" type="button">Générer l’extraction</button>
-            <span id="exports-manual-status" role="status" aria-live="polite">Prêt</span>
-          </div>
-          <div id="exports-manual-links" class="exports-manual-links"></div>
-        </section>
 
         <div class="exports-actions exports-actions-secondary exports-actions-files">
           <a id="exports-dedicaces-link" class="cyber-btn-secondary exports-file-button" href="#" target="_blank" rel="noopener">Dédicaces</a>
@@ -795,20 +686,20 @@
     <section id="tab-settings" class="admin-tab-panel">
       <section class="admin-panel cockpit-security-panel">
         <div class="section-head">
-          <h3>SYSTÈME & CONTRÔLES</h3>
-          <span>Indicateurs déclaratifs : pas un audit de sécurité</span>
+          <h3>SÉCURITÉ & RETOUR ARRIÈRE</h3>
+          <span>État de contrôle local</span>
         </div>
 
         <div id="control-security-grid" class="cockpit-status-grid"></div>
 
         <div class="cockpit-security-note">
-          <strong>Sauvegarde et restauration</strong>
-          <span>Les sauvegardes restent gérées hors de l’interface. Aucun statut ne doit être interprété comme une vérification en direct.</span>
+          <strong>Sauvegarde locale vérifiée</strong>
+          <span>/Users/jeanchristopheleguilly/SupabaseBackups/dedicalivres/2026-05-25_21-24-15</span>
         </div>
 
         <div class="cockpit-security-note">
-          <strong>Premium</strong>
-          <span>Module éditorial en pause : il utilise uniquement la mise en avant existante, sans offre commerciale active.</span>
+          <strong>Rapport des changements</strong>
+          <span>SUPABASE_APPLIED_CHANGES_2026-05-25.md</span>
         </div>
       </section>
     </section>
@@ -968,10 +859,8 @@
   crossorigin=""
 ></script>
 
-<script src="config.js?v=shared-client-2"></script>
-<script src="instagram-brand.js?v=brand-20260725-1"></script>
-<script src="admin.js?v=local-instagram-pack-1"></script>
+<script src="config.js?v=shared-client-1"></script>
+<script src="admin.js?v=control-center-16-instagram-real-format"></script>
 
-<script src="admin-comptoir.js?v=admin-refonte-1" defer></script>
 </body>
 </html>

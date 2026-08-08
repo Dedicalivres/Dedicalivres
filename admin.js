@@ -73,11 +73,6 @@ const editImageUrl = document.getElementById("edit-image-url");
 const removeEditImageBtn = document.getElementById("remove-edit-image");
 const saveEditBtn = document.getElementById("save-edit-btn");
 const closeEditModalBtn = document.getElementById("close-edit-modal");
-const createEventBtn = document.getElementById("create-event-btn");
-const adminViewModeBtn = document.getElementById("admin-view-mode-btn");
-const adminSimpleCreateEventBtn = document.getElementById("admin-simple-create-event");
-const adminSimpleWorkQueueBtn = document.getElementById("admin-simple-work-queue");
-const adminSimpleNavCreateBtn = document.getElementById("admin-simple-nav-create");
 
 const premiumContainer = document.getElementById("premium-container");
 const premiumCount = document.getElementById("premium-count");
@@ -107,11 +102,9 @@ let adminBooting = false;
 let editCityAutocompleteTimer = null;
 let editCitySuggestionCache = new Map();
 let originalEditLocationSignature = "";
-let adminEditorMode = "edit";
 
-const ADMIN_MODULE_VERSION = "10.26-local-instagram-pack";
+const ADMIN_MODULE_VERSION = "10.18-instagram-real-format";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
-const ADMIN_VIEW_MODE_KEY = "dedicalivres_admin_view_mode_v1";
 const ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY = "dedicalivres_admin_inventory_departments_v1";
 const adminModerationCounters = {
   events: 0,
@@ -163,7 +156,6 @@ const ADMIN_LOCATION_COLUMNS = [
 
 init();
 ensureAdminObservatoryStyles();
-applyAdminViewMode();
 
 function ensureAdminObservatoryStyles() {
   if (document.getElementById("admin-observatory-styles")) return;
@@ -391,12 +383,6 @@ function bindEvents() {
     }
   });
 
-  createEventBtn?.addEventListener("click", openCreateEventModal);
-  adminSimpleCreateEventBtn?.addEventListener("click", openCreateEventModal);
-  adminSimpleNavCreateBtn?.addEventListener("click", openCreateEventModal);
-  adminSimpleWorkQueueBtn?.addEventListener("click", () => switchAdminTab("moderation"));
-  adminViewModeBtn?.addEventListener("click", toggleAdminViewMode);
-
   searchInput?.addEventListener("input", renderEvents);
   filterStatus?.addEventListener("change", renderEvents);
   filterArchive?.addEventListener("change", handleArchiveFilterChange);
@@ -421,49 +407,6 @@ function bindEvents() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeEditModal();
   });
-}
-
-function getAdminViewMode() {
-  try {
-    const saved = localStorage.getItem(ADMIN_VIEW_MODE_KEY);
-    if (saved === "simple" || saved === "complete") return saved;
-  } catch {
-    // Le mode reste utilisable même si le navigateur bloque le stockage local.
-  }
-
-  return window.matchMedia?.("(max-width: 900px)").matches ? "simple" : "complete";
-}
-
-function applyAdminViewMode(mode = getAdminViewMode()) {
-  const isSimple = mode === "simple";
-  document.body.classList.toggle("admin-simple-mode", isSimple);
-
-  if (adminViewModeBtn) {
-    adminViewModeBtn.textContent = isSimple ? "Mode complet" : "Mode essentiel";
-    adminViewModeBtn.setAttribute("aria-pressed", String(isSimple));
-    adminViewModeBtn.title = isSimple
-      ? "Afficher tous les modules de l’administration"
-      : "N’afficher que les actions essentielles";
-  }
-
-  if (isSimple) {
-    const activeTab = document.querySelector(".admin-tab.active");
-    const allowed = ["overview", "events", "moderation"];
-    if (activeTab && !allowed.includes(activeTab.dataset.tab || "")) {
-      switchAdminTab("overview");
-    }
-  }
-}
-
-function toggleAdminViewMode() {
-  const nextMode = getAdminViewMode() === "simple" ? "complete" : "simple";
-  try {
-    localStorage.setItem(ADMIN_VIEW_MODE_KEY, nextMode);
-  } catch {
-    // Le choix s’applique pour la session en cours si le stockage est indisponible.
-  }
-  applyAdminViewMode(nextMode);
-  showToast(nextMode === "simple" ? "Mode essentiel activé" : "Mode complet activé");
 }
 
 /* LOGIN */
@@ -869,7 +812,6 @@ async function loadEvents() {
 
   archiveEventsLoaded = includeArchives;
   allEvents = Array.isArray(data) ? data : [];
-  populateManualExportRegions();
 }
 
 async function handleArchiveFilterChange() {
@@ -1010,7 +952,7 @@ function renderAdminMissionControl() {
       ${renderMissionTile("Qualité", buckets.qualityLow.length, "quality-low", buckets.qualityLow.length ? "danger" : "ok")}
       ${renderMissionTile("GPS", buckets.missingCoords.length, "missing-coords", buckets.missingCoords.length ? "danger" : "ok")}
       ${renderMissionTile("Publication", buckets.soon.length, "soon", buckets.soon.length ? "info" : "neutral")}
-      ${renderMissionTile("À corriger", criticalTotal, "quality-low", criticalTotal ? "warning" : "ok")}
+      ${renderMissionTile("Santé", criticalTotal, "settings", criticalTotal ? "warning" : "ok")}
     </div>
   `;
 
@@ -1123,8 +1065,6 @@ function renderModerationCommandCenter() {
       handleModerationCommand(button.dataset.moderationAction || "all");
     });
   });
-
-  renderSimpleWorkPanel(moderationTab, panel);
 }
 
 function renderModerationCommandCard(label, value, action, tone, detail) {
@@ -1135,41 +1075,6 @@ function renderModerationCommandCard(label, value, action, tone, detail) {
       <small>${escapeHtml(detail || "")}</small>
     </button>
   `;
-}
-
-function renderSimpleWorkPanel(moderationTab, moderationPanel) {
-  let panel = document.getElementById("admin-simple-work-panel");
-
-  if (!panel) {
-    panel = document.createElement("section");
-    panel.id = "admin-simple-work-panel";
-    panel.className = "admin-panel admin-simple-work-panel";
-    moderationPanel.insertAdjacentElement("afterend", panel);
-  }
-
-  const buckets = getControlBuckets();
-
-  panel.innerHTML = `
-    <div class="section-head">
-      <h3>FICHES À CORRIGER</h3>
-      <span>Accès direct aux principales anomalies</span>
-    </div>
-
-    <div class="admin-action-priority-grid">
-      ${renderPriorityActionCard("pending", buckets.pending.length, "Événements en attente", buckets.pending.length ? "is-warning" : "is-ok")}
-      ${renderPriorityActionCard("missing-image", buckets.missingImage.length, "Validés sans image", buckets.missingImage.length ? "is-warning" : "is-ok")}
-      ${renderPriorityActionCard("missing-coords", buckets.missingCoords.length, "Sans coordonnées", buckets.missingCoords.length ? "is-danger" : "is-ok")}
-      ${renderPriorityActionCard("quality-low", buckets.qualityLow.length, "Qualité faible", buckets.qualityLow.length ? "is-danger" : "is-ok")}
-      ${renderPriorityActionCard("featured-past", buckets.featuredPast.length, "Mis en avant passés", buckets.featuredPast.length ? "is-danger" : "is-ok")}
-      ${renderPriorityActionCard("soon", buckets.soon.length, "Dans les 14 jours", buckets.soon.length ? "is-warning" : "is-ok")}
-    </div>
-  `;
-
-  panel.querySelectorAll("[data-priority-action]").forEach((button) => {
-    button.addEventListener("click", () => {
-      applyPriorityAction(button.dataset.priorityAction);
-    });
-  });
 }
 
 function handleModerationCommand(action) {
@@ -1367,10 +1272,7 @@ function renderCustomAdminEventList(events, label) {
     return;
   }
 
-  eventsContainer.innerHTML = [...events]
-    .sort(compareAdminEventsChronologically)
-    .map(renderEventCard)
-    .join("");
+  eventsContainer.innerHTML = events.map(renderEventCard).join("");
   bindEventActions();
 
   document.getElementById("tab-events")?.scrollIntoView({
@@ -1597,12 +1499,12 @@ function renderSecurityControlCenter() {
   if (!controlSecurityGrid) return;
 
   controlSecurityGrid.innerHTML = [
-    renderControlMetric("Session admin", window.DEDICALIVRES_ADMIN_AUTHENTICATED ? "Active" : "Absente", window.DEDICALIVRES_ADMIN_AUTHENTICATED ? "ok" : "warning", "contrôle navigateur"),
-    renderControlMetric("Base événements", allEvents.length ? "Accessible" : "À vérifier", allEvents.length ? "info" : "warning", "lecture depuis l’admin"),
-    renderControlMetric("RLS", "À auditer", "neutral", "contrôle Supabase requis"),
-    renderControlMetric("Stockage", "À auditer", "neutral", "contrôle R2 / Supabase requis"),
-    renderControlMetric("Sauvegardes", "Externe", "neutral", "hors de l’interface web"),
-    renderControlMetric("Retour arrière", "Documenté", "info", "appliquer après vérification")
+    renderControlMetric("Backup", "OK", "ok", "local vérifié"),
+    renderControlMetric("RLS", "OK", "ok", "policies durcies"),
+    renderControlMetric("Storage", "OK", "ok", "uploads limités"),
+    renderControlMetric("Admin", "OK", "ok", "helper privé"),
+    renderControlMetric("À finir", "2", "warning", "unaccent + Auth password"),
+    renderControlMetric("Rollback", "Prêt", "info", "SQL exporté")
   ].join("");
 }
 
@@ -2169,21 +2071,7 @@ function getFilteredEvents() {
     if (status === "missing-image") return !event.image_url;
 
     return true;
-  }).sort(compareAdminEventsChronologically);
-}
-
-function compareAdminEventsChronologically(a, b) {
-  const aDate = String(a?.start_date || "").slice(0, 10);
-  const bDate = String(b?.start_date || "").slice(0, 10);
-
-  if (!aDate && !bDate) {
-    return String(a?.title || "").localeCompare(String(b?.title || ""), "fr");
-  }
-  if (!aDate) return 1;
-  if (!bDate) return -1;
-
-  return aDate.localeCompare(bDate)
-    || String(a?.title || "").localeCompare(String(b?.title || ""), "fr");
+  });
 }
 
 
@@ -2399,7 +2287,6 @@ function renderEventCard(event) {
       </div>
 
       <div class="event-actions">
-        <button class="event-action social-copy" data-action="instagram-pack" data-id="${event.id}" type="button" title="Préparer les trois tuiles Instagram">▣ <span>Insta</span></button>
         <button class="event-action validate" data-action="validate" data-id="${event.id}" type="button" title="Valider">✔ <span>Valider</span></button>
         <button class="event-action reject" data-action="reject" data-id="${event.id}" type="button" title="Refuser">✖ <span>Refuser</span></button>
         <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button" title="${event.featured ? "Retirer la mise en avant" : "Mettre en avant"}">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
@@ -2447,7 +2334,6 @@ function bindEventActions() {
       if (action === "featured") await toggleFeatured(id);
       if (action === "edit") openEditModal(id);
       if (action === "copy-social") await copySocialPost(id);
-      if (action === "instagram-pack") await createInstagramPack(id, button);
       if (action === "delete") await deleteRejectedEvent(id);
     });
   });
@@ -2479,44 +2365,6 @@ async function copySocialPost(id) {
     console.warn("Copie presse-papiers indisponible :", error);
     fallbackCopyText(text);
     showToast("Texte prêt à copier");
-  }
-}
-
-async function createInstagramPack(id, button) {
-  if (!(await ensureAdminSession())) return;
-
-  const event = allEvents.find((item) => String(item.id) === String(id));
-  if (!event) {
-    showToast("Événement introuvable");
-    return;
-  }
-  if (!event.validated || event.rejected) {
-    showToast("Le pack Instagram est réservé aux événements validés");
-    return;
-  }
-
-  const previousLabel = button?.innerHTML;
-  if (button) {
-    button.disabled = true;
-    button.innerHTML = "⌛ <span>Prépare…</span>";
-  }
-  try {
-    const generator = window.DEDICALIVRES_SOCIAL_GENERATOR;
-    if (typeof generator?.createEventPack !== "function") {
-      throw new Error("Le générateur Instagram local n’est pas chargé. Recharge la page.");
-    }
-
-    await generator.createEventPack(event);
-    recordAdminAction("Pack Instagram préparé", event.title || "Événement");
-    showToast("Pack Instagram téléchargé");
-  } catch (error) {
-    console.warn("Pack Instagram impossible", error);
-    showToast("Erreur pack Instagram : " + (error.message || error));
-  } finally {
-    if (button) {
-      button.disabled = false;
-      button.innerHTML = previousLabel;
-    }
   }
 }
 
@@ -3063,10 +2911,6 @@ function openEditModal(id) {
     adminInventoryEvents.find((item) => String(item.id) === String(id));
   if (!event) return;
 
-  adminEditorMode = "edit";
-  document.querySelector("#edit-modal .edit-header h3").textContent = "MODIFIER L’ÉVÉNEMENT";
-  if (saveEditBtn) saveEditBtn.textContent = "ENREGISTRER";
-
   editId.value = event.id || "";
   editTitle.value = event.title || "";
   editType.value = event.type || "";
@@ -3094,38 +2938,10 @@ function openEditModal(id) {
   editModal.classList.remove("hidden");
 }
 
-function openCreateEventModal() {
-  adminEditorMode = "create";
-  selectedAdminImageFile = null;
-  editId.value = "";
-  editTitle.value = "";
-  editType.value = "Salon";
-  if (editCountry) editCountry.value = "FR";
-  editCity.value = "";
-  editRegion.value = "";
-  if (editLat) editLat.value = "";
-  if (editLng) editLng.value = "";
-  editStartDate.value = "";
-  editEndDate.value = "";
-  editWebsite.value = "";
-  editDescription.value = "";
-  editImageUrl.value = "";
-  if (editImageFile) editImageFile.value = "";
-  clearEditCitySuggestions();
-  renderEditImagePreview("");
-  originalEditLocationSignature = getEditLocationSignature();
-  setEditCityHelp("Renseigne au minimum le titre, la ville et la date. La fiche sera publiée après création.");
-  document.querySelector("#edit-modal .edit-header h3").textContent = "NOUVEL ÉVÉNEMENT";
-  if (saveEditBtn) saveEditBtn.textContent = "CRÉER ET PUBLIER";
-  editModal.classList.remove("hidden");
-  setTimeout(() => editTitle?.focus(), 50);
-}
-
 function closeEditModal() {
   editModal.classList.add("hidden");
   clearEditCitySuggestions();
   originalEditLocationSignature = "";
-  adminEditorMode = "edit";
 }
 
 function handleEditCountryChange() {
@@ -3528,8 +3344,7 @@ async function saveEdition() {
   if (!(await ensureAdminSession())) return;
 
   const id = editId.value;
-  const isCreation = adminEditorMode === "create";
-  if (!id && !isCreation) return;
+  if (!id) return;
 
   const submitButton = saveEditBtn;
   if (submitButton) {
@@ -3539,12 +3354,6 @@ async function saveEdition() {
 
   try {
     let imageUrl = editImageUrl.value.trim() || null;
-    const rawWebsite = editWebsite.value.trim();
-    const website = normalizeAdminWebsite(rawWebsite);
-    if (rawWebsite && !website) {
-      showToast("Le site officiel doit commencer par http:// ou https://");
-      return;
-    }
     const locationChanged = getEditLocationSignature() !== originalEditLocationSignature;
     let coordinates = getEditCoordinates();
 
@@ -3575,37 +3384,32 @@ async function saveEdition() {
       region: editRegion.value.trim(),
       start_date: editStartDate.value || null,
       end_date: editEndDate.value || null,
-      website,
+      website: editWebsite.value.trim(),
       description: editDescription.value.trim(),
       image_url: imageUrl,
       lat: coordinates ? coordinates.lat : null,
       lng: coordinates ? coordinates.lng : null
     };
 
-    if (!payload.title || !payload.city || !payload.start_date) {
-      showToast("Titre, ville et date sont obligatoires");
-      return;
-    }
-
-    const request = isCreation
-      ? supabaseClient.from("events").insert({ ...payload, validated: true, rejected: false })
-      : supabaseClient.from("events").update(payload).eq("id", id);
-    const { error } = await request;
+    const { error } = await supabaseClient
+      .from("events")
+      .update(payload)
+      .eq("id", id);
 
     if (error) throw error;
 
     selectedAdminImageFile = null;
     closeEditModal();
     await loadDashboard();
-    recordAdminAction(isCreation ? "Événement créé" : "Événement modifié", payload.title || "Sans titre");
-    showToast(isCreation ? "Événement créé et publié" : "Événement modifié");
+    recordAdminAction("Événement modifié", payload.title || "Sans titre");
+    showToast("Événement modifié");
   } catch (error) {
     console.error("Erreur édition admin :", error);
     showToast("Erreur édition");
   } finally {
     if (submitButton) {
       submitButton.disabled = false;
-      submitButton.textContent = adminEditorMode === "create" ? "CRÉER ET PUBLIER" : "ENREGISTRER";
+      submitButton.textContent = "ENREGISTRER";
     }
   }
 }
@@ -3745,15 +3549,6 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
-function normalizeAdminWebsite(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  if (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !/^https?:\/\//i.test(raw)) return "";
-  const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-  if (candidate.length > 2048) return "";
-  return (window.DEDICALIVRES_SAFE_EXTERNAL_URL || (() => ""))(candidate);
-}
-
 function formatDate(value) {
   if (!value) return "";
 
@@ -3832,130 +3627,7 @@ function bindAdminExportsPanel() {
 
   hydrateAdminExportLinks();
   bindAdminExternalExportLinks();
-  bindAdminManualExportPanel();
   bindAdminEventsInventoryPanel();
-}
-
-function bindAdminManualExportPanel() {
-  const button = document.getElementById("exports-manual-extract-btn");
-  if (!button || button.dataset.bound === "true") return;
-
-  button.dataset.bound = "true";
-  setDefaultManualExportDates();
-  populateManualExportRegions();
-  button.addEventListener("click", generateAdminManualExport);
-}
-
-function setDefaultManualExportDates() {
-  const start = document.getElementById("exports-manual-date-start");
-  const end = document.getElementById("exports-manual-date-end");
-  if (!start || !end) return;
-
-  const today = new Date();
-  const endDate = new Date(today);
-  endDate.setDate(endDate.getDate() + 30);
-  if (!start.value) start.value = toAdminInputDate(today);
-  if (!end.value) end.value = toAdminInputDate(endDate);
-}
-
-function toAdminInputDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function populateManualExportRegions() {
-  const select = document.getElementById("exports-manual-region");
-  if (!select) return;
-
-  const current = select.value;
-  const regions = getKnownRegions();
-  select.replaceChildren(new Option("Tous les territoires", ""));
-  regions.forEach((region) => select.appendChild(new Option(region, region)));
-  if (regions.includes(current)) select.value = current;
-}
-
-async function generateAdminManualExport() {
-  if (!(await ensureAdminSession())) return;
-
-  const button = document.getElementById("exports-manual-extract-btn");
-  const status = document.getElementById("exports-manual-status");
-  const links = document.getElementById("exports-manual-links");
-  const dateStart = document.getElementById("exports-manual-date-start")?.value || "";
-  const dateEnd = document.getElementById("exports-manual-date-end")?.value || "";
-  const formats = Array.from(document.querySelectorAll('input[name="exports-manual-format"]:checked'))
-    .map((input) => input.value);
-
-  if (!dateStart || !dateEnd || dateStart > dateEnd) {
-    if (status) status.textContent = "Dates invalides";
-    showToast("Vérifie la période d’extraction");
-    return;
-  }
-  if (!formats.length) {
-    if (status) status.textContent = "Choisis au moins un fichier";
-    showToast("Choisis au moins un format");
-    return;
-  }
-
-  if (button) button.disabled = true;
-  if (links) links.replaceChildren();
-  if (status) status.textContent = "Génération en cours...";
-
-  try {
-    const { data, error } = await supabaseClient.auth.getSession();
-    if (error) throw error;
-
-    const accessToken = data?.session?.access_token;
-    if (!accessToken) throw new Error("Session admin introuvable.");
-
-    const response = await fetch(`${getExportsWorkerBaseUrl()}/admin-extract`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        category: document.getElementById("exports-manual-category")?.value || "all",
-        countryCode: document.getElementById("exports-manual-country")?.value || "ALL",
-        region: document.getElementById("exports-manual-region")?.value || "",
-        dateStart,
-        dateEnd,
-        visualFormat: document.getElementById("exports-manual-visual-format")?.value || "post",
-        formats
-      }),
-      cache: "no-store"
-    });
-
-    const result = await response.json().catch(() => null);
-    if (!response.ok || !result?.ok) throw new Error(result?.error || `HTTP ${response.status}`);
-
-    renderAdminManualExportLinks(result.files || []);
-    if (status) status.textContent = `Extraction prête : ${result.event_count || 0} événement${result.event_count > 1 ? "s" : ""}`;
-    showToast("Extraction personnalisée prête");
-  } catch (error) {
-    console.warn("Extraction manuelle impossible", error);
-    if (status) status.textContent = "Extraction impossible";
-    showToast(`Erreur extraction : ${error.message || error}`);
-  } finally {
-    if (button) button.disabled = false;
-  }
-}
-
-function renderAdminManualExportLinks(files) {
-  const links = document.getElementById("exports-manual-links");
-  if (!links) return;
-
-  links.replaceChildren();
-  files.forEach((file) => {
-    if (!file?.url) return;
-    const link = document.createElement("a");
-    link.href = file.url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = `Ouvrir ${file.label || "fichier"}`;
-    links.appendChild(link);
-  });
 }
 
 function bindAdminEventsInventoryPanel() {

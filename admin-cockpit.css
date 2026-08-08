@@ -30,128 +30,6 @@
 
 .admin-tabs {
   align-items: stretch;
-  gap: 8px;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.topbar-right .cyber-btn-primary {
-  white-space: nowrap;
-}
-
-.admin-simple-hub {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin: 0 18px 18px;
-  border-left: 4px solid var(--status-info);
-}
-
-.admin-simple-kicker {
-  display: block;
-  color: var(--status-info);
-  font-size: .76rem;
-  font-weight: 900;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
-.admin-simple-hub h3 {
-  margin: 5px 0;
-}
-
-.admin-simple-hub p {
-  margin: 0;
-  color: var(--cyber-muted);
-}
-
-.admin-simple-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-/* Vue essentielle : pilotage, événements, file de travail et ajout rapide. */
-.admin-simple-nav-create {
-  display: none;
-}
-
-body.admin-simple-mode .admin-tab:not([data-tab="overview"]):not([data-tab="events"]):not([data-tab="moderation"]):not(.admin-simple-nav-create) {
-  display: none;
-}
-
-body.admin-simple-mode .admin-simple-nav-create {
-  display: inline-flex;
-}
-
-body.admin-simple-mode #admin-simple-hub {
-  display: flex;
-}
-
-.admin-simple-work-panel {
-  display: none;
-}
-
-body.admin-simple-mode .admin-simple-work-panel {
-  display: block;
-}
-
-body.admin-simple-mode #tab-overview > .admin-map-panel,
-body.admin-simple-mode #tab-overview > .priority-grid,
-body.admin-simple-mode #tab-overview > .admin-panel:not(#admin-simple-hub):not(#admin-mission-panel):not(#traffic-overview-panel),
-body.admin-simple-mode #admin-action-priority-panel {
-  display: none !important;
-}
-
-body.admin-simple-mode #tab-overview .stats-grid .stat-card-featured-premium {
-  display: none;
-}
-
-body.admin-simple-mode #tab-events .toolbar select:not(#filter-status) {
-  display: none;
-}
-
-body.admin-simple-mode #tab-social .instagram-generator-card,
-body.admin-simple-mode #tab-social .social-help-card {
-  display: none;
-}
-
-.admin-tab[data-tab="premium"] {
-  opacity: .72;
-}
-
-.admin-tab[data-tab="settings"]::before {
-  background: var(--status-neutral);
-}
-
-.social-publication-hub {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.social-publication-hub .social-card-head {
-  margin: 0;
-}
-
-@media (max-width: 760px) {
-  .social-publication-hub {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .admin-simple-hub {
-    align-items: flex-start;
-    flex-direction: column;
-    margin: 0 8px 12px;
-  }
 }
 
 .admin-tab {
@@ -1508,6 +1386,62 @@ body.admin-simple-mode #tab-social .social-help-card {
   font-size: .58rem;
 }
 
+.exports-file-button,
+.exports-file-button:visited {
+  background:
+    linear-gradient(135deg, rgba(255,82,82,.98), rgba(159,18,57,.96)) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,190,190,.64) !important;
+  box-shadow:
+    0 12px 28px rgba(255,82,82,.22),
+    inset 0 0 0 1px rgba(255,255,255,.12) !important;
+}
+
+.exports-command-results {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+
+.exports-command-results[hidden] {
+  display: none !important;
+}
+
+.exports-command-result-summary {
+  flex: 1 1 220px;
+  margin: 0;
+  color: rgba(234,247,255,.92);
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.exports-command-results .exports-file-button {
+  flex: 0 1 auto;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.exports-command-results a:not(.exports-file-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255,82,82,.98), rgba(159,18,57,.96));
+  color: #fff;
+  border: 1px solid rgba(255,190,190,.64);
+  box-shadow: 0 12px 28px rgba(255,82,82,.22);
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .exports-actions-secondary {
   margin-bottom: 14px;
 }
@@ -1536,19 +1470,45 @@ body.admin-simple-mode #tab-social .social-help-card {
   border-radius: 10px;
 }
 
+.exports-layout-card.exports-file-card,
+.exports-designs-section .exports-layout-card.exports-file-card {
+  background:
+    linear-gradient(135deg, rgba(255,88,88,.92), rgba(130,18,34,.96)) !important;
+  border-color: rgba(255,190,190,.68) !important;
+  box-shadow:
+    0 14px 32px rgba(255,82,82,.22),
+    inset 0 0 0 1px rgba(255,255,255,.14) !important;
+}
+
+.exports-layout-card.exports-file-card:hover,
+.exports-designs-section .exports-layout-card.exports-file-card:hover {
+  background:
+    linear-gradient(135deg, rgba(255,112,112,.98), rgba(159,18,57,.98)) !important;
+  border-color: rgba(255,225,225,.86) !important;
+}
+
 .exports-layout-card strong {
   margin-bottom: 5px;
 }
 
 .exports-layout-card.exports-file-card::before {
+  content: "FICHIER HTML";
   top: 10px;
   right: 10px;
-  padding: 3px 7px;
-  font-size: .58rem;
+  padding: 4px 8px;
+  background: rgba(255,255,255,.94);
+  border: 1px solid rgba(255,255,255,.72);
+  color: #9f1239;
+  font-size: .56rem;
 }
 
 .exports-layout-card.exports-file-card strong {
-  padding-right: 50px;
+  padding-right: 92px;
+  color: #fff !important;
+}
+
+.exports-layout-card.exports-file-card span {
+  color: rgba(255,245,245,.88) !important;
 }
 
 .exports-card {
@@ -2163,4 +2123,18 @@ body.admin-simple-mode #tab-social .social-help-card {
   .testimonial-admin-actions {
     grid-template-columns: 1fr;
   }
+}
+
+/* Masque les anciens raccourcis de création remplacés par les flux validés. */
+.admin-tab[data-tab="add"],
+.admin-tab[data-tab="new"],
+.admin-tab[data-tab="new-event"],
+.admin-tab[data-tab="create"],
+.admin-tab[data-tab="event-create"],
+#tab-add,
+#tab-new,
+#tab-new-event,
+#tab-create,
+#tab-event-create {
+  display: none !important;
 }

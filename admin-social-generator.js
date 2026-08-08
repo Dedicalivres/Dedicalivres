@@ -1,12 +1,12 @@
 /* =========================================================
-   DÉDICALIVRES — Générateur Instagram robuste V7.9.1
+   DÉDICALIVRES — Générateur Instagram robuste V7.6.4
    - Injecte l'interface dans l'onglet Réseaux même si admin.html
      contient encore l'ancienne carte "Instagram IA".
 ========================================================= */
 (function () {
   "use strict";
 
-  const VERSION = "7.9.2-local-event-pack";
+  const VERSION = "7.7.0-visuals";
   const REGIONS = [
     "Auvergne-Rhône-Alpes",
     "Bourgogne-Franche-Comté",
@@ -60,13 +60,39 @@
   let client = null;
   let events = [];
   let filteredEvents = [];
+  let authorPresencesByEvent = new Map();
+  let generatedVisuals = [];
+  let logoImagePromise = null;
   const selectedIds = new Set();
-  const fallbackObjectUrls = [];
 
-  window.DEDICALIVRES_SOCIAL_GENERATOR = {
-    version: VERSION,
-    createEventPack: createSingleEventPack
+  const VISUAL_FORMATS = {
+    story: {
+      label: "Portrait / Story",
+      width: 1080,
+      height: 1920,
+      suffix: "story"
+    },
+    square: {
+      label: "Carré",
+      width: 1080,
+      height: 1080,
+      suffix: "carre"
+    },
+    feed: {
+      label: "Instagram réel 4:5",
+      width: 1080,
+      height: 1350,
+      suffix: "instagram-4-5"
+    },
+    wide: {
+      label: "Large",
+      width: 1600,
+      height: 900,
+      suffix: "large"
+    }
   };
+
+  const JSZIP_URL = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
 
   ready(() => {
     waitForAdminAuthentication(initWhenReady);
@@ -123,19 +149,6 @@
   function injectInterface(tab) {
     tab.innerHTML = `
       <section class="social-generator-shell" data-social-generator-version="${VERSION}">
-        <article class="social-card social-publication-hub">
-          <div class="social-card-head">
-            <div>
-              <h3>Publication</h3>
-              <p>Prépare ici les textes et extrais un groupe d’événements validés dans un dossier prêt pour Instagram.</p>
-            </div>
-          </div>
-          <div class="social-generator-actions">
-            <button id="social-open-events" class="cyber-btn-primary" type="button">Choisir un événement</button>
-            <button id="social-open-exports" class="cyber-btn-secondary" type="button">Bibliothèque d’exports</button>
-          </div>
-        </article>
-
         <article class="social-card instagram-generator-card">
           <div class="social-card-head">
             <div>
@@ -158,14 +171,6 @@
                     <option value="multi">Multi-régions</option>
                     <option value="story">Story courte</option>
                     <option value="carousel">Carousel Instagram</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Format visuel</span>
-                  <select id="social-visual-format">
-                    <option value="post" selected>Post carré</option>
-                    <option value="story">Story verticale</option>
                   </select>
                 </label>
 
@@ -194,18 +199,7 @@
                     <option value="5" selected>5 événements</option>
                     <option value="8">8 événements</option>
                     <option value="12">12 événements</option>
-                    <option value="all">Tous les événements</option>
                   </select>
-                </label>
-
-                <label>
-                  <span>Date de début</span>
-                  <input id="social-date-start" type="date" />
-                </label>
-
-                <label>
-                  <span>Date de fin</span>
-                  <input id="social-date-end" type="date" />
                 </label>
               </div>
 
@@ -219,18 +213,17 @@
               <div class="social-generator-actions mobile-sticky-actions">
                 <button id="social-generate-post" class="cyber-btn-primary" type="button">Générer</button>
                 <button id="social-copy-post" class="cyber-btn-secondary" type="button">Copier</button>
-                <button id="social-select-all" class="cyber-btn-secondary" type="button">Tout sélectionner</button>
-                <button id="social-extract-group" class="cyber-btn-primary" type="button">Extraire le groupe</button>
                 <button id="social-clear-selection" class="cyber-btn-danger" type="button">Effacer</button>
+              </div>
+
+              <div class="social-selection-tools" aria-label="Sélection rapide événements">
+                <button id="social-select-visible" class="cyber-btn-secondary" type="button">Sélectionner les événements visibles</button>
+                <button id="social-clear-visible" class="cyber-btn-secondary" type="button">Tout désélectionner</button>
               </div>
 
               <div class="social-selection-summary" id="social-selection-summary">
                 Chargement des événements…
               </div>
-
-              <div class="social-extraction-status" id="social-extraction-status" role="status" aria-live="polite"></div>
-
-              <div class="social-extraction-downloads" id="social-extraction-downloads"></div>
 
               <div id="social-events-selector" class="social-events-selector">
                 <p class="priority-empty">Chargement des événements à venir…</p>
@@ -248,6 +241,72 @@
                 ></textarea>
               </label>
             </div>
+          </div>
+        </article>
+
+        <article class="social-card social-visual-generator-card">
+          <div class="social-card-head">
+            <div>
+              <h3>Visuels sociaux automatiques</h3>
+              <p>
+                Génère des PNG homogènes à partir des événements sélectionnés ou actuellement filtrés :
+                story, carré et large, prêts à publier.
+              </p>
+            </div>
+            <span class="social-pill">PNG</span>
+          </div>
+
+          <div class="social-visual-controls">
+            <label>
+              <span>Catégorie</span>
+              <select id="visual-category-filter">
+                <option value="all">Tous</option>
+                <option value="dedicaces">Dédicaces</option>
+                <option value="salons-festivals">Salons / Festivals</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Période</span>
+              <select id="visual-period-filter">
+                <option value="upcoming">À venir</option>
+                <option value="week">Cette semaine</option>
+                <option value="month">Ce mois</option>
+                <option value="custom">Dates personnalisées</option>
+              </select>
+            </label>
+
+            <label class="visual-custom-date" hidden>
+              <span>Du</span>
+              <input id="visual-date-start" type="date" />
+            </label>
+
+            <label class="visual-custom-date" hidden>
+              <span>Au</span>
+              <input id="visual-date-end" type="date" />
+            </label>
+          </div>
+
+          <fieldset class="social-visual-formats">
+            <legend>Formats à générer</legend>
+            <label><input type="checkbox" name="visual-format" value="story" checked /> Portrait / Story</label>
+            <label><input type="checkbox" name="visual-format" value="feed" checked /> Instagram réel 4:5</label>
+            <label><input type="checkbox" name="visual-format" value="square" checked /> Carré</label>
+            <label><input type="checkbox" name="visual-format" value="wide" checked /> Large</label>
+          </fieldset>
+
+          <div class="social-generator-actions social-visual-actions">
+            <button id="visual-generate" class="cyber-btn-primary" type="button">Générer les visuels</button>
+            <button id="visual-download-zip" class="cyber-btn-secondary" type="button" disabled>Télécharger ZIP</button>
+            <button id="visual-clear-preview" class="cyber-btn-danger" type="button">Effacer aperçus</button>
+          </div>
+
+          <p id="visual-generator-status" class="social-selection-summary" aria-live="polite">
+            Les visuels utiliseront les événements sélectionnés, ou les événements visibles si aucune sélection manuelle n’est active.
+          </p>
+
+          <div id="visual-preview-grid" class="social-visual-preview-grid">
+            <p class="priority-empty">Aucun visuel généré pour le moment.</p>
           </div>
         </article>
 
@@ -269,30 +328,31 @@
 
   function bindControls() {
     populateRegionFilter();
-    setDefaultExtractionDates();
 
-    ["social-region-filter", "social-type-filter", "social-event-search", "social-max-events", "social-date-start", "social-date-end"].forEach((id) => {
+    [
+      "social-region-filter",
+      "social-type-filter",
+      "social-event-search",
+      "social-max-events",
+      "visual-category-filter",
+      "visual-period-filter",
+      "visual-date-start",
+      "visual-date-end"
+    ].forEach((id) => {
       const el = document.getElementById(id);
-      if (id === "social-date-start" || id === "social-date-end") {
-        el?.addEventListener("change", loadEvents);
-      } else {
-        el?.addEventListener("input", applyFiltersAndRender);
-        el?.addEventListener("change", applyFiltersAndRender);
-      }
+      el?.addEventListener("input", applyFiltersAndRender);
+      el?.addEventListener("change", applyFiltersAndRender);
     });
 
     document.getElementById("social-post-mode")?.addEventListener("change", generatePost);
     document.getElementById("social-generate-post")?.addEventListener("click", generatePost);
     document.getElementById("social-copy-post")?.addEventListener("click", copyPost);
-    document.getElementById("social-select-all")?.addEventListener("click", selectAllVisible);
-    document.getElementById("social-extract-group")?.addEventListener("click", extractGroup);
     document.getElementById("social-clear-selection")?.addEventListener("click", clearSelection);
-    document.getElementById("social-open-events")?.addEventListener("click", () => {
-      document.querySelector('.admin-tab[data-tab="events"]')?.click();
-    });
-    document.getElementById("social-open-exports")?.addEventListener("click", () => {
-      document.querySelector('.admin-tab[data-tab="exports"]')?.click();
-    });
+    document.getElementById("social-select-visible")?.addEventListener("click", selectVisibleEvents);
+    document.getElementById("social-clear-visible")?.addEventListener("click", clearSelection);
+    document.getElementById("visual-generate")?.addEventListener("click", generateVisuals);
+    document.getElementById("visual-download-zip")?.addEventListener("click", downloadVisualZip);
+    document.getElementById("visual-clear-preview")?.addEventListener("click", clearVisualPreview);
   }
 
   function populateRegionFilter() {
@@ -307,45 +367,23 @@
     });
   }
 
-  function setDefaultExtractionDates() {
-    const start = document.getElementById("social-date-start");
-    const end = document.getElementById("social-date-end");
-    if (!start || !end) return;
-    const today = new Date();
-    const future = new Date(today);
-    future.setDate(future.getDate() + 30);
-    start.value = today.toISOString().slice(0, 10);
-    end.value = future.toISOString().slice(0, 10);
-  }
-
   async function loadEvents() {
     if (window.DEDICALIVRES_ADMIN_AUTHENTICATED !== true) return;
     const selector = document.getElementById("social-events-selector");
-    const dateStart = document.getElementById("social-date-start")?.value || new Date().toISOString().slice(0, 10);
-    const dateEnd = document.getElementById("social-date-end")?.value || "";
-
-    if (dateStart && dateEnd && dateStart > dateEnd) {
-      if (selector) selector.innerHTML = `<p class="priority-empty">La date de début doit précéder la date de fin.</p>`;
-      updateSummary("Période invalide.");
-      return;
-    }
-
-    if (selector) selector.innerHTML = `<p class="priority-empty">Chargement des événements à venir…</p>`;
-    updateSummary("Chargement des événements…");
 
     try {
+      const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await client
         .from("events")
-        .select("id,title,type,city,region,start_date,end_date,description,price,image_url,featured,validated,rejected")
+        .select("id,title,type,city,region,start_date,end_date,featured,validated,rejected,image_url,website,price")
         .eq("validated", true)
-        .or("rejected.eq.false,rejected.is.null")
-        .gte("start_date", dateStart)
-        .lte("start_date", dateEnd || "9999-12-31")
-        .limit(500)
+        .eq("rejected", false)
+        .or(`end_date.is.null,end_date.gte.${today}`)
         .order("start_date", { ascending: true });
 
       if (error) throw error;
-      events = (Array.isArray(data) ? data : []).map(repairEventText).sort(sortByDate);
+      events = (Array.isArray(data) ? data : []).sort(sortByDate);
+      await loadAuthorPresences();
       applyFiltersAndRender();
     } catch (error) {
       console.error("Erreur chargement événements réseaux :", error);
@@ -354,31 +392,133 @@
     }
   }
 
-  function applyFiltersAndRender() {
-    const region = document.getElementById("social-region-filter")?.value || "";
-    const type = document.getElementById("social-type-filter")?.value || "";
-    const search = normalize(document.getElementById("social-event-search")?.value || "");
-    const maxValue = document.getElementById("social-max-events")?.value || "5";
-    const max = maxValue === "all" ? Infinity : Number(maxValue);
-    const dateStart = document.getElementById("social-date-start")?.value || "";
-    const dateEnd = document.getElementById("social-date-end")?.value || "";
+  async function loadAuthorPresences() {
+    authorPresencesByEvent = new Map();
 
-    filteredEvents = events
-      .filter((event) => {
-        const haystack = normalize([event.title, event.city, event.region, event.type].join(" "));
-        if (region && event.region !== region) return false;
-        if (type && event.type !== type) return false;
-        if (search && !haystack.includes(search)) return false;
-        const eventStart = event.start_date || "";
-        const eventEnd = event.end_date || eventStart;
-        if (dateStart && (!eventEnd || eventEnd < dateStart)) return false;
-        if (dateEnd && (!eventStart || eventStart > dateEnd)) return false;
-        return true;
-      })
-      .slice(0, Number.isFinite(max) ? Math.max(1, max) : undefined);
+    try {
+      const { data, error } = await client
+        .from("event_authors_presence")
+        .select("event_id,pseudo,author_profile_url,website,validated,rejected")
+        .eq("validated", true)
+        .or("rejected.is.null,rejected.eq.false");
+
+      if (error) throw error;
+
+      (Array.isArray(data) ? data : []).forEach((row) => {
+        const eventId = String(row.event_id || "");
+        const pseudo = cleanText(row.pseudo);
+
+        if (!eventId || !pseudo) return;
+
+        if (!authorPresencesByEvent.has(eventId)) {
+          authorPresencesByEvent.set(eventId, []);
+        }
+
+        const list = authorPresencesByEvent.get(eventId);
+        if (!list.some((item) => normalize(item.pseudo) === normalize(pseudo))) {
+          list.push({
+            pseudo,
+            url: row.author_profile_url || row.website || ""
+          });
+        }
+      });
+    } catch (error) {
+      console.warn("Auteurs validés non chargés pour les visuels :", error);
+      authorPresencesByEvent = new Map();
+    }
+  }
+
+  function applyFiltersAndRender() {
+    const max = Number(document.getElementById("social-max-events")?.value || 5);
+
+    syncVisualCustomDates();
+
+    filteredEvents = getFilteredEventPool()
+      .slice(0, Math.max(1, max));
+
+    selectedIds.forEach((id) => {
+      if (!events.some((event) => String(event.id) === String(id))) {
+        selectedIds.delete(id);
+      }
+    });
 
     renderSelector();
     updateSummary();
+    updateVisualStatus();
+  }
+
+  function getFilteredEventPool() {
+    const region = document.getElementById("social-region-filter")?.value || "";
+    const type = document.getElementById("social-type-filter")?.value || "";
+    const search = normalize(document.getElementById("social-event-search")?.value || "");
+    const category = document.getElementById("visual-category-filter")?.value || "all";
+
+    return events.filter((event) => {
+      const haystack = normalize([event.title, event.city, event.region, event.type].join(" "));
+
+      if (region && event.region !== region) return false;
+      if (type && event.type !== type) return false;
+      if (category !== "all" && !matchesVisualCategory(event, category)) return false;
+      if (!matchesVisualPeriod(event)) return false;
+      if (search && !haystack.includes(search)) return false;
+
+      return true;
+    });
+  }
+
+  function syncVisualCustomDates() {
+    const period = document.getElementById("visual-period-filter")?.value || "upcoming";
+    const showCustom = period === "custom";
+
+    document.querySelectorAll(".visual-custom-date").forEach((label) => {
+      label.hidden = !showCustom;
+    });
+  }
+
+  function matchesVisualCategory(event, category) {
+    const type = normalize(event.type);
+
+    if (category === "dedicaces") return type.includes("dedicace");
+    if (category === "salons-festivals") {
+      return type.includes("salon") || type.includes("festival");
+    }
+
+    return true;
+  }
+
+  function matchesVisualPeriod(event) {
+    const period = document.getElementById("visual-period-filter")?.value || "upcoming";
+    const today = startOfDay(new Date());
+    const eventStart = parseLocalDate(event.start_date);
+    const eventEnd = parseLocalDate(event.end_date || event.start_date);
+
+    if (!eventStart && !eventEnd) return period === "upcoming";
+
+    const rangeStart = eventStart || eventEnd;
+    const rangeEnd = eventEnd || eventStart;
+
+    if (period === "upcoming") {
+      return !rangeEnd || rangeEnd >= today;
+    }
+
+    if (period === "week") {
+      const weekEnd = addDays(today, 6);
+      return rangesOverlap(rangeStart, rangeEnd, today, weekEnd);
+    }
+
+    if (period === "month") {
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      return rangesOverlap(rangeStart, rangeEnd, monthStart, monthEnd);
+    }
+
+    if (period === "custom") {
+      const customStart = parseLocalDate(document.getElementById("visual-date-start")?.value) || today;
+      const customEnd = parseLocalDate(document.getElementById("visual-date-end")?.value) || customStart;
+      return rangesOverlap(rangeStart, rangeEnd, customStart, customEnd);
+    }
+
+    return true;
   }
 
   function renderSelector() {
@@ -408,12 +548,28 @@
         if (input.checked) selectedIds.add(String(input.value));
         else selectedIds.delete(String(input.value));
         updateSummary();
+        updateVisualStatus();
       });
     });
   }
 
   function getChosenEvents() {
-    const selected = filteredEvents.filter((event) => selectedIds.has(String(event.id)));
+    const selected = events.filter((event) => selectedIds.has(String(event.id)));
+    return selected.length ? selected : filteredEvents;
+  }
+
+  function selectVisibleEvents() {
+    filteredEvents.forEach((event) => {
+      if (event?.id) selectedIds.add(String(event.id));
+    });
+
+    renderSelector();
+    updateSummary();
+    updateVisualStatus();
+  }
+
+  function getVisualChosenEvents() {
+    const selected = events.filter((event) => selectedIds.has(String(event.id)));
     return selected.length ? selected : filteredEvents;
   }
 
@@ -432,6 +588,24 @@
     summary.textContent = selectedCount
       ? `${selectedCount} événement${selectedCount > 1 ? "s" : ""} sélectionné${selectedCount > 1 ? "s" : ""}.`
       : `${chosen.length} prochain${chosen.length > 1 ? "s" : ""} événement${chosen.length > 1 ? "s" : ""} visible${chosen.length > 1 ? "s" : ""} utilisé${chosen.length > 1 ? "s" : ""} si tu génères maintenant.`;
+  }
+
+  function updateVisualStatus(message) {
+    const status = document.getElementById("visual-generator-status");
+    if (!status) return;
+
+    if (message) {
+      status.textContent = message;
+      return;
+    }
+
+    const chosen = getVisualChosenEvents();
+    const selectedCount = selectedIds.size;
+    const formats = getSelectedVisualFormats();
+
+    status.textContent = selectedCount
+      ? `${selectedCount} événement${selectedCount > 1 ? "s" : ""} sélectionné${selectedCount > 1 ? "s" : ""} · ${formats.length} format${formats.length > 1 ? "s" : ""}.`
+      : `${chosen.length} événement${chosen.length > 1 ? "s" : ""} visible${chosen.length > 1 ? "s" : ""} prêt${chosen.length > 1 ? "s" : ""} pour ${formats.length} format${formats.length > 1 ? "s" : ""}.`;
   }
 
   function generatePost() {
@@ -554,8 +728,8 @@
 
   function renderHashtags(items, options = {}) {
     const includeRegions = options.includeRegions !== false;
-    const selectedRegion = options.region || document.getElementById("social-region-filter")?.value || "";
-    const selectedType = options.type || document.getElementById("social-type-filter")?.value || "";
+    const selectedRegion = document.getElementById("social-region-filter")?.value || "";
+    const selectedType = document.getElementById("social-type-filter")?.value || "";
     const mode = options.mode || document.getElementById("social-post-mode")?.value || "central";
     const regions = unique(items.map((event) => event.region).filter(Boolean));
     const types = unique(items.map((event) => event.type).filter(Boolean));
@@ -629,863 +803,734 @@
     }
   }
 
-  function selectAllVisible() {
-    if (!filteredEvents.length) {
-      showLocalNotice("Aucun événement dans cette période.");
-      return;
-    }
-
-    const allSelected = filteredEvents.every((event) => selectedIds.has(String(event.id)));
-    filteredEvents.forEach((event) => {
-      if (allSelected) selectedIds.delete(String(event.id));
-      else selectedIds.add(String(event.id));
-    });
-    renderSelector();
-    updateSummary();
-  }
-
   function clearSelection() {
     selectedIds.clear();
     document.getElementById("instagram-caption").value = "";
     renderSelector();
     updateSummary();
+    updateVisualStatus();
   }
 
-  async function extractGroup() {
-    const status = document.getElementById("social-extraction-status");
-    const button = document.getElementById("social-extract-group");
-    const chosen = getChosenEvents();
-    const dateStart = document.getElementById("social-date-start")?.value || "";
-    const dateEnd = document.getElementById("social-date-end")?.value || "";
-    const visualFormat = getSelectedVisualFormat();
+  async function generateVisuals() {
+    const button = document.getElementById("visual-generate");
+    const previewGrid = document.getElementById("visual-preview-grid");
+    const formats = getSelectedVisualFormats();
+    const chosen = getVisualChosenEvents();
+
+    if (!previewGrid) return;
 
     if (!chosen.length) {
-      showLocalNotice("Aucun événement à extraire.");
-      return;
-    }
-    if (dateStart && dateEnd && dateStart > dateEnd) {
-      showLocalNotice("La date de début doit précéder la date de fin.");
+      updateVisualStatus("Aucun événement disponible avec ces filtres.");
       return;
     }
 
-    if (button) button.disabled = true;
-    if (status) status.textContent = `Préparation de ${chosen.length} événement${chosen.length > 1 ? "s" : ""}…`;
+    if (!formats.length) {
+      updateVisualStatus("Choisis au moins un format à générer.");
+      return;
+    }
+
+    setButtonLoading(button, true, "Génération…");
+    updateVisualStatus(`Génération de ${chosen.length * formats.length} visuel${chosen.length * formats.length > 1 ? "s" : ""}…`);
+    previewGrid.innerHTML = `<p class="priority-empty">Composition des visuels en cours…</p>`;
 
     try {
-      const globalText = buildGroupPostText(chosen, dateStart, dateEnd);
-      const zipFiles = [{
-        path: "texte-global.txt",
-        blob: new Blob([globalText], { type: "text/plain;charset=utf-8" })
-      }];
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
 
-      for (let index = 0; index < chosen.length; index += 1) {
-        const event = chosen[index];
-        if (status) status.textContent = `Visuels ${index + 1}/${chosen.length} : ${event.title || "Événement"}`;
-        const slides = await renderEventSlides(event);
-        const folderName = `${String(index + 1).padStart(2, "0")}-${slugifyFileName(event.title || "evenement")}`;
+      generatedVisuals = [];
 
-        slides.forEach((blob, slideIndex) => {
-          zipFiles.push({
-            path: `${folderName}/slide-${slideIndex + 1}.png`,
-            blob
+      for (const event of chosen) {
+        const visualEvent = await prepareVisualEvent(event);
+
+        for (const format of formats) {
+          const canvas = await renderVisualByFormat(visualEvent, format);
+          generatedVisuals.push({
+            event: visualEvent,
+            format,
+            canvas,
+            fileName: buildVisualFileName(visualEvent, format)
           });
-        });
+        }
       }
 
-      const manifest = [
-        "Extraction Instagram Dédicalivres",
-        `Période : ${dateStart || "sans début"} → ${dateEnd || "sans fin"}`,
-        `Format : ${visualFormat.label} (${visualFormat.width}×${visualFormat.height})`,
-        `Événements : ${chosen.length}`,
-        "",
-        ...chosen.map((event, index) => `${String(index + 1).padStart(2, "0")} — ${event.title || "Événement"} — ${event.start_date || "date à préciser"}`)
-      ].join("\n");
-
-      zipFiles.push({
-        path: "manifest.txt",
-        blob: new Blob([manifest], { type: "text/plain;charset=utf-8" })
-      });
-
-      const zipBlob = await createZipBlob(zipFiles);
-      const zipName = buildZipName(dateStart, dateEnd);
-      renderZipDownload(zipBlob, zipName);
-      if (status) status.textContent = `ZIP prêt : ${zipName}`;
-      showLocalNotice("Extraction Instagram terminée ✔");
+      renderVisualPreview();
+      updateVisualStatus(`${generatedVisuals.length} visuel${generatedVisuals.length > 1 ? "s" : ""} généré${generatedVisuals.length > 1 ? "s" : ""}.`);
     } catch (error) {
-      console.error("Extraction Instagram impossible", error);
-      if (status) status.textContent = `Extraction interrompue : ${error.message || error}`;
-      showLocalNotice("Erreur pendant l’extraction.");
+      console.error("Erreur génération visuels :", error);
+      updateVisualStatus(error.message || "Impossible de générer les visuels.");
+      previewGrid.innerHTML = `<p class="priority-empty">La génération a été interrompue.</p>`;
     } finally {
-      if (button) button.disabled = false;
+      setButtonLoading(button, false, "Générer les visuels");
+      document.getElementById("visual-download-zip")?.toggleAttribute("disabled", !generatedVisuals.length);
     }
   }
 
-  async function createSingleEventPack(rawEvent) {
-    const event = repairEventText(rawEvent || {});
-    if (!event.id) throw new Error("Événement introuvable.");
-
-    const visualFormat = getSelectedVisualFormat();
-    const slides = await renderEventSlides(event);
-    const folderName = `01-${slugifyFileName(event.title || "evenement")}`;
-    const caption = buildIndividualPostComment(event, 0).replace(
-      /^--- COMMENTAIRE[^\n]*\n+/,
-      ""
-    );
-    const zipFiles = [
-      {
-        path: "texte-publication.txt",
-        blob: new Blob([caption], { type: "text/plain;charset=utf-8" })
-      },
-      {
-        path: "manifest.txt",
-        blob: new Blob([
-          [
-            "Pack Instagram Dédicalivres",
-            `Événement : ${event.title || "Événement"}`,
-            `Identifiant : ${event.id}`,
-            `Date : ${formatDateRange(event.start_date, event.end_date) || "à préciser"}`,
-            `Format : ${visualFormat.label} (${visualFormat.width}×${visualFormat.height})`,
-            "Contenu : 3 slides PNG + texte de publication"
-          ].join("\n")
-        ], { type: "text/plain;charset=utf-8" })
-      }
-    ];
-
-    slides.forEach((blob, slideIndex) => {
-      zipFiles.push({
-        path: `${folderName}/slide-${slideIndex + 1}.png`,
-        blob
-      });
-    });
-
-    const zipBlob = await createZipBlob(zipFiles);
-    const zipName = `instagram-${visualFormat.suffix}-${slugifyFileName(event.title || "evenement")}-${event.id}.zip`;
-    const downloads = document.getElementById("social-extraction-downloads");
-
-    if (downloads) {
-      renderZipDownload(zipBlob, zipName);
-      const status = document.getElementById("social-extraction-status");
-      if (status) status.textContent = `ZIP prêt : ${zipName}`;
-    } else {
-      downloadBlob(zipBlob, zipName);
-    }
-
-    return { ok: true, name: zipName };
+  function getSelectedVisualFormats() {
+    return Array.from(document.querySelectorAll('input[name="visual-format"]:checked'))
+      .map((input) => input.value)
+      .filter((value) => VISUAL_FORMATS[value]);
   }
 
-  function buildGroupPostText(chosen, dateStart, dateEnd) {
-    const mode = document.getElementById("social-post-mode")?.value || "central";
-    const period = dateStart || dateEnd
-      ? `Du ${formatDate(dateStart || chosen[0]?.start_date)} au ${formatDate(dateEnd || chosen[chosen.length - 1]?.start_date)}`
-      : "Les prochains rendez-vous littéraires";
-    const globalText = [
-      "📚 Dédicalivres — rendez-vous littéraires",
-      "",
-      period,
-      "",
-      "À découvrir :",
-      renderBullets(chosen),
-      "",
-      "Retrouvez l’agenda complet sur dedicalivres.fr",
-      "",
-      renderHashtags(chosen, { includeRegions: true, mode })
-    ].join("\n");
+  async function prepareVisualEvent(event) {
+    const authors = authorPresencesByEvent.get(String(event.id)) || [];
+    const image = await loadSafeImage(resolveImageUrl(event.image_url));
 
-    const individualComments = chosen
-      .map((event, index) => buildIndividualPostComment(event, index, mode))
-      .join("\n\n");
-
-    return [
-      globalText,
-      "",
-      "",
-      "============================================================",
-      "COMMENTAIRES INDIVIDUELS — UN PAR ÉVÉNEMENT / JEU DE 3 SLIDES",
-      "============================================================",
-      "",
-      individualComments
-    ].join("\n");
-  }
-
-  function buildIndividualPostComment(event, index, mode) {
-    const title = event.title || "Événement littéraire";
-    const type = event.type || "Événement littéraire";
-    const region = event.region || document.getElementById("social-region-filter")?.value || "France";
-    const place = [event.city, event.region].filter(Boolean).join(" · ") || region;
-    const date = formatDateRange(event.start_date, event.end_date);
-    const description = String(event.description || "").replace(/\s+/g, " ").trim();
-    const modeIntro = {
-      central: "📚 Un nouveau rendez-vous littéraire à découvrir avec Dédicalivres.",
-      regional: `📍 Un rendez-vous littéraire à découvrir en ${region}.`,
-      multi: `🗺️ La sélection Dédicalivres fait étape en ${region}.`,
-      story: "✨ Un rendez-vous littéraire à ne pas manquer.",
-      carousel: "📲 À découvrir dans ce carousel Dédicalivres."
-    }[mode] || "📚 Un nouveau rendez-vous littéraire à découvrir avec Dédicalivres.";
-
-    const lines = [
-      `--- COMMENTAIRE ${String(index + 1).padStart(2, "0")} — ${title} — SLIDES 1 À 3 ---`,
-      "",
-      modeIntro,
-      "",
-      `📖 ${title}`,
-      `🏷️ ${type}`,
-      date ? `📅 ${date}` : "",
-      place ? `📍 ${place}` : ""
-    ];
-
-    if (description) {
-      lines.push("", description.slice(0, 420) + (description.length > 420 ? "…" : ""));
-    }
-
-    lines.push(
-      "",
-      "🔎 Fiche événement disponible sur dedicalivres.fr",
-      "",
-      renderHashtags([event], {
-        includeRegions: true,
-        mode,
-        region: event.region || region,
-        type: event.type || type
-      })
-    );
-
-    return lines.filter((line, lineIndex) => line || (lineIndex > 0 && lines[lineIndex - 1])).join("\n");
-  }
-
-  async function renderEventSlides(event) {
-    const visualFormat = getSelectedVisualFormat();
-    const [image, background] = await Promise.all([
-      loadCanvasImage(event.image_url),
-      loadSocialBackground(visualFormat)
-    ]);
-    const slides = [];
-    for (let slide = 1; slide <= 3; slide += 1) {
-      const canvas = document.createElement("canvas");
-      canvas.width = visualFormat.width;
-      canvas.height = visualFormat.height;
-      drawEventSlide(canvas, event, image, slide, background, visualFormat);
-      try {
-        slides.push(await canvasToBlob(canvas));
-      } catch {
-        const fallbackCanvas = document.createElement("canvas");
-        fallbackCanvas.width = visualFormat.width;
-        fallbackCanvas.height = visualFormat.height;
-        drawEventSlide(fallbackCanvas, event, null, slide, background, visualFormat);
-        slides.push(await canvasToBlob(fallbackCanvas));
-      }
-    }
-    return slides;
-  }
-
-  function drawEventSlide(canvas, event, image, slide, background, visualFormat) {
-    const ctx = canvas.getContext("2d");
-    const theme = getAdaptiveTheme(event.type);
-    const layout = calculateAdaptiveLayout(ctx, event, image);
-
-    drawVisualBackground(ctx, theme, background, visualFormat);
-    const contentScale = Math.min(canvas.width / 1080, canvas.height / 1350);
-    ctx.save();
-    ctx.translate(
-      (canvas.width - 1080 * contentScale) / 2,
-      (canvas.height - 1350 * contentScale) / 2
-    );
-    ctx.scale(contentScale, contentScale);
-    ctx.fillStyle = theme.primary;
-    ctx.fillRect(0, 0, 18, 1350);
-    ctx.fillRect(1062, 0, 18, 1350);
-
-    ctx.fillStyle = "#ff6b35";
-    ctx.font = "900 24px Arial, sans-serif";
-    ctx.fillText("DÉDICALIVRES", 72, 82);
-    ctx.fillStyle = theme.secondary;
-    ctx.font = "900 20px Arial, sans-serif";
-    ctx.fillText(`SLIDE ${slide} / 3`, 820, 82);
-    drawPillCanvas(ctx, event.type || "Événement littéraire", 72, 150, theme.primary, "#ffffff");
-
-    if (slide === 3) {
-      drawAdaptiveImageFrame(ctx, image, event, { x: 190, y: 215, width: 700, height: 500 }, theme);
-      drawAdaptiveCta(ctx, event, theme);
-    } else {
-      drawAdaptiveImageFrame(ctx, image, event, layout.image, theme);
-      drawAdaptivePresentation(ctx, event, layout.presentation, theme, layout.mode, slide === 2);
-    }
-
-    ctx.fillStyle = theme.primary;
-    ctx.font = "900 23px Arial, sans-serif";
-    ctx.textAlign = "right";
-    drawOutlinedText(ctx, "Le livre nous rassemble", 1008, 1265, theme.primary, "rgba(255,255,255,.94)", 4);
-    ctx.textAlign = "left";
-    ctx.fillStyle = "#6c6278";
-    ctx.font = "700 18px Arial, sans-serif";
-    drawOutlinedText(ctx, "Informations vérifiées avant publication", 72, 1308, "#6c6278", "rgba(255,255,255,.92)", 3);
-    ctx.restore();
-  }
-
-  function drawVisualBackground(ctx, theme, background, visualFormat) {
-    const width = ctx.canvas.width;
-    const height = ctx.canvas.height;
-    if (background) {
-      drawImageCover(ctx, background, 0, 0, width, height, false);
-      return;
-    }
-
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, "#fff9f6");
-    gradient.addColorStop(.48, theme.pale);
-    gradient.addColorStop(1, "#eee3f5");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
-  }
-
-  function calculateAdaptiveLayout(ctx, event, image) {
-    const bounds = { x: 72, y: 215, width: 936, height: 930 };
-    const ratio = image?.naturalWidth && image?.naturalHeight ? image.naturalWidth / image.naturalHeight : 1.45;
-    const titleLength = String(event.title || "").length;
-    const textNeed = 320 + Math.min(120, Math.max(0, titleLength - 45) * 1.35);
-
-    if (ratio < .84) {
-      const gap = 28;
-      const maxImageWidth = Math.min(500, bounds.width - gap - 390);
-      const imageWidth = Math.max(285, Math.min(maxImageWidth, bounds.height * ratio));
-      const imageHeight = Math.min(bounds.height, imageWidth / Math.max(ratio, .2));
-      const presentationWidth = bounds.width - imageWidth - gap;
-      const sharedHeight = Math.min(bounds.height, Math.max(imageHeight, Math.min(820, textNeed + 160)));
-      const top = bounds.y + (bounds.height - sharedHeight) / 2;
-      return {
-        mode: "portrait",
-        image: { x: bounds.x, y: top + (sharedHeight - imageHeight) / 2, width: imageWidth, height: imageHeight },
-        presentation: { x: bounds.x + imageWidth + gap, y: top, width: presentationWidth, height: sharedHeight }
-      };
-    }
-
-    if (ratio <= 1.18) {
-      const gap = 28;
-      const imageWidth = Math.min(555, bounds.width - gap - 350);
-      const imageHeight = Math.min(700, imageWidth / Math.max(ratio, .2));
-      const presentationWidth = bounds.width - imageWidth - gap;
-      const sharedHeight = Math.min(bounds.height, Math.max(imageHeight, Math.min(780, textNeed + 170)));
-      const top = bounds.y + (bounds.height - sharedHeight) / 2;
-      return {
-        mode: "balanced",
-        image: { x: bounds.x, y: top + (sharedHeight - imageHeight) / 2, width: imageWidth, height: imageHeight },
-        presentation: { x: bounds.x + imageWidth + gap, y: top, width: presentationWidth, height: sharedHeight }
-      };
-    }
-
-    const gap = 26;
-    const presentationHeight = Math.min(470, Math.max(420, textNeed));
-    const imageMaxHeight = bounds.height - gap - presentationHeight;
-    const imageHeight = Math.min(imageMaxHeight, Math.max(350, bounds.width / ratio));
-    const imageWidth = Math.min(bounds.width, imageHeight * ratio);
-    const totalHeight = imageHeight + gap + presentationHeight;
-    const top = bounds.y + (bounds.height - totalHeight) / 2;
     return {
-      mode: "landscape",
-      image: { x: bounds.x + (bounds.width - imageWidth) / 2, y: top, width: imageWidth, height: imageHeight },
-      presentation: { x: bounds.x, y: top + imageHeight + gap, width: bounds.width, height: presentationHeight }
+      id: event.id,
+      title: cleanText(event.title) || "Événement littéraire",
+      type: cleanText(event.type) || "Événement",
+      city: cleanText(event.city),
+      region: cleanText(event.region),
+      dateLabel: formatDateRange(event.start_date, event.end_date),
+      image,
+      imageUrl: resolveImageUrl(event.image_url),
+      url: event.id ? `https://dedicalivres.fr/event.html?id=${encodeURIComponent(event.id)}` : "",
+      authors: authors.map((author) => cleanText(author.pseudo)).filter(Boolean).slice(0, 3)
     };
   }
 
-  function drawAdaptiveImageFrame(ctx, image, event, box, theme) {
-    ctx.save();
-    ctx.shadowColor = theme.shadow;
-    ctx.shadowBlur = 22;
-    ctx.shadowOffsetY = 10;
-    ctx.fillStyle = theme.pale;
-    roundedRectCanvas(ctx, box.x, box.y, box.width, box.height, 34);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    roundedRectCanvas(ctx, box.x, box.y, box.width, box.height, 34);
-    ctx.clip();
-    ctx.fillStyle = theme.pale;
-    ctx.fillRect(box.x, box.y, box.width, box.height);
-    if (image) {
-      drawImageCover(ctx, image, box.x, box.y, box.width, box.height, true);
-      ctx.fillStyle = "rgba(255,255,255,.25)";
-      ctx.fillRect(box.x, box.y, box.width, box.height);
-      const inset = Math.max(12, Math.min(22, Math.round(Math.min(box.width, box.height) * .035)));
-      drawImageContain(ctx, image, box.x + inset, box.y + inset, box.width - inset * 2, box.height - inset * 2);
-    } else {
-      drawImageFallback(ctx, event, box.x, box.y, box.width, box.height, theme);
-    }
-    ctx.restore();
-    ctx.strokeStyle = theme.primary;
-    ctx.lineWidth = 6;
-    roundedRectCanvas(ctx, box.x, box.y, box.width, box.height, 34);
-    ctx.stroke();
+  async function renderVisualByFormat(event, format) {
+    if (format === "story") return renderStoryVisual(event);
+    if (format === "feed") return renderFeedVisual(event);
+    if (format === "square") return renderSquareVisual(event);
+    return renderWideVisual(event);
   }
 
-  function drawAdaptivePresentation(ctx, event, box, theme, mode, detailed) {
-    const compact = box.width < 430;
-    const padding = compact ? 26 : 34;
-    const innerX = box.x + padding;
-    const innerWidth = box.width - padding * 2;
-    const bottom = box.y + box.height - padding;
-    ctx.save();
-    ctx.shadowColor = theme.shadow;
-    ctx.shadowBlur = 22;
-    ctx.shadowOffsetY = 10;
-    ctx.fillStyle = "rgba(255,255,255,.94)";
-    roundedRectCanvas(ctx, box.x, box.y, box.width, box.height, 34);
-    ctx.fill();
-    ctx.restore();
-    ctx.strokeStyle = theme.secondary;
-    ctx.lineWidth = 5;
-    roundedRectCanvas(ctx, box.x, box.y, box.width, box.height, 34);
-    ctx.stroke();
+  async function renderStoryVisual(event) {
+    const canvas = createVisualCanvas(VISUAL_FORMATS.story);
+    const ctx = canvas.getContext("2d");
 
-    drawPillCanvas(ctx, event.type || "Événement", innerX, box.y + padding + 28, theme.primary, "#fff");
-    const titleY = box.y + padding + 112;
-    const titleMaxLines = mode === "landscape" ? 3 : 5;
-    const title = drawAdaptiveTitle(ctx, event.title || "Événement littéraire", innerX, titleY, innerWidth, titleMaxLines, compact ? 40 : 48, compact ? 27 : 31);
-    let currentY = titleY + title.height + (compact ? 18 : 24);
-    const metaBottom = bottom - 90;
-    ctx.fillStyle = theme.secondary;
-    ctx.font = `900 ${compact ? 24 : 29}px Arial, sans-serif`;
-    if (currentY <= metaBottom) {
-      drawSingleLineEllipsis(ctx, formatDateRange(event.start_date, event.end_date), innerX, currentY, innerWidth);
-      currentY += (compact ? 24 : 29) + 23;
-    }
-    const place = [event.city, event.region].filter(Boolean).join(" · ");
-    if (place && currentY <= metaBottom) {
-      ctx.fillStyle = "#64586f";
-      ctx.font = `700 ${compact ? 20 : 24}px Arial, sans-serif`;
-      drawSingleLineEllipsis(ctx, place, innerX, currentY, innerWidth);
-      currentY += (compact ? 20 : 24) + 18;
-    }
-    if (detailed && event.description && currentY <= metaBottom) {
-      ctx.fillStyle = "#64586f";
-      ctx.font = `700 ${compact ? 17 : 20}px Arial, sans-serif`;
-      drawVisualWrappedText(ctx, event.description, innerX, currentY, innerWidth, 3, compact ? 21 : 25);
-    }
-    ctx.fillStyle = theme.secondary;
-    roundedRectCanvas(ctx, innerX, bottom - 66, Math.min(innerWidth, compact ? innerWidth : 390), 66, 20);
-    ctx.fill();
-    ctx.fillStyle = "#fff";
-    ctx.font = `900 ${compact ? 21 : 25}px Arial, sans-serif`;
-    ctx.fillText("Fiche événement", innerX + (compact ? 24 : 32), bottom - 23);
-  }
+    drawBrandBackground(ctx, canvas.width, canvas.height, "story");
+    await drawLogo(ctx, 76, 68, 174, 74);
 
-  function drawAdaptiveCta(ctx, event, theme) {
-    ctx.textAlign = "center";
-    ctx.fillStyle = theme.secondary;
-    ctx.font = "900 46px Georgia, serif";
-    drawOutlinedText(ctx, "Le livre nous rassemble", 540, 850, theme.secondary, "rgba(255,255,255,.88)", 5);
-    ctx.fillStyle = "#64586f";
-    ctx.font = "700 30px Arial, sans-serif";
-    drawOutlinedText(ctx, "Retrouvez cet événement sur", 540, 940, "#64586f", "rgba(255,255,255,.86)", 3);
-    ctx.fillStyle = theme.primary;
-    ctx.font = "900 38px Arial, sans-serif";
-    drawOutlinedText(ctx, "dedicalivres.fr", 540, 1000, theme.primary, "rgba(255,255,255,.9)", 4);
-    ctx.textAlign = "left";
-  }
+    const imageFrame = { x: 618, y: 96, w: 348, h: 348, r: 78 };
+    drawImageFrame(ctx, event, imageFrame, { badge: true });
 
-  function drawImageCover(ctx, image, x, y, width, height, blurred) {
-    const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
-    const drawWidth = image.naturalWidth * scale;
-    const drawHeight = image.naturalHeight * scale;
-    ctx.save();
-    if (blurred) ctx.filter = "blur(28px) saturate(.82)";
-    ctx.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
-    ctx.restore();
-  }
-
-  function drawImageContain(ctx, image, x, y, width, height) {
-    const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
-    const drawWidth = image.naturalWidth * scale;
-    const drawHeight = image.naturalHeight * scale;
-    ctx.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
-  }
-
-  function drawImageFallback(ctx, event, x, y, width, height, theme) {
-    const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
-    gradient.addColorStop(0, theme.secondary);
-    gradient.addColorStop(1, theme.primary);
-    ctx.fillStyle = gradient;
-    ctx.fillRect(x, y, width, height);
-    ctx.fillStyle = "rgba(255,255,255,.12)";
-    ctx.font = `900 ${Math.min(250, Math.round(height * .42))}px Georgia, serif`;
-    ctx.textAlign = "center";
-    ctx.fillText("D", x + width / 2, y + height * .62);
-    ctx.textAlign = "left";
-    ctx.fillStyle = "#fff";
-    ctx.font = `900 ${Math.min(32, Math.max(18, Math.round(width * .055)))}px Arial, sans-serif`;
-    drawSingleLineEllipsis(ctx, event.type || "Événement littéraire", x + 32, y + height - 36, width - 64);
-  }
-
-  function drawAdaptiveTitle(ctx, text, x, y, width, maxLines, maxFont, minFont) {
-    let fontSize = maxFont;
-    let lines = [];
-    while (fontSize >= minFont) {
-      ctx.font = `700 ${fontSize}px Georgia, serif`;
-      lines = wrapCanvasLines(ctx, text, width);
-      if (lines.length <= maxLines) break;
-      fontSize -= 2;
-    }
-    if (lines.length > maxLines) {
-      lines = lines.slice(0, maxLines);
-      lines[maxLines - 1] = ellipsizeCanvas(ctx, lines[maxLines - 1], width);
-    }
-    ctx.fillStyle = "#271c35";
-    const lineHeight = Math.round(fontSize * 1.12);
-    lines.forEach((line, index) => ctx.fillText(line, x, y + index * lineHeight));
-    return { height: Math.max(lineHeight, lines.length * lineHeight) };
-  }
-
-  function drawVisualWrappedText(ctx, text, x, y, width, maxLines, lineHeight) {
-    wrapCanvasLines(ctx, text, width).slice(0, maxLines).forEach((line, index) => ctx.fillText(line, x, y + index * lineHeight));
-  }
-
-  function wrapCanvasLines(ctx, text, width) {
-    const lines = [];
-    let line = "";
-    String(text || "").trim().split(/\s+/).forEach((word) => {
-      const candidate = line ? `${line} ${word}` : word;
-      if (line && ctx.measureText(candidate).width > width) {
-        lines.push(line);
-        line = word;
-      } else line = candidate;
+    const card = { x: 78, y: 520, w: 924, h: 1006, r: 56 };
+    drawTextCard(ctx, card, event, {
+      format: "story",
+      titleMax: 6,
+      titleFont: 72,
+      titleMin: 44,
+      metaFont: 34,
+      ctaFont: 31
     });
-    if (line) lines.push(line);
-    return lines.length ? lines : [""];
+
+    drawDecorativeLine(ctx, 78, 1624, 924);
+    return canvas;
   }
 
-  function ellipsizeCanvas(ctx, text, width) {
-    let value = String(text || "");
-    while (value.length > 1 && ctx.measureText(`${value}…`).width > width) value = value.slice(0, -1);
-    return `${value}…`;
-  }
+  async function renderFeedVisual(event) {
+    const canvas = createVisualCanvas(VISUAL_FORMATS.feed);
+    const ctx = canvas.getContext("2d");
 
-  function drawSingleLineEllipsis(ctx, text, x, y, width) {
-    ctx.fillText(ellipsizeCanvas(ctx, text, width), x, y);
-  }
+    drawBrandBackground(ctx, canvas.width, canvas.height, "feed");
+    await drawLogo(ctx, 76, 58, 210, 86);
 
-  function drawOutlinedText(ctx, text, x, y, fill, outline, lineWidth) {
-    ctx.save();
-    ctx.strokeStyle = outline;
-    ctx.lineWidth = lineWidth;
-    ctx.lineJoin = "round";
-    ctx.miterLimit = 2;
-    ctx.strokeText(text, x, y);
-    ctx.fillStyle = fill;
-    ctx.fillText(text, x, y);
-    ctx.restore();
-  }
+    const imageFrame = { x: 94, y: 188, w: 892, h: 438, r: 50 };
+    drawImageFrame(ctx, event, imageFrame, { badge: true });
 
-  function getAdaptiveTheme(type) {
-    const value = normalize(type);
-    if (value.includes("dedicace")) return { primary: "#7137b6", secondary: "#43206f", pale: "#f0e7fa", guide: "rgba(113,55,182,.14)", shadow: "rgba(67,32,111,.22)" };
-    if (value.includes("festival")) return { primary: "#f06a2f", secondary: "#a83d16", pale: "#fff0e8", guide: "rgba(240,106,47,.14)", shadow: "rgba(168,61,22,.22)" };
-    if (value.includes("salon")) return { primary: "#2784c7", secondary: "#155580", pale: "#e7f4fc", guide: "rgba(39,132,199,.14)", shadow: "rgba(21,85,128,.22)" };
-    return { primary: "#24936f", secondary: "#155e49", pale: "#e6f7f1", guide: "rgba(36,147,111,.14)", shadow: "rgba(21,94,73,.22)" };
-  }
-
-  function drawCanvasImage(ctx, image, event, theme, x, y, width, height) {
-    ctx.save();
-    roundedRectCanvas(ctx, x, y, width, height, 34);
-    ctx.clip();
-    if (image) {
-      const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
-      const drawWidth = image.naturalWidth * scale;
-      const drawHeight = image.naturalHeight * scale;
-      ctx.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
-      ctx.fillStyle = "rgba(255,255,255,.18)";
-      ctx.fillRect(x, y, width, height);
-    } else {
-      const fallback = ctx.createLinearGradient(x, y, x + width, y + height);
-      fallback.addColorStop(0, theme.secondary);
-      fallback.addColorStop(1, theme.primary);
-      ctx.fillStyle = fallback;
-      ctx.fillRect(x, y, width, height);
-      ctx.fillStyle = "rgba(255,255,255,.16)";
-      ctx.font = "900 220px Georgia, serif";
-      ctx.textAlign = "center";
-      ctx.fillText("D", x + width / 2, y + height / 2 + 75);
-      ctx.textAlign = "left";
-    }
-    ctx.restore();
-    ctx.strokeStyle = theme.primary;
-    ctx.lineWidth = 6;
-    roundedRectCanvas(ctx, x, y, width, height, 34);
-    ctx.stroke();
-  }
-
-  function drawTextBlock(ctx, text, x, y, width, fontSize, color, maxLines) {
-    ctx.fillStyle = color;
-    ctx.font = `700 ${fontSize}px Georgia, serif`;
-    const lines = [];
-    let line = "";
-    String(text || "").split(/\s+/).forEach((word) => {
-      const candidate = line ? `${line} ${word}` : word;
-      if (line && ctx.measureText(candidate).width > width) {
-        lines.push(line);
-        line = word;
-      } else line = candidate;
+    const card = { x: 94, y: 682, w: 892, h: 514, r: 50 };
+    drawTextCard(ctx, card, event, {
+      format: "feed",
+      titleMax: 5,
+      titleFont: 58,
+      titleMin: 34,
+      metaFont: 29,
+      ctaFont: 26
     });
-    if (line) lines.push(line);
-    lines.slice(0, maxLines).forEach((value, index) => ctx.fillText(value, x, y + index * Math.round(fontSize * 1.15)));
+
+    return canvas;
   }
 
-  function drawPillCanvas(ctx, text, x, y, background, color) {
-    ctx.font = "900 22px Arial, sans-serif";
-    const width = Math.min(430, ctx.measureText(text).width + 48);
-    ctx.fillStyle = background;
-    roundedRectCanvas(ctx, x, y - 36, width, 58, 29);
-    ctx.fill();
-    ctx.fillStyle = color;
-    ctx.fillText(text, x + 24, y);
+  async function renderSquareVisual(event) {
+    const canvas = createVisualCanvas(VISUAL_FORMATS.square);
+    const ctx = canvas.getContext("2d");
+
+    drawBrandBackground(ctx, canvas.width, canvas.height, "square");
+    await drawLogo(ctx, 402, 58, 276, 104);
+
+    const imageFrame = { x: 104, y: 184, w: 872, h: 330, r: 46 };
+    drawImageFrame(ctx, event, imageFrame, { badge: true });
+
+    const card = { x: 104, y: 558, w: 872, h: 372, r: 44 };
+    drawTextCard(ctx, card, event, {
+      format: "square",
+      titleMax: 4,
+      titleFont: 50,
+      titleMin: 32,
+      metaFont: 26,
+      ctaFont: 24
+    });
+
+    return canvas;
   }
 
-  function roundedRectCanvas(ctx, x, y, width, height, radius) {
-    const r = Math.min(radius, width / 2, height / 2);
+  async function renderWideVisual(event) {
+    const canvas = createVisualCanvas(VISUAL_FORMATS.wide);
+    const ctx = canvas.getContext("2d");
+
+    drawBrandBackground(ctx, canvas.width, canvas.height, "wide");
+    await drawLogo(ctx, 76, 56, 218, 86);
+
+    const card = { x: 76, y: 164, w: 686, h: 594, r: 44 };
+    drawTextCard(ctx, card, event, {
+      format: "wide",
+      titleMax: 5,
+      titleFont: 56,
+      titleMin: 34,
+      metaFont: 28,
+      ctaFont: 25
+    });
+
+    const imageFrame = { x: 840, y: 128, w: 680, h: 592, r: 50 };
+    drawImageFrame(ctx, event, imageFrame, { badge: true });
+
+    return canvas;
+  }
+
+  function createVisualCanvas(format) {
+    const canvas = document.createElement("canvas");
+    canvas.width = format.width;
+    canvas.height = format.height;
+    return canvas;
+  }
+
+  function drawBrandBackground(ctx, width, height, variant) {
+    const base = ctx.createLinearGradient(0, 0, width, height);
+    base.addColorStop(0, "#fff8f4");
+    base.addColorStop(.48, "#fbf7ff");
+    base.addColorStop(1, "#efe3fa");
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.save();
+    ctx.globalAlpha = variant === "wide" ? .12 : .16;
+    ctx.fillStyle = "#3a1c71";
     ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + width, y, x + width, y + height, r);
-    ctx.arcTo(x + width, y + height, x, y + height, r);
-    ctx.arcTo(x, y + height, x, y, r);
-    ctx.arcTo(x, y, x + width, y, r);
+    ctx.ellipse(width * .88, height * .08, width * .34, height * .28, -.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = .18;
+    ctx.strokeStyle = "#ff6b35";
+    ctx.lineWidth = variant === "story" ? 5 : 4;
+    ctx.setLineDash([18, 22]);
+    ctx.beginPath();
+    ctx.moveTo(width * .10, height * .18);
+    ctx.bezierCurveTo(width * .32, height * .02, width * .48, height * .26, width * .70, height * .10);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = .09;
+    ctx.strokeStyle = "#3a1c71";
+    ctx.lineWidth = 2;
+    for (let x = -80; x < width + 80; x += 92) {
+      ctx.beginPath();
+      ctx.moveTo(x, height);
+      ctx.lineTo(x + width * .28, 0);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  async function drawLogo(ctx, x, y, w, h) {
+    const logo = await loadLogoImage();
+
+    if (!logo) {
+      drawFallbackLogo(ctx, x, y, w, h);
+      return;
+    }
+
+    const ratio = Math.min(w / logo.width, h / logo.height);
+    const drawW = logo.width * ratio;
+    const drawH = logo.height * ratio;
+    ctx.drawImage(logo, x, y, drawW, drawH);
+  }
+
+  function drawFallbackLogo(ctx, x, y, w, h) {
+    ctx.save();
+    ctx.fillStyle = "#3a1c71";
+    ctx.font = `900 ${Math.round(Math.min(h * .42, 34))}px Inter, sans-serif`;
+    ctx.fillText("Dédicalivres", x, y + h * .58);
+    ctx.restore();
+  }
+
+  function drawImageFrame(ctx, event, frame, options = {}) {
+    ctx.save();
+    roundedPath(ctx, frame.x, frame.y, frame.w, frame.h, frame.r);
+    ctx.clip();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(frame.x, frame.y, frame.w, frame.h);
+
+    if (event.image) {
+      drawImageCover(ctx, event.image, frame.x, frame.y, frame.w, frame.h, {
+        alpha: .23,
+        blur: 18
+      });
+      drawImageContain(ctx, event.image, frame.x + 18, frame.y + 18, frame.w - 36, frame.h - 36);
+    } else {
+      drawFallbackVisual(ctx, frame, event);
+    }
+
+    ctx.restore();
+
+    ctx.save();
+    roundedPath(ctx, frame.x, frame.y, frame.w, frame.h, frame.r);
+    ctx.strokeStyle = "rgba(58,28,113,.15)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+
+    if (options.badge) {
+      drawTypeBadge(ctx, getTypeBadge(event.type), frame.x + 24, frame.y + frame.h - 68, {
+        dark: true,
+        maxWidth: frame.w - 48
+      });
+    }
+  }
+
+  function drawFallbackVisual(ctx, frame, event) {
+    const gradient = ctx.createLinearGradient(frame.x, frame.y, frame.x + frame.w, frame.y + frame.h);
+    gradient.addColorStop(0, "#f5ecff");
+    gradient.addColorStop(1, "#fff1e8");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(frame.x, frame.y, frame.w, frame.h);
+
+    ctx.save();
+    ctx.globalAlpha = .18;
+    ctx.fillStyle = "#3a1c71";
+    ctx.beginPath();
+    ctx.arc(frame.x + frame.w * .72, frame.y + frame.h * .18, Math.min(frame.w, frame.h) * .34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = "#3a1c71";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `900 ${Math.max(30, Math.round(frame.w * .055))}px Inter, sans-serif`;
+    wrapCanvasText(ctx, getTypeBadge(event.type), frame.x + frame.w / 2, frame.y + frame.h / 2, frame.w * .72, Math.round(frame.w * .06), 2);
+  }
+
+  function drawTextCard(ctx, card, event, options) {
+    ctx.save();
+    roundedPath(ctx, card.x, card.y, card.w, card.h, card.r);
+    ctx.fillStyle = "rgba(255,255,255,.88)";
+    ctx.shadowColor = "rgba(58,28,113,.16)";
+    ctx.shadowBlur = 36;
+    ctx.shadowOffsetY = 18;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    roundedPath(ctx, card.x, card.y, card.w, card.h, card.r);
+    ctx.strokeStyle = "rgba(58,28,113,.11)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    const padding = options.format === "story" ? 62 : options.format === "wide" ? 46 : 44;
+    const x = card.x + padding;
+    let y = card.y + padding;
+    const maxWidth = card.w - padding * 2;
+
+    drawTypeBadge(ctx, getTypeBadge(event.type), x, y, { dark: false, maxWidth });
+    y += options.format === "story" ? 86 : 66;
+
+    const titleResult = drawAdaptiveTitle(ctx, event.title, x, y, maxWidth, {
+      maxLines: options.titleMax,
+      fontSize: options.titleFont,
+      minFontSize: options.titleMin,
+      lineHeight: 1.08
+    });
+
+    y += titleResult.height + (options.format === "story" ? 46 : 28);
+
+    const metaLines = [
+      event.dateLabel ? `Date : ${event.dateLabel}` : "",
+      formatPlace(event) ? `Lieu : ${formatPlace(event)}` : "",
+      event.authors.length ? `Auteur${event.authors.length > 1 ? "s" : ""} : ${event.authors.join(", ")}` : ""
+    ].filter(Boolean);
+
+    ctx.fillStyle = "#5f536f";
+    ctx.font = `800 ${options.metaFont}px Inter, sans-serif`;
+    ctx.textBaseline = "top";
+
+    metaLines.forEach((line) => {
+      const used = wrapCanvasText(ctx, line, x, y, maxWidth, Math.round(options.metaFont * 1.42), 2);
+      y += used + Math.round(options.metaFont * .48);
+    });
+
+    if (event.url) {
+      const pillY = Math.min(card.y + card.h - (options.format === "story" ? 142 : 92), y + 18);
+      drawCtaPill(ctx, "Fiche événement", x, pillY, options);
+    }
+  }
+
+  function drawAdaptiveTitle(ctx, title, x, y, maxWidth, options) {
+    let fontSize = options.fontSize;
+    let lines = [];
+    let lineHeight = 0;
+
+    while (fontSize >= options.minFontSize) {
+      ctx.font = `900 ${fontSize}px Georgia, "Playfair Display", serif`;
+      lineHeight = Math.round(fontSize * options.lineHeight);
+      lines = computeWrappedLines(ctx, title, maxWidth, 999);
+
+      if (lines.length <= options.maxLines) break;
+      fontSize -= 4;
+    }
+
+    ctx.fillStyle = "#2c1944";
+    ctx.textBaseline = "top";
+    ctx.font = `900 ${fontSize}px Georgia, "Playfair Display", serif`;
+
+    lines = computeWrappedLines(ctx, title, maxWidth, options.maxLines);
+    lines.forEach((line, index) => {
+      ctx.fillText(line, x, y + index * lineHeight);
+    });
+
+    return {
+      fontSize,
+      lines,
+      height: lines.length * lineHeight
+    };
+  }
+
+  function computeWrappedLines(ctx, text, maxWidth, maxLines) {
+    const words = cleanText(text).split(/\s+/).filter(Boolean);
+    const lines = [];
+    let current = "";
+
+    words.forEach((word) => {
+      const test = current ? `${current} ${word}` : word;
+
+      if (ctx.measureText(test).width <= maxWidth) {
+        current = test;
+        return;
+      }
+
+      if (current) lines.push(current);
+      current = word;
+    });
+
+    if (current) lines.push(current);
+
+    if (lines.length > maxLines) {
+      const clipped = lines.slice(0, maxLines);
+      clipped[clipped.length - 1] = ellipsizeCanvasLine(ctx, clipped[clipped.length - 1] || "", maxWidth);
+      return clipped.map((line) => fitCanvasLine(ctx, line, maxWidth));
+    }
+
+    return lines.map((line) => fitCanvasLine(ctx, line, maxWidth));
+  }
+
+  function fitCanvasLine(ctx, line, maxWidth) {
+    if (ctx.measureText(line).width <= maxWidth) return line;
+    return ellipsizeCanvasLine(ctx, line, maxWidth);
+  }
+
+  function ellipsizeCanvasLine(ctx, line, maxWidth) {
+    let value = cleanText(line);
+
+    while (value.length > 1 && ctx.measureText(`${value}…`).width > maxWidth) {
+      const shorter = value.replace(/\s+\S+$/, "");
+
+      if (shorter && shorter !== value) {
+        value = shorter;
+      } else {
+        value = value.slice(0, -1);
+      }
+    }
+
+    return `${value || line.slice(0, 1)}…`;
+  }
+
+  function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 4) {
+    const lines = computeWrappedLines(ctx, text, maxWidth, maxLines);
+    lines.forEach((line, index) => {
+      ctx.fillText(line, x, y + index * lineHeight);
+    });
+    return lines.length * lineHeight;
+  }
+
+  function drawTypeBadge(ctx, label, x, y, options = {}) {
+    const fontSize = options.dark ? 24 : 22;
+    ctx.save();
+    ctx.font = `900 ${fontSize}px Inter, sans-serif`;
+    const text = label.toUpperCase();
+    const paddingX = options.dark ? 24 : 20;
+    const width = Math.min((options.maxWidth || 420), ctx.measureText(text).width + paddingX * 2);
+    const height = options.dark ? 44 : 40;
+
+    roundedPath(ctx, x, y, width, height, height / 2);
+    ctx.fillStyle = options.dark ? "rgba(58,28,113,.82)" : "rgba(58,28,113,.10)";
+    ctx.fill();
+
+    ctx.fillStyle = options.dark ? "#ffffff" : "#3a1c71";
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ctx.fillText(text, x + paddingX, y + height / 2 + 1, width - paddingX * 2);
+    ctx.restore();
+  }
+
+  function drawCtaPill(ctx, label, x, y, options) {
+    ctx.save();
+    ctx.font = `900 ${options.ctaFont}px Inter, sans-serif`;
+    const width = Math.min(options.format === "wide" ? 260 : 320, ctx.measureText(label).width + 56);
+    const height = options.format === "story" ? 74 : 56;
+
+    roundedPath(ctx, x, y, width, height, height / 2);
+    const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
+    gradient.addColorStop(0, "#ff6b35");
+    gradient.addColorStop(1, "#ff8a57");
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x + width / 2, y + height / 2 + 1);
+    ctx.restore();
+  }
+
+  function drawDecorativeLine(ctx, x, y, width) {
+    ctx.save();
+    const gradient = ctx.createLinearGradient(x, y, x + width, y);
+    gradient.addColorStop(0, "rgba(255,107,53,.0)");
+    gradient.addColorStop(.5, "rgba(58,28,113,.22)");
+    gradient.addColorStop(1, "rgba(255,107,53,.0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, width, 3);
+    ctx.restore();
+  }
+
+  function drawImageContain(ctx, image, x, y, w, h) {
+    const ratio = Math.min(w / image.width, h / image.height);
+    const drawW = image.width * ratio;
+    const drawH = image.height * ratio;
+    const drawX = x + (w - drawW) / 2;
+    const drawY = y + (h - drawH) / 2;
+    ctx.drawImage(image, drawX, drawY, drawW, drawH);
+  }
+
+  function drawImageCover(ctx, image, x, y, w, h, options = {}) {
+    const ratio = Math.max(w / image.width, h / image.height);
+    const drawW = image.width * ratio;
+    const drawH = image.height * ratio;
+    const drawX = x + (w - drawW) / 2;
+    const drawY = y + (h - drawH) / 2;
+
+    ctx.save();
+    ctx.globalAlpha = options.alpha ?? 1;
+    if (options.blur) ctx.filter = `blur(${options.blur}px)`;
+    ctx.drawImage(image, drawX, drawY, drawW, drawH);
+    ctx.restore();
+  }
+
+  function roundedPath(ctx, x, y, w, h, r) {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + w - radius, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+    ctx.lineTo(x + w, y + h - radius);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+    ctx.lineTo(x + radius, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
   }
 
-  function eventTheme(type) {
-    const value = normalize(type);
-    if (value.includes("dedicace")) return { primary: "#7137b6", secondary: "#43206f", pale: "#f0e7fa" };
-    if (value.includes("festival")) return { primary: "#f06a2f", secondary: "#a83d16", pale: "#fff0e8" };
-    if (value.includes("salon")) return { primary: "#2784c7", secondary: "#155580", pale: "#e7f4fc" };
-    return { primary: "#24936f", secondary: "#155e49", pale: "#e6f7f1" };
-  }
-
-  function loadCanvasImage(source) {
-    const url = safeHttpUrl(source);
-    if (!url) return Promise.resolve(null);
-
-    const proxyBase = window.DEDICALIVRES_CONFIG?.imageProxyBaseUrl || "";
-    const proxyUrl = proxyBase ? `${proxyBase}${encodeURIComponent(url)}` : "";
-    return loadCanvasImageCandidate(url).then((image) => image || (proxyUrl ? loadCanvasImageCandidate(proxyUrl) : null));
-  }
-
-  const socialBackgroundPromises = new Map();
-
-  function getSelectedVisualFormat() {
-    const brand = window.DEDICALIVRES_INSTAGRAM_BRAND;
-    const requested = document.getElementById("social-visual-format")?.value
-      || (document.getElementById("social-post-mode")?.value === "story" ? "story" : "post");
-    return brand?.formats?.[requested] || brand?.formats?.post || {
-      label: "Post carré",
-      width: 2048,
-      height: 2048,
-      background: "instagram-background-post.jpg",
-      suffix: "post"
-    };
-  }
-
-  function loadSocialBackground(format) {
-    const source = format?.background || "";
-    if (!source) return Promise.resolve(null);
-    if (!socialBackgroundPromises.has(source)) {
-      socialBackgroundPromises.set(source, loadCanvasImageCandidate(source));
+  async function loadLogoImage() {
+    if (!logoImagePromise) {
+      logoImagePromise = loadSafeImage("logo.png");
     }
-    return socialBackgroundPromises.get(source);
+
+    return logoImagePromise;
   }
 
-  function loadCanvasImageCandidate(source) {
+  function loadSafeImage(src) {
     return new Promise((resolve) => {
-      const image = new Image();
-      image.crossOrigin = "anonymous";
-      image.referrerPolicy = "no-referrer";
-      let settled = false;
-      const finish = (value) => {
-        if (settled) return;
-        settled = true;
-        resolve(value);
-      };
-      image.onload = () => {
-        try {
-          const probe = document.createElement("canvas");
-          probe.width = 2;
-          probe.height = 2;
-          const context = probe.getContext("2d");
-          context.drawImage(image, 0, 0, 2, 2);
-          context.getImageData(0, 0, 1, 1);
-          finish(image);
-        } catch {
-          finish(null);
-        }
-      };
-      image.onerror = () => finish(null);
-      image.src = source;
-      window.setTimeout(() => finish(null), 6000);
+      if (!src) {
+        resolve(null);
+        return;
+      }
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
+  function renderVisualPreview() {
+    const previewGrid = document.getElementById("visual-preview-grid");
+    if (!previewGrid) return;
+
+    if (!generatedVisuals.length) {
+      previewGrid.innerHTML = `<p class="priority-empty">Aucun visuel généré pour le moment.</p>`;
+      document.getElementById("visual-download-zip")?.setAttribute("disabled", "disabled");
+      return;
+    }
+
+    previewGrid.innerHTML = generatedVisuals.map((visual, index) => {
+      const format = VISUAL_FORMATS[visual.format];
+      return `
+        <article class="social-visual-preview-card">
+          <div class="social-visual-preview-canvas" id="visual-preview-canvas-${index}"></div>
+          <div class="social-visual-preview-meta">
+            <strong>${escapeHtml(format.label)}</strong>
+            <span>${escapeHtml(visual.event.title)}</span>
+            <button class="cyber-btn-secondary" type="button" data-download-visual="${index}">Télécharger PNG</button>
+          </div>
+        </article>
+      `;
+    }).join("");
+
+    generatedVisuals.forEach((visual, index) => {
+      const slot = document.getElementById(`visual-preview-canvas-${index}`);
+      if (!slot) return;
+      const clone = document.createElement("canvas");
+      clone.width = visual.canvas.width;
+      clone.height = visual.canvas.height;
+      clone.getContext("2d").drawImage(visual.canvas, 0, 0);
+      slot.appendChild(clone);
+    });
+
+    previewGrid.querySelectorAll("[data-download-visual]").forEach((button) => {
+      button.addEventListener("click", () => {
+        downloadSingleVisual(Number(button.dataset.downloadVisual));
+      });
+    });
+
+    document.getElementById("visual-download-zip")?.removeAttribute("disabled");
+  }
+
+  async function downloadSingleVisual(index) {
+    const visual = generatedVisuals[index];
+    if (!visual) return;
+
+    const blob = await canvasToBlob(visual.canvas);
+    downloadBlob(blob, visual.fileName);
+  }
+
+  async function downloadVisualZip() {
+    if (!generatedVisuals.length) {
+      updateVisualStatus("Aucun visuel à zipper.");
+      return;
+    }
+
+    const button = document.getElementById("visual-download-zip");
+    setButtonLoading(button, true, "ZIP…");
+
+    try {
+      const JSZip = await loadZipLibrary();
+      const zip = new JSZip();
+
+      for (const visual of generatedVisuals) {
+        const blob = await canvasToBlob(visual.canvas);
+        zip.file(visual.fileName, blob);
+      }
+
+      const content = await zip.generateAsync({ type: "blob" });
+      downloadBlob(content, `dedicalivres-visuels-${new Date().toISOString().slice(0, 10)}.zip`);
+      updateVisualStatus("ZIP généré.");
+    } catch (error) {
+      console.error("Erreur ZIP visuels :", error);
+      updateVisualStatus("Impossible de générer le ZIP. Les PNG individuels restent disponibles.");
+    } finally {
+      setButtonLoading(button, false, "Télécharger ZIP");
+    }
+  }
+
+  function loadZipLibrary() {
+    return new Promise((resolve, reject) => {
+      if (window.JSZip) {
+        resolve(window.JSZip);
+        return;
+      }
+
+      const existing = document.querySelector(`script[src="${JSZIP_URL}"]`);
+      if (existing) {
+        existing.addEventListener("load", () => resolve(window.JSZip));
+        existing.addEventListener("error", reject);
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = JSZIP_URL;
+      script.async = true;
+      script.onload = () => window.JSZip ? resolve(window.JSZip) : reject(new Error("JSZip non disponible."));
+      script.onerror = () => reject(new Error("Chargement JSZip impossible."));
+      document.body.appendChild(script);
     });
   }
 
   function canvasToBlob(canvas) {
-    return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("PNG impossible")), "image/png"));
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Export PNG impossible."));
+      }, "image/png");
+    });
   }
 
-  async function writeTextFile(directory, name, text) {
-    const handle = await directory.getFileHandle(name, { create: true });
-    const writable = await handle.createWritable();
-    await writable.write(text);
-    await writable.close();
-  }
-
-  async function writeBinaryFile(directory, name, blob) {
-    const handle = await directory.getFileHandle(name, { create: true });
-    const writable = await handle.createWritable();
-    await writable.write(blob);
-    await writable.close();
-  }
-
-  function downloadBlob(blob, name) {
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = name;
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
-  }
-
-  function renderZipDownload(blob, name) {
-    const container = document.getElementById("social-extraction-downloads");
-    if (!container) return;
-    container.replaceChildren();
-
-    const title = document.createElement("strong");
-    title.textContent = "ZIP Instagram prêt";
-    container.appendChild(title);
-
-    const note = document.createElement("p");
-    note.textContent = "Le ZIP conserve un sous-dossier par événement avec ses trois slides, le texte global et le manifeste.";
-    container.appendChild(note);
-
+  function downloadBlob(blob, fileName) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = name;
-    link.textContent = `Télécharger ${name}`;
-    link.className = "cyber-btn-primary social-download-all";
-    container.appendChild(link);
+    link.download = fileName;
+    document.body.appendChild(link);
     link.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 120000);
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
-  function buildZipName(dateStart, dateEnd) {
-    const mode = document.getElementById("social-post-mode")?.value || "central";
-    const region = document.getElementById("social-region-filter")?.value || "";
-    const type = document.getElementById("social-type-filter")?.value || "";
-    const format = getSelectedVisualFormat().suffix;
-    const criteria = [mode, type, region].filter(Boolean).map(slugifyFileName).join("-");
-    return `instagram-${format}-${criteria || "tous-evenements"}-${dateStart || "sans-date"}-${dateEnd || "sans-date"}.zip`;
+  function clearVisualPreview() {
+    generatedVisuals = [];
+    const previewGrid = document.getElementById("visual-preview-grid");
+    if (previewGrid) previewGrid.innerHTML = `<p class="priority-empty">Aucun visuel généré pour le moment.</p>`;
+    document.getElementById("visual-download-zip")?.setAttribute("disabled", "disabled");
+    updateVisualStatus();
   }
 
-  async function createZipBlob(files) {
-    const encoder = new TextEncoder();
-    const localParts = [];
-    const centralParts = [];
-    let offset = 0;
-
-    for (const file of files) {
-      const nameBytes = encoder.encode(file.path);
-      const data = new Uint8Array(await file.blob.arrayBuffer());
-      const crc = crc32(data);
-      const localHeader = new Uint8Array(30 + nameBytes.length + data.length);
-      const localView = new DataView(localHeader.buffer);
-      localView.setUint32(0, 0x04034b50, true);
-      localView.setUint16(4, 20, true);
-      localView.setUint16(6, 0x0800, true);
-      localView.setUint16(8, 0, true);
-      localView.setUint32(14, crc, true);
-      localView.setUint32(18, data.length, true);
-      localView.setUint32(22, data.length, true);
-      localView.setUint16(26, nameBytes.length, true);
-      localHeader.set(nameBytes, 30);
-      localHeader.set(data, 30 + nameBytes.length);
-      localParts.push(localHeader);
-
-      const centralHeader = new Uint8Array(46 + nameBytes.length);
-      const centralView = new DataView(centralHeader.buffer);
-      centralView.setUint32(0, 0x02014b50, true);
-      centralView.setUint16(4, 20, true);
-      centralView.setUint16(6, 20, true);
-      centralView.setUint16(8, 0x0800, true);
-      centralView.setUint16(10, 0, true);
-      centralView.setUint32(16, crc, true);
-      centralView.setUint32(20, data.length, true);
-      centralView.setUint32(24, data.length, true);
-      centralView.setUint16(28, nameBytes.length, true);
-      centralView.setUint32(42, offset, true);
-      centralHeader.set(nameBytes, 46);
-      centralParts.push(centralHeader);
-      offset += localHeader.length;
-    }
-
-    const centralSize = centralParts.reduce((total, part) => total + part.length, 0);
-    const end = new Uint8Array(22);
-    const endView = new DataView(end.buffer);
-    endView.setUint32(0, 0x06054b50, true);
-    endView.setUint16(8, files.length, true);
-    endView.setUint16(10, files.length, true);
-    endView.setUint32(12, centralSize, true);
-    endView.setUint32(16, offset, true);
-    return new Blob([...localParts, ...centralParts, end], { type: "application/zip" });
+  function setButtonLoading(button, loading, text) {
+    if (!button) return;
+    button.disabled = loading;
+    button.textContent = text;
   }
 
-  function crc32(bytes) {
-    let crc = 0xffffffff;
-    for (const byte of bytes) {
-      crc ^= byte;
-      for (let bit = 0; bit < 8; bit += 1) {
-        crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
-      }
-    }
-    return (crc ^ 0xffffffff) >>> 0;
+  function getTypeBadge(type) {
+    const normalized = normalize(type);
+
+    if (normalized.includes("salon") && normalized.includes("festival")) return "Salon / Festival";
+    if (normalized.includes("dedicace")) return "Dédicace";
+    if (normalized.includes("festival")) return "Festival";
+    if (normalized.includes("salon")) return "Salon";
+
+    return cleanText(type) || "Événement";
   }
 
-  function repairEventText(event) {
-    const repaired = { ...event };
-    ["title", "type", "city", "region", "description", "price"].forEach((field) => {
-      repaired[field] = repairMojibake(event?.[field]);
-    });
-    return repaired;
+  function formatPlace(event) {
+    return [event.city, event.region].filter(Boolean).join(", ");
   }
 
-  function repairMojibake(value) {
-    const text = String(value ?? "");
-    if (!/[ÃÂâ�]/.test(text)) return value ?? "";
-
-    try {
-      const bytes = Uint8Array.from(text, (character) => character.charCodeAt(0) & 0xff);
-      const repaired = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-      return repaired.includes("�") ? text : repaired;
-    } catch {
-      return text;
-    }
+  function resolveImageUrl(path) {
+    if (!path) return "";
+    if (/^https?:\/\//i.test(path)) return path;
+    return `${window.DEDICALIVRES_CONFIG?.assetsBaseUrl || ""}${path}`;
   }
 
-  function safeHttpUrl(value) {
-    try {
-      const url = new URL(String(value || ""), window.location.href);
-      return ["http:", "https:"].includes(url.protocol) ? url.href : "";
-    } catch {
-      return "";
-    }
-  }
-
-  function slugifyFileName(value) {
-    return String(value || "evenement")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .toLowerCase()
-      .slice(0, 70) || "evenement";
-  }
-
-  function pause(duration) {
-    return new Promise((resolve) => window.setTimeout(resolve, duration));
+  function buildVisualFileName(event, format) {
+    const suffix = VISUAL_FORMATS[format]?.suffix || format;
+    const slug = slugifyFileName(event.title || event.id || "evenement");
+    return `dedicalivres-${suffix}-${slug}.png`;
   }
 
   function showLocalNotice(message) {
@@ -1544,11 +1589,56 @@
       .trim();
   }
 
+  function cleanText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function parseLocalDate(value) {
+    if (!value) return null;
+    const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+    if (!match) {
+      const fallback = new Date(value);
+      return Number.isNaN(fallback.getTime()) ? null : startOfDay(fallback);
+    }
+
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+
+  function startOfDay(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  function addDays(date, days) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+  }
+
+  function rangesOverlap(startA, endA, startB, endB) {
+    if (!startA || !endA || !startB || !endB) return false;
+    const aStart = startA <= endA ? startA : endA;
+    const aEnd = endA >= startA ? endA : startA;
+    const bStart = startB <= endB ? startB : endB;
+    const bEnd = endB >= startB ? endB : startB;
+    return aStart <= bEnd && aEnd >= bStart;
+  }
+
   function slugifyHashtag(value) {
     return String(value || "")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-zA-Z0-9]/g, "");
+  }
+
+  function slugifyFileName(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 70) || "evenement";
   }
 
   function unique(values) {
