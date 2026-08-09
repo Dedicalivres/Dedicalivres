@@ -6,7 +6,10 @@
 (function () {
   "use strict";
 
-  const VERSION = "7.7.0-visuals";
+  const VERSION = "7.8.0-unified-visuals";
+  const DEFAULT_EXPORT_WORKER_URL = "https://dedicalivres-daily-export.dedicalivres.workers.dev";
+  const SOCIAL_BACKGROUND_URL = "assets/social-visual-background.jpg?v=2026-08-09";
+  const SOCIAL_LOGO_URL = "assets/social-visual-logo.png?v=2026-08-09";
   const REGIONS = [
     "Auvergne-Rhône-Alpes",
     "Bourgogne-Franche-Comté",
@@ -63,6 +66,7 @@
   let authorPresencesByEvent = new Map();
   let generatedVisuals = [];
   let logoImagePromise = null;
+  let officialBrandingPromise = null;
   const selectedIds = new Set();
 
   const VISUAL_FORMATS = {
@@ -375,7 +379,7 @@
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await client
         .from("events")
-        .select("id,title,type,city,region,start_date,end_date,featured,validated,rejected,image_url,website,price")
+        .select("id,title,type,country_code,city,region,start_date,end_date,featured,validated,rejected,image_url,website,price")
         .eq("validated", true)
         .eq("rejected", false)
         .or(`end_date.is.null,end_date.gte.${today}`)
@@ -874,7 +878,8 @@
 
   async function prepareVisualEvent(event) {
     const authors = authorPresencesByEvent.get(String(event.id)) || [];
-    const image = await loadSafeImage(resolveImageUrl(event.image_url));
+    const imageUrl = resolveSocialImageUrl(event.image_url);
+    const image = await loadSafeImage(imageUrl);
 
     return {
       id: event.id,
@@ -882,19 +887,449 @@
       type: cleanText(event.type) || "Événement",
       city: cleanText(event.city),
       region: cleanText(event.region),
+      country: countryNameFromCode(event.country_code),
       dateLabel: formatDateRange(event.start_date, event.end_date),
+      price: cleanText(event.price),
       image,
-      imageUrl: resolveImageUrl(event.image_url),
+      imageUrl,
       url: event.id ? `https://dedicalivres.fr/event.html?id=${encodeURIComponent(event.id)}` : "",
       authors: authors.map((author) => cleanText(author.pseudo)).filter(Boolean).slice(0, 3)
     };
   }
 
   async function renderVisualByFormat(event, format) {
-    if (format === "story") return renderStoryVisual(event);
-    if (format === "feed") return renderFeedVisual(event);
-    if (format === "square") return renderSquareVisual(event);
-    return renderWideVisual(event);
+    try {
+      return await renderOfficialVisual(event, format);
+    } catch (error) {
+      console.warn("Maquette officielle indisponible, utilisation du rendu de secours :", error);
+      if (format === "story") return renderStoryVisual(event);
+      if (format === "feed") return renderFeedVisual(event);
+      if (format === "square") return renderSquareVisual(event);
+      return renderWideVisual(event);
+    }
+  }
+
+  async function renderOfficialVisual(event, format) {
+    const visualFormat = VISUAL_FORMATS[format] || VISUAL_FORMATS.feed;
+    const canvas = createVisualCanvas(visualFormat);
+    const ctx = canvas.getContext("2d");
+    const branding = await loadOfficialBranding();
+    const theme = getOfficialEventTheme(event.type);
+    const layout = calculateOfficialLayout(event, canvas.width, canvas.height);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawOfficialVisualBackground(ctx, branding.background, canvas.width, canvas.height);
+
+    ctx.strokeStyle = theme.primary;
+    ctx.lineWidth = 18;
+    ctx.strokeRect(9, 9, canvas.width - 18, canvas.height - 18);
+
+    const margin = Math.max(54, Math.round(canvas.width * .067));
+    const headerY = Math.max(72, Math.min(112, Math.round(canvas.height * .06)));
+    const brandFont = Math.max(20, Math.min(30, Math.round(canvas.width * .022)));
+    const subFont = Math.max(15, Math.min(22, Math.round(canvas.width * .017)));
+
+    ctx.fillStyle = "#ff6b35";
+    ctx.font = `900 ${brandFont}px Inter, Arial, sans-serif`;
+    ctx.fillText("DÉDICALIVRES", margin, headerY);
+    ctx.fillStyle = "#3b176f";
+    ctx.font = `800 ${subFont}px Inter, Arial, sans-serif`;
+    ctx.fillText("ASSOCIATION · AGENDA LITTÉRAIRE FRANCOPHONE", margin, headerY + Math.round(subFont * 1.55));
+
+    drawOfficialPill(ctx, getTypeBadge(event.type), margin, headerY + Math.round(subFont * 2.7), theme.primary, "#ffffff");
+    drawOfficialImageFrame(ctx, event.image, event, layout.image, theme);
+    drawOfficialPresentation(ctx, event, layout.presentation, theme, layout.mode);
+    drawOfficialBrandSignature(ctx, branding.logo, theme, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  function calculateOfficialLayout(event, canvasWidth, canvasHeight) {
+    const margin = Math.max(54, Math.round(canvasWidth * .067));
+    const topSafe = Math.max(155, Math.round(canvasHeight * .159));
+    const bottomSafe = Math.max(92, Math.round(canvasHeight * .152));
+    const bounds = {
+      x: margin,
+      y: topSafe,
+      width: canvasWidth - margin * 2,
+      height: canvasHeight - topSafe - bottomSafe
+    };
+    const imageWidth = event.image?.naturalWidth || event.image?.width || 0;
+    const imageHeight = event.image?.naturalHeight || event.image?.height || 0;
+    const ratio = imageWidth && imageHeight ? imageWidth / imageHeight : 1.45;
+    const canvasRatio = canvasWidth / canvasHeight;
+    const titleLength = String(event.title || "").length;
+    const placeLength = [event.city, event.region, event.country].filter(Boolean).join(" · ").length;
+    const authorLength = event.authors?.join(", ").length || 0;
+    const textNeed = 365
+      + Math.min(180, Math.max(0, titleLength - 32) * 1.8)
+      + Math.min(70, Math.max(0, String(event.dateLabel || "").length - 22) * 1.5)
+      + Math.min(100, Math.max(0, placeLength - 28) * 1.7)
+      + Math.min(90, authorLength * 1.2);
+
+    if (canvasRatio >= 1.35) {
+      const gap = Math.max(30, Math.round(canvasWidth * .035));
+      const presentationWidth = Math.round(bounds.width * .42);
+      const imageBoxWidth = bounds.width - presentationWidth - gap;
+      const sharedHeight = Math.min(bounds.height, Math.max(420, Math.min(bounds.height, textNeed + 170)));
+      const top = bounds.y + (bounds.height - sharedHeight) / 2;
+      return {
+        mode: "wide",
+        presentation: { x: bounds.x, y: top, width: presentationWidth, height: sharedHeight },
+        image: { x: bounds.x + presentationWidth + gap, y: top, width: imageBoxWidth, height: sharedHeight }
+      };
+    }
+
+    if (ratio < .84) {
+      const gap = 28;
+      const maxImageWidth = Math.min(500, bounds.width - gap - 390);
+      let imageBoxWidth = Math.max(285, Math.min(maxImageWidth, bounds.height * ratio));
+      const imageBoxHeight = Math.min(bounds.height, imageBoxWidth / Math.max(ratio, .2));
+      imageBoxWidth = Math.min(maxImageWidth, imageBoxHeight * ratio);
+      const presentationWidth = bounds.width - imageBoxWidth - gap;
+      const sharedHeight = Math.min(bounds.height, Math.max(imageBoxHeight, Math.min(820, textNeed + 160)));
+      const top = bounds.y + (bounds.height - sharedHeight) / 2;
+      return {
+        mode: "portrait",
+        image: { x: bounds.x, y: top + (sharedHeight - imageBoxHeight) / 2, width: imageBoxWidth, height: imageBoxHeight },
+        presentation: { x: bounds.x + imageBoxWidth + gap, y: top, width: presentationWidth, height: sharedHeight }
+      };
+    }
+
+    if (ratio <= 1.18) {
+      const gap = 28;
+      const imageBoxWidth = Math.min(555, bounds.width - gap - 350);
+      const imageBoxHeight = Math.min(700, imageBoxWidth / Math.max(ratio, .2));
+      const presentationWidth = bounds.width - imageBoxWidth - gap;
+      const sharedHeight = Math.min(bounds.height, Math.max(imageBoxHeight, Math.min(780, textNeed + 170)));
+      const top = bounds.y + (bounds.height - sharedHeight) / 2;
+      return {
+        mode: "balanced",
+        image: { x: bounds.x, y: top + (sharedHeight - imageBoxHeight) / 2, width: imageBoxWidth, height: imageBoxHeight },
+        presentation: { x: bounds.x + imageBoxWidth + gap, y: top, width: presentationWidth, height: sharedHeight }
+      };
+    }
+
+    const gap = 26;
+    const presentationHeight = Math.min(540, Math.max(430, textNeed));
+    const imageMaxHeight = bounds.height - gap - presentationHeight;
+    const naturalHeight = bounds.width / ratio;
+    const imageBoxHeight = Math.min(imageMaxHeight, Math.max(350, naturalHeight));
+    const imageBoxWidth = Math.min(bounds.width, imageBoxHeight * ratio);
+    const totalHeight = imageBoxHeight + gap + presentationHeight;
+    const top = bounds.y + (bounds.height - totalHeight) / 2;
+    return {
+      mode: "landscape",
+      image: { x: bounds.x + (bounds.width - imageBoxWidth) / 2, y: top, width: imageBoxWidth, height: imageBoxHeight },
+      presentation: { x: bounds.x, y: top + imageBoxHeight + gap, width: bounds.width, height: presentationHeight }
+    };
+  }
+
+  function drawOfficialImageFrame(ctx, image, event, box, theme) {
+    ctx.save();
+    ctx.shadowColor = theme.shadow;
+    ctx.shadowBlur = 22;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = theme.imageFill;
+    roundedPath(ctx, box.x, box.y, box.width, box.height, 34);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    roundedPath(ctx, box.x, box.y, box.width, box.height, 34);
+    ctx.clip();
+    if (image) {
+      const inset = Math.max(12, Math.min(22, Math.round(Math.min(box.width, box.height) * .035)));
+      drawOfficialImageContainRounded(
+        ctx,
+        image,
+        box.x + inset,
+        box.y + inset,
+        box.width - inset * 2,
+        box.height - inset * 2,
+        Math.max(18, Math.round(34 - inset / 2)),
+        theme
+      );
+    } else {
+      drawOfficialImageFallback(ctx, event, box, theme);
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = theme.primary;
+    ctx.lineWidth = 6;
+    roundedPath(ctx, box.x, box.y, box.width, box.height, 34);
+    ctx.stroke();
+  }
+
+  function drawOfficialPresentation(ctx, event, box, theme, mode) {
+    const compact = box.width < 430;
+    const padding = compact ? 26 : 34;
+    const innerX = box.x + padding;
+    const innerWidth = box.width - padding * 2;
+    const bottom = box.y + box.height - padding;
+
+    ctx.save();
+    ctx.shadowColor = theme.shadow;
+    ctx.shadowBlur = 22;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = "rgba(255,255,255,.94)";
+    roundedPath(ctx, box.x, box.y, box.width, box.height, 34);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = theme.secondary;
+    ctx.lineWidth = 5;
+    roundedPath(ctx, box.x, box.y, box.width, box.height, 34);
+    ctx.stroke();
+
+    const badgeY = box.y + padding;
+    drawOfficialPill(ctx, getTypeBadge(event.type), innerX, badgeY, theme.primary, "#ffffff", compact ? 17 : 19);
+
+    const titleY = badgeY + (compact ? 72 : 80);
+    const sourceHeight = compact ? 62 : 68;
+    const sourceY = bottom - sourceHeight;
+    const metaBottom = sourceY - 18;
+    const place = [event.city, event.region, event.country].filter(Boolean).join(" · ");
+    const authors = event.authors?.length ? `Auteurs présents : ${event.authors.join(", ")}` : "";
+    const textLayout = calculateOfficialTextLayout(ctx, {
+      title: event.title || "Événement littéraire",
+      date: event.dateLabel || "",
+      place,
+      authors,
+      price: event.price || ""
+    }, innerWidth, Math.max(120, metaBottom - titleY), compact, mode);
+    let currentY = titleY;
+
+    ctx.fillStyle = "#271c35";
+    ctx.font = `700 ${textLayout.title.fontSize}px Georgia, serif`;
+    drawOfficialWrappedLines(ctx, textLayout.title.lines, innerX, currentY, textLayout.title.lineHeight);
+    currentY += textLayout.title.height + textLayout.gapTitle;
+
+    ctx.fillStyle = theme.secondary;
+    ctx.font = `900 ${textLayout.date.fontSize}px Inter, Arial, sans-serif`;
+    drawOfficialWrappedLines(ctx, textLayout.date.lines, innerX, currentY, textLayout.date.lineHeight);
+    currentY += textLayout.date.height + textLayout.gapMeta;
+
+    if (textLayout.place.lines.length) {
+      ctx.fillStyle = "#64586f";
+      ctx.font = `700 ${textLayout.place.fontSize}px Inter, Arial, sans-serif`;
+      drawOfficialWrappedLines(ctx, textLayout.place.lines, innerX, currentY, textLayout.place.lineHeight);
+      currentY += textLayout.place.height + textLayout.gapMeta;
+    }
+
+    if (textLayout.authors.lines.length) {
+      ctx.fillStyle = "#64586f";
+      ctx.font = `700 ${textLayout.authors.fontSize}px Inter, Arial, sans-serif`;
+      drawOfficialWrappedLines(ctx, textLayout.authors.lines, innerX, currentY, textLayout.authors.lineHeight);
+      currentY += textLayout.authors.height + textLayout.gapMeta;
+    }
+
+    if (event.price) {
+      drawOfficialPill(ctx, event.price, innerX, currentY - Math.round(textLayout.priceFont * .9), theme.pale, theme.secondary, textLayout.priceFont);
+    }
+
+    ctx.strokeStyle = theme.guide;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(innerX, sourceY);
+    ctx.lineTo(innerX + innerWidth, sourceY);
+    ctx.stroke();
+    ctx.fillStyle = "#64586f";
+    ctx.font = `700 ${compact ? 15 : 17}px Inter, Arial, sans-serif`;
+    ctx.fillText("Fiche événement disponible sur", innerX, sourceY + (compact ? 24 : 28));
+    ctx.fillStyle = theme.secondary;
+    ctx.font = `900 ${compact ? 18 : 20}px Inter, Arial, sans-serif`;
+    ctx.fillText("dedicalivres.fr", innerX, sourceY + (compact ? 50 : 56));
+  }
+
+  function calculateOfficialTextLayout(ctx, content, width, availableHeight, compact, mode) {
+    const minimumScale = compact ? .46 : .52;
+    let scale = 1;
+    let result = null;
+    while (scale >= minimumScale) {
+      const titleFont = Math.max(compact ? 17 : 20, Math.round((compact ? 38 : 46) * scale));
+      const dateFont = Math.max(compact ? 14 : 16, Math.round((compact ? 24 : 28) * scale));
+      const placeFont = Math.max(compact ? 13 : 15, Math.round((compact ? 20 : 23) * scale));
+      const authorFont = Math.max(13, placeFont - 1);
+      const priceFont = Math.max(13, Math.round((compact ? 15 : 17) * scale));
+      const gapTitle = Math.max(12, Math.round((compact ? 19 : 23) * scale));
+      const gapMeta = Math.max(9, Math.round((compact ? 15 : 18) * scale));
+      const title = measureOfficialCompleteText(ctx, content.title, width, titleFont, "700", "Georgia, serif", 1.12);
+      const date = measureOfficialCompleteText(ctx, content.date, width, dateFont, "900", "Inter, Arial, sans-serif", 1.18);
+      const place = measureOfficialCompleteText(ctx, content.place, width, placeFont, "700", "Inter, Arial, sans-serif", 1.2);
+      const authors = measureOfficialCompleteText(ctx, content.authors, width, authorFont, "700", "Inter, Arial, sans-serif", 1.2);
+      const blocks = [date, place, authors].filter((block) => block.lines.length).length;
+      const totalHeight = title.height + gapTitle + date.height + place.height + authors.height
+        + Math.max(0, blocks - 1) * gapMeta
+        + (content.price ? gapMeta + priceFont + 26 : 0);
+      result = { title, date, place, authors, priceFont, gapTitle, gapMeta, totalHeight, scale, mode };
+      if (totalHeight <= availableHeight) return result;
+      scale -= .04;
+    }
+    return result;
+  }
+
+  function measureOfficialCompleteText(ctx, text, width, fontSize, weight, family, lineHeightRatio) {
+    const value = cleanText(text);
+    if (!value) return { lines: [], height: 0, fontSize, lineHeight: 0 };
+    ctx.font = `${weight} ${fontSize}px ${family}`;
+    const lines = wrapOfficialLinesComplete(ctx, value, width);
+    const lineHeight = Math.round(fontSize * lineHeightRatio);
+    return { lines, height: lines.length * lineHeight, fontSize, lineHeight };
+  }
+
+  function wrapOfficialLinesComplete(ctx, text, width) {
+    const lines = [];
+    let current = "";
+    cleanText(text).split(/\s+/).filter(Boolean).forEach((word) => {
+      const pieces = ctx.measureText(word).width > width ? breakOfficialLongToken(ctx, word, width) : [word];
+      pieces.forEach((piece) => {
+        const candidate = current ? `${current} ${piece}` : piece;
+        if (current && ctx.measureText(candidate).width > width) {
+          lines.push(current);
+          current = piece;
+        } else {
+          current = candidate;
+        }
+      });
+    });
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  function breakOfficialLongToken(ctx, token, width) {
+    const pieces = [];
+    let current = "";
+    Array.from(String(token || "")).forEach((character) => {
+      const candidate = current + character;
+      if (current && ctx.measureText(candidate).width > width) {
+        pieces.push(current);
+        current = character;
+      } else {
+        current = candidate;
+      }
+    });
+    if (current) pieces.push(current);
+    return pieces;
+  }
+
+  function drawOfficialWrappedLines(ctx, lines, x, y, lineHeight) {
+    lines.forEach((line, index) => ctx.fillText(line, x, y + index * lineHeight));
+  }
+
+  function drawOfficialPill(ctx, text, x, y, background, color, fontSize = 20) {
+    ctx.save();
+    ctx.font = `900 ${fontSize}px Inter, Arial, sans-serif`;
+    const width = Math.min(360, ctx.measureText(text).width + 46);
+    const height = fontSize + 26;
+    ctx.fillStyle = background;
+    roundedPath(ctx, x, y, width, height, height / 2);
+    ctx.fill();
+    ctx.fillStyle = color;
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(text, x + 23, y + fontSize + 8);
+    ctx.restore();
+  }
+
+  function drawOfficialImageContainRounded(ctx, image, x, y, width, height, radius, theme) {
+    const sourceWidth = image.naturalWidth || image.width;
+    const sourceHeight = image.naturalHeight || image.height;
+    const scale = Math.min(width / sourceWidth, height / sourceHeight);
+    const drawWidth = sourceWidth * scale;
+    const drawHeight = sourceHeight * scale;
+    const drawX = x + (width - drawWidth) / 2;
+    const drawY = y + (height - drawHeight) / 2;
+    ctx.save();
+    roundedPath(ctx, drawX, drawY, drawWidth, drawHeight, radius);
+    ctx.clip();
+    ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = theme.guide;
+    ctx.lineWidth = 2;
+    roundedPath(ctx, drawX, drawY, drawWidth, drawHeight, radius);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawOfficialImageFallback(ctx, event, box, theme) {
+    const gradient = ctx.createLinearGradient(box.x, box.y, box.x + box.width, box.y + box.height);
+    gradient.addColorStop(0, theme.secondary);
+    gradient.addColorStop(1, theme.primary);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(box.x, box.y, box.width, box.height);
+    ctx.fillStyle = "rgba(255,255,255,.12)";
+    ctx.font = `900 ${Math.min(250, Math.round(box.height * .42))}px Georgia, serif`;
+    ctx.textAlign = "center";
+    ctx.fillText("D", box.x + box.width / 2, box.y + box.height * .62);
+    ctx.textAlign = "left";
+  }
+
+  function drawOfficialVisualBackground(ctx, background, width, height) {
+    ctx.fillStyle = "#fff8f2";
+    ctx.fillRect(0, 0, width, height);
+    if (!background) return;
+    const sourceWidth = background.naturalWidth || background.width;
+    const sourceHeight = background.naturalHeight || background.height;
+    const scale = Math.max(width / sourceWidth, height / sourceHeight);
+    const drawWidth = sourceWidth * scale;
+    const drawHeight = sourceHeight * scale;
+    ctx.drawImage(background, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+  }
+
+  async function loadOfficialBranding() {
+    if (!officialBrandingPromise) {
+      officialBrandingPromise = Promise.all([
+        loadSafeImage(SOCIAL_BACKGROUND_URL),
+        loadSafeImage(SOCIAL_LOGO_URL)
+      ]).then(([background, logo]) => ({
+        background,
+        logo: logo ? createOfficialTransparentLogo(logo) : null
+      }));
+    }
+    return officialBrandingPromise;
+  }
+
+  function createOfficialTransparentLogo(image) {
+    const source = document.createElement("canvas");
+    source.width = image.naturalWidth || image.width;
+    source.height = image.naturalHeight || image.height;
+    const sourceCtx = source.getContext("2d", { willReadFrequently: true });
+    sourceCtx.drawImage(image, 0, 0);
+    const pixels = sourceCtx.getImageData(0, 0, source.width, source.height);
+    const data = pixels.data;
+    for (let index = 0; index < data.length; index += 4) {
+      const minimum = Math.min(data[index], data[index + 1], data[index + 2]);
+      if (minimum >= 246) data[index + 3] = 0;
+      else if (minimum >= 228) data[index + 3] = Math.min(data[index + 3], Math.round(((246 - minimum) / 18) * 255));
+    }
+    sourceCtx.putImageData(pixels, 0, 0);
+    return source;
+  }
+
+  function drawOfficialBrandSignature(ctx, logo, theme, width, height) {
+    const footerTextY = height - Math.max(30, Math.round(height * .04));
+    const logoMaxWidth = Math.min(180, Math.round(width * .16));
+    const logoMaxHeight = Math.min(112, Math.round(height * .08));
+    const logoY = footerTextY - logoMaxHeight - Math.max(18, Math.round(height * .015));
+    if (logo?.width && logo?.height) {
+      const scale = Math.min(logoMaxWidth / logo.width, logoMaxHeight / logo.height);
+      const logoWidth = logo.width * scale;
+      const logoHeight = logo.height * scale;
+      ctx.drawImage(logo, (width - logoWidth) / 2, logoY, logoWidth, logoHeight);
+    }
+    ctx.fillStyle = theme.secondary;
+    ctx.font = "900 17px Inter, Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("ASSOCIATION · DEDICALIVRES.FR", width / 2, footerTextY);
+    ctx.textAlign = "left";
+  }
+
+  function getOfficialEventTheme(value) {
+    const type = normalize(value);
+    if (type.includes("dedicace")) return { primary: "#7137b6", secondary: "#43206f", pale: "#f0e7fa", imageFill: "rgba(113,55,182,.10)", guide: "rgba(113,55,182,.14)", shadow: "rgba(67,32,111,.22)" };
+    if (type.includes("festival")) return { primary: "#f06a2f", secondary: "#a83d16", pale: "#fff0e8", imageFill: "rgba(240,106,47,.10)", guide: "rgba(240,106,47,.14)", shadow: "rgba(168,61,22,.22)" };
+    if (type.includes("salon")) return { primary: "#2784c7", secondary: "#155580", pale: "#e7f4fc", imageFill: "rgba(39,132,199,.10)", guide: "rgba(39,132,199,.14)", shadow: "rgba(21,85,128,.22)" };
+    return { primary: "#24936f", secondary: "#155e49", pale: "#e6f7f1", imageFill: "rgba(36,147,111,.10)", guide: "rgba(36,147,111,.14)", shadow: "rgba(21,94,73,.22)" };
   }
 
   async function renderStoryVisual(event) {
@@ -1362,10 +1797,25 @@
       }
 
       const img = new Image();
+      let settled = false;
       img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
+      img.referrerPolicy = "no-referrer";
+      img.onload = () => {
+        if (settled) return;
+        settled = true;
+        resolve(img);
+      };
+      img.onerror = () => {
+        if (settled) return;
+        settled = true;
+        resolve(null);
+      };
       img.src = src;
+      window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        resolve(null);
+      }, 8000);
     });
   }
 
@@ -1525,6 +1975,48 @@
     if (!path) return "";
     if (/^https?:\/\//i.test(path)) return path;
     return `${window.DEDICALIVRES_CONFIG?.assetsBaseUrl || ""}${path}`;
+  }
+
+  function resolveSocialImageUrl(path) {
+    const source = String(path || "").trim();
+    if (!source) return "";
+    if (/^(data:|blob:)/i.test(source)) return source;
+
+    const config = window.DEDICALIVRES_CONFIG || {};
+    const workerBase = String(config.exportsBaseUrl || DEFAULT_EXPORT_WORKER_URL)
+      .replace(/\/exports\/?$/i, "")
+      .replace(/\/+$/, "");
+    const mediaBase = `${workerBase}/media`;
+    const r2Base = String(config.r2PublicBaseUrl || "").replace(/\/+$/, "");
+    const cleanSource = source.split(/[?#]/, 1)[0];
+
+    if (source.startsWith(`${mediaBase}/`)) return source;
+    if (/^(event-images|testimonial-images|author-portraits)\//i.test(cleanSource)) {
+      return `${mediaBase}/${cleanSource.replace(/^\/+/, "")}`;
+    }
+
+    const absolute = resolveImageUrl(source);
+    if (r2Base && absolute.startsWith(`${r2Base}/`)) {
+      return `${mediaBase}/${absolute.slice(r2Base.length + 1)}`;
+    }
+
+    try {
+      const url = new URL(absolute, window.location.href);
+      if (url.origin === window.location.origin && window.location.protocol !== "file:") {
+        return url.toString();
+      }
+      return `${mediaBase}/remote?url=${encodeURIComponent(url.toString())}`;
+    } catch {
+      return absolute;
+    }
+  }
+
+  function countryNameFromCode(code) {
+    const normalizedCode = String(code || "FR").trim().toUpperCase();
+    if (window.DEDICALIVRES_GEO?.getCountryName) {
+      return cleanText(window.DEDICALIVRES_GEO.getCountryName(normalizedCode));
+    }
+    return ({ FR: "France", BE: "Belgique", CH: "Suisse", LU: "Luxembourg" })[normalizedCode] || normalizedCode;
   }
 
   function buildVisualFileName(event, format) {
