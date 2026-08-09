@@ -879,7 +879,10 @@
   async function prepareVisualEvent(event) {
     const authors = authorPresencesByEvent.get(String(event.id)) || [];
     const imageUrl = resolveSocialImageUrl(event.image_url);
-    const image = await loadSafeImage(imageUrl);
+    const image = await loadSafeImage([
+      imageUrl,
+      resolveImageUrl(event.image_url)
+    ]);
 
     return {
       id: event.id,
@@ -1789,33 +1792,53 @@
     return logoImagePromise;
   }
 
-  function loadSafeImage(src) {
+  function loadSafeImage(sources) {
     return new Promise((resolve) => {
-      if (!src) {
+      const candidates = (Array.isArray(sources) ? sources : [sources])
+        .map((source) => String(source || "").trim())
+        .filter((source, index, list) => source && list.indexOf(source) === index);
+
+      if (!candidates.length) {
         resolve(null);
         return;
       }
 
-      const img = new Image();
       let settled = false;
-      img.crossOrigin = "anonymous";
-      img.referrerPolicy = "no-referrer";
-      img.onload = () => {
+      let candidateIndex = 0;
+
+      const tryNextCandidate = () => {
         if (settled) return;
-        settled = true;
-        resolve(img);
+        if (candidateIndex >= candidates.length) {
+          settled = true;
+          resolve(null);
+          return;
+        }
+
+        const img = new Image();
+        const source = candidates[candidateIndex++];
+        const timeoutId = window.setTimeout(() => {
+          img.onload = null;
+          img.onerror = null;
+          tryNextCandidate();
+        }, 10000);
+
+        img.crossOrigin = "anonymous";
+        img.referrerPolicy = "no-referrer";
+        img.onload = () => {
+          if (settled) return;
+          window.clearTimeout(timeoutId);
+          settled = true;
+          resolve(img);
+        };
+        img.onerror = () => {
+          if (settled) return;
+          window.clearTimeout(timeoutId);
+          tryNextCandidate();
+        };
+        img.src = source;
       };
-      img.onerror = () => {
-        if (settled) return;
-        settled = true;
-        resolve(null);
-      };
-      img.src = src;
-      window.setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        resolve(null);
-      }, 8000);
+
+      tryNextCandidate();
     });
   }
 

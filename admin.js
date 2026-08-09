@@ -103,7 +103,7 @@ let editCityAutocompleteTimer = null;
 let editCitySuggestionCache = new Map();
 let originalEditLocationSignature = "";
 
-const ADMIN_MODULE_VERSION = "10.19-unified-social-renderer";
+const ADMIN_MODULE_VERSION = "10.20-gallery-image-fallback-v2";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY = "dedicalivres_admin_inventory_departments_v1";
 const adminModerationCounters = {
