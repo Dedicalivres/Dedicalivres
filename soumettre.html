@@ -17,8 +17,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="style.css?v=hero-slim-1" />
-  <link rel="stylesheet" href="mascot-guide.css?v=guide-4" />
+  <link rel="stylesheet" href="style.css?v=corrections-1208-1" />
+  <link rel="stylesheet" href="mascot-guide.css?v=guide-6" />
   <link rel="stylesheet" href="ludique.css?v=ludique-21" />
   <link rel="stylesheet" href="accessibilite.css?v=a11y-8" />
 </head>
@@ -68,6 +68,14 @@
   <section class="submit-page-layout submit-page-layout-compact" aria-labelledby="submission-form-title">
     <form id="submission-form" class="submission-form-card">
       <h2 id="submission-form-title">Informations de l’événement</h2>
+
+      <label class="multiple-events-option">
+        <input id="multiple-events-mode" name="multiple_events" type="checkbox" />
+        <span>
+          <strong>Je souhaite saisir plusieurs événements</strong>
+          <small>Après chaque envoi, les informations déjà remplies et les photos seront conservées. Seules les dates seront effacées.</small>
+        </span>
+      </label>
 
       <label>
         <span>Titre de l’événement</span>
@@ -248,14 +256,14 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js?v=shared-client-1"></script>
 <script src="geography.js?v=v1-francophone-20260615"></script>
-<script src="app.js?v=v1-francophone-20260616-cityfix"></script>
+<script src="app.js?v=multi-events-1"></script>
 <script src="tracking-v4.js?v=shared-client-1"></script>
 <script>
 (function () {
   "use strict";
 
   const script = document.createElement("script");
-  script.src = "mascot-guide.js?v=shared-client-1";
+  script.src = "mascot-guide.js?v=guide-6";
   script.async = true;
   document.body.appendChild(script);
 })();

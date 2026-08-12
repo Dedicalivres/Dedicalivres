@@ -140,7 +140,7 @@
       <span class="mascot-guide-button-label">Guide Dédicalivres</span>
     </button>
 
-    <section class="mascot-guide-panel" id="mascot-guide-panel" role="dialog" aria-modal="false" aria-labelledby="mascot-guide-title">
+    <section class="mascot-guide-panel" id="mascot-guide-panel" role="dialog" aria-modal="false" aria-hidden="true" aria-labelledby="mascot-guide-title">
       <div class="mascot-guide-head">
         <img class="mascot-guide-portrait" src="mascotte-guide.webp" alt="" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='mascotte-guide.png'">
         <div>
@@ -185,12 +185,14 @@
     state.isOpen = true;
     widget.classList.add("is-open");
     widget.querySelector(".mascot-guide-button")?.setAttribute("aria-expanded", "true");
+    widget.querySelector(".mascot-guide-panel")?.setAttribute("aria-hidden", "false");
   }
 
   function closeGuide() {
     state.isOpen = false;
     widget.classList.remove("is-open");
     widget.querySelector(".mascot-guide-button")?.setAttribute("aria-expanded", "false");
+    widget.querySelector(".mascot-guide-panel")?.setAttribute("aria-hidden", "true");
   }
 
   function renderHome() {
@@ -474,7 +476,20 @@ body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
 
   function scrollToTarget(selector) {
     const target = document.querySelector(selector);
-    if (!target) return;
+
+    if (!target) {
+      const fallbackUrls = {
+        "#agenda": "index.html#agenda",
+        "#agenda-map": "index.html#agenda-map",
+        "#submission-form": "soumettre.html#submission-form"
+      };
+
+      if (fallbackUrls[selector]) {
+        goTo(fallbackUrls[selector]);
+      }
+
+      return false;
+    }
 
     target.scrollIntoView({
       behavior: "smooth",
@@ -487,6 +502,8 @@ body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
         if (firstField) firstField.focus({ preventScroll: true });
       }, 420);
     }
+
+    return true;
   }
 
   function clickOrScroll(buttonSelector, fallbackSelector) {

@@ -155,7 +155,6 @@
   };
 
   rebuildCounts();
-  selectMostActiveSubdivision();
   render();
   loadCounts();
 
@@ -189,7 +188,6 @@
         .filter(matchesPageMode)
         .filter((event) => (event.end_date || event.start_date || "2999-12-31") >= today);
       rebuildCounts();
-      selectMostActiveSubdivision();
       render();
     } catch (error) {
       console.warn("Exploration territoriale indisponible :", error);
@@ -215,34 +213,26 @@
     });
   }
 
-  function selectMostActiveSubdivision() {
-    const subdivisions = geo.getSubdivisions(state.countryCode);
-    const top = [...subdivisions].sort((a, b) => {
-      return (state.counts[b] || 0) - (state.counts[a] || 0) || a.localeCompare(b, "fr");
-    })[0];
-
-    if (!subdivisions.includes(state.selectedSubdivision)) {
-      state.selectedSubdivision = top || subdivisions[0] || "";
-    }
-  }
-
   function setCountry(countryCode) {
     state.countryCode = geo.normalizeCountryCode(countryCode);
     state.selectedSubdivision = "";
     rebuildCounts();
-    selectMostActiveSubdivision();
     render();
+    applyAgendaSelection();
   }
 
   function setSubdivision(name) {
     state.selectedSubdivision = name;
     render();
+    applyAgendaSelection();
   }
 
   function render() {
     const country = geo.getCountry(state.countryCode);
     const total = Object.values(state.counts).reduce((sum, count) => sum + Number(count || 0), 0);
-    const selectedCount = state.counts[state.selectedSubdivision] || 0;
+    const selectedCount = state.selectedSubdivision
+      ? state.counts[state.selectedSubdivision] || 0
+      : total;
 
     root.innerHTML = `
       <div class="regional-country-switcher" aria-label="Choisir un pays francophone">
@@ -290,6 +280,9 @@
               ${escapeHtml(country.subdivisionLabel)}
             </label>
             <select id="regional-subdivision-select" class="regional-subdivision-select">
+              <option value="" ${state.selectedSubdivision ? "" : "selected"}>
+                Tout ${escapeHtml(country.name)} — ${total}
+              </option>
               ${country.subdivisions.map((subdivision) => `
                 <option
                   value="${escapeAttribute(subdivision)}"
@@ -353,10 +346,11 @@
   }
 
   function getAgendaHref() {
-    const params = new URLSearchParams({
-      country: state.countryCode,
-      region: state.selectedSubdivision || ""
-    });
+    const params = new URLSearchParams({ country: state.countryCode });
+
+    if (state.selectedSubdivision) {
+      params.set("region", state.selectedSubdivision);
+    }
 
     const target = pageMode === "salons"
       ? "salons-du-livre.html"
@@ -365,6 +359,28 @@
         : "index.html";
 
     return `${target}?${params.toString()}#agenda`;
+  }
+
+  function applyAgendaSelection() {
+    const href = getAgendaHref();
+    const url = new URL(href, window.location.href);
+
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    window.dispatchEvent(new CustomEvent("dedicalivres:regional-selection", {
+      detail: {
+        countryCode: state.countryCode,
+        region: state.selectedSubdivision || ""
+      }
+    }));
+
+    const agenda = document.getElementById("agenda");
+
+    if (agenda) {
+      agenda.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    window.location.href = href;
   }
 
   function bindInteractions() {

@@ -7488,6 +7488,49 @@ body.testimonials-page {
   font-weight: 900;
 }
 
+.multiple-events-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 12px;
+  margin: 4px 0 6px;
+  padding: 15px 16px;
+  border: 1px solid rgba(58, 28, 113, .14);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(241, 232, 251, .82), rgba(255, 255, 255, .94));
+  cursor: pointer;
+}
+
+.multiple-events-option:has(input:checked) {
+  border-color: rgba(255, 107, 53, .48);
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, .10);
+}
+
+.multiple-events-option input {
+  width: 21px;
+  height: 21px;
+  margin: 2px 0 0;
+  accent-color: var(--orange);
+}
+
+.multiple-events-option span,
+.multiple-events-option strong,
+.multiple-events-option small {
+  display: block;
+}
+
+.multiple-events-option strong {
+  color: var(--purple);
+  font-weight: 900;
+}
+
+.multiple-events-option small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 /* ============================================================
    HEADER 3D — boutons en relief assortis au logo 3D
    (liens de navigation, bouton Soumettre, bouton Confort)

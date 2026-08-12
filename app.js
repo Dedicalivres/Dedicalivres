@@ -39,6 +39,7 @@
   const formFeedback = document.getElementById("form-feedback");
   const submissionTypeSelect = document.getElementById("event-type-submit");
   const dedicaceAuthorFields = document.getElementById("dedicace-author-fields");
+  const multipleEventsMode = document.getElementById("multiple-events-mode");
 
   const newsletterForm = document.getElementById("newsletter-form");
   const newsletterFeedback = document.getElementById("newsletter-feedback");
@@ -83,6 +84,8 @@
   let leafletAssetsPromise = null;
   let selectedCalendarDate = "";
   let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const eventImageUploadCache = new Map();
+  const authorPortraitUploadCache = new Map();
 
   const DAY_MS = 24 * 60 * 60 * 1000;
   const AUTHOR_PORTRAIT_FOLDER = "author-portraits";
@@ -136,7 +139,12 @@
 
     form?.addEventListener("submit", handleFormSubmit);
     submissionTypeSelect?.addEventListener("change", syncDedicaceAuthorFields);
+    multipleEventsMode?.addEventListener("change", syncMultipleEventsMode);
+    document
+      .getElementById("submitted-author-portrait-input")
+      ?.addEventListener("change", () => authorPortraitUploadCache.clear());
     syncDedicaceAuthorFields();
+    syncMultipleEventsMode();
 
     if (newsletterForm) {
       newsletterForm.setAttribute("novalidate", "novalidate");
@@ -211,6 +219,17 @@
       .forEach((field) => {
         field.disabled = !isDedicace;
       });
+  }
+
+  function syncMultipleEventsMode() {
+    if (!form) return;
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (!submitButton || submitButton.disabled) return;
+
+    submitButton.textContent = multipleEventsMode?.checked
+      ? "Envoyer cet événement et en saisir un autre"
+      : "Envoyer la proposition";
   }
 
   function initGeographyControls() {
@@ -320,6 +339,7 @@
 
     input.addEventListener("change", (event) => {
       const file = event.target.files?.[0];
+      eventImageUploadCache.clear();
 
       if (!file) {
         preview.innerHTML = "";
@@ -1615,18 +1635,31 @@
 
     if (!form) return;
 
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton?.disabled) return;
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Envoi en cours…";
+    }
+
     setFormFeedback("Envoi en cours...", "");
 
     const formData = new FormData(form);
+    const keepFieldsForNextEvent = formData.get("multiple_events") === "on";
 
     if (formData.get("legal_accept") !== "on") {
       setFormFeedback("Merci de valider l’autorisation de relecture, modération et publication avant l’envoi.", "error");
+      if (submitButton) submitButton.disabled = false;
+      syncMultipleEventsMode();
       return;
     }
 
     try {
-      let lat = Number(formData.get("lat"));
-      let lng = Number(formData.get("lng"));
+      const rawLat = String(formData.get("lat") || "").trim();
+      const rawLng = String(formData.get("lng") || "").trim();
+      let lat = rawLat ? Number(rawLat) : Number.NaN;
+      let lng = rawLng ? Number(rawLng) : Number.NaN;
 
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         const coords = await geocodeMunicipality(formData.get("city"));
@@ -1638,6 +1671,9 @@
         lat = coords.lat;
         lng = coords.lng;
       }
+
+      if (cityLatInput) cityLatInput.value = String(lat);
+      if (cityLngInput) cityLngInput.value = String(lng);
 
       const eventId = createClientUuid();
       const eventType = cleanText(formData.get("type"));
@@ -1651,9 +1687,9 @@
         city: formData.get("city"),
         price: formData.get("price"),
         start_date: formData.get("start_date"),
-        end_date: formData.get("end_date"),
-        website: formData.get("website"),
-        description: formData.get("description"),
+        end_date: formData.get("end_date") || null,
+        website: formData.get("website") || null,
+        description: formData.get("description") || null,
         lat,
         lng,
         validated: false,
@@ -1705,18 +1741,16 @@
         }
       }
 
-      form.reset();
-      selectedPreviewImage = null;
-      syncDedicaceAuthorFields();
-
-      const preview = document.getElementById("image-preview");
-
-      if (preview) {
-        preview.innerHTML = "";
-        preview.classList.remove("is-visible");
+      if (keepFieldsForNextEvent) {
+        prepareNextMultipleEvent();
+        setFormFeedback(
+          `Votre événement a bien été transmis.${authorPresenceWarning} Les informations sont conservées : indiquez les nouvelles dates puis envoyez l’événement suivant.`,
+          "success"
+        );
+      } else {
+        resetSubmissionForm();
+        setFormFeedback(`Votre événement a bien été transmis.${authorPresenceWarning}`, "success");
       }
-
-      setFormFeedback(`Votre événement a bien été transmis.${authorPresenceWarning}`, "success");
     } catch (error) {
       console.error(error);
 
@@ -1724,6 +1758,37 @@
         error.message || "Erreur pendant l’envoi.",
         "error"
       );
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+      syncMultipleEventsMode();
+    }
+  }
+
+  function prepareNextMultipleEvent() {
+    const startDateInput = form?.querySelector('[name="start_date"]');
+    const endDateInput = form?.querySelector('[name="end_date"]');
+
+    if (startDateInput) startDateInput.value = "";
+    if (endDateInput) endDateInput.value = "";
+
+    setTimeout(() => {
+      startDateInput?.focus({ preventScroll: true });
+      startDateInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+  }
+
+  function resetSubmissionForm() {
+    form?.reset();
+    selectedPreviewImage = null;
+    eventImageUploadCache.clear();
+    authorPortraitUploadCache.clear();
+    syncDedicaceAuthorFields();
+
+    const preview = document.getElementById("image-preview");
+
+    if (preview) {
+      preview.innerHTML = "";
+      preview.classList.remove("is-visible");
     }
   }
 
@@ -1778,17 +1843,28 @@
   }
 
   async function uploadImage(file) {
+    const cacheKey = getFileCacheKey(file);
+    if (cacheKey && eventImageUploadCache.has(cacheKey)) {
+      return eventImageUploadCache.get(cacheKey);
+    }
+
     const compressed = await compressImage(file);
+    let imageUrl = "";
 
     if (shouldUseR2Upload()) {
       try {
-        return await uploadImageToR2(compressed, "event-images");
+        imageUrl = await uploadImageToR2(compressed, "event-images");
       } catch (error) {
         console.warn("Upload R2 indisponible, bascule Supabase :", error);
       }
     }
 
-    return uploadImageToSupabase(compressed, "event-images");
+    if (!imageUrl) {
+      imageUrl = await uploadImageToSupabase(compressed, "event-images");
+    }
+
+    if (cacheKey) eventImageUploadCache.set(cacheKey, imageUrl);
+    return imageUrl;
   }
 
   function shouldUseR2Upload() {
@@ -1812,6 +1888,11 @@
   }
 
   async function uploadAuthorPortrait(file, authorIdentityKey) {
+    const cacheKey = getFileCacheKey(file);
+    if (cacheKey && authorPortraitUploadCache.has(cacheKey)) {
+      return authorPortraitUploadCache.get(cacheKey);
+    }
+
     if (!shouldUseR2Upload()) {
       throw new Error("L’upload du portrait auteur n’est pas disponible pour le moment.");
     }
@@ -1832,10 +1913,19 @@
       });
     }
 
-    return {
+    const uploadedPortrait = {
       url,
       storageKey: getR2StorageKey(url)
     };
+
+    if (cacheKey) authorPortraitUploadCache.set(cacheKey, uploadedPortrait);
+    return uploadedPortrait;
+  }
+
+  function getFileCacheKey(file) {
+    if (!(file instanceof File) || !file.size) return "";
+
+    return [file.name, file.type, file.size, file.lastModified].join("::");
   }
 
   async function uploadImageToR2(file, folder, options = {}) {

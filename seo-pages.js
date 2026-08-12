@@ -27,10 +27,12 @@
   const seoCount = document.getElementById("seo-count");
   const pastEventsSection = ensurePastEventsSection();
 
-  const region = document.body.dataset.region || params.get("region") || "";
+  let region = document.body.dataset.region || params.get("region") || "";
   const city = document.body.dataset.city || "";
-  const countryCode = document.body.dataset.countryCode || params.get("country") || "";
+  let countryCode = document.body.dataset.countryCode || params.get("country") || "";
   const pageMode = document.body.dataset.agendaMode || "";
+  const hasInteractiveRegionalMap = Boolean(document.getElementById("regional-map-app"));
+  let loadedEvents = [];
 
   function getRequiredTypes() {
     const fromParams = params.get("types") || params.get("type") || "";
@@ -62,6 +64,12 @@
 
   loadSeoEvents();
 
+  window.addEventListener("dedicalivres:regional-selection", (event) => {
+    countryCode = event.detail?.countryCode || "";
+    region = event.detail?.region || "";
+    renderSeoEvents();
+  });
+
   async function loadSeoEvents() {
     if (!eventsContainer) return;
 
@@ -80,11 +88,11 @@
       .order("featured", { ascending: false })
       .order("start_date", { ascending: true });
 
-    if (region) {
+    if (!hasInteractiveRegionalMap && region) {
       query = query.eq("region", region);
     }
 
-    if (countryCode) {
+    if (!hasInteractiveRegionalMap && countryCode) {
       query = query.eq("country_code", geo?.normalizeCountryCode(countryCode) || countryCode);
     }
 
@@ -106,9 +114,18 @@
       return;
     }
 
-    const filteredEvents = (Array.isArray(data) ? data : [])
+    loadedEvents = Array.isArray(data) ? data : [];
+    renderSeoEvents();
+  }
+
+  function renderSeoEvents() {
+    if (!eventsContainer) return;
+
+    const filteredEvents = loadedEvents
       .filter((event) => {
         if (!event || event.rejected === true || event.validated !== true) return false;
+        if (countryCode && geo?.getCountryCode(event) !== geo.normalizeCountryCode(countryCode)) return false;
+        if (region && normalize(event.region) !== normalize(region)) return false;
         if (pageMode === "salons") return ["Salon", "Festival"].includes(event.type);
         if (pageMode === "dedicaces") return event.type === "Dédicace";
         return !eventTypes.length || eventTypes.includes(event.type);
@@ -144,6 +161,14 @@
     window.dispatchEvent(
       new CustomEvent("dedicalivres:cards-rendered")
     );
+  }
+
+  function normalize(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
   }
 
 
