@@ -40,6 +40,7 @@
   const submissionTypeSelect = document.getElementById("event-type-submit");
   const dedicaceAuthorFields = document.getElementById("dedicace-author-fields");
   const multipleEventsMode = document.getElementById("multiple-events-mode");
+  const duplicateWarning = document.getElementById("duplicate-warning");
 
   const newsletterForm = document.getElementById("newsletter-form");
   const newsletterFeedback = document.getElementById("newsletter-feedback");
@@ -138,6 +139,8 @@
       ?.addEventListener("click", resetFilters);
 
     form?.addEventListener("submit", handleFormSubmit);
+    form?.addEventListener("input", handleDuplicateSensitiveInput);
+    form?.addEventListener("change", handleDuplicateSensitiveInput);
     submissionTypeSelect?.addEventListener("change", syncDedicaceAuthorFields);
     multipleEventsMode?.addEventListener("change", syncMultipleEventsMode);
     document
@@ -230,6 +233,17 @@
     submitButton.textContent = multipleEventsMode?.checked
       ? "Envoyer cet événement et en saisir un autre"
       : "Envoyer la proposition";
+  }
+
+  function handleDuplicateSensitiveInput(event) {
+    const sensitiveFields = new Set([
+      "title", "type", "country_code", "region", "city",
+      "start_date", "end_date", "website"
+    ]);
+
+    if (sensitiveFields.has(event.target?.name || "")) {
+      clearDuplicateWarning();
+    }
   }
 
   function initGeographyControls() {
@@ -1661,6 +1675,33 @@
       let lat = rawLat ? Number(rawLat) : Number.NaN;
       let lng = rawLng ? Number(rawLng) : Number.NaN;
 
+      const eventId = createClientUuid();
+      const eventType = cleanText(formData.get("type"));
+      const payload = {
+        id: eventId,
+        title: formData.get("title"),
+        type: eventType,
+        country_code: geo?.normalizeCountryCode(formData.get("country_code")) || "FR",
+        region: formData.get("region"),
+        city: formData.get("city"),
+        price: formData.get("price"),
+        start_date: formData.get("start_date"),
+        end_date: formData.get("end_date") || null,
+        website: formData.get("website") || null,
+        description: formData.get("description") || null,
+        lat: Number.isFinite(lat) ? lat : null,
+        lng: Number.isFinite(lng) ? lng : null,
+        validated: false,
+        featured: false,
+        rejected: false,
+        verified: false
+      };
+
+      // Le contrôle est volontairement placé avant le géocodage et l'envoi
+      // de l'image : une fiche déjà connue est signalée immédiatement.
+      const mayContinue = await checkSubmissionDuplicates(payload, formData);
+      if (!mayContinue) return;
+
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         const coords = await geocodeMunicipality(formData.get("city"));
 
@@ -1674,29 +1715,8 @@
 
       if (cityLatInput) cityLatInput.value = String(lat);
       if (cityLngInput) cityLngInput.value = String(lng);
-
-      const eventId = createClientUuid();
-      const eventType = cleanText(formData.get("type"));
-
-      const payload = {
-        id: eventId,
-        title: formData.get("title"),
-        type: eventType,
-        country_code: geo?.normalizeCountryCode(formData.get("country_code")) || "FR",
-        region: formData.get("region"),
-        city: formData.get("city"),
-        price: formData.get("price"),
-        start_date: formData.get("start_date"),
-        end_date: formData.get("end_date") || null,
-        website: formData.get("website") || null,
-        description: formData.get("description") || null,
-        lat,
-        lng,
-        validated: false,
-        featured: false,
-        rejected: false,
-        verified: false
-      };
+      payload.lat = lat;
+      payload.lng = lng;
 
       const imageFile = selectedPreviewImage || formData.get("image");
 
@@ -1770,6 +1790,7 @@
 
     if (startDateInput) startDateInput.value = "";
     if (endDateInput) endDateInput.value = "";
+    clearDuplicateWarning();
 
     setTimeout(() => {
       startDateInput?.focus({ preventScroll: true });
@@ -1783,6 +1804,7 @@
     eventImageUploadCache.clear();
     authorPortraitUploadCache.clear();
     syncDedicaceAuthorFields();
+    clearDuplicateWarning();
 
     const preview = document.getElementById("image-preview");
 
@@ -1790,6 +1812,83 @@
       preview.innerHTML = "";
       preview.classList.remove("is-visible");
     }
+  }
+
+  async function checkSubmissionDuplicates(payload, formData) {
+    const detector = window.DEDICALIVRES_DUPLICATES;
+    if (!detector || !payload?.start_date) return true;
+
+    try {
+      const matches = await detector.findMatches(supabaseClient, payload, {
+        onlyValidated: true,
+        limit: 200
+      });
+
+      if (!matches.length) {
+        clearDuplicateWarning();
+        return true;
+      }
+
+      const confirmed = formData.get("duplicate_confirm") === "on";
+      renderDuplicateWarning(matches, confirmed);
+
+      if (confirmed) return true;
+
+      setFormFeedback(
+        "Un événement proche existe déjà. Vérifiez les fiches signalées avant de confirmer qu’il s’agit bien d’un événement distinct.",
+        "error"
+      );
+      duplicateWarning?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return false;
+    } catch (error) {
+      console.warn("Contrôle doublon indisponible :", error);
+      return true;
+    }
+  }
+
+  function renderDuplicateWarning(matches, confirmed) {
+    if (!duplicateWarning) return;
+
+    const detector = window.DEDICALIVRES_DUPLICATES;
+    const strongest = matches[0];
+    const strongestLabel = detector?.LEVELS?.[strongest.level]?.label || "Doublon possible";
+
+    duplicateWarning.innerHTML = `
+      <h3>⚠ ${escapeHtml(strongestLabel)} détecté</h3>
+      <p>
+        Une ou plusieurs fiches validées ressemblent à votre proposition. Elles peuvent avoir été enregistrées plusieurs semaines auparavant, y compris pour l’année prochaine.
+      </p>
+      <div class="duplicate-warning-list">
+        ${matches.slice(0, 5).map((match) => {
+          const existing = match.event || {};
+          const levelLabel = detector?.LEVELS?.[match.level]?.label || "À vérifier";
+          const date = existing.start_date
+            ? formatDateRange(existing.start_date, existing.end_date)
+            : "Date non précisée";
+          const place = formatEventPlace(existing) || "Lieu non précisé";
+          return `
+            <article class="duplicate-warning-item">
+              <span class="duplicate-level duplicate-level-${escapeAttribute(match.level)}">${escapeHtml(levelLabel)} · ${match.score}%</span>
+              <strong>${escapeHtml(existing.title || "Événement existant")}</strong>
+              <small>${escapeHtml(date)} · ${escapeHtml(place)}</small>
+              <small>${escapeHtml((match.reasons || []).join(" · "))}</small>
+              <a href="event.html?id=${encodeURIComponent(existing.id || "")}" target="_blank" rel="noopener noreferrer">Ouvrir la fiche existante</a>
+            </article>
+          `;
+        }).join("")}
+      </div>
+      <label class="duplicate-confirm-option">
+        <input name="duplicate_confirm" type="checkbox" ${confirmed ? "checked" : ""} />
+        <span>J’ai vérifié les fiches ci-dessus et je confirme qu’il s’agit d’un événement distinct.</span>
+      </label>
+    `;
+    duplicateWarning.hidden = false;
+  }
+
+  function clearDuplicateWarning() {
+    if (!duplicateWarning) return;
+    duplicateWarning.hidden = true;
+    duplicateWarning.innerHTML = "";
   }
 
   async function buildSubmittedAuthorPresencePayload(formData, eventPayload) {

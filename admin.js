@@ -103,7 +103,7 @@ let editCityAutocompleteTimer = null;
 let editCitySuggestionCache = new Map();
 let originalEditLocationSignature = "";
 
-const ADMIN_MODULE_VERSION = "10.20-gallery-image-fallback-v2";
+const ADMIN_MODULE_VERSION = "10.21-duplicate-detection-v1";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY = "dedicalivres_admin_inventory_departments_v1";
 const adminModerationCounters = {
@@ -2416,6 +2416,36 @@ function fallbackCopyText(text) {
 
 async function validateEvent(id) {
   if (!(await ensureAdminSession())) return;
+  const event = allEvents.find((item) => String(item.id) === String(id));
+  let validatedDespiteDuplicateAlert = false;
+
+  if (event && window.DEDICALIVRES_DUPLICATES) {
+    showToast("Analyse des doublons...");
+
+    try {
+      const matches = await window.DEDICALIVRES_DUPLICATES.findMatches(
+        supabaseClient,
+        event,
+        { excludeId: id, limit: 250 }
+      );
+
+      if (matches.length) {
+        const approved = await openDuplicateValidationDialog(event, matches);
+        if (!approved) {
+          showToast("Validation annulée : vérifie les doublons signalés");
+          return;
+        }
+        validatedDespiteDuplicateAlert = true;
+      }
+    } catch (error) {
+      console.warn("Contrôle doublon avant validation indisponible :", error);
+      const continueWithoutCheck = window.confirm(
+        "Le contrôle des doublons est momentanément indisponible.\n\nValider tout de même cet événement ?"
+      );
+      if (!continueWithoutCheck) return;
+    }
+  }
+
   const { error } = await supabaseClient
     .from("events")
     .update({
@@ -2430,8 +2460,69 @@ async function validateEvent(id) {
   }
 
   await loadDashboard();
-  recordAdminAction("Événement validé", eventActionLabel(id));
-  showToast("Événement validé");
+  recordAdminAction(
+    validatedDespiteDuplicateAlert ? "Événement validé malgré alerte doublon" : "Événement validé",
+    eventActionLabel(id)
+  );
+  showToast(validatedDespiteDuplicateAlert ? "Événement validé après vérification du doublon" : "Événement validé");
+}
+
+function openDuplicateValidationDialog(event, matches) {
+  return new Promise((resolve) => {
+    const detector = window.DEDICALIVRES_DUPLICATES;
+    const overlay = document.createElement("div");
+    overlay.className = "duplicate-review-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "duplicate-review-title");
+
+    overlay.innerHTML = `
+      <section class="duplicate-review-dialog">
+        <h3 id="duplicate-review-title">⚠ Vérification obligatoire avant validation</h3>
+        <p>
+          La fiche « ${escapeHtml(event?.title || "Sans titre")} » ressemble à un ou plusieurs événements déjà enregistrés, même s’ils ont été ajoutés plusieurs semaines auparavant.
+        </p>
+        <div class="duplicate-warning-list">
+          ${matches.slice(0, 8).map((match) => {
+            const existing = match.event || {};
+            const levelLabel = detector?.LEVELS?.[match.level]?.label || "À vérifier";
+            return `
+              <article class="duplicate-warning-item">
+                <span class="duplicate-level duplicate-level-${escapeHtml(match.level)}">${escapeHtml(levelLabel)} · ${match.score}%</span>
+                <strong>${escapeHtml(existing.title || "Événement existant")}</strong>
+                <small>${escapeHtml(formatAdminInventoryDateRange(existing) || "Date à préciser")}</small>
+                <small>${escapeHtml([existing.city, existing.region].filter(Boolean).join(" · ") || "Lieu à préciser")}</small>
+                <small>${escapeHtml((match.reasons || []).join(" · "))}</small>
+                <a href="event.html?id=${encodeURIComponent(existing.id || "")}" target="_blank" rel="noopener noreferrer">Ouvrir la fiche existante</a>
+              </article>
+            `;
+          }).join("")}
+        </div>
+        <div class="duplicate-review-actions">
+          <button type="button" class="duplicate-review-cancel">Annuler la validation</button>
+          <button type="button" class="duplicate-review-override">Valider malgré l’alerte</button>
+        </div>
+      </section>
+    `;
+
+    const finish = (approved) => {
+      document.removeEventListener("keydown", handleKeydown);
+      overlay.remove();
+      resolve(approved);
+    };
+    const handleKeydown = (keyboardEvent) => {
+      if (keyboardEvent.key === "Escape") finish(false);
+    };
+
+    overlay.querySelector(".duplicate-review-cancel")?.addEventListener("click", () => finish(false));
+    overlay.querySelector(".duplicate-review-override")?.addEventListener("click", () => finish(true));
+    overlay.addEventListener("click", (clickEvent) => {
+      if (clickEvent.target === overlay) finish(false);
+    });
+    document.addEventListener("keydown", handleKeydown);
+    document.body.appendChild(overlay);
+    overlay.querySelector(".duplicate-review-cancel")?.focus();
+  });
 }
 
 async function rejectEvent(id) {
@@ -4014,9 +4105,10 @@ function renderAdminInventoryDuplicateGroups(container, duplicateGroups) {
     return;
   }
 
-  const groups = duplicateGroups.map((rows, index) => ({
-    label: `Doublon probable ${index + 1}`,
-    rows
+  const detector = window.DEDICALIVRES_DUPLICATES;
+  const groups = duplicateGroups.map((group, index) => ({
+    label: `${detector?.LEVELS?.[group.level]?.label || "Doublon probable"} ${index + 1} · ${group.score}%`,
+    rows: group.rows
   }));
 
   adminInventoryLastText = buildAdminInventoryText(groups);
@@ -4082,6 +4174,10 @@ function bindAdminInventoryRowActions() {
 }
 
 function getAdminInventoryDuplicateGroups(events) {
+  if (window.DEDICALIVRES_DUPLICATES) {
+    return window.DEDICALIVRES_DUPLICATES.groupEvents(events);
+  }
+
   const map = new Map();
 
   events.forEach((event) => {
@@ -4096,7 +4192,9 @@ function getAdminInventoryDuplicateGroups(events) {
     map.get(key).push(event);
   });
 
-  return Array.from(map.values()).filter((rows) => rows.length > 1);
+  return Array.from(map.values())
+    .filter((rows) => rows.length > 1)
+    .map((rows) => ({ rows, level: "probable", score: 75 }));
 }
 
 function getAdminInventoryStatusKey(event) {

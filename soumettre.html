@@ -18,6 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="style.css?v=corrections-1208-1" />
+  <link rel="stylesheet" href="duplicate-detection.css?v=duplicates-1" />
   <link rel="stylesheet" href="mascot-guide.css?v=guide-6" />
   <link rel="stylesheet" href="ludique.css?v=ludique-21" />
   <link rel="stylesheet" href="accessibilite.css?v=a11y-8" />
@@ -76,6 +77,8 @@
           <small>Après chaque envoi, les informations déjà remplies et les photos seront conservées. Seules les dates seront effacées.</small>
         </span>
       </label>
+
+      <section id="duplicate-warning" class="duplicate-warning" aria-live="assertive" hidden></section>
 
       <label>
         <span>Titre de l’événement</span>
@@ -256,7 +259,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js?v=shared-client-1"></script>
 <script src="geography.js?v=v1-francophone-20260615"></script>
-<script src="app.js?v=multi-events-1"></script>
+<script src="duplicate-detection.js?v=duplicates-1"></script>
+<script src="app.js?v=duplicates-1"></script>
 <script src="tracking-v4.js?v=shared-client-1"></script>
 <script>
 (function () {

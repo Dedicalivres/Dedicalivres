@@ -562,6 +562,20 @@
 
     if (!title || !city || !startDate) return null;
 
+    if (window.DEDICALIVRES_DUPLICATES) {
+      const matches = await window.DEDICALIVRES_DUPLICATES.findMatches(client, {
+        title,
+        city,
+        country_code: normalizeCountryCode(item.country),
+        type: normalizeEventType(item.type),
+        start_date: startDate,
+        end_date: normalizeIsoDate(item.endDate),
+        website: normalizeUrlValue(item.officialUrl || item.sourceUrl)
+      });
+
+      return matches[0]?.event || null;
+    }
+
     const { data, error } = await client
       .from("events")
       .select("id,title,city,start_date,validated,rejected")
