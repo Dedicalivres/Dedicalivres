@@ -1,11 +1,11 @@
 /* =========================================================
-  DÉDICALIVRES — AUTEURS PRÉSENTS
+  DÉDICALIVRES — PRÉSENCES DÉCLARÉES
   Fichier : authors-presence.js
   Pack SEO-Auteurs-2 — valorisation fiche événement
 
   Rôle :
-  - Afficher le bloc "Auteurs présents" sur event.html.
-  - Permettre à un auteur de déclarer sa présence.
+  - Afficher les présences déclarées sur event.html sans prétendre à l’exhaustivité.
+  - Permettre à un auteur, artiste-auteur, profil hybride ou éditeur de se signaler.
   - Ajouter un statut éditorial AE / ME / Hybride / Non précisé.
   - Ajouter un lien auteur/réseau + un lien livre/boutique/éditeur.
   - Afficher publiquement uniquement les présences validées.
@@ -55,8 +55,8 @@
     createAuthorPresenceBlock(event);
     bindAuthorPresenceForm(event);
     bindShareButtons(event);
-    const authors = await loadAuthorsPresence(event);
-    injectAuthorsPresenceSchema(event, authors);
+    const participants = await loadAuthorsPresence(event);
+    injectAuthorsPresenceSchema(event, participants);
     scrollToAuthorPresenceIfRequested();
   }
 
@@ -69,26 +69,38 @@
 
     section.innerHTML = `
       <div class="authors-presence-header">
-        <p class="authors-presence-eyebrow">Participation auteurs</p>
-        <h2>Auteurs présents</h2>
+        <p class="authors-presence-eyebrow">Présences déclarées</p>
+        <h2>Ils ont indiqué leur présence sur Dédicalivres</h2>
+        <p class="authors-presence-seo-intro">Cette liste repose sur des déclarations volontaires et ne constitue pas la liste complète des participants.</p>
+        <p id="authors-presence-counts" class="authors-presence-counts" hidden></p>
       </div>
 
       <div id="authors-presence-list" class="author-presence-list"></div>
 
       <p id="authors-presence-empty" class="author-presence-empty" hidden>
-        Aucun auteur ne s’est encore déclaré présent pour cet événement.
+        Aucune présence n’a encore été déclarée sur Dédicalivres pour cet événement.
       </p>
 
       <form id="author-presence-form" class="author-presence-form">
-        <h3>Vous êtes auteur et vous participez à cet événement ?</h3>
+        <h3>Vous participez à cet événement ?</h3>
 
         <div class="author-presence-grid author-presence-grid-extended">
           <label>
+            <span>Vous participez en tant que</span>
+            <select id="participant-type" name="participant_type" required>
+              <option value="author">Auteur</option>
+              <option value="artist_author">Artiste-auteur</option>
+              <option value="hybrid">Auteur et artiste-auteur</option>
+              <option value="publisher">Maison d’édition</option>
+            </select>
+          </label>
+
+          <label class="participant-author-field">
             <span>Nom, prénom ou pseudo d’auteur</span>
             <input name="pseudo" type="text" placeholder="Nom d’auteur, prénom nom ou pseudonyme" minlength="2" maxlength="120" required />
           </label>
 
-          <label>
+          <label class="participant-author-field">
             <span>Votre situation éditoriale</span>
             <select name="publication_mode" required>
               <option value="unknown">Je ne souhaite pas préciser</option>
@@ -98,12 +110,12 @@
             </select>
           </label>
 
-          <label>
+          <label class="participant-author-field">
             <span>Lien auteur / réseau social</span>
             <input name="author_profile_url" type="url" placeholder="Site auteur, Instagram, Facebook, Linktree…" />
           </label>
 
-          <label>
+          <label class="participant-author-field">
             <span>Type de lien auteur</span>
             <select name="author_profile_url_type">
               <option value="site_officiel">Site officiel</option>
@@ -114,12 +126,12 @@
             </select>
           </label>
 
-          <label>
+          <label class="participant-author-field">
             <span>Lien livre / boutique / maison d’édition</span>
             <input name="book_or_publisher_url" type="url" placeholder="Page du livre, boutique auteur, éditeur, librairie…" />
           </label>
 
-          <label>
+          <label class="participant-author-field">
             <span>Type de second lien</span>
             <select name="book_or_publisher_url_type">
               <option value="page_livre">Page du livre</option>
@@ -131,12 +143,12 @@
             </select>
           </label>
 
-          <label class="author-presence-field-wide">
+          <label class="author-presence-field-wide participant-author-field">
             <span>Nom de la maison d’édition ou de la boutique</span>
             <input name="publisher_name" type="text" placeholder="Optionnel : nom de l’éditeur, boutique ou librairie" />
           </label>
 
-          <label class="author-presence-field-wide author-portrait-field">
+          <label class="author-presence-field-wide author-portrait-field participant-author-field">
             <span>Portrait auteur optionnel</span>
             <input id="author-portrait-input" name="author_portrait" type="file" accept="image/*" />
             <small>
@@ -144,6 +156,28 @@
               JPG, PNG ou WEBP — moins de 4 Mo.
             </small>
           </label>
+
+          <div id="publisher-presence-fields" class="publisher-presence-fields author-presence-field-wide" hidden>
+            <div class="author-presence-grid">
+              <label>
+                <span>Nom de la maison d’édition</span>
+                <input name="organization_name" type="text" minlength="2" maxlength="160" placeholder="Raison sociale ou nom public" />
+              </label>
+              <label>
+                <span>Site de la maison d’édition</span>
+                <input name="organization_website" type="url" placeholder="https://..." />
+              </label>
+              <label>
+                <span>Nom du contact — privé</span>
+                <input name="contact_name" type="text" maxlength="160" autocomplete="name" />
+              </label>
+              <label>
+                <span>E-mail du contact — privé</span>
+                <input name="contact_email" type="email" maxlength="254" autocomplete="email" />
+              </label>
+            </div>
+            <small>Le nom et l’e-mail du contact servent uniquement à la modération et ne sont jamais affichés publiquement.</small>
+          </div>
         </div>
 
         <p class="author-presence-form-help">Liens et portraits vérifiés avant publication.</p>
@@ -151,7 +185,7 @@
         <label class="legal-consent">
           <input name="legal_accept" type="checkbox" required />
           <span>
-            J’autorise l’association Dédicalivres à relire, modérer et publier cette présence auteur
+            J’autorise l’association Dédicalivres à relire, modérer et publier cette déclaration de présence
             ainsi que les liens ou portraits transmis, dans le cadre de l’agenda littéraire.
             <a href="conditions-utilisation.html" target="_blank" rel="noopener noreferrer">Conditions d’utilisation</a>
           </span>
@@ -169,6 +203,11 @@
     const form = document.getElementById("author-presence-form");
     if (!form) return;
 
+    form.querySelector('[name="participant_type"]')?.addEventListener("change", () => {
+      syncParticipantTypeForm(form);
+    });
+    syncParticipantTypeForm(form);
+
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
 
@@ -176,27 +215,42 @@
       const submitButton = form.querySelector('button[type="submit"]');
 
       const formData = new FormData(form);
-      const pseudo = cleanText(formData.get("pseudo"));
-      const authorIdentityKey = slugifyAuthorIdentity(pseudo);
+      const participantType = cleanSelectValue(
+        formData.get("participant_type"),
+        ["author", "artist_author", "hybrid", "publisher"],
+        "author"
+      );
+      const isPublisher = participantType === "publisher";
+      const organizationName = cleanText(formData.get("organization_name")).slice(0, 160);
+      const pseudo = isPublisher ? organizationName : cleanText(formData.get("pseudo"));
+      const authorIdentityKey = isPublisher ? "" : slugifyAuthorIdentity(pseudo);
       const publicationMode = cleanSelectValue(formData.get("publication_mode"), ["self_published", "publisher", "hybrid", "unknown"], "unknown");
 
-      const authorProfileUrl = normalizeWebsite(formData.get("author_profile_url"));
+      const authorProfileUrl = normalizeWebsite(
+        isPublisher ? formData.get("organization_website") : formData.get("author_profile_url")
+      );
       const authorProfileUrlType = cleanSelectValue(formData.get("author_profile_url_type"), ["site_officiel", "instagram", "facebook", "linktree", "autre"], "autre");
 
       const bookOrPublisherUrl = normalizeOptionalWebsite(formData.get("book_or_publisher_url"));
       const bookOrPublisherUrlType = cleanSelectValue(formData.get("book_or_publisher_url_type"), ["boutique_auteur", "page_livre", "maison_edition", "librairie", "amazon", "autre"], "autre");
 
       const publisherName = cleanText(formData.get("publisher_name")).slice(0, 120);
-      const portraitFile = formData.get("author_portrait");
+      const contactName = cleanText(formData.get("contact_name")).slice(0, 160);
+      const contactEmail = cleanText(formData.get("contact_email")).slice(0, 254).toLowerCase();
+      const portraitFile = isPublisher ? null : formData.get("author_portrait");
 
       try {
         if (formData.get("legal_accept") !== "on") {
           throw new Error("Merci de valider l’autorisation de relecture, modération et publication avant l’envoi.");
         }
 
-        if (pseudo.length < 2) throw new Error("Merci d’indiquer un pseudo valide.");
-        if (authorProfileUrl && !isValidUrl(authorProfileUrl)) throw new Error("Merci d’indiquer un lien auteur valide ou de laisser le champ vide.");
+        if (pseudo.length < 2) throw new Error(isPublisher ? "Merci d’indiquer le nom de la maison d’édition." : "Merci d’indiquer un pseudo valide.");
+        if (isPublisher && !authorProfileUrl) throw new Error("Merci d’indiquer le site de la maison d’édition.");
+        if (isPublisher && contactName.length < 2) throw new Error("Merci d’indiquer le nom du contact de la maison d’édition.");
+        if (isPublisher && !contactEmail) throw new Error("Merci d’indiquer l’e-mail privé du contact.");
+        if (authorProfileUrl && !isValidUrl(authorProfileUrl)) throw new Error("Merci d’indiquer un lien valide ou de laisser le champ vide.");
         if (bookOrPublisherUrl && !isValidUrl(bookOrPublisherUrl)) throw new Error("Merci d’indiquer un second lien valide ou de laisser le champ vide.");
+        if (contactEmail && !isValidEmail(contactEmail)) throw new Error("Merci d’indiquer une adresse e-mail de contact valide.");
         validateAuthorPortraitFile(portraitFile);
 
         setButtonLoading(submitButton, true, "Envoi…");
@@ -214,17 +268,22 @@
         const extendedPayload = {
           event_id: eventId,
           pseudo,
-          author_slug: authorIdentityKey || null,
-          author_identity_key: authorIdentityKey || null,
+          author_slug: isPublisher ? null : authorIdentityKey || null,
+          author_identity_key: isPublisher ? null : authorIdentityKey || null,
           website: authorProfileUrl || null, // compatibilité avec l’ancien champ
           author_profile_url: authorProfileUrl || null,
-          author_profile_url_type: authorProfileUrl ? authorProfileUrlType : null,
-          publication_mode: publicationMode,
-          book_or_publisher_url: bookOrPublisherUrl || null,
-          book_or_publisher_url_type: bookOrPublisherUrl ? bookOrPublisherUrlType : null,
-          publisher_name: publisherName || null,
+          author_profile_url_type: authorProfileUrl ? (isPublisher ? "site_officiel" : authorProfileUrlType) : null,
+          publication_mode: isPublisher ? "unknown" : publicationMode,
+          book_or_publisher_url: isPublisher ? null : bookOrPublisherUrl || null,
+          book_or_publisher_url_type: !isPublisher && bookOrPublisherUrl ? bookOrPublisherUrlType : null,
+          publisher_name: isPublisher ? null : publisherName || null,
           author_portrait_url: authorPortraitUrl,
           author_portrait_storage_key: authorPortraitStorageKey,
+          participant_type: participantType,
+          organization_name: isPublisher ? organizationName : null,
+          contact_name: isPublisher ? contactName || null : null,
+          contact_email: isPublisher ? contactEmail || null : null,
+          presence_verified: false,
           validated: false,
           rejected: false
         };
@@ -233,16 +292,22 @@
           .from("event_authors_presence")
           .insert([extendedPayload]);
 
-        if (error) {
+        if (error && isMissingColumnError(error) && !isPublisher) {
           // Fallback compatibilité si la migration SQL n'a pas encore été appliquée.
           const { error: legacyError } = await supabaseClient
             .from("event_authors_presence")
             .insert([{ event_id: eventId, pseudo, website: authorProfileUrl || "https://dedicalivres.fr/", validated: false }]);
 
           if (legacyError) throw error;
+        } else if (error) {
+          if (isPublisher && isMissingColumnError(error)) {
+            throw new Error("La déclaration d’une maison d’édition nécessite la migration de schéma prévue. Aucune présence auteur n’a été créée à sa place.");
+          }
+          throw error;
         }
 
         form.reset();
+        syncParticipantTypeForm(form);
         setFeedback(feedback, "success", "Merci, votre demande a bien été envoyée. Elle sera vérifiée avant affichage public.");
       } catch (error) {
         console.error("Erreur auteur présent :", error);
@@ -251,6 +316,35 @@
         setButtonLoading(submitButton, false, "Indiquer ma présence");
       }
     });
+  }
+
+  function syncParticipantTypeForm(form) {
+    const type = form.querySelector('[name="participant_type"]')?.value || "author";
+    const isPublisher = type === "publisher";
+    const publisherFields = form.querySelector("#publisher-presence-fields");
+
+    form.querySelectorAll(".participant-author-field input, .participant-author-field select")
+      .forEach((field) => {
+        field.disabled = isPublisher;
+      });
+
+    if (publisherFields) {
+      publisherFields.hidden = !isPublisher;
+      publisherFields.querySelectorAll("input").forEach((field) => {
+        field.disabled = !isPublisher;
+      });
+    }
+
+    const pseudo = form.querySelector('[name="pseudo"]');
+    const organization = form.querySelector('[name="organization_name"]');
+    const organizationWebsite = form.querySelector('[name="organization_website"]');
+    const contactName = form.querySelector('[name="contact_name"]');
+    const contactEmail = form.querySelector('[name="contact_email"]');
+    if (pseudo) pseudo.required = !isPublisher;
+    if (organization) organization.required = isPublisher;
+    if (organizationWebsite) organizationWebsite.required = isPublisher;
+    if (contactName) contactName.required = isPublisher;
+    if (contactEmail) contactEmail.required = isPublisher;
   }
 
   function bindShareButtons(event) {
@@ -262,7 +356,7 @@
       const text = [
         event?.title || "Événement littéraire sur Dédicalivres",
         "",
-        "Retrouvez les informations pratiques, les auteurs présents et les liens utiles sur cette fiche :",
+        "Retrouvez les informations pratiques et les présences déclarées sur cette fiche :",
         url
       ].join("\n");
 
@@ -283,6 +377,7 @@
     const list = document.getElementById("authors-presence-list");
     const empty = document.getElementById("authors-presence-empty");
     const valueBox = document.getElementById("authors-presence-value-box");
+    const counts = document.getElementById("authors-presence-counts");
 
     if (!list || !empty) return [];
 
@@ -297,6 +392,9 @@
       "book_or_publisher_url_type",
       "publisher_name",
       "author_portrait_url",
+      "participant_type",
+      "organization_name",
+      "presence_verified",
       "created_at"
     ].join(", ");
 
@@ -323,48 +421,62 @@
       return [];
     }
 
-    const authors = Array.isArray(response.data) ? response.data : [];
+    const participants = (Array.isArray(response.data) ? response.data : []).map((row) => ({
+      ...row,
+      participant_type: ["author", "artist_author", "hybrid", "publisher"].includes(row.participant_type)
+        ? row.participant_type
+        : "author"
+    }));
 
-    if (!authors.length) {
+    if (!participants.length) {
       list.innerHTML = "";
       empty.hidden = false;
       if (valueBox) valueBox.hidden = true;
+      if (counts) counts.hidden = true;
       return [];
     }
 
     empty.hidden = true;
     if (valueBox) valueBox.hidden = false;
+    if (counts) {
+      counts.textContent = buildParticipantCountText(participants);
+      counts.hidden = false;
+    }
 
-    list.innerHTML = authors.map((author) => renderAuthorPresenceCard(author, event)).join("");
-    return authors;
+    list.innerHTML = participants.map((participant) => renderParticipantPresenceCard(participant, event)).join("");
+    return participants;
   }
 
-  function renderAuthorPresenceCard(author, event) {
-    const authorUrl = author.author_profile_url || author.website || "";
-    const secondUrl = author.book_or_publisher_url || "";
-    const authorLabel = getAuthorLinkLabel(author.author_profile_url_type);
-    const secondLabel = getSecondLinkLabel(author.book_or_publisher_url_type, author.publisher_name);
-    const portraitUrl = resolveImageUrl(author.author_portrait_url);
+  function renderParticipantPresenceCard(participant) {
+    const participantType = participant.participant_type || "author";
+    const isPublisher = participantType === "publisher";
+    const displayName = isPublisher ? participant.organization_name || participant.pseudo : participant.pseudo;
+    const profileUrl = participant.author_profile_url || participant.website || "";
+    const secondUrl = isPublisher ? "" : participant.book_or_publisher_url || "";
+    const profileLabel = isPublisher ? "Site de la maison d’édition" : getAuthorLinkLabel(participant.author_profile_url_type);
+    const secondLabel = getSecondLinkLabel(participant.book_or_publisher_url_type, participant.publisher_name);
+    const portraitUrl = isPublisher ? "" : resolveImageUrl(participant.author_portrait_url);
+    const typeLabel = getParticipantTypeLabel(participantType);
 
     return `
-      <article class="author-presence-card author-presence-card-extended">
+      <article class="author-presence-card author-presence-card-extended participant-${escapeAttribute(participantType)}">
         <div class="author-presence-avatar" aria-hidden="true">
           ${
             portraitUrl
               ? `<img src="${escapeAttribute(portraitUrl)}" alt="" loading="lazy" decoding="async" />`
-              : `<span>${escapeHtml(getAuthorInitials(author.pseudo))}</span>`
+              : `<span>${escapeHtml(getAuthorInitials(displayName))}</span>`
           }
         </div>
 
         <div class="author-presence-card-main">
-          <strong>${escapeHtml(author.pseudo)}</strong>
-          <small>Auteur déclaré présent</small>
+          <strong>${escapeHtml(displayName)}</strong>
+          <small>${escapeHtml(typeLabel)} · présence déclarée${participant.presence_verified ? " · vérifiée" : ""}</small>
         </div>
 
-        <div class="author-presence-links" aria-label="Liens utiles pour ${escapeAttribute(author.pseudo)}">
-          ${authorUrl ? `
-            <a href="${escapeAttribute(authorUrl)}" target="_blank" rel="noopener noreferrer">
-              ${escapeHtml(authorLabel)}
+        <div class="author-presence-links" aria-label="Liens utiles pour ${escapeAttribute(displayName)}">
+          ${profileUrl ? `
+            <a href="${escapeAttribute(profileUrl)}" target="_blank" rel="noopener noreferrer">
+              ${escapeHtml(profileLabel)}
             </a>
           ` : ""}
           ${secondUrl ? `
@@ -377,24 +489,56 @@
     `;
   }
 
-  function injectAuthorsPresenceSchema(event, authors) {
-    if (!authors || !authors.length) return;
+  function buildParticipantCountText(participants) {
+    const labels = {
+      author: ["auteur", "auteurs"],
+      artist_author: ["artiste-auteur", "artistes-auteurs"],
+      hybrid: ["profil hybride", "profils hybrides"],
+      publisher: ["maison d’édition", "maisons d’édition"]
+    };
+    const counts = participants.reduce((result, participant) => {
+      const type = participant.participant_type || "author";
+      result[type] = (result[type] || 0) + 1;
+      return result;
+    }, {});
+    const details = Object.entries(labels)
+      .filter(([type]) => counts[type])
+      .map(([type, label]) => `${counts[type]} ${label[counts[type] > 1 ? 1 : 0]}`);
+    const total = participants.length;
+    return `${total} participant${total > 1 ? "s se sont signalés" : " s’est signalé"}${details.length ? ` · ${details.join(" · ")}` : ""}`;
+  }
 
-    const performers = authors.map((author) => {
+  function getParticipantTypeLabel(type) {
+    return {
+      author: "Auteur",
+      artist_author: "Artiste-auteur",
+      hybrid: "Auteur et artiste-auteur",
+      publisher: "Maison d’édition"
+    }[type] || "Auteur";
+  }
+
+  function injectAuthorsPresenceSchema(event, participants) {
+    if (!participants || !participants.length) return;
+
+    const performers = participants.map((participant) => {
       const sameAs = [
-        author.author_profile_url || author.website || "",
-        author.book_or_publisher_url || ""
+        participant.author_profile_url || participant.website || "",
+        participant.participant_type === "publisher" ? "" : participant.book_or_publisher_url || ""
       ].filter(isValidUrl);
 
-      const person = {
-        "@type": "Person",
-        "name": author.pseudo
+      const performer = {
+        "@type": participant.participant_type === "publisher" ? "Organization" : "Person",
+        "name": participant.participant_type === "publisher"
+          ? participant.organization_name || participant.pseudo
+          : participant.pseudo
       };
 
-      if (sameAs.length) person.sameAs = [...new Set(sameAs)];
-      if (author.author_portrait_url) person.image = resolveImageUrl(author.author_portrait_url);
-      return person;
-    }).filter((person) => person.name);
+      if (sameAs.length) performer.sameAs = [...new Set(sameAs)];
+      if (participant.participant_type !== "publisher" && participant.author_portrait_url) {
+        performer.image = resolveImageUrl(participant.author_portrait_url);
+      }
+      return performer;
+    }).filter((performer) => performer.name);
 
     if (!performers.length) return;
 
@@ -753,6 +897,19 @@
     } catch {
       return false;
     }
+  }
+
+  function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ""));
+  }
+
+  function isMissingColumnError(error) {
+    const code = String(error?.code || "");
+    const message = String(error?.message || error?.details || "").toLowerCase();
+    return ["42703", "PGRST204"].includes(code) || (
+      message.includes("column") &&
+      (message.includes("does not exist") || message.includes("schema cache"))
+    );
   }
 
   function setFeedback(element, kind, message) {

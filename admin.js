@@ -67,6 +67,15 @@ const editStartDate = document.getElementById("edit-start-date");
 const editEndDate = document.getElementById("edit-end-date");
 const editWebsite = document.getElementById("edit-website");
 const editDescription = document.getElementById("edit-description");
+const editRegistrationPanel = document.getElementById("edit-registration-panel");
+const editRegistrationEnabled = document.getElementById("edit-registration-enabled");
+const editRegistrationDetails = document.getElementById("edit-registration-details");
+const editRegistrationOpenDate = document.getElementById("edit-registration-open-date");
+const editRegistrationDeadline = document.getElementById("edit-registration-deadline");
+const editRegistrationUrl = document.getElementById("edit-registration-url");
+const editRegistrationForceStatus = document.getElementById("edit-registration-force-status");
+const editRegistrationNote = document.getElementById("edit-registration-note");
+const editRegistrationPreview = document.getElementById("edit-registration-preview");
 const editImagePreview = document.getElementById("edit-image-preview");
 const editImageFile = document.getElementById("edit-image-file");
 const editImageUrl = document.getElementById("edit-image-url");
@@ -141,7 +150,20 @@ const ADMIN_EVENTS_COLUMNS = [
   "country_code",
   "lat",
   "lng",
-  "price"
+  "price",
+  "registration_enabled",
+  "registration_open_date",
+  "registration_deadline",
+  "registration_url",
+  "registration_audience",
+  "registration_note",
+  "registration_force_status"
+].join(", ");
+
+const ADMIN_EVENTS_LEGACY_COLUMNS = [
+  "id", "created_at", "title", "type", "city", "region", "description",
+  "start_date", "end_date", "website", "image_url", "validated", "rejected",
+  "featured", "verified", "country_code", "lat", "lng", "price"
 ].join(", ");
 
 const ADMIN_LOCATION_COLUMNS = [
@@ -396,6 +418,10 @@ function bindEvents() {
   editCity?.addEventListener("input", handleEditCityInput);
   editCity?.addEventListener("change", handleEditCityChange);
   editCountry?.addEventListener("change", handleEditCountryChange);
+  editType?.addEventListener("change", syncAdminRegistrationFields);
+  editRegistrationEnabled?.addEventListener("change", syncAdminRegistrationFields);
+  [editRegistrationOpenDate, editRegistrationDeadline, editRegistrationForceStatus]
+    .forEach((field) => field?.addEventListener("change", updateAdminRegistrationPreview));
   editGeocodeBtn?.addEventListener("click", handleEditRelocateClick);
   adminMapToggle?.addEventListener("click", toggleAdminMap);
   bindAdminExportsPanel();
@@ -799,9 +825,21 @@ async function loadEvents() {
     query = query.or(`and(validated.eq.false,rejected.eq.false),start_date.gte.${today},end_date.gte.${today}`);
   }
 
-  const { data, error } = await query
+  let response = await query
     .order("created_at", { ascending: false })
     .limit(includeArchives ? 500 : 250);
+
+  if (response.error && isMissingColumnError(response.error)) {
+    let legacyQuery = supabaseClient.from("events").select(ADMIN_EVENTS_LEGACY_COLUMNS);
+    if (!includeArchives) {
+      legacyQuery = legacyQuery.or(`and(validated.eq.false,rejected.eq.false),start_date.gte.${today},end_date.gte.${today}`);
+    }
+    response = await legacyQuery
+      .order("created_at", { ascending: false })
+      .limit(includeArchives ? 500 : 250);
+  }
+
+  const { data, error } = response;
 
   if (error) {
     console.error(error);
@@ -2226,6 +2264,7 @@ function renderEvents() {
 }
 
 function renderEventCard(event) {
+  const registrationStatus = window.DEDICALIVRES_REGISTRATION?.getStatus(event);
   return `
     <article class="${getEventCardClasses(event)}">
 
@@ -2280,6 +2319,7 @@ function renderEventCard(event) {
               ? `<span class="badge missing-image">SANS IMAGE</span>`
               : ""
           }
+          ${registrationStatus ? `<span class="badge registration-status">INSCRIPTIONS : ${escapeHtml(registrationStatus.shortLabel).toUpperCase()}</span>` : ""}
         </div>
 
         ${renderEventQuality(event)}
@@ -3015,6 +3055,17 @@ function openEditModal(id) {
   editWebsite.value = event.website || "";
   editDescription.value = event.description || "";
   editImageUrl.value = event.image_url || "";
+  if (editRegistrationEnabled) editRegistrationEnabled.checked = event.registration_enabled === true;
+  if (editRegistrationOpenDate) editRegistrationOpenDate.value = event.registration_open_date || "";
+  if (editRegistrationDeadline) editRegistrationDeadline.value = event.registration_deadline || "";
+  if (editRegistrationUrl) editRegistrationUrl.value = event.registration_url || "";
+  if (editRegistrationForceStatus) editRegistrationForceStatus.value = event.registration_force_status || "";
+  if (editRegistrationNote) editRegistrationNote.value = event.registration_note || "";
+  const selectedAudience = window.DEDICALIVRES_REGISTRATION?.normalizeAudience(event.registration_audience) || [];
+  document.querySelectorAll("[data-edit-registration-audience]").forEach((field) => {
+    field.checked = selectedAudience.includes(field.value);
+  });
+  syncAdminRegistrationFields();
   originalEditLocationSignature = getEditLocationSignature();
   clearEditCitySuggestions();
   const hasExistingCoordinates = Number.isFinite(Number(event.lat)) && Number.isFinite(Number(event.lng));
@@ -3027,6 +3078,31 @@ function openEditModal(id) {
 
   renderEditImagePreview(event.image_url);
   editModal.classList.remove("hidden");
+}
+
+function syncAdminRegistrationFields() {
+  const eligible = ["Salon", "Festival"].includes(editType?.value || "");
+  const enabled = eligible && Boolean(editRegistrationEnabled?.checked);
+  if (editRegistrationPanel) editRegistrationPanel.hidden = !eligible;
+  if (editRegistrationEnabled) editRegistrationEnabled.disabled = !eligible;
+  if (editRegistrationDetails) editRegistrationDetails.hidden = !enabled;
+  editRegistrationDetails?.querySelectorAll("input, select, textarea").forEach((field) => {
+    field.disabled = !enabled;
+  });
+  updateAdminRegistrationPreview();
+}
+
+function updateAdminRegistrationPreview() {
+  if (!editRegistrationPreview) return;
+  const event = {
+    type: editType?.value,
+    registration_enabled: Boolean(editRegistrationEnabled?.checked),
+    registration_open_date: editRegistrationOpenDate?.value || null,
+    registration_deadline: editRegistrationDeadline?.value || null,
+    registration_force_status: editRegistrationForceStatus?.value || null
+  };
+  const status = window.DEDICALIVRES_REGISTRATION?.getStatus(event);
+  editRegistrationPreview.textContent = status?.label || "Aucun statut public calculé";
 }
 
 function closeEditModal() {
@@ -3482,10 +3558,24 @@ async function saveEdition() {
       lng: coordinates ? coordinates.lng : null
     };
 
-    const { error } = await supabaseClient
+    Object.assign(payload, buildAdminRegistrationPayload());
+
+    let { error } = await supabaseClient
       .from("events")
       .update(payload)
       .eq("id", id);
+
+    if (error && isMissingColumnError(error)) {
+      const legacyPayload = { ...payload };
+      Object.keys(legacyPayload)
+        .filter((key) => key.startsWith("registration_"))
+        .forEach((key) => delete legacyPayload[key]);
+      const legacyResponse = await supabaseClient
+        .from("events")
+        .update(legacyPayload)
+        .eq("id", id);
+      error = legacyResponse.error;
+    }
 
     if (error) throw error;
 
@@ -3503,6 +3593,45 @@ async function saveEdition() {
       submitButton.textContent = "ENREGISTRER";
     }
   }
+}
+
+function buildAdminRegistrationPayload() {
+  const eligible = ["Salon", "Festival"].includes(editType?.value || "");
+  const enabled = eligible && Boolean(editRegistrationEnabled?.checked);
+  if (!enabled) {
+    return {
+      registration_enabled: false,
+      registration_open_date: null,
+      registration_deadline: null,
+      registration_url: null,
+      registration_audience: [],
+      registration_note: null,
+      registration_force_status: null
+    };
+  }
+
+  const openDate = editRegistrationOpenDate?.value || null;
+  const deadline = editRegistrationDeadline?.value || null;
+  if (openDate && deadline && openDate > deadline) {
+    throw new Error("La date d’ouverture doit précéder la date limite.");
+  }
+
+  const audience = Array.from(document.querySelectorAll("[data-edit-registration-audience]:checked"))
+    .map((field) => field.value);
+  if (!audience.length) throw new Error("Sélectionnez au moins un profil concerné par les inscriptions.");
+
+  const url = editRegistrationUrl?.value.trim() || null;
+  if (url && !/^https?:\/\//i.test(url)) throw new Error("Le lien d’inscription doit être une URL HTTP(S).");
+
+  return {
+    registration_enabled: true,
+    registration_open_date: openDate,
+    registration_deadline: deadline,
+    registration_url: url,
+    registration_audience: audience,
+    registration_note: editRegistrationNote?.value.trim().slice(0, 1000) || null,
+    registration_force_status: editRegistrationForceStatus?.value || null
+  };
 }
 
 async function uploadAdminImage(file) {
@@ -3629,6 +3758,15 @@ function normalize(value) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function isMissingColumnError(error) {
+  const code = String(error?.code || "");
+  const message = String(error?.message || error?.details || "").toLowerCase();
+  return ["42703", "PGRST204"].includes(code) || (
+    message.includes("column") &&
+    (message.includes("does not exist") || message.includes("schema cache"))
+  );
 }
 
 function escapeHtml(value) {
@@ -3974,12 +4112,23 @@ async function fetchAdminInventoryEvents() {
 
   for (let from = 0; from < 10000; from += pageSize) {
     const to = from + pageSize - 1;
-    const { data, error } = await supabaseClient
+    let response = await supabaseClient
       .from("events")
       .select(ADMIN_EVENTS_COLUMNS)
       .order("start_date", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false })
       .range(from, to);
+
+    if (response.error && isMissingColumnError(response.error)) {
+      response = await supabaseClient
+        .from("events")
+        .select(ADMIN_EVENTS_LEGACY_COLUMNS)
+        .order("start_date", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .range(from, to);
+    }
+
+    const { data, error } = response;
 
     if (error) throw error;
 

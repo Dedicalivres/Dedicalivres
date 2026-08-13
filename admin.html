@@ -833,6 +833,38 @@
         placeholder="Description"
       ></textarea>
 
+      <section id="edit-registration-panel" class="admin-registration-panel" hidden>
+        <h4>INSCRIPTIONS PARTICIPANTS</h4>
+
+        <label class="admin-registration-toggle">
+          <input id="edit-registration-enabled" type="checkbox" />
+          Inscriptions activées pour ce salon ou festival
+        </label>
+
+        <div id="edit-registration-details" class="form-grid" hidden>
+          <input id="edit-registration-open-date" type="date" aria-label="Date d’ouverture des inscriptions" />
+          <input id="edit-registration-deadline" type="date" aria-label="Date limite des inscriptions" />
+          <input id="edit-registration-url" type="url" placeholder="Lien d’inscription https://..." />
+          <select id="edit-registration-force-status" aria-label="Statut forcé des inscriptions">
+            <option value="">Statut calculé à partir des dates</option>
+            <option value="complet">Complet</option>
+            <option value="cloture">Clôturé</option>
+            <option value="annule">Annulé</option>
+          </select>
+
+          <fieldset class="admin-registration-audience">
+            <legend>Profils concernés</legend>
+            <label><input type="checkbox" value="author" data-edit-registration-audience /> Auteur</label>
+            <label class="participant-option-artist"><input type="checkbox" value="artist_author" data-edit-registration-audience /> Artiste-auteur</label>
+            <label><input type="checkbox" value="hybrid" data-edit-registration-audience /> Profil hybride</label>
+            <label><input type="checkbox" value="publisher" data-edit-registration-audience /> Maison d’édition</label>
+          </fieldset>
+
+          <textarea id="edit-registration-note" rows="3" maxlength="1000" placeholder="Précisions sur les inscriptions"></textarea>
+          <output id="edit-registration-preview" class="admin-registration-preview">Aucun statut public calculé</output>
+        </div>
+      </section>
+
       <div class="edit-actions">
 
         <button

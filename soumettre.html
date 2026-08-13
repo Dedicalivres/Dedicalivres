@@ -166,6 +166,67 @@
         <textarea name="description" rows="5" placeholder="Présentez le rendez-vous, le lieu, les auteurs invités ou les informations pratiques."></textarea>
       </label>
 
+      <section id="registration-submit-fields" class="submission-registration-panel" hidden>
+        <div class="submission-author-intro">
+          <p class="category-kicker">Appel à participation</p>
+          <h3>Inscriptions des participants</h3>
+        </div>
+
+        <label class="multiple-events-option">
+          <input id="registration-enabled-submit" name="registration_enabled" type="checkbox" />
+          <span>
+            <strong>Les inscriptions sont proposées pour ce salon ou festival</strong>
+            <small>Ces informations seront vérifiées avant leur publication avec l’événement.</small>
+          </span>
+        </label>
+
+        <div id="registration-submit-details" hidden>
+          <div class="form-grid-2">
+            <label>
+              <span>Date d’ouverture</span>
+              <input name="registration_open_date" type="date" />
+            </label>
+
+            <label>
+              <span>Date limite</span>
+              <input name="registration_deadline" type="date" />
+            </label>
+          </div>
+
+          <div class="form-grid-2">
+            <label>
+              <span>Lien d’inscription</span>
+              <input name="registration_url" type="url" placeholder="https://..." maxlength="500" />
+            </label>
+
+            <label>
+              <span>État communiqué par l’organisateur</span>
+              <select name="registration_force_status">
+                <option value="">Calculé à partir des dates</option>
+                <option value="complet">Complet</option>
+                <option value="cloture">Clôturé</option>
+                <option value="annule">Annulé</option>
+              </select>
+            </label>
+          </div>
+
+          <fieldset class="registration-audience-fieldset">
+            <legend>Profils pouvant s’inscrire</legend>
+            <div class="registration-audience-options">
+              <label><input name="registration_audience" type="checkbox" value="author" /> Auteur</label>
+              <label class="participant-option-artist"><input name="registration_audience" type="checkbox" value="artist_author" /> Artiste-auteur</label>
+              <label><input name="registration_audience" type="checkbox" value="hybrid" /> Profil hybride</label>
+              <label><input name="registration_audience" type="checkbox" value="publisher" /> Maison d’édition</label>
+            </div>
+          </fieldset>
+
+          <label>
+            <span>Précisions facultatives</span>
+            <textarea name="registration_note" rows="3" maxlength="1000" placeholder="Conditions, documents attendus ou informations utiles."></textarea>
+          </label>
+        </div>
+      </section>
+
       <section id="dedicace-author-fields" class="submission-author-panel" hidden>
         <div class="submission-author-intro">
           <p class="category-kicker">Auteur de la dédicace</p>

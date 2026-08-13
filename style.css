@@ -7681,3 +7681,160 @@ html.a11y-soir .header nav .a11y-nav-btn {
 }
 /* sur le CTA orange, l'icône est blanche pleine */
 .header nav a.nav-submit-link .nav-ico { stroke: #fff; }
+/* =========================================================
+   V1 enrichie — inscriptions et présences qualifiées
+========================================================= */
+
+.submission-registration-panel,
+.registration-detail {
+  margin: 24px 0;
+  padding: 22px;
+  border: 1px solid rgba(58, 28, 113, .18);
+  border: 1px solid color-mix(in srgb, var(--purple) 18%, transparent);
+  border-radius: 24px;
+  background: rgba(241, 232, 251, .38);
+  background: color-mix(in srgb, var(--card) 92%, var(--purple) 8%);
+}
+
+.registration-audience-fieldset {
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid rgba(58, 28, 113, .18);
+  border: 1px solid color-mix(in srgb, var(--purple) 18%, transparent);
+  border-radius: 18px;
+}
+
+.registration-audience-options,
+.registration-audience-list ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.registration-audience-options label,
+.registration-audience-list li {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(58, 28, 113, .09);
+  background: color-mix(in srgb, var(--purple) 9%, transparent);
+  font-weight: 800;
+}
+
+#submission-form .registration-audience-options input[type="checkbox"] {
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+  min-height: 19px;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--orange);
+}
+
+.participant-option-artist,
+.registration-audience-artist_author {
+  color: #6f3bbd;
+  border-color: #9b6ad6;
+}
+
+.registration-badge {
+  border: 1px solid currentColor;
+  font-weight: 900;
+}
+
+.registration-badge-open { color: #147a40; background: #e6f7ed; }
+.registration-badge-last-days { color: #9b4c08; background: #fff1d9; }
+.registration-badge-soon { color: #365fa8; background: #edf3ff; }
+.registration-badge-full,
+.registration-badge-closed { color: #6b5260; background: #f3edf0; }
+.registration-badge-cancelled { color: #a12d3d; background: #fdecef; }
+
+.registration-detail-heading h2 {
+  margin: 2px 0 8px;
+}
+
+.registration-detail-status {
+  color: var(--purple);
+}
+
+.registration-timeline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.registration-timeline li {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-left: 4px solid var(--orange);
+  border-radius: 12px;
+  background: rgba(255, 107, 53, .10);
+  background: color-mix(in srgb, var(--card) 88%, var(--orange) 12%);
+}
+
+.registration-detail-note {
+  margin: 18px 0;
+  line-height: 1.65;
+}
+
+.registration-cta {
+  display: inline-flex;
+  margin-top: 6px;
+}
+
+.authors-presence-counts {
+  margin: 10px 0 0;
+  color: var(--purple);
+  font-weight: 900;
+}
+
+.publisher-presence-fields {
+  padding: 16px;
+  border: 1px dashed rgba(58, 28, 113, .35);
+  border: 1px dashed color-mix(in srgb, var(--purple) 35%, transparent);
+  border-radius: 18px;
+}
+
+.author-presence-card.participant-artist_author {
+  border-color: #9b6ad6;
+  box-shadow: inset 4px 0 0 #9b6ad6;
+}
+
+.author-presence-card.participant-artist_author .author-presence-card-main small {
+  color: #6f3bbd;
+  font-weight: 900;
+}
+
+.author-presence-card.participant-publisher {
+  border-style: dashed;
+}
+
+.author-presence-card.participant-publisher .author-presence-avatar {
+  border-radius: 12px;
+}
+
+html.a11y-soir .registration-badge-open { color: #91e6af; background: #143b25; }
+html.a11y-soir .registration-badge-last-days { color: #ffd18d; background: #4c310e; }
+html.a11y-soir .registration-badge-soon { color: #aecbff; background: #172f59; }
+html.a11y-soir .registration-badge-full,
+html.a11y-soir .registration-badge-closed { color: #e1cbd7; background: #392d34; }
+html.a11y-soir .registration-badge-cancelled { color: #ffb2bd; background: #55202a; }
+html.a11y-soir .author-presence-card.participant-artist_author .author-presence-card-main small,
+html.a11y-soir .participant-option-artist { color: #d5b3ff; }
+
+@media (max-width: 680px) {
+  .registration-timeline {
+    grid-template-columns: 1fr;
+  }
+
+  .submission-registration-panel,
+  .registration-detail {
+    padding: 17px;
+  }
+}

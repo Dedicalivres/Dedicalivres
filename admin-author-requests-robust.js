@@ -1,10 +1,10 @@
 /* =========================================================
-   DÉDICALIVRES — ADMIN AUTEURS PRÉSENTS
+   DÉDICALIVRES — ADMIN PRÉSENCES DÉCLARÉES
    Pack SEO-Auteurs-1
    Fichier : admin-author-requests-robust.js
 
    Rôle :
-   - Modérer les demandes auteurs liées aux événements.
+   - Modérer les déclarations de présence liées aux événements.
    - Gérer le statut AE / ME / Hybride.
    - Gérer les deux liens : auteur/réseau + livre/boutique/éditeur.
 ========================================================= */
@@ -60,7 +60,7 @@
     panel.className = "admin-panel author-requests-admin-panel";
     panel.innerHTML = `
       <div class="section-head">
-        <h3>DEMANDES AUTEURS</h3>
+        <h3>PRÉSENCES DÉCLARÉES</h3>
         <span id="author-requests-count">Chargement…</span>
       </div>
 
@@ -95,6 +95,11 @@
       "book_or_publisher_url",
       "book_or_publisher_url_type",
       "publisher_name",
+      "participant_type",
+      "organization_name",
+      "contact_name",
+      "contact_email",
+      "presence_verified",
       "admin_note",
       "validated",
       "rejected",
@@ -125,7 +130,12 @@
       return;
     }
 
-    rows = Array.isArray(response.data) ? response.data : [];
+    rows = (Array.isArray(response.data) ? response.data : []).map((row) => ({
+      ...row,
+      participant_type: ["author", "artist_author", "hybrid", "publisher"].includes(row.participant_type)
+        ? row.participant_type
+        : "author"
+    }));
     publishAuthorRequestCounter(rows.filter(isPending).length, false);
   }
 
@@ -144,7 +154,7 @@
     }
 
     if (!filtered.length) {
-      list.innerHTML = `<p class="priority-empty">Aucune demande auteur pour ce filtre.</p>`;
+      list.innerHTML = `<p class="priority-empty">Aucune déclaration de présence pour ce filtre.</p>`;
       return;
     }
 
@@ -156,12 +166,14 @@
     const eventTitle = event.title || `Événement ${row.event_id || ""}`;
     const eventMeta = [event.start_date, event.city, event.region].filter(Boolean).join(" · ");
     const status = row.validated ? "validée" : row.rejected ? "refusée" : "en attente";
+    const isPublisher = row.participant_type === "publisher";
+    const displayName = isPublisher ? row.organization_name || row.pseudo : row.pseudo;
 
     return `
       <article class="author-request-card" data-request-id="${escapeAttribute(row.id)}">
         <div class="author-request-head">
           <div>
-            <strong>${escapeHtml(row.pseudo || "Auteur sans nom")}</strong>
+            <strong>${escapeHtml(displayName || "Participant sans nom")}</strong>
             <small>${escapeHtml(eventTitle)}${eventMeta ? ` — ${escapeHtml(eventMeta)}` : ""}</small>
           </div>
           <span class="author-request-status is-${statusToClass(status)}">${escapeHtml(status)}</span>
@@ -169,8 +181,23 @@
 
         <div class="author-request-grid">
           <label>
-            <span>Nom / pseudo</span>
+            <span>Type de participant</span>
+            <select data-field="participant_type">
+              ${option("author", "Auteur", row.participant_type)}
+              ${option("artist_author", "Artiste-auteur", row.participant_type)}
+              ${option("hybrid", "Auteur et artiste-auteur", row.participant_type)}
+              ${option("publisher", "Maison d’édition", row.participant_type)}
+            </select>
+          </label>
+
+          <label>
+            <span>Nom / pseudo historique</span>
             <input data-field="pseudo" value="${escapeAttribute(row.pseudo || "")}" />
+          </label>
+
+          <label>
+            <span>Organisation</span>
+            <input data-field="organization_name" value="${escapeAttribute(row.organization_name || "")}" />
           </label>
 
           <label>
@@ -225,6 +252,22 @@
             <span>Note admin</span>
             <input data-field="admin_note" value="${escapeAttribute(row.admin_note || "")}" />
           </label>
+
+          <label>
+            <span>Contact privé</span>
+            <input data-field="contact_name" value="${escapeAttribute(row.contact_name || "")}" />
+          </label>
+
+          <label>
+            <span>E-mail privé</span>
+            <input data-field="contact_email" type="email" value="${escapeAttribute(row.contact_email || "")}" />
+          </label>
+
+          <label class="author-request-check">
+            <span>Vérification</span>
+            <input data-field="presence_verified" type="checkbox" ${row.presence_verified ? "checked" : ""} />
+            Présence vérifiée
+          </label>
         </div>
 
         <div class="author-request-links">
@@ -256,7 +299,7 @@
     if (event.target.closest("#author-requests-refresh")) {
       await loadRows();
       render();
-      toast("Demandes auteurs actualisées");
+      toast("Présences déclarées actualisées");
       return;
     }
 
@@ -294,20 +337,31 @@
 
     payload.updated_at = new Date().toISOString();
 
-    const { error } = await supabaseClient
+    let { error } = await supabaseClient
       .from("event_authors_presence")
       .update(payload)
       .eq("id", id);
 
+    if (error && isMissingColumnError(error) && payload.participant_type !== "publisher") {
+      const legacyPayload = { ...payload };
+      ["participant_type", "organization_name", "contact_name", "contact_email", "presence_verified"]
+        .forEach((key) => delete legacyPayload[key]);
+      const legacyResponse = await supabaseClient
+        .from("event_authors_presence")
+        .update(legacyPayload)
+        .eq("id", id);
+      error = legacyResponse.error;
+    }
+
     if (error) {
       console.warn("Admin auteurs : update impossible", error);
-      toast("Erreur mise à jour demande auteur");
+      toast("Erreur mise à jour de la présence");
       return;
     }
 
     await loadRows();
     render();
-    toast("Demande auteur mise à jour");
+    toast("Présence mise à jour");
   }
 
   function readPayload(card) {
@@ -315,7 +369,7 @@
 
     card.querySelectorAll("[data-field]").forEach((field) => {
       const key = field.dataset.field;
-      let value = field.value || "";
+      let value = field.type === "checkbox" ? field.checked : field.value || "";
 
       if (["author_profile_url", "book_or_publisher_url"].includes(key)) {
         value = normalizeOptionalUrl(value);
@@ -325,8 +379,24 @@
         payload.website = value || null; // compatibilité ancien champ
       }
 
-      payload[key] = value || null;
+      payload[key] = typeof value === "boolean" ? value : value || null;
     });
+
+    if (payload.participant_type === "publisher") {
+      payload.publication_mode = "unknown";
+      payload.author_id = null;
+      payload.author_slug = null;
+      payload.author_identity_key = null;
+      payload.author_portrait_url = null;
+      payload.author_portrait_storage_key = null;
+      payload.book_or_publisher_url = null;
+      payload.book_or_publisher_url_type = null;
+      payload.publisher_name = null;
+    } else {
+      payload.organization_name = null;
+      payload.contact_name = null;
+      payload.contact_email = null;
+    }
 
     return payload;
   }
@@ -376,6 +446,15 @@
     return `https://${raw}`;
   }
 
+  function isMissingColumnError(error) {
+    const code = String(error?.code || "");
+    const message = String(error?.message || error?.details || "").toLowerCase();
+    return ["42703", "PGRST204"].includes(code) || (
+      message.includes("column") &&
+      (message.includes("does not exist") || message.includes("schema cache"))
+    );
+  }
+
   function showListError(message) {
     const list = document.getElementById("author-requests-list");
     if (list) list.innerHTML = `<p class="priority-empty">${escapeHtml(message)}</p>`;
@@ -419,6 +498,20 @@
         border-radius: 22px;
         background: rgba(8,18,14,.92);
         border: 1px solid rgba(25,255,156,.12);
+      }
+
+      .author-request-card:has([data-field="participant_type"] option[value="artist_author"]:checked) {
+        border-color: #9b6ad6;
+        box-shadow: inset 4px 0 0 #9b6ad6;
+      }
+
+      .author-request-check {
+        align-content: start;
+      }
+
+      .author-request-check input[type="checkbox"] {
+        width: auto;
+        min-height: auto;
       }
 
       .author-request-head {

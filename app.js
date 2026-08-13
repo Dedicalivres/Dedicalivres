@@ -39,6 +39,9 @@
   const formFeedback = document.getElementById("form-feedback");
   const submissionTypeSelect = document.getElementById("event-type-submit");
   const dedicaceAuthorFields = document.getElementById("dedicace-author-fields");
+  const registrationSubmitFields = document.getElementById("registration-submit-fields");
+  const registrationEnabledSubmit = document.getElementById("registration-enabled-submit");
+  const registrationSubmitDetails = document.getElementById("registration-submit-details");
   const multipleEventsMode = document.getElementById("multiple-events-mode");
   const duplicateWarning = document.getElementById("duplicate-warning");
 
@@ -141,12 +144,13 @@
     form?.addEventListener("submit", handleFormSubmit);
     form?.addEventListener("input", handleDuplicateSensitiveInput);
     form?.addEventListener("change", handleDuplicateSensitiveInput);
-    submissionTypeSelect?.addEventListener("change", syncDedicaceAuthorFields);
+    submissionTypeSelect?.addEventListener("change", syncConditionalSubmissionFields);
+    registrationEnabledSubmit?.addEventListener("change", syncRegistrationSubmissionFields);
     multipleEventsMode?.addEventListener("change", syncMultipleEventsMode);
     document
       .getElementById("submitted-author-portrait-input")
       ?.addEventListener("change", () => authorPortraitUploadCache.clear());
-    syncDedicaceAuthorFields();
+    syncConditionalSubmissionFields();
     syncMultipleEventsMode();
 
     if (newsletterForm) {
@@ -221,6 +225,27 @@
       .querySelectorAll("input, select, textarea")
       .forEach((field) => {
         field.disabled = !isDedicace;
+      });
+  }
+
+  function syncConditionalSubmissionFields() {
+    syncDedicaceAuthorFields();
+    syncRegistrationSubmissionFields();
+  }
+
+  function syncRegistrationSubmissionFields() {
+    if (!registrationSubmitFields || !submissionTypeSelect) return;
+
+    const isEligible = ["Salon", "Festival"].includes(submissionTypeSelect.value);
+    const isEnabled = isEligible && Boolean(registrationEnabledSubmit?.checked);
+    registrationSubmitFields.hidden = !isEligible;
+    if (registrationEnabledSubmit) registrationEnabledSubmit.disabled = !isEligible;
+    if (registrationSubmitDetails) registrationSubmitDetails.hidden = !isEnabled;
+
+    registrationSubmitDetails
+      ?.querySelectorAll("input, select, textarea")
+      .forEach((field) => {
+        field.disabled = !isEnabled;
       });
   }
 
@@ -529,13 +554,27 @@
   async function loadEvents() {
     setLoadingState();
 
-    const { data, error } = await supabaseClient
+    const legacyColumns = "id,title,type,country_code,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng";
+    const registrationColumns = "registration_enabled,registration_open_date,registration_deadline,registration_url,registration_audience,registration_note,registration_force_status";
+    let response = await supabaseClient
       .from("events")
-      .select("id,title,type,country_code,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng")
+      .select(`${legacyColumns},${registrationColumns}`)
       .eq("validated", true)
       .eq("rejected", false)
       .order("featured", { ascending: false })
       .order("start_date", { ascending: true });
+
+    if (response.error && isMissingColumnError(response.error)) {
+      response = await supabaseClient
+        .from("events")
+        .select(legacyColumns)
+        .eq("validated", true)
+        .eq("rejected", false)
+        .order("featured", { ascending: false })
+        .order("start_date", { ascending: true });
+    }
+
+    const { data, error } = response;
 
     if (error) {
       console.error(error);
@@ -931,6 +970,7 @@
     const typeMeta = TYPE_META[event.type] || TYPE_META.Autre;
     const image = resolveImageUrl(event.image_url);
     const isPast = Boolean(options.isPast);
+    const registrationStatus = window.DEDICALIVRES_REGISTRATION?.getStatus(event);
 
     return `
       <article
@@ -980,6 +1020,12 @@
             ${
               isPast
                 ? `<span class="badge badge-past">Passé</span>`
+                : ""
+            }
+
+            ${
+              registrationStatus && !isPast
+                ? `<span class="badge registration-badge registration-badge-${escapeAttribute(registrationStatus.key)}">${escapeHtml(registrationStatus.shortLabel)}</span>`
                 : ""
             }
           </div>
@@ -1677,6 +1723,7 @@
 
       const eventId = createClientUuid();
       const eventType = cleanText(formData.get("type"));
+      const registrationData = buildRegistrationSubmissionPayload(formData, eventType);
       const payload = {
         id: eventId,
         title: formData.get("title"),
@@ -1694,7 +1741,8 @@
         validated: false,
         featured: false,
         rejected: false,
-        verified: false
+        verified: false,
+        ...registrationData
       };
 
       // Le contrôle est volontairement placé avant le géocodage et l'envoi
@@ -1726,9 +1774,27 @@
 
       const authorPresencePayload = await buildSubmittedAuthorPresencePayload(formData, payload);
 
-      const { error } = await supabaseClient
+      let { error } = await supabaseClient
         .from("events")
         .insert([payload]);
+
+      if (error && isMissingColumnError(error)) {
+        const legacyPayload = { ...payload };
+        [
+          "registration_enabled",
+          "registration_open_date",
+          "registration_deadline",
+          "registration_url",
+          "registration_audience",
+          "registration_note",
+          "registration_force_status"
+        ].forEach((key) => delete legacyPayload[key]);
+
+        const legacyResponse = await supabaseClient
+          .from("events")
+          .insert([legacyPayload]);
+        error = legacyResponse.error;
+      }
 
       if (error) throw error;
 
@@ -1787,9 +1853,13 @@
   function prepareNextMultipleEvent() {
     const startDateInput = form?.querySelector('[name="start_date"]');
     const endDateInput = form?.querySelector('[name="end_date"]');
+    const registrationOpenInput = form?.querySelector('[name="registration_open_date"]');
+    const registrationDeadlineInput = form?.querySelector('[name="registration_deadline"]');
 
     if (startDateInput) startDateInput.value = "";
     if (endDateInput) endDateInput.value = "";
+    if (registrationOpenInput) registrationOpenInput.value = "";
+    if (registrationDeadlineInput) registrationDeadlineInput.value = "";
     clearDuplicateWarning();
 
     setTimeout(() => {
@@ -1803,7 +1873,7 @@
     selectedPreviewImage = null;
     eventImageUploadCache.clear();
     authorPortraitUploadCache.clear();
-    syncDedicaceAuthorFields();
+    syncConditionalSubmissionFields();
     clearDuplicateWarning();
 
     const preview = document.getElementById("image-preview");
@@ -1812,6 +1882,57 @@
       preview.innerHTML = "";
       preview.classList.remove("is-visible");
     }
+  }
+
+  function buildRegistrationSubmissionPayload(formData, eventType) {
+    if (!["Salon", "Festival"].includes(eventType)) return {};
+
+    const enabled = formData.get("registration_enabled") === "on";
+    if (!enabled) {
+      return {
+        registration_enabled: false,
+        registration_open_date: null,
+        registration_deadline: null,
+        registration_url: null,
+        registration_audience: [],
+        registration_note: null,
+        registration_force_status: null
+      };
+    }
+
+    const allowedAudience = ["author", "artist_author", "hybrid", "publisher"];
+    const audience = [...new Set(formData.getAll("registration_audience"))]
+      .filter((value) => allowedAudience.includes(value));
+    const openDate = cleanText(formData.get("registration_open_date")) || null;
+    const deadline = cleanText(formData.get("registration_deadline")) || null;
+    const registrationUrl = cleanText(formData.get("registration_url")) || null;
+    const note = cleanText(formData.get("registration_note")).slice(0, 1000) || null;
+    const forcedStatus = ["complet", "cloture", "annule"].includes(formData.get("registration_force_status"))
+      ? formData.get("registration_force_status")
+      : null;
+
+    if (openDate && deadline && openDate > deadline) {
+      throw new Error("La date d’ouverture des inscriptions doit précéder la date limite.");
+    }
+    if (registrationUrl && !isValidUrl(registrationUrl)) {
+      throw new Error("Merci d’indiquer un lien d’inscription HTTP(S) valide.");
+    }
+    if (!audience.length) {
+      throw new Error("Sélectionnez au moins un profil pouvant s’inscrire.");
+    }
+    if (!openDate && !deadline && !registrationUrl && !forcedStatus) {
+      throw new Error("Indiquez au moins une date, un lien ou un état pour les inscriptions.");
+    }
+
+    return {
+      registration_enabled: true,
+      registration_open_date: openDate,
+      registration_deadline: deadline,
+      registration_url: registrationUrl,
+      registration_audience: audience,
+      registration_note: note,
+      registration_force_status: forcedStatus
+    };
   }
 
   async function checkSubmissionDuplicates(payload, formData) {
@@ -3077,6 +3198,15 @@
 
   function cleanText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function isMissingColumnError(error) {
+    const code = String(error?.code || "");
+    const message = String(error?.message || error?.details || "").toLowerCase();
+    return ["42703", "PGRST204"].includes(code) || (
+      message.includes("column") &&
+      (message.includes("does not exist") || message.includes("schema cache"))
+    );
   }
 
   function normalizeOptionalWebsite(value) {
