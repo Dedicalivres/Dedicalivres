@@ -35,3 +35,20 @@
 
 /authors-presence.js
   Cache-Control: no-cache
+
+/event.js
+  Cache-Control: no-cache
+
+/seo-pages.js
+  Cache-Control: no-cache
+
+/author-search-index.js
+  Cache-Control: no-cache
+
+/admin-author-requests-robust.js
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+
+/admin-social-generator.js
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store

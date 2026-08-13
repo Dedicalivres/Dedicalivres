@@ -400,15 +400,25 @@
     authorPresencesByEvent = new Map();
 
     try {
-      const { data, error } = await client
+      let response = await client
         .from("event_authors_presence")
-        .select("event_id,pseudo,author_profile_url,website,validated,rejected")
+        .select("event_id,pseudo,author_profile_url,website,participant_type,validated,rejected")
         .eq("validated", true)
         .or("rejected.is.null,rejected.eq.false");
 
+      if (response.error) {
+        response = await client
+          .from("event_authors_presence")
+          .select("event_id,pseudo,author_profile_url,website,validated,rejected")
+          .eq("validated", true)
+          .or("rejected.is.null,rejected.eq.false");
+      }
+
+      const { data, error } = response;
       if (error) throw error;
 
       (Array.isArray(data) ? data : []).forEach((row) => {
+        if (row.participant_type === "publisher") return;
         const eventId = String(row.event_id || "");
         const pseudo = cleanText(row.pseudo);
 
@@ -1092,7 +1102,7 @@
     const sourceY = bottom - sourceHeight;
     const metaBottom = sourceY - 18;
     const place = [event.city, event.region, event.country].filter(Boolean).join(" · ");
-    const authors = event.authors?.length ? `Auteurs présents : ${event.authors.join(", ")}` : "";
+    const authors = event.authors?.length ? `Ils ont indiqué leur présence sur Dédicalivres : ${event.authors.join(", ")}` : "";
     const textLayout = calculateOfficialTextLayout(ctx, {
       title: event.title || "Événement littéraire",
       date: event.dateLabel || "",

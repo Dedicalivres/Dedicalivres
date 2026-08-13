@@ -89,6 +89,15 @@ globalThis.fetch = async (input) => {
       {
         event_id: 'event-be-overlap',
         pseudo: 'Autrice Test',
+        participant_type: 'author',
+        validated: true,
+        rejected: false
+      },
+      {
+        event_id: 'event-be-overlap',
+        pseudo: 'Éditions Exemple',
+        organization_name: 'Éditions Exemple',
+        participant_type: 'publisher',
         validated: true,
         rejected: false
       }
@@ -155,6 +164,8 @@ try {
   assert.equal(exportedJson.events.length, 1);
   assert.equal(exportedJson.events[0].id, 'event-be-overlap');
   assert.equal(exportedJson.events[0].authors[0], 'Autrice Test');
+  assert.equal(exportedJson.events[0].authors.length, 1);
+  assert.doesNotMatch(JSON.stringify(exportedJson), /Éditions Exemple/);
   assert.equal(exportedJson.events[0].country, 'Belgique');
 
   const galleryFile = [...storedFiles.entries()].find(([key]) => key.endsWith('/galerie-visuelle.html'));

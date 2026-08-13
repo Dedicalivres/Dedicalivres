@@ -468,13 +468,21 @@ async function fetchAuthorsByEventId(env, presenceTable, eventIds) {
   const authorsByEventId = new Map();
 
   const presenceUrl = new URL(`/rest/v1/${presenceTable}`, trimTrailingSlash(env.SUPABASE_URL));
-  presenceUrl.searchParams.set('select', 'event_id,pseudo,validated,rejected');
+  presenceUrl.searchParams.set('select', 'event_id,pseudo,participant_type,validated,rejected');
   presenceUrl.searchParams.set('event_id', `in.(${eventIds.map(encodeURIComponent).join(',')})`);
   presenceUrl.searchParams.set('validated', 'eq.true');
-  const presenceRows = await supabaseGet(env, presenceUrl);
+  let presenceRows;
+  try {
+    presenceRows = await supabaseGet(env, presenceUrl);
+  } catch (error) {
+    if (!isMissingParticipantTypeError(error)) throw error;
+    presenceUrl.searchParams.set('select', 'event_id,pseudo,validated,rejected');
+    presenceRows = await supabaseGet(env, presenceUrl);
+  }
 
   for (const row of presenceRows) {
     if (row.rejected === true) continue;
+    if (row.participant_type === 'publisher') continue;
     const eventId = String(row.event_id);
     const authorName = safeText(row.pseudo || '');
     if (!authorName) continue;
@@ -483,6 +491,11 @@ async function fetchAuthorsByEventId(env, presenceTable, eventIds) {
   }
 
   return dedupeAuthorsMap(authorsByEventId);
+}
+
+function isMissingParticipantTypeError(error) {
+  const message = String(error?.message || error || '');
+  return /participant_type/i.test(message) && /42703|PGRST204|does not exist|schema cache/i.test(message);
 }
 
 async function supabaseGet(env, url) {
@@ -615,7 +628,7 @@ function buildMarkdownPublications(events, generatedAt, siteUrl) {
     lines.push(`**Ville :** ${event.city || 'Non précisée'}`);
     lines.push(`**Type :** ${event.type || 'Autre'}`);
     if (event.time) lines.push(`**Heure :** ${event.time}`);
-    if (event.authors.length) lines.push(`**Auteurs présents :** ${event.authors.join(', ')}`);
+    if (event.authors.length) lines.push(`**Ils ont indiqué leur présence sur Dédicalivres :** ${event.authors.join(', ')}`);
     if (event.image_url) lines.push(`**Image :** ${event.image_url}`);
     if (event.website) lines.push(`**Site officiel :** ${event.website}`);
     lines.push(`**Fiche événement :** ${event.event_url}`);
@@ -1245,7 +1258,7 @@ function buildManualVisualGalleryHtml(events, generatedAt, siteUrl, options) {
       if (authors.length && currentY + metaFont <= metaBottom) {
         ctx.fillStyle = "#64586f";
         ctx.font = "700 " + Math.max(18, metaFont - 2) + "px Arial, sans-serif";
-        drawSingleLineEllipsis(ctx, "Auteurs présents : " + authors.join(", "), innerX, currentY, innerWidth);
+        drawSingleLineEllipsis(ctx, "Présences indiquées sur Dédicalivres : " + authors.join(", "), innerX, currentY, innerWidth);
         currentY += metaFont + 18;
       }
 
@@ -1822,7 +1835,7 @@ function buildLongPost({ title, eventDate, eventTime, city, region, description,
   parts.push('');
   parts.push(`📅 Date : ${formatFrenchDate(eventDate)}${eventTime ? ` à ${normalizeTime(eventTime)}` : ''}`);
   if (city || region) parts.push(`📍 Lieu : ${[city, region].filter(Boolean).join(' — ')}`);
-  if (authors.length) parts.push(`✍️ Auteurs présents : ${authors.join(', ')}`);
+  if (authors.length) parts.push(`✍️ Ils ont indiqué leur présence sur Dédicalivres : ${authors.join(', ')}`);
   parts.push('');
   parts.push(`Découvrez la fiche complète : ${eventUrl}`);
   parts.push('');

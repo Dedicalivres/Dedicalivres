@@ -48,7 +48,7 @@
     const input = document.createElement("input");
     input.id = "author-filter";
     input.type = "search";
-    input.placeholder = "Rechercher un auteur présent…";
+    input.placeholder = "Rechercher un auteur signalé…";
     input.setAttribute("list", "author-suggestions");
     input.setAttribute("autocomplete", "off");
 
@@ -69,7 +69,7 @@
   async function loadAuthorPresences() {
     let response = await supabaseClient
       .from("event_authors_presence")
-      .select("event_id, pseudo, website, author_profile_url, author_slug, author_id, author_portrait_url, validated, rejected")
+      .select("event_id, pseudo, website, author_profile_url, author_slug, author_id, author_portrait_url, participant_type, organization_name, validated, rejected")
       .eq("validated", true)
       .or("rejected.is.null,rejected.eq.false");
 
@@ -85,7 +85,12 @@
       return;
     }
 
-    authorPresences = Array.isArray(response.data) ? response.data : [];
+    authorPresences = (Array.isArray(response.data) ? response.data : []).map((row) => ({
+      ...row,
+      participant_type: ["author", "artist_author", "hybrid", "publisher"].includes(row.participant_type)
+        ? row.participant_type
+        : "author"
+    }));
     fillSuggestions();
   }
 
@@ -95,6 +100,7 @@
 
     const authors = [...new Set(
       authorPresences
+        .filter((item) => item.participant_type !== "publisher")
         .map((item) => clean(item.pseudo))
         .filter(Boolean)
     )].sort((a, b) => a.localeCompare(b, "fr"));
@@ -159,6 +165,7 @@
 
     const matchingEventIds = new Set(
       authorPresences
+        .filter((author) => author.participant_type !== "publisher")
         .filter((author) => normalize(author.pseudo).includes(selectedAuthor))
         .map((author) => String(author.event_id))
     );
@@ -195,81 +202,59 @@
   }
 
   function applyAuthorsToCards() {
-    const authorsByEvent = new Map();
+    const participantsByEvent = new Map();
 
-    authorPresences.forEach((author) => {
-      const eventId = String(author.event_id || "");
-      const pseudo = clean(author.pseudo);
-      const website = normalizeWebsite(author.author_profile_url || author.website);
-      const slug = clean(author.author_slug);
-      const portraitUrl = resolveImageUrl(author.author_portrait_url);
+    authorPresences.forEach((participant) => {
+      const eventId = String(participant.event_id || "");
+      const name = clean(participant.participant_type === "publisher" ? participant.organization_name || participant.pseudo : participant.pseudo);
 
-      if (!eventId || !pseudo) return;
+      if (!eventId || !name) return;
 
-      if (!authorsByEvent.has(eventId)) {
-        authorsByEvent.set(eventId, []);
+      if (!participantsByEvent.has(eventId)) {
+        participantsByEvent.set(eventId, []);
       }
 
-      const list = authorsByEvent.get(eventId);
+      const list = participantsByEvent.get(eventId);
 
-      if (!list.some((item) => normalize(item.pseudo) === normalize(pseudo))) {
-        list.push({ pseudo, website, slug, portraitUrl });
+      if (!list.some((item) => normalize(item.name) === normalize(name) && item.type === participant.participant_type)) {
+        list.push({ name, type: participant.participant_type });
       }
     });
 
     document.querySelectorAll(".event-card[data-event-id]").forEach((card) => {
       const eventId = String(card.dataset.eventId);
-      const authors = authorsByEvent.get(eventId) || [];
+      const participants = participantsByEvent.get(eventId) || [];
 
       card.querySelector(".badge-author-present")?.remove();
       card.querySelector(".card-authors-present")?.remove();
 
-      if (!authors.length) return;
+      if (!participants.length) return;
 
-      addBadge(card);
-      addAuthorsLine(card, authors);
+      addBadge(card, participants.length);
+      addParticipantsLine(card, participants.length);
     });
   }
 
-  function addBadge(card) {
+  function addBadge(card, count) {
     const tags = card.querySelector(".card-tags");
     if (!tags) return;
 
     const badge = document.createElement("span");
     badge.className = "badge badge-author-present";
-    badge.textContent = "Auteur présent";
+    badge.textContent = `${count} présence${count > 1 ? "s" : ""} déclarée${count > 1 ? "s" : ""}`;
 
     tags.appendChild(badge);
   }
 
-  function addAuthorsLine(card, authors) {
+  function addParticipantsLine(card, count) {
     const meta = card.querySelector(".card-meta");
     if (!meta) return;
 
     const line = document.createElement("span");
     line.className = "card-authors-present";
 
-    const authorLinks = authors.slice(0, 3).map((author) => {
-      const pseudo = escapeHtml(author.pseudo);
-
-      if (author.slug) {
-        return `<a class="author-pill-button" href="author.html?slug=${encodeURIComponent(author.slug)}"><span>${pseudo}</span></a>`;
-      }
-
-      if (author.website) {
-        return `<a class="author-pill-button" href="${escapeAttribute(author.website)}" target="_blank" rel="noopener noreferrer"><span>${pseudo}</span></a>`;
-      }
-
-      return `<strong class="author-pill-button author-pill-static"><span>${pseudo}</span></strong>`;
-    });
-
-    const remaining = authors.length > 3
-      ? `<span class="author-pill-more">+${authors.length - 3}</span>`
-      : "";
-
     line.innerHTML = `
-      <span class="card-authors-label">👤 <strong>Auteurs déclarés présents</strong></span>
-      <span class="card-authors-links">${authorLinks.join("")}${remaining}</span>
+      <span class="card-authors-label">👥 <strong>${count} participant${count > 1 ? "s se sont signalés" : " s’est signalé"}</strong></span>
     `;
 
     meta.appendChild(line);

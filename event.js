@@ -43,6 +43,8 @@
     document.querySelector('meta[name="description"]')?.setAttribute("content", `${data.title || "Événement littéraire"} à ${data.city || "proximité"} — informations, dates et lien officiel.`);
 
     const image = renderDetailImage(data.image_url, data.title || "Événement");
+    const registrationStatus = window.DEDICALIVRES_REGISTRATION?.getStatus(data);
+    const registrationModule = renderRegistrationModule(data, registrationStatus);
 
     container.innerHTML = `
       ${image}
@@ -51,6 +53,7 @@
         <div class="card-tags">
           ${data.type ? `<span class="badge">${escapeHtml(data.type)}</span>` : ""}
           ${data.price ? `<span class="badge badge-price">${escapeHtml(data.price)}</span>` : ""}
+          ${registrationStatus ? `<span class="badge registration-badge registration-badge-${escapeAttribute(registrationStatus.key)}">${escapeHtml(registrationStatus.shortLabel)}</span>` : ""}
         </div>
 
         <h1 class="detail-title">${escapeHtml(data.title || "Sans titre")}</h1>
@@ -61,6 +64,8 @@
         </div>
 
         ${data.description ? `<div class="detail-description">${escapeHtml(data.description).replace(/\n/g, "<br>")}</div>` : ""}
+
+        ${registrationModule}
 
         <div class="detail-actions">
           ${data.website ? `<a class="btn-primary detail-button" href="${escapeAttribute(data.website)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
@@ -84,6 +89,50 @@
     if (Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng))) {
       initDetailMap(data);
     }
+  }
+
+  function renderRegistrationModule(event, status) {
+    const helpers = window.DEDICALIVRES_REGISTRATION;
+    if (!helpers?.isEligible(event)) return "";
+
+    const audience = helpers.getAudienceLabels(event.registration_audience);
+    const hasContent = Boolean(
+      status || event.registration_open_date || event.registration_deadline ||
+      event.registration_url || audience.length || event.registration_note
+    );
+    if (!hasContent) return "";
+
+    const canApply = Boolean(
+      event.registration_url &&
+      (!status || ["open", "last-days", "soon"].includes(status.key))
+    );
+
+    return `
+      <section class="registration-detail registration-detail-${escapeAttribute(status?.key || "info")}" aria-labelledby="registration-detail-title">
+        <div class="registration-detail-heading">
+          <p class="category-kicker">Appel à participation</p>
+          <h2 id="registration-detail-title">Inscriptions</h2>
+          ${status ? `<strong class="registration-detail-status">${escapeHtml(status.label)}</strong>` : ""}
+        </div>
+
+        ${event.registration_open_date || event.registration_deadline ? `
+          <ol class="registration-timeline">
+            ${event.registration_open_date ? `<li><span>Ouverture</span><strong>${formatDate(event.registration_open_date)}</strong></li>` : ""}
+            ${event.registration_deadline ? `<li><span>Date limite</span><strong>${formatDate(event.registration_deadline)}</strong></li>` : ""}
+          </ol>
+        ` : ""}
+
+        ${audience.length ? `
+          <div class="registration-audience-list">
+            <strong>Profils concernés</strong>
+            <ul>${helpers.normalizeAudience(event.registration_audience).map((value) => `<li class="registration-audience-${escapeAttribute(value)}">${escapeHtml(helpers.audienceLabels[value])}</li>`).join("")}</ul>
+          </div>
+        ` : ""}
+
+        ${event.registration_note ? `<p class="registration-detail-note">${escapeHtml(event.registration_note).replace(/\n/g, "<br>")}</p>` : ""}
+        ${canApply ? `<a class="btn-primary registration-cta" href="${escapeAttribute(event.registration_url)}" target="_blank" rel="noopener noreferrer">Consulter les inscriptions</a>` : ""}
+      </section>
+    `;
   }
 
   async function initDetailMap(event) {

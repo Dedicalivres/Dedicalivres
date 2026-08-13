@@ -40,3 +40,80 @@ window.getDedicalivresSupabaseClient = function getDedicalivresSupabaseClient() 
 
   return window.DEDICALIVRES_SUPABASE_CLIENT;
 };
+
+window.DEDICALIVRES_REGISTRATION = (function createRegistrationHelpers() {
+  const eligibleTypes = new Set(["Salon", "Festival"]);
+  const audienceLabels = {
+    author: "Auteurs",
+    artist_author: "Artistes-auteurs",
+    hybrid: "Profils hybrides",
+    publisher: "Maisons d’édition"
+  };
+  const forcedStatuses = {
+    complet: { key: "full", label: "Inscriptions complètes", shortLabel: "Complet" },
+    cloture: { key: "closed", label: "Inscriptions clôturées", shortLabel: "Clôturées" },
+    annule: { key: "cancelled", label: "Inscriptions annulées", shortLabel: "Annulées" }
+  };
+
+  function isEligible(event) {
+    return Boolean(event && eligibleTypes.has(event.type) && event.registration_enabled === true);
+  }
+
+  function parseDateOnly(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+
+  function todayUtc(value) {
+    const date = value && typeof value.getFullYear === "function" ? value : new Date();
+    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  function getStatus(event, now) {
+    if (!isEligible(event)) return null;
+
+    const forced = forcedStatuses[event.registration_force_status];
+    if (forced) return { ...forced, forced: true };
+
+    const currentDay = todayUtc(now);
+    const openDay = parseDateOnly(event.registration_open_date);
+    const deadlineDay = parseDateOnly(event.registration_deadline);
+
+    if (openDay !== null && currentDay < openDay) {
+      return { key: "soon", label: "Inscriptions bientôt ouvertes", shortLabel: "Bientôt", forced: false };
+    }
+
+    if (deadlineDay !== null && currentDay > deadlineDay) {
+      return { key: "closed", label: "Inscriptions clôturées", shortLabel: "Clôturées", forced: false };
+    }
+
+    if (deadlineDay !== null && Math.ceil((deadlineDay - currentDay) / 86400000) <= 7) {
+      return { key: "last-days", label: "Derniers jours pour s’inscrire", shortLabel: "Derniers jours", forced: false };
+    }
+
+    if (openDay !== null || deadlineDay !== null) {
+      return { key: "open", label: "Inscriptions ouvertes", shortLabel: "Ouvertes", forced: false };
+    }
+
+    return null;
+  }
+
+  function normalizeAudience(value) {
+    const values = Array.isArray(value) ? value : [];
+    return [...new Set(values.filter((item) => Object.prototype.hasOwnProperty.call(audienceLabels, item)))];
+  }
+
+  function getAudienceLabels(value) {
+    return normalizeAudience(value).map((item) => audienceLabels[item]);
+  }
+
+  return {
+    eligibleTypes,
+    audienceLabels,
+    getAudienceLabels,
+    getStatus,
+    isEligible,
+    normalizeAudience
+  };
+})();

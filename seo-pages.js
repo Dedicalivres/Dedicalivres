@@ -33,6 +33,7 @@
   const pageMode = document.body.dataset.agendaMode || "";
   const hasInteractiveRegionalMap = Boolean(document.getElementById("regional-map-app"));
   let loadedEvents = [];
+  const presenceCountsByEvent = new Map();
 
   function getRequiredTypes() {
     const fromParams = params.get("types") || params.get("type") || "";
@@ -115,7 +116,30 @@
     }
 
     loadedEvents = Array.isArray(data) ? data : [];
+    await loadPresenceCounts(loadedEvents.map((event) => event.id));
     renderSeoEvents();
+  }
+
+  async function loadPresenceCounts(eventIds) {
+    presenceCountsByEvent.clear();
+    if (!eventIds.length) return;
+    const visibleIds = new Set(eventIds.map(String));
+
+    const { data, error } = await supabaseClient
+      .from("event_authors_presence")
+      .select("event_id, validated, rejected")
+      .eq("validated", true)
+      .or("rejected.is.null,rejected.eq.false");
+
+    if (error) {
+      console.warn("Comptage des présences indisponible sur cette page :", error);
+      return;
+    }
+
+    (Array.isArray(data) ? data : []).forEach((row) => {
+      const id = String(row.event_id || "");
+      if (visibleIds.has(id)) presenceCountsByEvent.set(id, (presenceCountsByEvent.get(id) || 0) + 1);
+    });
   }
 
   function renderSeoEvents() {
@@ -298,6 +322,8 @@
     const imageUrl = resolveImageUrl(event.image_url);
     const meta = TYPE_META[event.type] || TYPE_META.Autre;
     const isPast = Boolean(options.isPast);
+    const registrationStatus = window.DEDICALIVRES_REGISTRATION?.getStatus(event);
+    const presenceCount = presenceCountsByEvent.get(String(event.id)) || 0;
 
     return `
       <article
@@ -352,6 +378,7 @@
                 ? `<span class="badge badge-past">Passé</span>`
                 : ""
             }
+            ${registrationStatus && !isPast ? `<span class="badge registration-badge registration-badge-${escapeAttribute(registrationStatus.key)}">${escapeHtml(registrationStatus.shortLabel)}</span>` : ""}
           </div>
 
           <h3 class="card-title">
@@ -372,6 +399,7 @@
             <span>
               📍 ${escapeHtml(formatEventPlace(event)) || "Lieu non précisé"}
             </span>
+            ${presenceCount ? `<span>👥 ${presenceCount} présence${presenceCount > 1 ? "s" : ""} déclarée${presenceCount > 1 ? "s" : ""}</span>` : ""}
           </div>
 
           <p class="card-description">

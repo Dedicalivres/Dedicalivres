@@ -2567,3 +2567,51 @@ button.pending[data-author-action="pending"] {
 #tab-event-create {
   display: none !important;
 }
+.admin-registration-panel {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid rgba(155, 106, 214, .42);
+  border-radius: 18px;
+  background: rgba(155, 106, 214, .08);
+}
+
+.admin-registration-toggle,
+.admin-registration-audience label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-registration-toggle input[type="checkbox"],
+.admin-registration-audience input[type="checkbox"] {
+  width: auto;
+  min-height: auto;
+  margin: 0;
+}
+
+.admin-registration-audience {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 12px;
+}
+
+.admin-registration-audience legend {
+  color: var(--cyber-muted);
+  font-weight: 900;
+}
+
+.admin-registration-audience .participant-option-artist {
+  color: #c9a1ff;
+}
+
+.admin-registration-preview {
+  display: block;
+  padding: 12px;
+  border-radius: 12px;
+  color: var(--cyber-green);
+  background: rgba(25, 255, 156, .08);
+  font-weight: 900;
+}

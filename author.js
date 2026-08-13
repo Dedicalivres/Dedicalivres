@@ -212,7 +212,7 @@
         }
 
         <div class="author-profile-content">
-          <span class="badge badge-author-present">Auteur présent</span>
+          <span class="badge badge-author-present">Présence indiquée sur Dédicalivres</span>
 
           <h1 class="author-title">${escapeHtml(author.pseudo)}</h1>
 
