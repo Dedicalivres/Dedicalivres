@@ -93,6 +93,26 @@ assert.ok(Array.from(presenceDuplicateGroups[0].reasons).includes("même événe
 assert.equal(duplicateDetector.analyzePresencePair(presenceFixtures[0], presenceFixtures[1]).level, "probable");
 assert.equal(duplicateDetector.analyzePresencePair(presenceFixtures[0], presenceFixtures[2]), null);
 
+const adminWatchSource = fs.readFileSync(path.join(root, "admin-watch.js"), "utf8");
+assert.match(adminWatchSource, /Événements à vérifier/);
+assert.match(adminWatchSource, /Annulations[\s\S]*Reports[\s\S]*Dates \/ lieux[\s\S]*Inscriptions[\s\S]*Programmation[\s\S]*Nouvelles affiches/);
+assert.match(adminWatchSource, /id="event-watch-review-state"/);
+assert.match(adminWatchSource, /http:\/\/127\.0\.0\.1:5065\/api\/event-watch/);
+assert.match(adminWatchSource, /\/api\/event-watch\/review/);
+assert.match(adminWatchSource, /confirm: "EVENT_WATCH_REVIEW"/);
+assert.match(adminWatchSource, /targetAddressSpace: "loopback"/);
+assert.match(adminWatchSource, /Event Watch indisponible/);
+assert.match(adminWatchSource, />Voir la fiche</);
+const eventWatchReviewSource = adminWatchSource.slice(
+  adminWatchSource.indexOf("async function reviewEventWatchAlert"),
+  adminWatchSource.indexOf("async function fetchEventWatch")
+);
+assert.doesNotMatch(eventWatchReviewSource, /supabase|\.from\(/i);
+
+const headersSource = fs.readFileSync(path.join(root, "_headers"), "utf8");
+assert.match(headersSource, /connect-src[^\n]*http:\/\/127\.0\.0\.1:5065/);
+assert.match(headersSource, /connect-src[^\n]*http:\/\/localhost:5065/);
+
 const eventSource = fs.readFileSync(path.join(root, "event.js"), "utf8");
 assert.match(eventSource, /REGISTRATION_PROGRESS_STEPS/);
 assert.match(eventSource, /aria-current="step"/);
@@ -130,4 +150,4 @@ secondaryFiles.forEach((file) => {
   assert.match(source, /publisher/);
 });
 
-console.log("V1 enrichie auteur : 50 assertions fonctionnelles et de sécurité validées.");
+console.log("V1 enrichie auteur : 62 assertions fonctionnelles et de sécurité validées.");
