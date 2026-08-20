@@ -34,6 +34,18 @@
   const hasInteractiveRegionalMap = Boolean(document.getElementById("regional-map-app"));
   let loadedEvents = [];
   const presenceCountsByEvent = new Map();
+  const PUBLIC_EVENT_COLUMNS = [
+    "id", "title", "type", "country_code", "region", "city", "start_date", "end_date",
+    "price", "website", "description", "image_url", "featured", "verified", "lat", "lng",
+    "validated", "rejected", "registration_enabled", "registration_open_date",
+    "registration_deadline", "registration_url", "registration_audience", "registration_note",
+    "registration_force_status"
+  ].join(",");
+  const PUBLIC_EVENT_LEGACY_COLUMNS = [
+    "id", "title", "type", "country_code", "region", "city", "start_date", "end_date",
+    "price", "website", "description", "image_url", "featured", "verified", "lat", "lng",
+    "validated", "rejected"
+  ].join(",");
 
   function getRequiredTypes() {
     const fromParams = params.get("types") || params.get("type") || "";
@@ -81,9 +93,35 @@
       </article>
     `;
 
+    let response = await buildEventsQuery(PUBLIC_EVENT_COLUMNS);
+
+    if (response.error && isMissingColumnError(response.error)) {
+      response = await buildEventsQuery(PUBLIC_EVENT_LEGACY_COLUMNS);
+    }
+
+    const { data, error } = response;
+
+    if (error) {
+      console.error(error);
+
+      eventsContainer.innerHTML = `
+        <article class="empty-state">
+          <p>Impossible de charger les événements pour le moment.</p>
+        </article>
+      `;
+
+      return;
+    }
+
+    loadedEvents = Array.isArray(data) ? data : [];
+    await loadPresenceCounts(loadedEvents.map((event) => event.id));
+    renderSeoEvents();
+  }
+
+  function buildEventsQuery(columns) {
     let query = supabaseClient
       .from("events")
-      .select("*")
+      .select(columns)
       .eq("validated", true)
       .eq("rejected", false)
       .order("featured", { ascending: false })
@@ -101,23 +139,7 @@
       query = query.ilike("city", city);
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error(error);
-
-      eventsContainer.innerHTML = `
-        <article class="empty-state">
-          <p>Impossible de charger les événements pour le moment.</p>
-        </article>
-      `;
-
-      return;
-    }
-
-    loadedEvents = Array.isArray(data) ? data : [];
-    await loadPresenceCounts(loadedEvents.map((event) => event.id));
-    renderSeoEvents();
+    return query;
   }
 
   async function loadPresenceCounts(eventIds) {
@@ -467,6 +489,15 @@
   function formatEventPlace(event) {
     if (geo) return geo.formatPlace(event);
     return [event?.city, event?.region].filter(Boolean).join(", ");
+  }
+
+  function isMissingColumnError(error) {
+    const code = String(error?.code || "");
+    const message = String(error?.message || error?.details || "").toLowerCase();
+    return ["42703", "PGRST204"].includes(code) || (
+      message.includes("column") &&
+      (message.includes("does not exist") || message.includes("schema cache"))
+    );
   }
 
   function formatDateRange(startDate, endDate) {

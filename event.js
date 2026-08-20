@@ -15,6 +15,18 @@
   const FAVORITES_KEY = "dedicalivres_favorites";
   const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
   const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+  const PUBLIC_EVENT_COLUMNS = [
+    "id", "title", "type", "country_code", "region", "city", "start_date", "end_date",
+    "price", "website", "description", "image_url", "featured", "verified", "lat", "lng",
+    "validated", "rejected", "registration_enabled", "registration_open_date",
+    "registration_deadline", "registration_url", "registration_audience", "registration_note",
+    "registration_force_status"
+  ].join(",");
+  const PUBLIC_EVENT_LEGACY_COLUMNS = [
+    "id", "title", "type", "country_code", "region", "city", "start_date", "end_date",
+    "price", "website", "description", "image_url", "featured", "verified", "lat", "lng",
+    "validated", "rejected"
+  ].join(",");
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
   let leafletAssetsPromise = null;
@@ -27,12 +39,13 @@
   loadEvent(eventId);
 
   async function loadEvent(id) {
-    const { data, error } = await client
-      .from("events")
-      .select("*")
-      .eq("id", id)
-      .eq("validated", true)
-      .maybeSingle();
+    let response = await fetchEvent(id, PUBLIC_EVENT_COLUMNS);
+
+    if (response.error && isMissingColumnError(response.error)) {
+      response = await fetchEvent(id, PUBLIC_EVENT_LEGACY_COLUMNS);
+    }
+
+    const { data, error } = response;
 
     if (error || !data) {
       container.innerHTML = `<div class="empty-state"><p>Impossible de charger cet événement.</p></div>`;
@@ -89,6 +102,15 @@
     if (Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng))) {
       initDetailMap(data);
     }
+  }
+
+  function fetchEvent(id, columns) {
+    return client
+      .from("events")
+      .select(columns)
+      .eq("id", id)
+      .eq("validated", true)
+      .maybeSingle();
   }
 
   function renderRegistrationModule(event, status) {
@@ -366,6 +388,15 @@
   function formatEventPlace(event) {
     if (geo) return geo.formatPlace(event);
     return [event?.city, event?.region].filter(Boolean).join(", ");
+  }
+
+  function isMissingColumnError(error) {
+    const code = String(error?.code || "");
+    const message = String(error?.message || error?.details || "").toLowerCase();
+    return ["42703", "PGRST204"].includes(code) || (
+      message.includes("column") &&
+      (message.includes("does not exist") || message.includes("schema cache"))
+    );
   }
 
   function escapeHtml(value) {
