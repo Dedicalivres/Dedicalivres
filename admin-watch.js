@@ -5,8 +5,10 @@
 (function () {
   "use strict";
 
-  const VERSION = "2026-06-18-watch-submissions-6-pagination-total";
+  const VERSION = "2026-08-20-event-watch-admin-v1";
   const DEFAULT_WATCH_ENDPOINT = "https://dedicalivres-veille.dedicalivres.workers.dev/analyze";
+  const DEFAULT_EVENT_WATCH_ENDPOINT = "http://127.0.0.1:5065/api/event-watch";
+  const EVENT_WATCH_TIMEOUT_MS = 3000;
   const HISTORY_KEY = "dedicalivres_admin_watch_history_v1";
   const PRODUCTIVE_SOURCES_KEY = "dedicalivres_admin_watch_productive_sources_v1";
   const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
@@ -17,6 +19,8 @@
   let lastResults = [];
   let lastPagination = getEmptyPagination();
   let watchOffset = 0;
+  let eventWatchAlerts = [];
+  let eventWatchCategory = "all";
 
   ready(() => waitForAdminAuthentication(initWhenReady));
   window.addEventListener("dedicalivres:admin-authenticated", () => waitForAdminAuthentication(initWhenReady));
@@ -56,6 +60,7 @@
     injectInterface(tab, config);
     bindControls();
     renderHistory();
+    loadEventWatchAlerts();
   }
 
   function renderInitError(tab, message) {
@@ -77,6 +82,46 @@
 
     tab.innerHTML = `
       <section class="watch-shell" data-watch-version="${VERSION}">
+        <article class="watch-card event-watch-admin-card">
+          <div class="watch-card-head">
+            <div>
+              <h3>Événements à vérifier</h3>
+              <p>
+                Changements détectés par Auto-Matte sur des événements associés à Dédicalivres.
+                Aucune information n’est appliquée sans validation humaine.
+              </p>
+            </div>
+            <button id="event-watch-refresh" class="cyber-btn-secondary" type="button">Actualiser</button>
+          </div>
+
+          <div class="event-watch-toolbar">
+            <div class="event-watch-categories" role="group" aria-label="Catégories Event Watch">
+              <button class="event-watch-category is-active" data-event-watch-category="all" type="button" aria-pressed="true">Toutes</button>
+              <button class="event-watch-category" data-event-watch-category="cancelled" type="button" aria-pressed="false">Annulations</button>
+              <button class="event-watch-category" data-event-watch-category="postponed" type="button" aria-pressed="false">Reports</button>
+              <button class="event-watch-category" data-event-watch-category="date_location" type="button" aria-pressed="false">Dates / lieux</button>
+              <button class="event-watch-category" data-event-watch-category="registration" type="button" aria-pressed="false">Inscriptions</button>
+              <button class="event-watch-category" data-event-watch-category="program" type="button" aria-pressed="false">Programmation</button>
+              <button class="event-watch-category" data-event-watch-category="poster" type="button" aria-pressed="false">Nouvelles affiches</button>
+            </div>
+
+            <label class="event-watch-state-field">
+              <span>État de revue</span>
+              <select id="event-watch-review-state">
+                <option value="pending">À vérifier</option>
+                <option value="verified">Vérifiées</option>
+                <option value="ignored">Ignorées</option>
+                <option value="all">Toutes</option>
+              </select>
+            </label>
+          </div>
+
+          <p id="event-watch-status" class="watch-status" aria-live="polite">Connexion à Auto-Matte local…</p>
+          <div id="event-watch-alerts" class="event-watch-alerts" aria-live="polite">
+            <p class="priority-empty">Chargement des alertes…</p>
+          </div>
+        </article>
+
         <article class="watch-card watch-hero-card">
           <div class="watch-card-head">
             <div>
@@ -183,6 +228,19 @@
   }
 
   function bindControls() {
+    document.getElementById("event-watch-refresh")?.addEventListener("click", loadEventWatchAlerts);
+    document.getElementById("event-watch-review-state")?.addEventListener("change", loadEventWatchAlerts);
+    document.querySelectorAll("[data-event-watch-category]").forEach((button) => {
+      button.addEventListener("click", () => {
+        eventWatchCategory = button.dataset.eventWatchCategory || "all";
+        document.querySelectorAll("[data-event-watch-category]").forEach((item) => {
+          const active = item === button;
+          item.classList.toggle("is-active", active);
+          item.setAttribute("aria-pressed", String(active));
+        });
+        renderEventWatchAlerts();
+      });
+    });
     document.getElementById("watch-analyze-btn")?.addEventListener("click", () => {
       watchOffset = 0;
       analyzeUrls();
@@ -308,6 +366,202 @@
     }
 
     return payload;
+  }
+
+  async function loadEventWatchAlerts() {
+    const container = document.getElementById("event-watch-alerts");
+    const reviewState = document.getElementById("event-watch-review-state")?.value || "pending";
+    if (!container) return;
+
+    setEventWatchStatus("Connexion à Auto-Matte local…");
+
+    try {
+      const endpoint = getEventWatchAdminEndpoint();
+      const url = new URL(endpoint);
+      url.searchParams.set("review_state", reviewState);
+      const response = await fetchEventWatch(url.toString());
+      const payload = await response.json();
+      if (!response.ok || payload?.ok === false) {
+        throw new Error(payload?.error || `HTTP ${response.status}`);
+      }
+
+      eventWatchAlerts = Array.isArray(payload.changes) ? payload.changes : [];
+      renderEventWatchAlerts();
+      const counts = payload.review_counts || {};
+      setEventWatchStatus(
+        `${eventWatchAlerts.length} alerte(s) chargée(s) · ` +
+        `${Number(counts.pending || 0)} à vérifier · ` +
+        `${Number(counts.verified || 0)} vérifiée(s) · ` +
+        `${Number(counts.ignored || 0)} ignorée(s).`
+      );
+    } catch (error) {
+      eventWatchAlerts = [];
+      container.innerHTML = `
+        <div class="event-watch-unavailable" role="status">
+          <strong>Event Watch indisponible</strong>
+          <span>Auto-Matte local n’est pas démarré ou son pont local n’est pas accessible. Le reste de l’administration demeure disponible.</span>
+        </div>
+      `;
+      setEventWatchStatus(`Event Watch indisponible · ${error.message || "connexion impossible"}`, "warning");
+    }
+  }
+
+  function renderEventWatchAlerts() {
+    const container = document.getElementById("event-watch-alerts");
+    if (!container) return;
+
+    const alerts = eventWatchAlerts.filter(matchesEventWatchCategory);
+    if (!alerts.length) {
+      container.innerHTML = `<p class="priority-empty">Aucune alerte dans cette catégorie.</p>`;
+      return;
+    }
+
+    container.innerHTML = alerts.map((alert) => {
+      const remoteId = cleanText(alert.dedicalivres_event_id);
+      const eventHref = isUuid(remoteId) ? `event.html?id=${encodeURIComponent(remoteId)}` : "";
+      const reviewState = alert.review_state || "pending";
+      const pendingActions = reviewState === "pending" ? `
+        <button class="cyber-btn-primary" data-event-watch-review="verified" data-event-watch-id="${escapeAttr(alert.id || "")}" type="button">Marquer comme vérifié</button>
+        <button class="cyber-btn-secondary" data-event-watch-review="ignored" data-event-watch-id="${escapeAttr(alert.id || "")}" type="button">Ignorer</button>
+      ` : `<span class="event-watch-reviewed">${reviewState === "verified" ? "Vérifiée" : "Ignorée"}${alert.reviewed_at ? ` · ${escapeHtml(formatDetectedAt(alert.reviewed_at))}` : ""}</span>`;
+
+      return `
+        <article class="event-watch-alert event-watch-alert-${escapeAttr(reviewState)}">
+          <div class="event-watch-alert-head">
+            <div>
+              <span class="watch-pill">${escapeHtml(alert.field_label || "Changement")}</span>
+              <h4>${escapeHtml(alert.event_title || "Événement")}</h4>
+              <p class="watch-meta">${escapeHtml([
+                alert.event_date ? formatDate(alert.event_date) : "",
+                alert.event_city,
+                `Détecté le ${formatDetectedAt(alert.detected_at)}`
+              ].filter(Boolean).join(" · "))}</p>
+            </div>
+            <strong class="event-watch-confidence">${Math.round(Number(alert.confidence || 0) * 100)}%</strong>
+          </div>
+
+          <div class="event-watch-values">
+            <div><small>ANCIENNE VALEUR</small><span>${escapeHtml(formatEventWatchValue(alert.old_value))}</span></div>
+            <div><small>NOUVELLE VALEUR</small><span>${escapeHtml(formatEventWatchValue(alert.new_value))}</span></div>
+          </div>
+
+          <p class="event-watch-source">
+            Source : <a href="${escapeAttr(alert.source || alert.proof?.url || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(alert.source || alert.proof?.url || "Non renseignée")}</a>
+            ${alert.status_label ? ` · ${escapeHtml(alert.status_label)}` : ""}
+          </p>
+
+          <div class="watch-result-actions">
+            ${eventHref
+              ? `<a class="cyber-btn-secondary" href="${escapeAttr(eventHref)}" target="_blank" rel="noopener noreferrer">Voir la fiche</a>`
+              : `<span class="event-watch-unmatched">Fiche Dédicalivres non associée</span>`}
+            ${pendingActions}
+          </div>
+        </article>
+      `;
+    }).join("");
+
+    container.querySelectorAll("[data-event-watch-review]").forEach((button) => {
+      button.addEventListener("click", () => reviewEventWatchAlert(
+        button.dataset.eventWatchId,
+        button.dataset.eventWatchReview,
+        button
+      ));
+    });
+  }
+
+  function matchesEventWatchCategory(alert) {
+    const field = String(alert?.field || "");
+    if (eventWatchCategory === "cancelled") return field === "cancelled";
+    if (eventWatchCategory === "postponed") return field === "postponed";
+    if (eventWatchCategory === "date_location") return ["date", "time", "location", "address"].includes(field);
+    if (eventWatchCategory === "registration") return ["registration", "applications"].includes(field);
+    if (eventWatchCategory === "program") return ["program", "speakers"].includes(field);
+    if (eventWatchCategory === "poster") return field === "poster";
+    return true;
+  }
+
+  async function reviewEventWatchAlert(id, action, button) {
+    const label = action === "verified" ? "marquer cette alerte comme vérifiée" : "ignorer cette alerte";
+    if (!id || !window.confirm(`Confirmer : ${label} ?`)) return;
+    if (button) button.disabled = true;
+
+    try {
+      const endpoint = getEventWatchAdminEndpoint().replace(/\/api\/event-watch\/?$/, "/api/event-watch/review");
+      const response = await fetchEventWatch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action, confirm: "EVENT_WATCH_REVIEW" })
+      });
+      const payload = await response.json();
+      if (!response.ok || payload?.ok === false) {
+        throw new Error(payload?.error || `HTTP ${response.status}`);
+      }
+      setEventWatchStatus(action === "verified" ? "Alerte marquée comme vérifiée." : "Alerte ignorée.");
+      await loadEventWatchAlerts();
+    } catch (error) {
+      setEventWatchStatus(`Action impossible · ${error.message || "Event Watch indisponible"}`, "warning");
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function fetchEventWatch(url, options = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), EVENT_WATCH_TIMEOUT_MS);
+    try {
+      return await fetch(url, {
+        cache: "no-store",
+        targetAddressSpace: "loopback",
+        ...options,
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function getEventWatchAdminEndpoint() {
+    const config = window.DEDICALIVRES_CONFIG || {};
+    let endpoint = config.eventWatchEndpoint || DEFAULT_EVENT_WATCH_ENDPOINT;
+    try {
+      endpoint = localStorage.getItem("automatte_event_watch_endpoint") || endpoint;
+    } catch {
+      // Le défaut local reste utilisable si le stockage navigateur est bloqué.
+    }
+    const parsed = new URL(String(endpoint));
+    if (!["127.0.0.1", "localhost"].includes(parsed.hostname)) {
+      throw new Error("endpoint Event Watch non local refusé");
+    }
+    if (parsed.protocol !== "http:") {
+      throw new Error("protocole Event Watch local invalide");
+    }
+    return parsed.toString().replace(/\/+$/, "");
+  }
+
+  function setEventWatchStatus(message, tone = "") {
+    const node = document.getElementById("event-watch-status");
+    if (!node) return;
+    node.textContent = message;
+    node.dataset.tone = tone;
+  }
+
+  function formatEventWatchValue(value) {
+    if (value === true) return "Oui";
+    if (value === false) return "Non";
+    if (value === null || value === undefined || value === "") return "Non renseignée";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  }
+
+  function formatDetectedAt(value) {
+    const date = new Date(value || "");
+    return Number.isNaN(date.getTime()) ? String(value || "date inconnue") : date.toLocaleString("fr-FR", {
+      dateStyle: "short",
+      timeStyle: "short"
+    });
+  }
+
+  function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value || "");
   }
 
   function renderResults(results) {
@@ -1163,6 +1417,140 @@
         margin-top: 14px;
       }
 
+      .event-watch-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .event-watch-categories {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .event-watch-category {
+        border: 1px solid rgba(25, 215, 255, .22);
+        border-radius: 999px;
+        padding: 8px 12px;
+        color: var(--cyber-text);
+        background: rgba(255, 255, 255, .04);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 900;
+      }
+
+      .event-watch-category.is-active {
+        color: #06120f;
+        border-color: var(--cyber-cyan);
+        background: var(--cyber-cyan);
+      }
+
+      .event-watch-state-field {
+        min-width: 180px;
+      }
+
+      .event-watch-alerts {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .event-watch-alert {
+        padding: 16px;
+        border: 1px solid rgba(25, 215, 255, .16);
+        border-left: 5px solid var(--cyber-orange);
+        border-radius: 18px;
+        background: rgba(4, 14, 24, .76);
+      }
+
+      .event-watch-alert-verified {
+        border-left-color: var(--cyber-green);
+      }
+
+      .event-watch-alert-ignored {
+        border-left-color: var(--cyber-muted);
+        opacity: .82;
+      }
+
+      .event-watch-alert-head,
+      .event-watch-values {
+        display: grid;
+        gap: 12px;
+      }
+
+      .event-watch-alert-head {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+      }
+
+      .event-watch-alert-head h4 {
+        margin-top: 10px;
+        color: var(--cyber-text);
+      }
+
+      .event-watch-confidence {
+        padding: 8px 10px;
+        border-radius: 12px;
+        color: #06120f;
+        background: var(--cyber-green);
+      }
+
+      .event-watch-values {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 12px 0;
+      }
+
+      .event-watch-values > div {
+        display: grid;
+        gap: 5px;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .05);
+        overflow-wrap: anywhere;
+      }
+
+      .event-watch-values small {
+        color: var(--cyber-muted);
+        font-weight: 900;
+      }
+
+      .event-watch-source {
+        overflow-wrap: anywhere;
+        font-size: .92rem;
+      }
+
+      .event-watch-source a {
+        color: var(--cyber-cyan);
+      }
+
+      .event-watch-reviewed,
+      .event-watch-unmatched {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 999px;
+        color: var(--cyber-muted);
+        background: rgba(255, 255, 255, .06);
+        font-weight: 900;
+      }
+
+      .event-watch-unavailable {
+        display: grid;
+        gap: 6px;
+        padding: 16px;
+        border: 1px solid rgba(255, 158, 68, .24);
+        border-radius: 16px;
+        color: var(--cyber-muted);
+        background: rgba(255, 158, 68, .08);
+      }
+
+      .event-watch-unavailable strong {
+        color: var(--cyber-orange);
+      }
+
       .watch-history {
         display: grid;
         gap: 16px;
@@ -1205,9 +1593,15 @@
 
       @media (max-width: 900px) {
         .watch-form-grid,
-        .watch-result-main {
+        .watch-result-main,
+        .event-watch-values {
           grid-template-columns: 1fr;
           display: grid;
+        }
+
+        .event-watch-toolbar {
+          align-items: stretch;
+          flex-direction: column;
         }
 
         .watch-result-image,
