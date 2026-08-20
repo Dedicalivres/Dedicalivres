@@ -363,6 +363,89 @@
       .sort((a, b) => LEVELS[b.level].rank - LEVELS[a.level].rank || b.score - a.score);
   }
 
+  function getPresenceDisplayName(row) {
+    return row?.participant_type === "publisher"
+      ? row.organization_name || row.pseudo || ""
+      : row?.pseudo || "";
+  }
+
+  function getPresencePrimaryUrl(row) {
+    return normalizeWebsite(row?.author_profile_url || row?.website || "");
+  }
+
+  function analyzePresencePair(left, right) {
+    if (!left || !right || String(left.id || "") === String(right.id || "")) return null;
+    if (!left.event_id || String(left.event_id) !== String(right.event_id || "")) return null;
+
+    const leftName = normalizeText(getPresenceDisplayName(left));
+    const rightName = normalizeText(getPresenceDisplayName(right));
+    const leftUrl = getPresencePrimaryUrl(left);
+    const rightUrl = getPresencePrimaryUrl(right);
+    const leftEmail = normalizeText(left.contact_email);
+    const rightEmail = normalizeText(right.contact_email);
+    const sameIdentity = leftName.length >= 3 && leftName === rightName;
+    const sameUrl = !!leftUrl && leftUrl === rightUrl;
+    const sameEmail = !!leftEmail && leftEmail === rightEmail;
+
+    if (!sameIdentity && !sameUrl && !sameEmail) return null;
+
+    const reasons = ["même événement"];
+    if (sameIdentity) reasons.push("même identité");
+    if (sameUrl) reasons.push("même lien principal");
+    if (sameEmail) reasons.push("même contact privé");
+
+    return {
+      level: "probable",
+      score: sameIdentity && (sameUrl || sameEmail) ? 96 : sameIdentity ? 88 : 82,
+      reasons,
+      presence: right
+    };
+  }
+
+  function groupPresences(presences) {
+    const source = (Array.isArray(presences) ? presences : [])
+      .filter((row) => row?.id && row?.event_id);
+    const parent = source.map((_, index) => index);
+    const matches = [];
+    const find = (index) => parent[index] === index ? index : (parent[index] = find(parent[index]));
+    const unite = (left, right) => {
+      const a = find(left);
+      const b = find(right);
+      if (a !== b) parent[b] = a;
+    };
+
+    for (let left = 0; left < source.length; left += 1) {
+      for (let right = left + 1; right < source.length; right += 1) {
+        const match = analyzePresencePair(source[left], source[right]);
+        if (!match) continue;
+        unite(left, right);
+        matches.push({ left: source[left], right: source[right], ...match });
+      }
+    }
+
+    const groups = new Map();
+    source.forEach((row, index) => {
+      const root = find(index);
+      if (!groups.has(root)) groups.set(root, []);
+      groups.get(root).push(row);
+    });
+
+    return Array.from(groups.values())
+      .filter((groupRows) => groupRows.length > 1)
+      .map((groupRows) => {
+        const groupMatches = matches.filter((match) =>
+          groupRows.includes(match.left) && groupRows.includes(match.right)
+        );
+        return {
+          rows: groupRows,
+          level: "probable",
+          score: Math.max(...groupMatches.map((match) => match.score)),
+          reasons: Array.from(new Set(groupMatches.flatMap((match) => match.reasons)))
+        };
+      })
+      .sort((left, right) => right.score - left.score);
+  }
+
   function fingerprint(event) {
     return [
       normalizeTitle(event?.title),
@@ -383,6 +466,8 @@
     analyzePair,
     findMatches,
     groupEvents,
+    analyzePresencePair,
+    groupPresences,
     fingerprint
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -54,6 +54,44 @@ assert.match(authorSearchSource, /if \(response\.error && isMissingColumnError\(
 
 const adminPresenceSource = fs.readFileSync(path.join(root, "admin-author-requests-robust.js"), "utf8");
 assert.match(adminPresenceSource, /if \(response\.error && isMissingColumnError\(response\.error\)\)/);
+assert.match(adminPresenceSource, /id="author-requests-search"/);
+assert.match(adminPresenceSource, /id="author-requests-profile-filter"/);
+assert.match(adminPresenceSource, /data-author-filter="duplicates">Doublons probables/);
+assert.match(adminPresenceSource, /Soumise le/);
+assert.match(adminPresenceSource, /groupPresences\(rows\)/);
+assert.doesNotMatch(adminPresenceSource, /data-action="delete"/);
+
+const duplicateSource = fs.readFileSync(path.join(root, "duplicate-detection.js"), "utf8");
+const duplicateContext = { URL };
+vm.createContext(duplicateContext);
+vm.runInContext(duplicateSource, duplicateContext, { filename: "duplicate-detection.js" });
+const duplicateDetector = duplicateContext.DEDICALIVRES_DUPLICATES;
+assert.ok(duplicateDetector, "Le détecteur de doublons doit être exposé.");
+
+const presenceFixtures = [
+  { id: "presence-author", event_id: "event-1", participant_type: "author", pseudo: "Élodie Martin", validated: false, rejected: false },
+  { id: "presence-artist", event_id: "event-1", participant_type: "artist_author", pseudo: "Elodie Martin", validated: true, rejected: false },
+  { id: "presence-hybrid", event_id: "event-2", participant_type: "hybrid", pseudo: "Camille Durand", validated: false, rejected: false },
+  { id: "presence-publisher", event_id: "event-1", participant_type: "publisher", organization_name: "Éditions Boréales", validated: false, rejected: true }
+];
+assert.deepEqual(
+  presenceFixtures.map((row) => row.participant_type),
+  ["author", "artist_author", "hybrid", "publisher"]
+);
+assert.deepEqual(
+  presenceFixtures.map((row) => row.validated ? "validated" : row.rejected ? "rejected" : "pending"),
+  ["pending", "validated", "pending", "rejected"]
+);
+
+const presenceDuplicateGroups = duplicateDetector.groupPresences(presenceFixtures);
+assert.equal(presenceDuplicateGroups.length, 1);
+assert.deepEqual(
+  Array.from(presenceDuplicateGroups[0].rows, (row) => row.id).sort(),
+  ["presence-artist", "presence-author"]
+);
+assert.ok(Array.from(presenceDuplicateGroups[0].reasons).includes("même événement"));
+assert.equal(duplicateDetector.analyzePresencePair(presenceFixtures[0], presenceFixtures[1]).level, "probable");
+assert.equal(duplicateDetector.analyzePresencePair(presenceFixtures[0], presenceFixtures[2]), null);
 
 const eventSource = fs.readFileSync(path.join(root, "event.js"), "utf8");
 assert.match(eventSource, /REGISTRATION_PROGRESS_STEPS/);
@@ -92,4 +130,4 @@ secondaryFiles.forEach((file) => {
   assert.match(source, /publisher/);
 });
 
-console.log("V1 enrichie auteur : 36 assertions fonctionnelles et de sécurité validées.");
+console.log("V1 enrichie auteur : 50 assertions fonctionnelles et de sécurité validées.");

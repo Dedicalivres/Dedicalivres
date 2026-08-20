@@ -26,6 +26,10 @@
 
   let rows = [];
   let currentFilter = "pending";
+  let currentProfileFilter = "all";
+  let currentSearch = "";
+  let duplicateGroups = [];
+  let duplicateById = new Map();
 
   ensureStyles();
   bindAuthEvents();
@@ -65,11 +69,29 @@
       </div>
 
       <div class="author-requests-toolbar">
-        <button type="button" class="cyber-btn-secondary is-active" data-author-filter="pending">En attente</button>
+        <button type="button" class="cyber-btn-secondary is-active" data-author-filter="pending">À vérifier</button>
         <button type="button" class="cyber-btn-secondary" data-author-filter="validated">Validées</button>
-        <button type="button" class="cyber-btn-secondary" data-author-filter="rejected">Refusées</button>
+        <button type="button" class="cyber-btn-secondary" data-author-filter="rejected">Rejetées</button>
+        <button type="button" class="cyber-btn-secondary" data-author-filter="duplicates">Doublons probables</button>
         <button type="button" class="cyber-btn-secondary" data-author-filter="all">Toutes</button>
         <button type="button" class="cyber-btn-primary" id="author-requests-refresh">Actualiser</button>
+      </div>
+
+      <div class="author-requests-filters" aria-label="Filtres des présences déclarées">
+        <label>
+          <span>Rechercher</span>
+          <input id="author-requests-search" type="search" placeholder="Nom ou événement" autocomplete="off" />
+        </label>
+        <label>
+          <span>Type de profil</span>
+          <select id="author-requests-profile-filter">
+            <option value="all">Tous les profils</option>
+            <option value="author">Auteur</option>
+            <option value="artist_author">Artiste-auteur</option>
+            <option value="hybrid">Hybride</option>
+            <option value="publisher">Maison d’édition</option>
+          </select>
+        </label>
       </div>
 
       <div id="author-requests-list" class="author-requests-list">
@@ -81,6 +103,7 @@
 
     panel.addEventListener("click", handlePanelClick);
     panel.addEventListener("change", handlePanelChange);
+    panel.addEventListener("input", handlePanelInput);
   }
 
   async function loadRows() {
@@ -125,6 +148,7 @@
     if (response.error) {
       console.warn("Admin auteurs : chargement impossible", response.error);
       rows = [];
+      refreshDuplicateIndex();
       publishAuthorRequestCounter(0, true);
       showListError(response.error.message || "Chargement impossible.");
       return;
@@ -136,6 +160,7 @@
         ? row.participant_type
         : "author"
     }));
+    refreshDuplicateIndex();
     publishAuthorRequestCounter(rows.filter(isPending).length, false);
   }
 
@@ -145,11 +170,14 @@
 
     if (!list) return;
 
-    const filtered = filterRows(rows, currentFilter);
+    const filtered = filterBySearch(
+      filterByProfile(filterRows(rows, currentFilter), currentProfileFilter),
+      currentSearch
+    );
 
     if (count) {
       const pending = rows.filter(isPending).length;
-      count.textContent = `${filtered.length} affichée(s) · ${pending} en attente`;
+      count.textContent = `${filtered.length} affichée(s) · ${pending} à vérifier · ${duplicateGroups.length} doublon(s) probable(s)`;
       publishAuthorRequestCounter(pending, false);
     }
 
@@ -168,13 +196,20 @@
     const status = row.validated ? "validée" : row.rejected ? "refusée" : "en attente";
     const isPublisher = row.participant_type === "publisher";
     const displayName = isPublisher ? row.organization_name || row.pseudo : row.pseudo;
+    const duplicate = duplicateById.get(String(row.id || ""));
+    const submissionDate = formatSubmissionDate(row.created_at);
 
     return `
-      <article class="author-request-card" data-request-id="${escapeAttribute(row.id)}">
+      <article class="author-request-card${duplicate ? " is-duplicate" : ""}" data-request-id="${escapeAttribute(row.id)}">
         <div class="author-request-head">
           <div>
             <strong>${escapeHtml(displayName || "Participant sans nom")}</strong>
             <small>${escapeHtml(eventTitle)}${eventMeta ? ` — ${escapeHtml(eventMeta)}` : ""}</small>
+            <div class="author-request-meta">
+              <span class="author-request-profile is-${escapeAttribute(row.participant_type)}">${escapeHtml(getParticipantTypeLabel(row.participant_type))}</span>
+              ${submissionDate ? `<time datetime="${escapeAttribute(String(row.created_at || ""))}">Soumise le ${escapeHtml(submissionDate)}</time>` : ""}
+              ${duplicate ? `<span class="author-request-duplicate" title="${escapeAttribute(duplicate.reasons.join(" · "))}">Doublon probable · groupe ${duplicate.group}</span>` : ""}
+            </div>
           </div>
           <span class="author-request-status is-${statusToClass(status)}">${escapeHtml(status)}</span>
         </div>
@@ -291,6 +326,7 @@
       currentFilter = filterButton.dataset.authorFilter || "pending";
       document.querySelectorAll("[data-author-filter]").forEach((button) => {
         button.classList.toggle("is-active", button === filterButton);
+        button.setAttribute("aria-pressed", String(button === filterButton));
       });
       render();
       return;
@@ -316,9 +352,23 @@
   }
 
   function handlePanelChange(event) {
+    const profileFilter = event.target.closest("#author-requests-profile-filter");
+    if (profileFilter) {
+      currentProfileFilter = profileFilter.value || "all";
+      render();
+      return;
+    }
+
     const select = event.target.closest("select[data-field]");
     if (!select) return;
     // Réservé : changement immédiat possible plus tard.
+  }
+
+  function handlePanelInput(event) {
+    const search = event.target.closest("#author-requests-search");
+    if (!search) return;
+    currentSearch = search.value || "";
+    render();
   }
 
   async function updateRequestFromCard(id, card, action) {
@@ -405,7 +455,53 @@
     if (filter === "validated") return items.filter((row) => row.validated === true);
     if (filter === "rejected") return items.filter((row) => row.rejected === true);
     if (filter === "pending") return items.filter(isPending);
+    if (filter === "duplicates") return items.filter((row) => duplicateById.has(String(row.id || "")));
     return items;
+  }
+
+  function filterByProfile(items, profile) {
+    if (!profile || profile === "all") return items;
+    return items.filter((row) => row.participant_type === profile);
+  }
+
+  function filterBySearch(items, search) {
+    const query = normalizeSearch(search);
+    if (!query) return items;
+
+    return items.filter((row) => {
+      const event = row.events || {};
+      return normalizeSearch([
+        row.pseudo,
+        row.organization_name,
+        event.title,
+        event.city,
+        event.region
+      ].filter(Boolean).join(" ")).includes(query);
+    });
+  }
+
+  function refreshDuplicateIndex() {
+    const detector = window.DEDICALIVRES_DUPLICATES;
+    duplicateGroups = typeof detector?.groupPresences === "function"
+      ? detector.groupPresences(rows)
+      : [];
+    duplicateById = new Map();
+
+    duplicateGroups.forEach((group, index) => {
+      group.rows.forEach((row) => {
+        duplicateById.set(String(row.id || ""), {
+          group: index + 1,
+          score: group.score,
+          reasons: group.reasons || []
+        });
+      });
+    });
+  }
+
+  function normalizeSearch(value) {
+    const detector = window.DEDICALIVRES_DUPLICATES;
+    if (typeof detector?.normalizeText === "function") return detector.normalizeText(value);
+    return String(value || "").toLowerCase().trim();
   }
 
   function isPending(row) {
@@ -437,6 +533,28 @@
     if (status === "validée") return "validated";
     if (status === "refusée") return "rejected";
     return "pending";
+  }
+
+  function getParticipantTypeLabel(type) {
+    return {
+      author: "Auteur",
+      artist_author: "Artiste-auteur",
+      hybrid: "Hybride",
+      publisher: "Maison d’édition"
+    }[type] || "Auteur";
+  }
+
+  function formatSubmissionDate(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(date);
   }
 
   function normalizeOptionalUrl(value) {
@@ -488,6 +606,41 @@
         color: var(--cyber-green);
       }
 
+      .author-requests-toolbar [data-author-filter="pending"].is-active {
+        outline-color: rgba(255,158,68,.62);
+        color: var(--cyber-orange);
+      }
+
+      .author-requests-filters {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) minmax(190px, .45fr);
+        gap: 12px;
+        margin: 0 0 16px;
+      }
+
+      .author-requests-filters label {
+        display: grid;
+        gap: 6px;
+      }
+
+      .author-requests-filters span {
+        color: var(--cyber-muted);
+        font-size: .78rem;
+        font-weight: 900;
+      }
+
+      .author-requests-filters input,
+      .author-requests-filters select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: rgba(255,255,255,.94);
+        color: #111;
+        font: inherit;
+      }
+
       .author-requests-list {
         display: grid;
         gap: 16px;
@@ -498,6 +651,11 @@
         border-radius: 22px;
         background: rgba(8,18,14,.92);
         border: 1px solid rgba(25,255,156,.12);
+      }
+
+      .author-request-card.is-duplicate {
+        border-color: rgba(255,158,68,.72);
+        box-shadow: inset 4px 0 0 var(--cyber-orange);
       }
 
       .author-request-card:has([data-field="participant_type"] option[value="artist_author"]:checked) {
@@ -532,6 +690,51 @@
         margin-top: 4px;
         color: var(--cyber-muted);
         line-height: 1.35;
+      }
+
+      .author-request-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 7px;
+        margin-top: 9px;
+        color: var(--cyber-muted);
+        font-size: .76rem;
+      }
+
+      .author-request-profile,
+      .author-request-duplicate {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-weight: 900;
+      }
+
+      .author-request-profile {
+        color: var(--cyber-cyan);
+        background: rgba(45,214,255,.12);
+      }
+
+      .author-request-profile.is-artist_author {
+        color: #c7a0ff;
+        background: rgba(155,106,214,.2);
+      }
+
+      .author-request-profile.is-hybrid {
+        color: #ffd26f;
+        background: rgba(255,210,111,.14);
+      }
+
+      .author-request-profile.is-publisher {
+        color: #ff9cc8;
+        background: rgba(255,156,200,.14);
+      }
+
+      .author-request-duplicate {
+        color: var(--cyber-orange);
+        background: rgba(255,158,68,.14);
       }
 
       .author-request-status {
@@ -593,6 +796,10 @@
       }
 
       @media (max-width: 760px) {
+        .author-requests-filters {
+          grid-template-columns: 1fr;
+        }
+
         .author-request-head {
           flex-direction: column;
         }
