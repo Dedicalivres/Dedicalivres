@@ -55,6 +55,16 @@ assert.match(authorSearchSource, /if \(response\.error && isMissingColumnError\(
 const adminPresenceSource = fs.readFileSync(path.join(root, "admin-author-requests-robust.js"), "utf8");
 assert.match(adminPresenceSource, /if \(response\.error && isMissingColumnError\(response\.error\)\)/);
 
+const eventSource = fs.readFileSync(path.join(root, "event.js"), "utf8");
+assert.match(eventSource, /REGISTRATION_PROGRESS_STEPS/);
+assert.match(eventSource, /aria-current="step"/);
+assert.match(eventSource, /Ouverture prévue le/);
+assert.match(eventSource, /Jusqu’au/);
+assert.match(eventSource, /if \(!hasContent\) return "";/);
+
+const styleSource = fs.readFileSync(path.join(root, "style.css"), "utf8");
+assert.match(styleSource, /\.registration-progress-current-3::after \{ width: 75%; \}/);
+
 const migrationDir = path.join(root, "supabase", "migrations");
 const migrationFile = fs.readdirSync(migrationDir).find((name) => name.endsWith("_v1_enrichie_auteur.sql"));
 assert.ok(migrationFile, "La migration locale versionnée doit exister.");
@@ -82,4 +92,4 @@ secondaryFiles.forEach((file) => {
   assert.match(source, /publisher/);
 });
 
-console.log("V1 enrichie auteur : 30 assertions fonctionnelles et de sécurité validées.");
+console.log("V1 enrichie auteur : 36 assertions fonctionnelles et de sécurité validées.");
