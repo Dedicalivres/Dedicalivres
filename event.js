@@ -27,6 +27,12 @@
     "price", "website", "description", "image_url", "featured", "verified", "lat", "lng",
     "validated", "rejected"
   ].join(",");
+  const REGISTRATION_PROGRESS_STEPS = [
+    { key: "soon", label: "Bientôt" },
+    { key: "open", label: "Ouvertes" },
+    { key: "last-days", label: "Derniers jours" },
+    { key: "closed", label: "Clôturées" }
+  ];
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
   let leafletAssetsPromise = null;
@@ -128,21 +134,17 @@
       event.registration_url &&
       (!status || ["open", "last-days", "soon"].includes(status.key))
     );
+    const progress = renderRegistrationProgress(status);
+    const dateText = getRegistrationDateText(event, status);
 
     return `
       <section class="registration-detail registration-detail-${escapeAttribute(status?.key || "info")}" aria-labelledby="registration-detail-title">
         <div class="registration-detail-heading">
-          <p class="category-kicker">Appel à participation</p>
-          <h2 id="registration-detail-title">Inscriptions</h2>
-          ${status ? `<strong class="registration-detail-status">${escapeHtml(status.label)}</strong>` : ""}
+          <p class="category-kicker">Inscriptions</p>
+          ${progress}
+          <h2 id="registration-detail-title" class="registration-detail-status">${escapeHtml(status?.label || "Informations d’inscription")}</h2>
+          ${dateText ? `<p class="registration-detail-date">${escapeHtml(dateText)}</p>` : ""}
         </div>
-
-        ${event.registration_open_date || event.registration_deadline ? `
-          <ol class="registration-timeline">
-            ${event.registration_open_date ? `<li><span>Ouverture</span><strong>${formatDate(event.registration_open_date)}</strong></li>` : ""}
-            ${event.registration_deadline ? `<li><span>Date limite</span><strong>${formatDate(event.registration_deadline)}</strong></li>` : ""}
-          </ol>
-        ` : ""}
 
         ${audience.length ? `
           <div class="registration-audience-list">
@@ -155,6 +157,50 @@
         ${canApply ? `<a class="btn-primary registration-cta" href="${escapeAttribute(event.registration_url)}" target="_blank" rel="noopener noreferrer">Consulter les inscriptions</a>` : ""}
       </section>
     `;
+  }
+
+  function renderRegistrationProgress(status) {
+    const currentIndex = REGISTRATION_PROGRESS_STEPS.findIndex((step) => step.key === status?.key);
+    if (currentIndex < 0) return "";
+
+    return `
+      <ol class="registration-progress registration-progress-current-${currentIndex}" aria-label="Progression des inscriptions">
+        ${REGISTRATION_PROGRESS_STEPS.map((step, index) => {
+          const stateClass = index < currentIndex ? "is-complete" : index === currentIndex ? "is-current" : "is-upcoming";
+          const currentAttribute = index === currentIndex ? ' aria-current="step"' : "";
+          return `
+            <li class="registration-progress-step ${stateClass}"${currentAttribute}>
+              <span class="registration-progress-marker" aria-hidden="true"></span>
+              <span>${escapeHtml(step.label)}</span>
+            </li>
+          `;
+        }).join("")}
+      </ol>
+    `;
+  }
+
+  function getRegistrationDateText(event, status) {
+    if (status?.key === "soon" && event.registration_open_date) {
+      return `Ouverture prévue le ${formatDate(event.registration_open_date)}`;
+    }
+
+    if (["open", "last-days"].includes(status?.key) && event.registration_deadline) {
+      return `Jusqu’au ${formatDate(event.registration_deadline)}`;
+    }
+
+    if (status?.key === "closed" && event.registration_deadline) {
+      return `Date limite passée le ${formatDate(event.registration_deadline)}`;
+    }
+
+    if (event.registration_deadline) {
+      return `Date limite : ${formatDate(event.registration_deadline)}`;
+    }
+
+    if (event.registration_open_date) {
+      return `Ouverture prévue le ${formatDate(event.registration_open_date)}`;
+    }
+
+    return "";
   }
 
   async function initDetailMap(event) {

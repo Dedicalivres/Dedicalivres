@@ -7752,30 +7752,100 @@ html.a11y-soir .header nav .a11y-nav-btn {
 .registration-badge-cancelled { color: #a12d3d; background: #fdecef; }
 
 .registration-detail-heading h2 {
-  margin: 2px 0 8px;
+  margin: 8px 0 4px;
 }
 
 .registration-detail-status {
-  color: var(--purple);
+  color: var(--registration-accent, var(--purple));
+  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
+  line-height: 1.2;
 }
 
-.registration-timeline {
+.registration-detail-date {
+  margin: 0;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.registration-detail-soon { --registration-accent: #4f6fa9; }
+.registration-detail-open { --registration-accent: #147a40; }
+.registration-detail-last-days { --registration-accent: #9b4c08; }
+.registration-detail-closed { --registration-accent: #6b5260; }
+
+.registration-progress {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 20px 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 18px 0 16px;
   padding: 0;
   list-style: none;
 }
 
-.registration-timeline li {
+.registration-progress::before,
+.registration-progress::after {
+  position: absolute;
+  top: 8px;
+  left: 12.5%;
+  height: 3px;
+  border-radius: 999px;
+  content: "";
+}
+
+.registration-progress::before {
+  right: 12.5%;
+  background: rgba(58, 28, 113, .14);
+  background: color-mix(in srgb, var(--purple) 14%, transparent);
+}
+
+.registration-progress::after {
+  width: 0;
+  background: var(--registration-accent, var(--purple));
+}
+
+.registration-progress-current-1::after { width: 25%; }
+.registration-progress-current-2::after { width: 50%; }
+.registration-progress-current-3::after { width: 75%; }
+
+.registration-progress-step {
+  position: relative;
+  z-index: 1;
   display: grid;
-  gap: 4px;
-  padding: 14px;
-  border-left: 4px solid var(--orange);
-  border-radius: 12px;
-  background: rgba(255, 107, 53, .10);
-  background: color-mix(in srgb, var(--card) 88%, var(--orange) 12%);
+  justify-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.registration-progress-marker {
+  width: 19px;
+  height: 19px;
+  border: 3px solid rgba(58, 28, 113, .28);
+  border: 3px solid color-mix(in srgb, var(--purple) 28%, transparent);
+  border-radius: 50%;
+  background: var(--paper, #fff);
+}
+
+.registration-progress-step.is-complete,
+.registration-progress-step.is-current {
+  color: var(--text);
+}
+
+.registration-progress-step.is-complete .registration-progress-marker,
+.registration-progress-step.is-current .registration-progress-marker {
+  border-color: var(--registration-accent, var(--purple));
+  background: var(--registration-accent, var(--purple));
+}
+
+.registration-progress-step.is-current {
+  color: var(--registration-accent, var(--purple));
+  font-weight: 900;
+}
+
+.registration-progress-step.is-current .registration-progress-marker {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--registration-accent, var(--purple)) 16%, transparent);
 }
 
 .registration-detail-note {
@@ -7825,12 +7895,16 @@ html.a11y-soir .registration-badge-soon { color: #aecbff; background: #172f59; }
 html.a11y-soir .registration-badge-full,
 html.a11y-soir .registration-badge-closed { color: #e1cbd7; background: #392d34; }
 html.a11y-soir .registration-badge-cancelled { color: #ffb2bd; background: #55202a; }
+html.a11y-soir .registration-detail-soon { --registration-accent: #aecbff; }
+html.a11y-soir .registration-detail-open { --registration-accent: #91e6af; }
+html.a11y-soir .registration-detail-last-days { --registration-accent: #ffd18d; }
+html.a11y-soir .registration-detail-closed { --registration-accent: #e1cbd7; }
 html.a11y-soir .author-presence-card.participant-artist_author .author-presence-card-main small,
 html.a11y-soir .participant-option-artist { color: #d5b3ff; }
 
 @media (max-width: 680px) {
-  .registration-timeline {
-    grid-template-columns: 1fr;
+  .registration-progress-step {
+    font-size: .84rem;
   }
 
   .submission-registration-panel,
