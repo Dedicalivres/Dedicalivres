@@ -6,7 +6,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "7.8.0-unified-visuals";
+  const VERSION = "7.9.2-local-event-pack-unified-visuals";
   const DEFAULT_EXPORT_WORKER_URL = "https://dedicalivres-daily-export.dedicalivres.workers.dev";
   const SOCIAL_BACKGROUND_URL = "assets/social-visual-background.jpg?v=2026-08-09";
   const SOCIAL_LOGO_URL = "assets/social-visual-logo.png?v=2026-08-09";
@@ -97,6 +97,11 @@
   };
 
   const JSZIP_URL = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
+
+  window.DEDICALIVRES_SOCIAL_GENERATOR = {
+    version: VERSION,
+    createEventPack: createSingleEventPack
+  };
 
   ready(() => {
     waitForAdminAuthentication(initWhenReady);
@@ -884,6 +889,60 @@
     return Array.from(document.querySelectorAll('input[name="visual-format"]:checked'))
       .map((input) => input.value)
       .filter((value) => VISUAL_FORMATS[value]);
+  }
+
+  async function createSingleEventPack(rawEvent) {
+    const event = repairEventText(rawEvent || {});
+    if (!event.id) throw new Error("Événement introuvable.");
+
+    if (document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+
+    const visualEvent = await prepareVisualEvent(event);
+    const formats = ["story", "feed", "square"];
+    const JSZip = await loadZipLibrary();
+    const zip = new JSZip();
+    const caption = buildSingleEventCaption(event);
+
+    zip.file("texte-publication.txt", caption);
+    zip.file("manifest.txt", [
+      "Pack Instagram Dédicalivres",
+      `Événement : ${event.title || "Événement"}`,
+      `Identifiant : ${event.id}`,
+      `Date : ${formatDateRange(event.start_date, event.end_date) || "à préciser"}`,
+      "Contenu : 3 visuels PNG (Story, Instagram 4:5, Carré) + texte de publication"
+    ].join("\n"));
+
+    for (const format of formats) {
+      const canvas = await renderVisualByFormat(visualEvent, format);
+      zip.file(buildVisualFileName(visualEvent, format), await canvasToBlob(canvas));
+    }
+
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    const zipName = `instagram-${slugifyFileName(event.title || "evenement")}-${event.id}.zip`;
+    downloadBlob(zipBlob, zipName);
+
+    return { ok: true, name: zipName };
+  }
+
+  function buildSingleEventCaption(event) {
+    return [
+      "📚 Rendez-vous littéraire à venir",
+      "",
+      event.title || "Événement littéraire",
+      "",
+      `📅 ${formatDateRange(event.start_date, event.end_date)}`,
+      [event.city, event.region].filter(Boolean).length
+        ? `📍 ${[event.city, event.region].filter(Boolean).join(", ")}`
+        : "",
+      event.type ? `🏷️ ${event.type}` : "",
+      "",
+      "Retrouvez les informations complètes sur Dédicalivres :",
+      `https://dedicalivres.fr/event.html?id=${encodeURIComponent(event.id)}`,
+      "",
+      renderHashtags([event], { includeRegions: true, mode: "central" })
+    ].filter((line, index, lines) => line || (index > 0 && lines[index - 1])).join("\n");
   }
 
   async function prepareVisualEvent(event) {
@@ -2116,6 +2175,27 @@
 
   function cleanText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function repairEventText(event) {
+    const repaired = { ...event };
+    ["title", "type", "city", "region", "description", "price"].forEach((field) => {
+      repaired[field] = repairMojibake(event?.[field]);
+    });
+    return repaired;
+  }
+
+  function repairMojibake(value) {
+    const text = String(value ?? "");
+    if (!/[ÃÂâ�]/.test(text)) return value ?? "";
+
+    try {
+      const bytes = Uint8Array.from(text, (character) => character.charCodeAt(0) & 0xff);
+      const repaired = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      return repaired.includes("�") ? text : repaired;
+    } catch {
+      return text;
+    }
   }
 
   function parseLocalDate(value) {

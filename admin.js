@@ -112,7 +112,7 @@ let editCityAutocompleteTimer = null;
 let editCitySuggestionCache = new Map();
 let originalEditLocationSignature = "";
 
-const ADMIN_MODULE_VERSION = "10.21-duplicate-detection-v1";
+const ADMIN_MODULE_VERSION = "10.26-local-instagram-pack-duplicate-detection-v1";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY = "dedicalivres_admin_inventory_departments_v1";
 const adminModerationCounters = {
@@ -2327,6 +2327,7 @@ function renderEventCard(event) {
       </div>
 
       <div class="event-actions">
+        <button class="event-action social-copy" data-action="instagram-pack" data-id="${event.id}" type="button" title="Préparer trois visuels Instagram">▣ <span>Insta</span></button>
         <button class="event-action validate" data-action="validate" data-id="${event.id}" type="button" title="Valider">✔ <span>Valider</span></button>
         <button class="event-action reject" data-action="reject" data-id="${event.id}" type="button" title="Refuser">✖ <span>Refuser</span></button>
         <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button" title="${event.featured ? "Retirer la mise en avant" : "Mettre en avant"}">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
@@ -2374,6 +2375,7 @@ function bindEventActions() {
       if (action === "featured") await toggleFeatured(id);
       if (action === "edit") openEditModal(id);
       if (action === "copy-social") await copySocialPost(id);
+      if (action === "instagram-pack") await createInstagramPack(id, button);
       if (action === "delete") await deleteRejectedEvent(id);
     });
   });
@@ -2405,6 +2407,44 @@ async function copySocialPost(id) {
     console.warn("Copie presse-papiers indisponible :", error);
     fallbackCopyText(text);
     showToast("Texte prêt à copier");
+  }
+}
+
+async function createInstagramPack(id, button) {
+  if (!(await ensureAdminSession())) return;
+
+  const event = allEvents.find((item) => String(item.id) === String(id));
+  if (!event) {
+    showToast("Événement introuvable");
+    return;
+  }
+  if (!event.validated || event.rejected) {
+    showToast("Le pack Instagram est réservé aux événements validés");
+    return;
+  }
+
+  const previousLabel = button?.innerHTML;
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = "⌛ <span>Prépare…</span>";
+  }
+  try {
+    const generator = window.DEDICALIVRES_SOCIAL_GENERATOR;
+    if (typeof generator?.createEventPack !== "function") {
+      throw new Error("Le générateur Instagram local n’est pas chargé. Recharge la page.");
+    }
+
+    await generator.createEventPack(event);
+    recordAdminAction("Pack Instagram préparé", event.title || "Événement");
+    showToast("Pack Instagram téléchargé");
+  } catch (error) {
+    console.warn("Pack Instagram impossible", error);
+    showToast("Erreur pack Instagram : " + (error.message || error));
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = previousLabel;
+    }
   }
 }
 
