@@ -43,6 +43,17 @@ assert.match(presenceSource, /participant_type: participantType/);
 assert.match(presenceSource, /publication_mode: isPublisher \? "unknown" : publicationMode/);
 assert.doesNotMatch(presenceSource, /publicationMode\s*===?\s*["']publisher["'].*participant_type/s);
 assert.match(presenceSource, /participant_type === "publisher" \? "Organization" : "Person"/);
+assert.match(presenceSource, /if \(response\.error && isMissingColumnError\(response\.error\)\) \{\s*\/\/ Fallback ancien schéma\./);
+assert.match(presenceSource, /if \(legacyError\) throw legacyError;/);
+
+const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
+assert.match(appSource, /if \(authorPresenceError && isMissingColumnError\(authorPresenceError\)\)/);
+
+const authorSearchSource = fs.readFileSync(path.join(root, "author-search-index.js"), "utf8");
+assert.match(authorSearchSource, /if \(response\.error && isMissingColumnError\(response\.error\)\)/);
+
+const adminPresenceSource = fs.readFileSync(path.join(root, "admin-author-requests-robust.js"), "utf8");
+assert.match(adminPresenceSource, /if \(response\.error && isMissingColumnError\(response\.error\)\)/);
 
 const migrationDir = path.join(root, "supabase", "migrations");
 const migrationFile = fs.readdirSync(migrationDir).find((name) => name.endsWith("_v1_enrichie_auteur.sql"));
@@ -71,4 +82,4 @@ secondaryFiles.forEach((file) => {
   assert.match(source, /publisher/);
 });
 
-console.log("V1 enrichie auteur : 25 assertions fonctionnelles et de sécurité validées.");
+console.log("V1 enrichie auteur : 30 assertions fonctionnelles et de sécurité validées.");
