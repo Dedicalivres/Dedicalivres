@@ -73,7 +73,7 @@
       .eq("validated", true)
       .or("rejected.is.null,rejected.eq.false");
 
-    if (response.error) {
+    if (response.error && isMissingColumnError(response.error)) {
       response = await supabaseClient
         .from("event_authors_presence")
         .select("event_id, pseudo, website, validated")
@@ -292,6 +292,15 @@
 
     const initials = words.map((word) => word[0]).join("").toUpperCase();
     return initials || "A";
+  }
+
+  function isMissingColumnError(error) {
+    const code = String(error?.code || "");
+    const message = String(error?.message || error?.details || "").toLowerCase();
+    return ["42703", "PGRST204"].includes(code) || (
+      message.includes("column") &&
+      (message.includes("does not exist") || message.includes("schema cache"))
+    );
   }
 
   function escapeHtml(value) {

@@ -113,7 +113,7 @@
       .order("created_at", { ascending: false })
       .limit(200);
 
-    if (response.error) {
+    if (response.error && isMissingColumnError(response.error)) {
       // Fallback si la relation events ou les nouvelles colonnes ne sont pas encore disponibles.
       response = await supabaseClient
         .from("event_authors_presence")

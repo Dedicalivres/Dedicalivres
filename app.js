@@ -1805,7 +1805,7 @@
           .from("event_authors_presence")
           .insert([authorPresencePayload]);
 
-        if (authorPresenceError) {
+        if (authorPresenceError && isMissingColumnError(authorPresenceError)) {
           console.warn("Présence auteur non jointe à la soumission :", authorPresenceError);
 
           const legacyPayload = {
@@ -1824,6 +1824,9 @@
             console.warn("Fallback présence auteur impossible :", legacyAuthorPresenceError);
             authorPresenceWarning = " La fiche événement est transmise, mais la présence auteur devra être ajoutée ou corrigée en modération.";
           }
+        } else if (authorPresenceError) {
+          console.warn("Présence auteur non jointe à la soumission :", authorPresenceError);
+          authorPresenceWarning = " La fiche événement est transmise, mais la présence auteur devra être ajoutée ou corrigée en modération.";
         }
       }
 

@@ -298,7 +298,7 @@
             .from("event_authors_presence")
             .insert([{ event_id: eventId, pseudo, website: authorProfileUrl || "https://dedicalivres.fr/", validated: false }]);
 
-          if (legacyError) throw error;
+          if (legacyError) throw legacyError;
         } else if (error) {
           if (isPublisher && isMissingColumnError(error)) {
             throw new Error("La déclaration d’une maison d’édition nécessite la migration de schéma prévue. Aucune présence auteur n’a été créée à sa place.");
@@ -406,7 +406,7 @@
       .or("rejected.is.null,rejected.eq.false")
       .order("created_at", { ascending: true });
 
-    if (response.error) {
+    if (response.error && isMissingColumnError(response.error)) {
       // Fallback ancien schéma.
       response = await supabaseClient
         .from("event_authors_presence")
