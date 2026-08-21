@@ -498,10 +498,24 @@
       ).length;
 
       const slug = draft.slug || "";
+      const targetPresence = presences.find(
+        (row) => row.validated === true && row.rejected !== true
+      ) || presences[0] || {};
+      const targetPresenceId = String(targetPresence.id || "");
 
       const previewLink = slug
         ? `<a href="author.html?slug=${encodeURIComponent(slug)}&preview=admin" target="_blank" rel="noopener noreferrer">Aperçu interne</a>`
         : `<span class="author-preparation-no-preview">Aperçu indisponible</span>`;
+
+      const moderationAction = targetPresenceId
+        ? `<button
+             type="button"
+             class="author-preparation-jump"
+             data-author-preparation-action="${draft.duplicate ? "duplicate" : "presence"}"
+             data-presence-id="${escapeAttribute(targetPresenceId)}"
+             data-author-name="${escapeAttribute(draft.identity || "")}"
+           >${draft.duplicate ? "Voir les doublons" : "Voir la présence"}</button>`
+        : "";
 
       const missing = draft.missingLabels.length
         ? draft.missingLabels.join(" · ")
@@ -555,6 +569,7 @@
           </p>
 
           <div class="author-preparation-actions">
+            ${moderationAction}
             ${previewLink}
           </div>
         </article>
@@ -697,6 +712,13 @@
   }
 
   async function handlePanelClick(event) {
+    const authorPreparationAction = event.target.closest("[data-author-preparation-action]");
+
+    if (authorPreparationAction) {
+      focusPresenceFromCockpit(authorPreparationAction);
+      return;
+    }
+
     const authorPreparationFilter = event.target.closest("[data-author-preparation-filter]");
 
     if (authorPreparationFilter) {
@@ -735,6 +757,66 @@
     const action = actionButton.dataset.action;
 
     await updateRequestFromCard(id, card, action);
+  }
+
+  function focusPresenceFromCockpit(button) {
+    const presenceId = String(button.dataset.presenceId || "");
+    const authorName = String(button.dataset.authorName || "");
+    const action = button.dataset.authorPreparationAction || "presence";
+
+    if (!presenceId) {
+      toast("Présence introuvable");
+      return;
+    }
+
+    currentFilter = action === "duplicate" ? "duplicates" : "all";
+    currentProfileFilter = "all";
+    currentSearch = authorName;
+
+    document.querySelectorAll("[data-author-filter]").forEach((filterButton) => {
+      const active = filterButton.dataset.authorFilter === currentFilter;
+      filterButton.classList.toggle("is-active", active);
+      filterButton.setAttribute("aria-pressed", String(active));
+    });
+
+    const profileFilter = document.getElementById("author-requests-profile-filter");
+    if (profileFilter) profileFilter.value = "all";
+
+    const searchInput = document.getElementById("author-requests-search");
+    if (searchInput) searchInput.value = currentSearch;
+
+    render();
+
+    window.requestAnimationFrame(() => {
+      const card = document.querySelector(
+        `.author-request-card[data-request-id="${escapeSelectorValue(presenceId)}"]`
+      );
+
+      if (!card) {
+        toast("Présence non visible avec ce filtre");
+        return;
+      }
+
+      card.classList.add("is-cockpit-focused");
+      card.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
+      window.setTimeout(() => {
+        card.classList.remove("is-cockpit-focused");
+      }, 3200);
+    });
+  }
+
+  function escapeSelectorValue(value) {
+    if (window.CSS && typeof window.CSS.escape === "function") {
+      return window.CSS.escape(String(value || ""));
+    }
+
+    return String(value || "")
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"');
   }
 
   function handlePanelChange(event) {
@@ -1353,17 +1435,47 @@
       }
 
       .author-preparation-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
         margin-top: 11px;
       }
 
       .author-preparation-actions a,
-      .author-preparation-no-preview {
+      .author-preparation-no-preview,
+      .author-preparation-jump {
         font-size: .76rem;
         font-weight: 900;
       }
 
       .author-preparation-actions a {
         color: var(--cyber-cyan);
+      }
+
+      .author-preparation-jump {
+        min-height: 34px;
+        padding: 6px 10px;
+        border: 1px solid rgba(45,214,255,.35);
+        border-radius: 9px;
+        background: rgba(45,214,255,.08);
+        color: var(--cyber-cyan);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .author-preparation-jump:hover,
+      .author-preparation-jump:focus-visible {
+        border-color: var(--cyber-cyan);
+        background: rgba(45,214,255,.15);
+      }
+
+      .author-request-card.is-cockpit-focused {
+        outline: 3px solid var(--cyber-cyan);
+        outline-offset: 4px;
+        box-shadow:
+          0 0 0 6px rgba(45,214,255,.12),
+          0 14px 36px rgba(0,0,0,.32);
       }
 
       .author-preparation-no-preview {
