@@ -7600,10 +7600,12 @@ body.testimonials-page {
   line-height: 1.45;
 }
 
-.legal-consent input {
+#submission-form .legal-consent input[type="checkbox"] {
   flex: 0 0 auto;
   width: 20px;
   height: 20px;
+  min-height: 20px;
+  padding: 0;
   margin-top: 2px;
   accent-color: var(--orange);
 }
@@ -7631,9 +7633,11 @@ body.testimonials-page {
   box-shadow: 0 0 0 4px rgba(255, 107, 53, .10);
 }
 
-.multiple-events-option input {
+#submission-form .multiple-events-option input[type="checkbox"] {
   width: 21px;
   height: 21px;
+  min-height: 21px;
+  padding: 0;
   margin: 2px 0 0;
   accent-color: var(--orange);
 }

@@ -45,6 +45,8 @@
   const registrationSubmitDetails = document.getElementById("registration-submit-details");
   const multipleEventsMode = document.getElementById("multiple-events-mode");
   const duplicateWarning = document.getElementById("duplicate-warning");
+  const submissionStartDateInput = form?.querySelector('[name="start_date"]');
+  const submissionEndDateInput = form?.querySelector('[name="end_date"]');
 
   const newsletterForm = document.getElementById("newsletter-form");
   const newsletterFeedback = document.getElementById("newsletter-feedback");
@@ -98,6 +100,8 @@
   const AUTHOR_PORTRAIT_FOLDER = "author-portraits";
   const AUTHOR_PORTRAIT_FALLBACK_FOLDER = "event-images";
   const MAX_AUTHOR_PORTRAIT_SIZE = 4 * 1024 * 1024;
+  const MAX_EVENT_IMAGE_SIZE = 5 * 1024 * 1024;
+  const EVENT_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
   const TYPE_META = {
     Salon: { className: "type-salon", color: "#3a1c71" },
@@ -114,6 +118,7 @@
     bindFavorites();
     bindImagePreview();
     populateMonthFilter();
+    initSubmissionDateFields();
     initDefaultMapVisibility();
 
     if (eventsGrid || mapPanel || pastEventsGrid) {
@@ -150,6 +155,9 @@
     submissionTypeSelect?.addEventListener("change", syncConditionalSubmissionFields);
     registrationEnabledSubmit?.addEventListener("change", syncRegistrationSubmissionFields);
     multipleEventsMode?.addEventListener("change", syncMultipleEventsMode);
+    submissionStartDateInput?.addEventListener("change", () => {
+      initSubmissionDateFields({ setDefault: false });
+    });
     document
       .getElementById("submitted-author-portrait-input")
       ?.addEventListener("change", () => authorPortraitUploadCache.clear());
@@ -385,25 +393,20 @@
       eventImageUploadCache.clear();
 
       if (!file) {
-        preview.innerHTML = "";
-        preview.classList.remove("is-visible");
-        selectedPreviewImage = null;
+        clearEventImageSelection(input, preview);
         return;
       }
 
-      if (!file.type.startsWith("image/")) {
-        alert("Veuillez sélectionner une image.");
-        input.value = "";
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Image trop lourde (5 Mo max).");
-        input.value = "";
+      try {
+        validateEventImageFile(file);
+      } catch (error) {
+        clearEventImageSelection(input, preview);
+        setFormFeedback(error.message, "error");
         return;
       }
 
       selectedPreviewImage = file;
+      setFormFeedback("", "");
 
       const reader = new FileReader();
 
@@ -447,6 +450,28 @@
 
       reader.readAsDataURL(file);
     });
+  }
+
+  function clearEventImageSelection(input, preview) {
+    if (input) input.value = "";
+    if (preview) {
+      preview.innerHTML = "";
+      preview.classList.remove("is-visible");
+    }
+    selectedPreviewImage = null;
+    eventImageUploadCache.clear();
+  }
+
+  function validateEventImageFile(file) {
+    if (!(file instanceof File) || !file.size) return;
+
+    if (!EVENT_IMAGE_TYPES.has(file.type)) {
+      throw new Error("Format d’image non pris en charge. Utilisez un fichier JPG, PNG ou WEBP.");
+    }
+
+    if (file.size > MAX_EVENT_IMAGE_SIZE) {
+      throw new Error("Image trop lourde. La taille maximale autorisée est de 5 Mo.");
+    }
   }
 
   function loadStylesheetOnce(href) {
@@ -1723,6 +1748,8 @@
     }
 
     try {
+      validateSubmissionDates(formData);
+
       const rawLat = String(formData.get("lat") || "").trim();
       const rawLng = String(formData.get("lng") || "").trim();
       let lat = rawLat ? Number(rawLat) : Number.NaN;
@@ -1861,20 +1888,19 @@
   }
 
   function prepareNextMultipleEvent() {
-    const startDateInput = form?.querySelector('[name="start_date"]');
-    const endDateInput = form?.querySelector('[name="end_date"]');
     const registrationOpenInput = form?.querySelector('[name="registration_open_date"]');
     const registrationDeadlineInput = form?.querySelector('[name="registration_deadline"]');
 
-    if (startDateInput) startDateInput.value = "";
-    if (endDateInput) endDateInput.value = "";
+    if (submissionStartDateInput) submissionStartDateInput.value = "";
+    if (submissionEndDateInput) submissionEndDateInput.value = "";
     if (registrationOpenInput) registrationOpenInput.value = "";
     if (registrationDeadlineInput) registrationDeadlineInput.value = "";
+    initSubmissionDateFields({ setDefault: false });
     clearDuplicateWarning();
 
     setTimeout(() => {
-      startDateInput?.focus({ preventScroll: true });
-      startDateInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+      submissionStartDateInput?.focus({ preventScroll: true });
+      submissionStartDateInput?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 80);
   }
 
@@ -1884,6 +1910,7 @@
     eventImageUploadCache.clear();
     authorPortraitUploadCache.clear();
     syncConditionalSubmissionFields();
+    initSubmissionDateFields();
     clearDuplicateWarning();
 
     const preview = document.getElementById("image-preview");
@@ -1891,6 +1918,44 @@
     if (preview) {
       preview.innerHTML = "";
       preview.classList.remove("is-visible");
+    }
+  }
+
+  function initSubmissionDateFields(options = {}) {
+    if (!submissionStartDateInput) return;
+
+    const setDefault = options.setDefault !== false;
+    const today = toDateKey(new Date());
+    submissionStartDateInput.min = today;
+
+    if (setDefault && !submissionStartDateInput.value) {
+      submissionStartDateInput.value = today;
+    }
+
+    if (submissionEndDateInput) {
+      submissionEndDateInput.min = submissionStartDateInput.value || today;
+      if (
+        submissionEndDateInput.value &&
+        submissionEndDateInput.value < submissionEndDateInput.min
+      ) {
+        submissionEndDateInput.value = "";
+      }
+    }
+  }
+
+  function validateSubmissionDates(formData) {
+    const startDate = cleanText(formData.get("start_date"));
+    const endDate = cleanText(formData.get("end_date"));
+    const today = toDateKey(new Date());
+
+    if (!startDate) {
+      throw new Error("Merci d’indiquer la date de début de l’événement.");
+    }
+    if (startDate < today) {
+      throw new Error("La date de début ne peut pas être antérieure à aujourd’hui.");
+    }
+    if (endDate && endDate < startDate) {
+      throw new Error("La date de fin doit être identique ou postérieure à la date de début.");
     }
   }
 
@@ -2073,6 +2138,8 @@
   }
 
   async function uploadImage(file) {
+    validateEventImageFile(file);
+
     const cacheKey = getFileCacheKey(file);
     if (cacheKey && eventImageUploadCache.has(cacheKey)) {
       return eventImageUploadCache.get(cacheKey);

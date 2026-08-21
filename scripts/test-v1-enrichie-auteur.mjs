@@ -50,6 +50,14 @@ const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
 assert.match(appSource, /if \(authorPresenceError && isMissingColumnError\(authorPresenceError\)\)/);
 assert.match(appSource, /function centerMapOnGlobalView\(\)/);
 assert.match(appSource, /renderFilteredEvents\(\);\s*centerMapOnGlobalView\(\);/);
+assert.match(appSource, /function initSubmissionDateFields\(options = \{\}\)/);
+assert.match(appSource, /La date de début ne peut pas être antérieure à aujourd’hui/);
+assert.match(appSource, /La date de fin doit être identique ou postérieure à la date de début/);
+assert.match(appSource, /EVENT_IMAGE_TYPES = new Set\(\["image\/jpeg", "image\/png", "image\/webp"\]\)/);
+assert.match(appSource, /La taille maximale autorisée est de 5 Mo/);
+const submissionHtmlSource = fs.readFileSync(path.join(root, "soumettre.html"), "utf8");
+assert.match(submissionHtmlSource, /accept="image\/jpeg,image\/png,image\/webp"/);
+assert.match(submissionHtmlSource, /JPG, PNG ou WEBP — 5 Mo maximum/);
 
 const authorSearchSource = fs.readFileSync(path.join(root, "author-search-index.js"), "utf8");
 assert.match(authorSearchSource, /if \(response\.error && isMissingColumnError\(response\.error\)\)/);
@@ -284,6 +292,8 @@ const styleSource = fs.readFileSync(path.join(root, "style.css"), "utf8");
 assert.match(styleSource, /\.registration-progress-current-3::after \{ width: 75%; \}/);
 assert.match(styleSource, /\.detail-primary-actions[\s\S]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
 assert.match(styleSource, /@media \(max-width: 900px\)[\s\S]*\.detail-primary-actions[\s\S]*grid-template-columns: 1fr/);
+assert.match(styleSource, /#submission-form \.legal-consent input\[type="checkbox"\][\s\S]*min-height: 20px/);
+assert.match(styleSource, /#submission-form \.multiple-events-option input\[type="checkbox"\][\s\S]*min-height: 21px/);
 
 const migrationDir = path.join(root, "supabase", "migrations");
 const migrationFile = fs.readdirSync(migrationDir).find((name) => name.endsWith("_v1_enrichie_auteur.sql"));
