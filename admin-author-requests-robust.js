@@ -212,7 +212,18 @@
 
     if (count) {
       const pending = rows.filter(isPending).length;
-      count.textContent = `${filtered.length} affichée(s) · ${pending} à vérifier · ${duplicateGroups.length} doublon(s) probable(s)`;
+      const profileCounts = buildProfileCounts(rows);
+
+      count.innerHTML = `
+        <span>${filtered.length} affichée(s)</span>
+        <span>${pending} à vérifier</span>
+        <span>${duplicateGroups.length} doublon(s) probable(s)</span>
+        <span class="author-admin-profile-count is-author">${profileCounts.author} auteur${profileCounts.author > 1 ? "s" : ""}</span>
+        <span class="author-admin-profile-count is-artist_author">${profileCounts.artist_author} artiste${profileCounts.artist_author > 1 ? "s-auteurs" : "-auteur"}</span>
+        <span class="author-admin-profile-count is-hybrid">${profileCounts.hybrid} hybride${profileCounts.hybrid > 1 ? "s" : ""}</span>
+        <span class="author-admin-profile-count is-publisher">${profileCounts.publisher} maison${profileCounts.publisher > 1 ? "s d’édition" : " d’édition"}</span>
+      `;
+
       publishAuthorRequestCounter(pending, false);
     }
 
@@ -487,6 +498,25 @@
     }
 
     return payload;
+  }
+
+  function buildProfileCounts(items) {
+    const counts = {
+      author: 0,
+      artist_author: 0,
+      hybrid: 0,
+      publisher: 0
+    };
+
+    items.forEach((row) => {
+      const type = ["author", "artist_author", "hybrid", "publisher"].includes(row.participant_type)
+        ? row.participant_type
+        : "author";
+
+      counts[type] += 1;
+    });
+
+    return counts;
   }
 
   function filterRows(items, filter) {
@@ -789,24 +819,75 @@
         font-weight: 900;
       }
 
-      .author-request-profile {
-        color: var(--cyber-cyan);
-        background: rgba(45,214,255,.12);
+      .author-request-profile.is-author,
+      .author-admin-profile-count.is-author {
+        color: #91e6af;
+        background: rgba(22,128,60,.20);
       }
 
-      .author-request-profile.is-artist_author {
-        color: #c7a0ff;
-        background: rgba(155,106,214,.2);
+      .author-request-profile.is-artist_author,
+      .author-admin-profile-count.is-artist_author {
+        color: #d5b3ff;
+        background: rgba(155,106,214,.22);
       }
 
-      .author-request-profile.is-hybrid {
-        color: #ffd26f;
-        background: rgba(255,210,111,.14);
+      .author-request-profile.is-hybrid,
+      .author-admin-profile-count.is-hybrid {
+        color: #c7d6f0;
+        background:
+          linear-gradient(
+            135deg,
+            rgba(155,106,214,.20),
+            rgba(22,128,60,.18)
+          );
       }
 
-      .author-request-profile.is-publisher {
-        color: #ff9cc8;
-        background: rgba(255,156,200,.14);
+      .author-request-profile.is-publisher,
+      .author-admin-profile-count.is-publisher {
+        color: #b9c9df;
+        background: rgba(48,67,94,.34);
+      }
+
+      #author-requests-count {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 7px;
+      }
+
+      #author-requests-count > span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 25px;
+      }
+
+      .author-admin-profile-count {
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .author-request-card:has([data-field="participant_type"] option[value="author"]:checked) {
+        border-color: rgba(22,128,60,.72);
+        box-shadow: inset 4px 0 0 #16803c;
+      }
+
+      .author-request-card:has([data-field="participant_type"] option[value="artist_author"]:checked) {
+        border-color: #9b6ad6;
+        box-shadow: inset 4px 0 0 #9b6ad6;
+      }
+
+      .author-request-card:has([data-field="participant_type"] option[value="hybrid"]:checked) {
+        border-color: rgba(91,111,153,.82);
+        box-shadow: inset 4px 0 0 #536288;
+      }
+
+      .author-request-card:has([data-field="participant_type"] option[value="publisher"]:checked) {
+        border-color: rgba(48,67,94,.88);
+        box-shadow: inset 4px 0 0 #30435e;
       }
 
       .author-request-duplicate {
