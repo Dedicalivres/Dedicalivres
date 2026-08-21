@@ -48,6 +48,8 @@ assert.match(presenceSource, /if \(legacyError\) throw legacyError;/);
 
 const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
 assert.match(appSource, /if \(authorPresenceError && isMissingColumnError\(authorPresenceError\)\)/);
+assert.match(appSource, /function centerMapOnGlobalView\(\)/);
+assert.match(appSource, /renderFilteredEvents\(\);\s*centerMapOnGlobalView\(\);/);
 
 const authorSearchSource = fs.readFileSync(path.join(root, "author-search-index.js"), "utf8");
 assert.match(authorSearchSource, /if \(response\.error && isMissingColumnError\(response\.error\)\)/);
