@@ -60,7 +60,7 @@
 
   <link rel="preload" as="image" href="assets/brand/logo-association-3d.webp" />
 
-  <link rel="stylesheet" href="style.css?v=corrections-1208-1" />
+  <link rel="stylesheet" href="style.css?v=map-radius-reactive-1" />
   <link rel="stylesheet" href="mascot-guide.css?v=guide-6" />
   <link rel="stylesheet" href="ludique.css?v=ludique-21" />
   <link rel="stylesheet" href="accessibilite.css?v=a11y-9" />
@@ -248,6 +248,16 @@
               Me localiser
             </button>
 
+            <label class="map-radius-control" for="location-radius">
+              <span>Rayon</span>
+              <select id="location-radius" aria-label="Rayon de recherche autour de ma position">
+                <option value="10">10 km</option>
+                <option value="25" selected>25 km</option>
+                <option value="50">50 km</option>
+                <option value="100">100 km</option>
+              </select>
+            </label>
+
             <p id="locate-status" class="locate-status" aria-live="polite"></p>
 
             <div class="map-legend-inline" aria-label="Légende de la carte en direct">
@@ -397,7 +407,7 @@
 
 <script src="config.js?v=shared-client-1"></script>
 <script src="geography.js?v=v1-francophone-20260620-map-authors"></script>
-<script src="app.js?v=multi-events-1"></script>
+<script src="app.js?v=map-radius-reactive-1"></script>
 
 <script src="tracking-v4.js?v=shared-client-1"></script>
 <script src="ui-effects-v6.js?v=7.7.5"></script>

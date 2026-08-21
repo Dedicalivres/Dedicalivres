@@ -25,6 +25,7 @@
   const FAVORITES_KEY = "dedicalivres_favorites";
   const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
   const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+  const DEFAULT_LOCATION_RADIUS_KM = 25;
 
   const eventsGrid = document.getElementById("events-grid");
   const resultsCount = document.getElementById("results-count");
@@ -62,6 +63,7 @@
 
   const mobileMapToggle = document.getElementById("mobile-map-toggle");
   const locateMeButton = document.getElementById("locate-me");
+  const locationRadiusSelect = document.getElementById("location-radius");
   const locateStatus = document.getElementById("locate-status");
   const mapPanel = document.getElementById("map-panel");
 
@@ -82,6 +84,7 @@
   let cityAutocompleteTimer = null;
   let citySuggestionCache = new Map();
   let userPosition = null;
+  let locationRadiusKm = Number(locationRadiusSelect?.value) || DEFAULT_LOCATION_RADIUS_KM;
   let selectedPreviewImage = null;
   let userMarker = null;
   let pendingMapEvents = [];
@@ -166,6 +169,7 @@
 
     mobileMapToggle?.addEventListener("click", toggleMobileMap);
     locateMeButton?.addEventListener("click", locateUser);
+    locationRadiusSelect?.addEventListener("change", handleLocationRadiusChange);
     calendarPrevButton?.addEventListener("click", () => {
       calendarCursor = new Date(
         calendarCursor.getFullYear(),
@@ -588,7 +592,10 @@
   }
 
   function renderFilteredEvents() {
-    const filtered = filterEvents(allEvents);
+    const globallyFiltered = filterEvents(allEvents);
+    const filtered = userPosition
+      ? findEventsWithinRadius(userPosition, globallyFiltered, locationRadiusKm)
+      : globallyFiltered;
     const upcoming = filtered
       .filter((event) => !isPastEvent(event))
       .sort(sortUpcomingEvents);
@@ -2900,6 +2907,53 @@
     locateStatus.className = `locate-status ${type}`.trim();
   }
 
+  function handleLocationRadiusChange() {
+    locationRadiusKm = Number(locationRadiusSelect?.value) || DEFAULT_LOCATION_RADIUS_KM;
+
+    if (!userPosition) {
+      setLocateStatus(`Rayon réglé sur ${locationRadiusKm} km. Utilisez « Me localiser » pour afficher les événements proches.`);
+      return;
+    }
+
+    applyLocationRadiusView();
+  }
+
+  function applyLocationRadiusView() {
+    if (!userPosition) return [];
+
+    const nearbyEvents = findEventsWithinRadius(
+      userPosition,
+      filterEvents(allEvents),
+      locationRadiusKm
+    );
+    const upcomingNearbyEvents = nearbyEvents.filter((event) => !isPastEvent(event));
+
+    renderFilteredEvents();
+    centerMapOnUser(locationRadiusKm);
+
+    if (upcomingNearbyEvents.length) {
+      openMapFloatingPanel(upcomingNearbyEvents.slice(0, 3));
+    } else {
+      closeMapFloatingPanel();
+    }
+
+    setLocateStatus(
+      upcomingNearbyEvents.length
+        ? `${upcomingNearbyEvents.length} événement${upcomingNearbyEvents.length > 1 ? "s" : ""} à venir dans un rayon de ${locationRadiusKm} km.`
+        : `Aucun événement à venir dans un rayon de ${locationRadiusKm} km avec les filtres actuels.`,
+      "success"
+    );
+
+    return upcomingNearbyEvents;
+  }
+
+  function centerMapOnUser(radiusKm) {
+    if (!map || !userPosition) return;
+
+    const zoom = radiusKm <= 10 ? 11 : radiusKm <= 25 ? 10 : radiusKm <= 50 ? 9 : 8;
+    map.setView([userPosition.lat, userPosition.lng], zoom);
+  }
+
   function getGeolocationErrorMessage(error) {
     if (!error || typeof error.code !== "number") {
       return "Impossible de récupérer votre position pour le moment.";
@@ -2967,8 +3021,6 @@
           lng: position.coords.longitude
         };
 
-        map.setView([userPosition.lat, userPosition.lng], 9);
-
         if (userMarker) {
           map.removeLayer(userMarker);
         }
@@ -2982,18 +3034,9 @@
           .bindPopup("Vous êtes ici")
           .addTo(map);
 
-        const nearbyEvents = findNearestEvents(userPosition, filterEvents(allEvents));
-        if (nearbyEvents.length) {
-          openMapFloatingPanel(nearbyEvents);
-        }
+        applyLocationRadiusView();
 
         await trackLocationRequest(userPosition);
-        setLocateStatus(
-          nearbyEvents.length
-            ? "Position trouvée. Les rendez-vous les plus proches sont affichés sur la carte."
-            : "Position trouvée. Aucun événement proche avec coordonnées n’est disponible dans ce filtre.",
-          "success"
-        );
 
         if (locateMeButton) {
           locateMeButton.disabled = false;
@@ -3016,8 +3059,10 @@
     );
   }
 
-  function findNearestEvents(position, events) {
+  function findEventsWithinRadius(position, events, radiusKm = DEFAULT_LOCATION_RADIUS_KM) {
     if (!position) return [];
+
+    const radius = Number(radiusKm) || DEFAULT_LOCATION_RADIUS_KM;
 
     return (Array.isArray(events) ? events : [])
       .filter((event) => (
@@ -3033,8 +3078,8 @@
           Number(event.lng)
         )
       }))
-      .sort((a, b) => a.distanceKm - b.distanceKm)
-      .slice(0, 3);
+      .filter((event) => event.distanceKm <= radius)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
   }
 
   function distanceInKm(lat1, lng1, lat2, lng2) {
@@ -3108,6 +3153,13 @@
     if (regionFilter) regionFilter.value = "";
     if (typeFilter) typeFilter.value = "";
     if (dateFilter) dateFilter.value = "";
+    if (locationRadiusSelect) locationRadiusSelect.value = String(DEFAULT_LOCATION_RADIUS_KM);
+    locationRadiusKm = DEFAULT_LOCATION_RADIUS_KM;
+    userPosition = null;
+    if (userMarker && map) map.removeLayer(userMarker);
+    userMarker = null;
+    if (locateMeButton) locateMeButton.textContent = "Me localiser";
+    setLocateStatus("", "");
     selectedCalendarDate = "";
     calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
