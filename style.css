@@ -919,6 +919,36 @@ button:active,
   margin-top: 28px;
 }
 
+.detail-primary-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+  align-items: stretch;
+}
+
+.detail-primary-actions .detail-primary-button {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 12px 18px;
+  white-space: normal;
+  text-align: center;
+}
+
+.detail-share-feedback {
+  grid-column: 1 / -1;
+  min-height: 1.25rem;
+  margin: -2px 0 0;
+  color: var(--purple);
+  font-weight: 850;
+  text-align: right;
+}
+
+.detail-secondary-actions {
+  margin-top: 14px;
+}
+
 .detail-button {
   flex: initial;
 }
@@ -1610,6 +1640,14 @@ button:active,
   .detail-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .detail-primary-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-share-feedback {
+    text-align: left;
   }
 
   .detail-actions .btn-primary,

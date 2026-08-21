@@ -64,6 +64,7 @@
     const image = renderDetailImage(data.image_url, data.title || "Événement");
     const registrationStatus = window.DEDICALIVRES_REGISTRATION?.getStatus(data);
     const registrationModule = renderRegistrationModule(data, registrationStatus);
+    const primaryActions = renderPrimaryActions(data, registrationStatus);
 
     container.innerHTML = `
       ${image}
@@ -85,8 +86,9 @@
         ${data.description ? `<div class="detail-description">${escapeHtml(data.description).replace(/\n/g, "<br>")}</div>` : ""}
 
         ${registrationModule}
+        ${primaryActions}
 
-        <div class="detail-actions">
+        <div class="detail-actions detail-secondary-actions" aria-label="Autres actions">
           ${data.website ? `<a class="btn-primary detail-button" href="${escapeAttribute(data.website)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
           <button id="detail-favorite-btn" class="btn-secondary detail-button favorite-toggle" type="button">♡ Ajouter aux favoris</button>
           <button id="detail-calendar-btn" class="btn-secondary detail-button" type="button">📅 Ajouter à mon agenda</button>
@@ -110,6 +112,23 @@
     }
   }
 
+  function renderPrimaryActions(event, status) {
+    const registrationAvailable = Boolean(
+      event.registration_url &&
+      (!status || ["open", "last-days", "soon"].includes(status.key))
+    );
+    const presenceClass = registrationAvailable ? "btn-secondary" : "btn-primary";
+
+    return `
+      <div class="detail-primary-actions" aria-label="Actions principales">
+        ${registrationAvailable ? `<a id="detail-registration-cta" class="btn-primary detail-primary-button" href="${escapeAttribute(event.registration_url)}" target="_blank" rel="noopener noreferrer">S’inscrire</a>` : ""}
+        <a id="detail-presence-cta" class="${presenceClass} detail-primary-button" href="#authors-presence-section">Indiquer ma présence</a>
+        <button id="detail-share-btn" class="btn-secondary detail-primary-button" type="button" aria-describedby="detail-share-feedback">Partager</button>
+        <p id="detail-share-feedback" class="detail-share-feedback" role="status" aria-live="polite"></p>
+      </div>
+    `;
+  }
+
   function fetchEvent(id, columns) {
     return client
       .from("events")
@@ -130,10 +149,6 @@
     );
     if (!hasContent) return "";
 
-    const canApply = Boolean(
-      event.registration_url &&
-      (!status || ["open", "last-days", "soon"].includes(status.key))
-    );
     const progress = renderRegistrationProgress(status);
     const dateText = getRegistrationDateText(event, status);
 
@@ -154,7 +169,6 @@
         ` : ""}
 
         ${event.registration_note ? `<p class="registration-detail-note">${escapeHtml(event.registration_note).replace(/\n/g, "<br>")}</p>` : ""}
-        ${canApply ? `<a class="btn-primary registration-cta" href="${escapeAttribute(event.registration_url)}" target="_blank" rel="noopener noreferrer">Consulter les inscriptions</a>` : ""}
       </section>
     `;
   }
@@ -306,6 +320,8 @@
   function bindDetailActions(event) {
     const favoriteButton = document.getElementById("detail-favorite-btn");
     const calendarButton = document.getElementById("detail-calendar-btn");
+    const shareButton = document.getElementById("detail-share-btn");
+    const shareFeedback = document.getElementById("detail-share-feedback");
 
     function refreshFavoriteButton() {
       if (!favoriteButton) return;
@@ -325,7 +341,80 @@
     });
 
     calendarButton?.addEventListener("click", () => downloadICS(event));
+    shareButton?.addEventListener("click", () => shareEvent(event, shareFeedback));
     refreshFavoriteButton();
+  }
+
+  async function shareEvent(event, feedback) {
+    const url = buildEventDetailUrl(event.id);
+    const shareApi = window.DEDICALIVRES_SHARE_API || navigator;
+    const shareData = {
+      title: `${event.title || "Événement littéraire"} — Dédicalivres`,
+      text: `Découvrez ${event.title || "cet événement littéraire"} sur Dédicalivres.`,
+      url
+    };
+
+    if (typeof shareApi.share === "function") {
+      try {
+        await shareApi.share(shareData);
+        setShareFeedback(feedback, "Partage effectué");
+        return;
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+      }
+    }
+
+    if (await copyEventLink(url, shareApi)) {
+      setShareFeedback(feedback, "Lien copié");
+      return;
+    }
+
+    window.prompt("Copiez le lien de la fiche :", url);
+    setShareFeedback(feedback, "Lien prêt à copier");
+  }
+
+  function buildEventDetailUrl(id) {
+    const url = new URL(window.location.pathname, window.location.origin);
+    url.searchParams.set("id", String(id || ""));
+    return url.toString();
+  }
+
+  async function copyEventLink(url, shareApi = navigator) {
+    if (shareApi.clipboard?.writeText) {
+      try {
+        await shareApi.clipboard.writeText(url);
+        return true;
+      } catch {
+        // Le fallback historique ci-dessous reste disponible hors contexte sécurisé.
+      }
+    }
+
+    const field = document.createElement("textarea");
+    field.value = url;
+    field.setAttribute("readonly", "");
+    field.style.position = "fixed";
+    field.style.opacity = "0";
+    document.body.appendChild(field);
+    field.select();
+
+    try {
+      return document.execCommand("copy");
+    } catch {
+      return false;
+    } finally {
+      field.remove();
+    }
+  }
+
+  function setShareFeedback(feedback, message) {
+    if (!feedback) return;
+    feedback.textContent = message;
+    window.clearTimeout(Number(feedback.dataset.clearTimer || 0));
+    const timer = window.setTimeout(() => {
+      feedback.textContent = "";
+      delete feedback.dataset.clearTimer;
+    }, 2400);
+    feedback.dataset.clearTimer = String(timer);
   }
 
   function getFavoriteIds() {

@@ -268,9 +268,20 @@ assert.match(eventSource, /aria-current="step"/);
 assert.match(eventSource, /Ouverture prévue le/);
 assert.match(eventSource, /Jusqu’au/);
 assert.match(eventSource, /if \(!hasContent\) return "";/);
+assert.match(eventSource, />S’inscrire<\/a>/);
+assert.match(eventSource, /href="#authors-presence-section"/);
+assert.match(eventSource, /id="detail-share-btn"/);
+assert.match(eventSource, /window\.DEDICALIVRES_SHARE_API \|\| navigator/);
+assert.match(eventSource, /shareApi\.share\(shareData\)/);
+assert.match(eventSource, /shareApi\.clipboard\.writeText\(url\)/);
+assert.match(eventSource, /document\.execCommand\("copy"\)/);
+assert.match(eventSource, /setShareFeedback\(feedback, "Lien copié"\)/);
+assert.match(eventSource, /aria-live="polite"/);
 
 const styleSource = fs.readFileSync(path.join(root, "style.css"), "utf8");
 assert.match(styleSource, /\.registration-progress-current-3::after \{ width: 75%; \}/);
+assert.match(styleSource, /\.detail-primary-actions[\s\S]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+assert.match(styleSource, /@media \(max-width: 900px\)[\s\S]*\.detail-primary-actions[\s\S]*grid-template-columns: 1fr/);
 
 const migrationDir = path.join(root, "supabase", "migrations");
 const migrationFile = fs.readdirSync(migrationDir).find((name) => name.endsWith("_v1_enrichie_auteur.sql"));
