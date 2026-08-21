@@ -10,6 +10,10 @@ Disallow: /admin-social-generator.js
 Disallow: /admin-author-requests-robust.js
 Disallow: /admin-quality-control.js
 Disallow: /admin-visits-counter-fix.js
+Disallow: /author
+Disallow: /author.html
+Disallow: /author.js
+Disallow: /author-backoffice.js
 Disallow: /config.js
 Disallow: /tracking-v4.js
 

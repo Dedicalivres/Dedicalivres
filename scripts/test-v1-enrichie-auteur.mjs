@@ -52,6 +52,148 @@ assert.match(appSource, /if \(authorPresenceError && isMissingColumnError\(autho
 const authorSearchSource = fs.readFileSync(path.join(root, "author-search-index.js"), "utf8");
 assert.match(authorSearchSource, /if \(response\.error && isMissingColumnError\(response\.error\)\)/);
 
+const authorBackofficeSource = fs.readFileSync(path.join(root, "author-backoffice.js"), "utf8");
+const authorBackofficeContext = {};
+vm.createContext(authorBackofficeContext);
+vm.runInContext(authorBackofficeSource, authorBackofficeContext, { filename: "author-backoffice.js" });
+const authorBackoffice = authorBackofficeContext.DEDICALIVRES_AUTHOR_BACKOFFICE;
+assert.ok(authorBackoffice, "Le moteur back-office auteur doit être exposé.");
+
+const incompleteAuthor = authorBackoffice.evaluateAuthor({ author: { pseudo: "Lina Test" } });
+assert.equal(incompleteAuthor.ready, false);
+assert.ok(Array.from(incompleteAuthor.missing).includes("photo"));
+assert.ok(Array.from(incompleteAuthor.missing).includes("validation"));
+
+const validatedPresenceWithoutPhoto = {
+  id: "presence-ready-1",
+  event_id: "event-future",
+  pseudo: "Lina Test",
+  author_slug: "lina-test",
+  participant_type: "author",
+  validated: true,
+  rejected: false,
+  events: { id: "event-future", title: "Salon futur", start_date: "2027-04-10", validated: true, rejected: false }
+};
+const authorWithoutPhoto = authorBackoffice.evaluateAuthor({
+  author: { pseudo: "Lina Test", slug: "lina-test", validated: true, website: "https://example.test" },
+  presences: [validatedPresenceWithoutPhoto]
+});
+assert.equal(authorWithoutPhoto.ready, false);
+assert.ok(Array.from(authorWithoutPhoto.missing).includes("photo"));
+
+const authorPhotoWithoutPresence = authorBackoffice.evaluateAuthor({
+  author: { pseudo: "Lina Test", avatar_url: "https://images.test/lina.webp", validated: true }
+});
+assert.equal(authorPhotoWithoutPresence.ready, false);
+assert.ok(Array.from(authorPhotoWithoutPresence.missing).includes("presence"));
+
+const completeDraft = authorBackoffice.buildAuthorDraft({
+  author: {
+    id: "author-1",
+    pseudo: "Lina Test",
+    slug: "lina-test",
+    avatar_url: "https://images.test/lina.webp",
+    bio: "Autrice de romans.",
+    website: "https://example.test",
+    validated: true
+  },
+  presences: [
+    { ...validatedPresenceWithoutPhoto, author_id: "author-1", book_or_publisher_url: "https://shop.test/lina" },
+    {
+      id: "presence-ready-2",
+      event_id: "event-past",
+      pseudo: "Lina Test",
+      author_id: "author-1",
+      participant_type: "author",
+      validated: true,
+      rejected: false,
+      events: { id: "event-past", title: "Salon passé", start_date: "2025-03-10", validated: true, rejected: false }
+    }
+  ],
+  now: new Date(2026, 7, 20)
+});
+assert.equal(completeDraft.ready, true);
+assert.equal(completeDraft.status, "ready");
+assert.equal(completeDraft.publishableLater, true);
+assert.equal(completeDraft.upcomingEvents.length, 1);
+assert.equal(completeDraft.pastEvents.length, 1);
+
+const duplicateDraft = authorBackoffice.evaluateAuthor({
+  author: { pseudo: "Lina Test", avatar_url: "https://images.test/lina.webp", validated: true, website: "https://example.test" },
+  presences: [validatedPresenceWithoutPhoto],
+  duplicate: true
+});
+assert.equal(duplicateDraft.ready, false);
+assert.ok(Array.from(duplicateDraft.missing).includes("duplicate"));
+assert.deepEqual(
+  ["author", "artist_author", "hybrid", "publisher"].map((type) => authorBackoffice.evaluateAuthor({ author: { participant_type: type } }).profileLabel),
+  ["Auteur", "Artiste-auteur", "Hybride", "Maison d’édition"]
+);
+assert.equal(authorBackoffice.evaluateAuthor({ author: { pseudo: "Éditions Test", participant_type: "publisher" } }).ready, false);
+
+const authorHtmlSource = fs.readFileSync(path.join(root, "author.html"), "utf8");
+const authorPageSource = fs.readFileSync(path.join(root, "author.js"), "utf8");
+assert.match(authorHtmlSource, /name="robots" content="noindex,nofollow,noarchive,nosnippet"/);
+assert.match(authorHtmlSource, /id="author-events-upcoming"/);
+assert.match(authorHtmlSource, /id="author-events-past"/);
+assert.match(authorHtmlSource, /author-backoffice\.js/);
+assert.doesNotMatch(authorHtmlSource, /tracking-v4\.js/);
+assert.ok(authorPageSource.indexOf("if (!isAdminPreview)") < authorPageSource.indexOf('.from("authors")'));
+assert.ok(authorPageSource.indexOf("client.auth.getSession()") < authorPageSource.indexOf('.from("authors")'));
+assert.match(authorPageSource, /Cette fiche est préparée en back-office et n’est pas publiée/);
+assert.match(authorPageSource, /Historique des présences indiquées sur Dédicalivres/);
+
+async function runAuthorPreviewGate(search, session) {
+  let fromCalls = 0;
+  const nodes = {
+    "author-profile": { innerHTML: "" },
+    "author-events-upcoming": { innerHTML: "" },
+    "author-events-past": { innerHTML: "" },
+    "author-upcoming-section": { hidden: false },
+    "author-past-section": { hidden: false }
+  };
+  const client = {
+    auth: { getSession: async () => ({ data: { session }, error: null }) },
+    from: () => {
+      fromCalls += 1;
+      throw new Error("Aucune requête de données ne doit partir hors aperçu admin authentifié.");
+    }
+  };
+  const previewContext = {
+    URLSearchParams,
+    console,
+    document: {
+      title: "",
+      getElementById: (id) => nodes[id] || null
+    },
+    window: {
+      location: { search },
+      DEDICALIVRES_CONFIG: { supabaseUrl: "https://example.supabase.co", supabaseAnonKey: "public-test" },
+      DEDICALIVRES_AUTHOR_BACKOFFICE: authorBackoffice,
+      supabase: { createClient: () => client }
+    }
+  };
+  vm.createContext(previewContext);
+  vm.runInContext(authorPageSource, previewContext, { filename: "author.js" });
+  await new Promise((resolve) => setImmediate(resolve));
+  return { fromCalls, nodes };
+}
+
+const publicAuthorGate = await runAuthorPreviewGate("?slug=lina-test", null);
+assert.equal(publicAuthorGate.fromCalls, 0);
+assert.match(publicAuthorGate.nodes["author-profile"].innerHTML, /Fiche auteur non publiée/);
+const unauthenticatedPreviewGate = await runAuthorPreviewGate("?slug=lina-test&preview=admin", null);
+assert.equal(unauthenticatedPreviewGate.fromCalls, 0);
+assert.match(unauthenticatedPreviewGate.nodes["author-profile"].innerHTML, /Connexion admin requise/);
+
+const headersSourceForAuthor = fs.readFileSync(path.join(root, "_headers"), "utf8");
+assert.match(headersSourceForAuthor, /\/author\.html[\s\S]*X-Robots-Tag: noindex, nofollow, noarchive, nosnippet/);
+assert.match(headersSourceForAuthor, /\/author\.html[\s\S]*Cache-Control: no-store/);
+assert.match(headersSourceForAuthor, /\/author\n[\s\S]*X-Robots-Tag: noindex, nofollow, noarchive, nosnippet/);
+const robotsSource = fs.readFileSync(path.join(root, "robots.txt"), "utf8");
+assert.match(robotsSource, /Disallow: \/author\.html/);
+assert.match(robotsSource, /Disallow: \/author-backoffice\.js/);
+
 const adminPresenceSource = fs.readFileSync(path.join(root, "admin-author-requests-robust.js"), "utf8");
 assert.match(adminPresenceSource, /if \(response\.error && isMissingColumnError\(response\.error\)\)/);
 assert.match(adminPresenceSource, /id="author-requests-search"/);
@@ -60,6 +202,13 @@ assert.match(adminPresenceSource, /data-author-filter="duplicates">Doublons prob
 assert.match(adminPresenceSource, /Soumise le/);
 assert.match(adminPresenceSource, /groupPresences\(rows\)/);
 assert.doesNotMatch(adminPresenceSource, /data-action="delete"/);
+assert.match(adminPresenceSource, /AUTEUR_PRÊT/);
+assert.match(adminPresenceSource, /Publiable plus tard/);
+assert.match(adminPresenceSource, /Aperçu interne/);
+assert.match(adminPresenceSource, /findAuthorForPresence\(authors, row\)/);
+
+const adminSource = fs.readFileSync(path.join(root, "admin.js"), "utf8");
+assert.match(adminSource, /"author-backoffice\.js",\s*"admin-author-requests-robust\.js"/);
 
 const duplicateSource = fs.readFileSync(path.join(root, "duplicate-detection.js"), "utf8");
 const duplicateContext = { URL };
@@ -150,4 +299,4 @@ secondaryFiles.forEach((file) => {
   assert.match(source, /publisher/);
 });
 
-console.log("V1 enrichie auteur : 62 assertions fonctionnelles et de sécurité validées.");
+console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");
