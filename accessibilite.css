@@ -10,12 +10,12 @@
 /* ---------- Police adaptée à la dyslexie (avec repli local) ---------- */
 @font-face{
   font-family:"OpenDyslexic";
-  src:url("https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/open-dyslexic/otf/OpenDyslexic-Regular.otf") format("opentype");
+  src:url("https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/otf/OpenDyslexic-Regular.otf") format("opentype");
   font-weight:400; font-display:swap;
 }
 @font-face{
   font-family:"OpenDyslexic";
-  src:url("https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/open-dyslexic/otf/OpenDyslexic-Bold.otf") format("opentype");
+  src:url("https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/otf/OpenDyslexic-Bold.otf") format("opentype");
   font-weight:700; font-display:swap;
 }
 
