@@ -675,3 +675,25 @@ html.a11y-soir .wg-back { color: #e6dcf6 !important; }
 html.a11y-soir .wg-back:hover { color: #ffa16f !important; }
 
 
+
+/* =========================================================
+   MOBILE UX AUDIT — 2026-08
+   Positionnement mobile du panneau confort.
+========================================================= */
+
+@media (max-width: 680px) {
+  .a11y-panel--nav {
+    position: fixed;
+    top: 178px;
+    right: 10px;
+    left: auto;
+    bottom: auto;
+    max-width: calc(100vw - 20px);
+  }
+
+  .a11y-panel--nav .a11y-menu {
+    right: 0;
+    left: auto;
+    max-width: calc(100vw - 20px);
+  }
+}
