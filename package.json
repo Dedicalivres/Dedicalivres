@@ -8,7 +8,8 @@
     "test:export": "node test-export.js",
     "test:admin-extract": "node test-admin-extract.js",
     "test:v1-enrichie-auteur": "node scripts/test-v1-enrichie-auteur.mjs",
-    "check": "node --check dedicalivres-daily-export.js && node test-admin-extract.js && node scripts/test-v1-enrichie-auteur.mjs"
+    "check": "node --check dedicalivres-daily-export.js && node test-admin-extract.js && node scripts/test-v1-enrichie-auteur.mjs && node scripts/test-registration-timeline.mjs",
+    "test:registration-timeline": "node scripts/test-registration-timeline.mjs"
   },
   "engines": {
     "node": ">=18"
