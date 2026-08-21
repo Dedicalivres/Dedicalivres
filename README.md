@@ -15,7 +15,8 @@ Site statique pour repertorier les salons du livre, festivals litteraires, dedic
 - `index.html`: page d'accueil et agenda principal.
 - `app.js`: logique publique de l'agenda, filtres, carte, soumission, favoris.
 - `event.html` / `event.js`: fiche evenement publique.
-- `author.html` / `author.js`: fiche auteur publique.
+- `author.html` / `author.js`: aperçu auteur interne, authentifié et non indexé.
+- `author-backoffice.js`: calcul local de préparation `AUTEUR_PRÊT`.
 - `admin.html` / `admin.js`: tableau de bord editorial.
 - `dedicalivres-daily-export.js`: Worker d'exports.
 - `SUPABASE_SECURITY_HARDENING.sql`: policies RLS recommandees.

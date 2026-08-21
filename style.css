@@ -7409,6 +7409,56 @@ body.testimonials-page {
   gap: clamp(18px, 3vw, 28px);
 }
 
+.author-preview-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding: 13px 16px;
+  border: 1px solid rgba(255, 107, 53, .30);
+  border-radius: 16px;
+  background: rgba(255, 107, 53, .09);
+  color: var(--purple);
+}
+
+.author-preview-notice span,
+.author-history-label,
+.author-location,
+.author-preview-missing {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.author-preview-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.author-readiness-incomplete {
+  color: #9f263a;
+  background: rgba(159, 38, 58, .10);
+}
+
+.author-readiness-enrich {
+  color: #9a5500;
+  background: rgba(255, 158, 68, .14);
+}
+
+.author-readiness-ready {
+  color: #15733c;
+  background: rgba(21, 115, 60, .12);
+}
+
+.author-preview-missing {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(58, 28, 113, .12);
+  font-size: .92rem;
+}
+
 .author-avatar,
 .author-avatar-placeholder {
   width: clamp(96px, 13vw, 138px);
@@ -7440,6 +7490,11 @@ body.testimonials-page {
   .author-profile-inner {
     grid-template-columns: 1fr;
     justify-items: start;
+  }
+
+  .author-preview-notice {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

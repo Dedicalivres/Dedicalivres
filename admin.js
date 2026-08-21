@@ -124,6 +124,7 @@ const adminModerationErrors = new Set();
 
 const PROTECTED_ADMIN_MODULES = [
   "admin-visits-counter-fix.js",
+  "author-backoffice.js",
   "admin-author-requests-robust.js",
   "admin-testimonials.js",
   "admin-quality-control.js",

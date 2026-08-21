@@ -25,6 +25,8 @@
   );
 
   let rows = [];
+  let authors = [];
+  let authorsLoadError = "";
   let currentFilter = "pending";
   let currentProfileFilter = "all";
   let currentSearch = "";
@@ -118,6 +120,10 @@
       "book_or_publisher_url",
       "book_or_publisher_url_type",
       "publisher_name",
+      "author_id",
+      "author_slug",
+      "author_identity_key",
+      "author_portrait_url",
       "participant_type",
       "organization_name",
       "contact_name",
@@ -127,7 +133,7 @@
       "validated",
       "rejected",
       "created_at",
-      "events(title, city, region, start_date)"
+      "events(id, title, city, region, start_date, end_date, validated, rejected)"
     ].join(", ");
 
     let response = await supabaseClient
@@ -148,6 +154,7 @@
     if (response.error) {
       console.warn("Admin auteurs : chargement impossible", response.error);
       rows = [];
+      authors = [];
       refreshDuplicateIndex();
       publishAuthorRequestCounter(0, true);
       showListError(response.error.message || "Chargement impossible.");
@@ -160,8 +167,36 @@
         ? row.participant_type
         : "author"
     }));
+    await loadAuthorProfiles();
     refreshDuplicateIndex();
     publishAuthorRequestCounter(rows.filter(isPending).length, false);
+  }
+
+  async function loadAuthorProfiles() {
+    const columns = "id, pseudo, slug, website, bio, avatar_url, validated, created_at";
+    let response = await supabaseClient
+      .from("authors")
+      .select(columns)
+      .order("created_at", { ascending: false })
+      .limit(300);
+
+    if (response.error && isMissingColumnError(response.error)) {
+      response = await supabaseClient
+        .from("authors")
+        .select("id, pseudo, slug, website, validated, created_at")
+        .order("created_at", { ascending: false })
+        .limit(300);
+    }
+
+    if (response.error) {
+      authors = [];
+      authorsLoadError = response.error.message || "Fiches authors indisponibles";
+      console.warn("Admin auteurs : fiches auteurs indisponibles", response.error);
+      return;
+    }
+
+    authors = Array.isArray(response.data) ? response.data : [];
+    authorsLoadError = "";
   }
 
   function render() {
@@ -198,6 +233,7 @@
     const displayName = isPublisher ? row.organization_name || row.pseudo : row.pseudo;
     const duplicate = duplicateById.get(String(row.id || ""));
     const submissionDate = formatSubmissionDate(row.created_at);
+    const authorContext = getAuthorContext(row, !!duplicate);
 
     return `
       <article class="author-request-card${duplicate ? " is-duplicate" : ""}" data-request-id="${escapeAttribute(row.id)}">
@@ -309,6 +345,8 @@
           ${renderCheckLink("Lien auteur", row.author_profile_url || row.website)}
           ${renderCheckLink("Lien livre/éditeur", row.book_or_publisher_url)}
         </div>
+
+        ${renderAuthorReadiness(authorContext, row)}
 
         <div class="author-request-actions">
           <button type="button" class="cyber-btn-secondary" data-action="save">Enregistrer</button>
@@ -496,6 +534,45 @@
         });
       });
     });
+  }
+
+  function getAuthorContext(row, duplicate) {
+    const engine = window.DEDICALIVRES_AUTHOR_BACKOFFICE;
+    if (!engine) return null;
+
+    const author = engine.findAuthorForPresence(authors, row);
+    const presences = engine.getRelatedPresences(rows, row);
+    return engine.buildAuthorDraft({ author, presences, duplicate });
+  }
+
+  function renderAuthorReadiness(context, row) {
+    if (!context) {
+      return `<div class="author-readiness is-incomplete"><strong>Fiche auteur indisponible</strong><small>Moteur de préparation non chargé.</small></div>`;
+    }
+
+    const missing = context.missingLabels.length
+      ? `Manque : ${context.missingLabels.join(" · ")}`
+      : "Aucun élément manquant détecté";
+    const slug = context.slug || row.author_slug || row.author_identity_key || "";
+    const previewLink = slug
+      ? `<a href="author.html?slug=${encodeURIComponent(slug)}&preview=admin" target="_blank" rel="noopener noreferrer">Aperçu interne</a>`
+      : "";
+    const schemaNote = authorsLoadError
+      ? `<small class="author-readiness-warning">Table authors : ${escapeHtml(authorsLoadError)}</small>`
+      : "";
+
+    return `
+      <div class="author-readiness is-${escapeAttribute(context.status)}" data-author-ready="${context.ready ? "true" : "false"}">
+        <div>
+          <span class="author-readiness-status">${escapeHtml(context.statusLabel)}</span>
+          ${context.publishableLater ? `<span class="author-readiness-later">Publiable plus tard</span>` : ""}
+          <strong>AUTEUR_PRÊT : ${context.ready ? "oui" : "non"}</strong>
+          <small>${escapeHtml(missing)}</small>
+          ${schemaNote}
+        </div>
+        ${previewLink}
+      </div>
+    `;
   }
 
   function normalizeSearch(value) {
@@ -795,6 +872,63 @@
         font-weight: 900;
       }
 
+      .author-readiness {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin: 14px 0;
+        padding: 13px 14px;
+        border: 1px solid rgba(255,255,255,.13);
+        border-radius: 16px;
+        background: rgba(255,255,255,.055);
+      }
+
+      .author-readiness > div {
+        display: grid;
+        gap: 5px;
+      }
+
+      .author-readiness-status,
+      .author-readiness-later {
+        display: inline-flex;
+        width: fit-content;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 950;
+      }
+
+      .author-readiness.is-incomplete .author-readiness-status {
+        color: var(--cyber-red);
+        background: rgba(255,95,115,.13);
+      }
+
+      .author-readiness.is-enrich .author-readiness-status {
+        color: var(--cyber-orange);
+        background: rgba(255,158,68,.13);
+      }
+
+      .author-readiness.is-ready .author-readiness-status,
+      .author-readiness-later {
+        color: var(--cyber-green);
+        background: rgba(25,255,156,.12);
+      }
+
+      .author-readiness small {
+        color: var(--cyber-muted);
+      }
+
+      .author-readiness-warning {
+        color: var(--cyber-orange) !important;
+      }
+
+      .author-readiness a {
+        flex: 0 0 auto;
+        color: var(--cyber-cyan);
+        font-weight: 900;
+      }
+
       @media (max-width: 760px) {
         .author-requests-filters {
           grid-template-columns: 1fr;
@@ -806,6 +940,11 @@
 
         .author-request-grid {
           grid-template-columns: 1fr;
+        }
+
+        .author-readiness {
+          align-items: flex-start;
+          flex-direction: column;
         }
       }
     `;

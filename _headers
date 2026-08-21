@@ -45,6 +45,22 @@
 /author-search-index.js
   Cache-Control: no-cache
 
+/author.html
+  X-Robots-Tag: noindex, nofollow, noarchive, nosnippet
+  Cache-Control: no-store
+
+/author
+  X-Robots-Tag: noindex, nofollow, noarchive, nosnippet
+  Cache-Control: no-store
+
+/author.js
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+
+/author-backoffice.js
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+
 /admin-author-requests-robust.js
   X-Robots-Tag: noindex, nofollow, noarchive
   Cache-Control: no-store
