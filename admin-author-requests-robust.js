@@ -30,6 +30,9 @@
   let currentFilter = "pending";
   let currentProfileFilter = "all";
   let currentSearch = "";
+  let currentAuthorPreparationFilter = "all";
+  let currentAuthorPreparationSearch = "";
+  let currentAuthorPreparationSort = "priority";
   let duplicateGroups = [];
   let duplicateById = new Map();
 
@@ -105,6 +108,40 @@
             </p>
           </div>
           <div id="author-preparation-counts" class="author-preparation-counts"></div>
+        </div>
+
+        <div class="author-preparation-tools">
+          <div class="author-preparation-filters" aria-label="Filtres des fiches auteurs préparées">
+            <button type="button" class="is-active" data-author-preparation-filter="all">Toutes</button>
+            <button type="button" data-author-preparation-filter="ready">Prêtes</button>
+            <button type="button" data-author-preparation-filter="enrich">À enrichir</button>
+            <button type="button" data-author-preparation-filter="incomplete">Incomplètes</button>
+            <button type="button" data-author-preparation-filter="duplicate">Doublons</button>
+            <button type="button" data-author-preparation-filter="photo">Photo manquante</button>
+          </div>
+
+          <div class="author-preparation-controls">
+            <label>
+              <span>Rechercher un auteur</span>
+              <input
+                id="author-preparation-search"
+                type="search"
+                placeholder="Nom, profil, élément manquant…"
+                autocomplete="off"
+              />
+            </label>
+
+            <label>
+              <span>Trier par</span>
+              <select id="author-preparation-sort">
+                <option value="priority">Priorité de traitement</option>
+                <option value="name">Nom A → Z</option>
+                <option value="presence">Plus de présences</option>
+              </select>
+            </label>
+          </div>
+
+          <p id="author-preparation-visible-count" class="author-preparation-visible-count"></p>
         </div>
 
         <div id="author-preparation-list" class="author-preparation-list">
@@ -309,9 +346,94 @@
     });
   }
 
+  function filterPreparedAuthors(items) {
+    let filtered = Array.isArray(items) ? [...items] : [];
+
+    if (currentAuthorPreparationFilter === "ready") {
+      filtered = filtered.filter((item) => item.draft.status === "ready");
+    } else if (currentAuthorPreparationFilter === "enrich") {
+      filtered = filtered.filter((item) => item.draft.status === "enrich");
+    } else if (currentAuthorPreparationFilter === "incomplete") {
+      filtered = filtered.filter((item) => item.draft.status === "incomplete");
+    } else if (currentAuthorPreparationFilter === "duplicate") {
+      filtered = filtered.filter((item) => item.draft.duplicate === true);
+    } else if (currentAuthorPreparationFilter === "photo") {
+      filtered = filtered.filter((item) => !item.draft.photo);
+    }
+
+    const query = normalizeSearch(currentAuthorPreparationSearch);
+
+    if (query) {
+      filtered = filtered.filter((item) => {
+        const draft = item.draft || {};
+
+        return normalizeSearch([
+          draft.identity,
+          draft.profileLabel,
+          draft.location,
+          ...(draft.missingLabels || [])
+        ].filter(Boolean).join(" ")).includes(query);
+      });
+    }
+
+    return sortPreparedAuthors(filtered, currentAuthorPreparationSort);
+  }
+
+  function sortPreparedAuthors(items, sortMode) {
+    const result = [...items];
+
+    if (sortMode === "name") {
+      return result.sort((left, right) =>
+        String(left.draft.identity || "")
+          .localeCompare(String(right.draft.identity || ""), "fr")
+      );
+    }
+
+    if (sortMode === "presence") {
+      return result.sort((left, right) => {
+        const leftCount = left.presences.filter(
+          (row) => row.validated === true && row.rejected !== true
+        ).length;
+
+        const rightCount = right.presences.filter(
+          (row) => row.validated === true && row.rejected !== true
+        ).length;
+
+        if (rightCount !== leftCount) return rightCount - leftCount;
+
+        return String(left.draft.identity || "")
+          .localeCompare(String(right.draft.identity || ""), "fr");
+      });
+    }
+
+    return result.sort((left, right) => {
+      const priority = (item) => {
+        if (item.draft.duplicate === true) return 0;
+        if (!item.draft.photo) return 1;
+        if (item.draft.status === "incomplete") return 2;
+        if (item.draft.status === "enrich") return 3;
+        if (item.draft.status === "ready") return 4;
+        return 5;
+      };
+
+      const priorityDiff = priority(left) - priority(right);
+      if (priorityDiff) return priorityDiff;
+
+      const historyDiff =
+        (right.draft.historyCount || 0) -
+        (left.draft.historyCount || 0);
+
+      if (historyDiff) return historyDiff;
+
+      return String(left.draft.identity || "")
+        .localeCompare(String(right.draft.identity || ""), "fr");
+    });
+  }
+
   function renderAuthorPreparationCockpit() {
     const counts = document.getElementById("author-preparation-counts");
     const list = document.getElementById("author-preparation-list");
+    const visibleCount = document.getElementById("author-preparation-visible-count");
 
     if (!counts || !list) return;
 
@@ -321,7 +443,8 @@
       ready: prepared.filter((item) => item.draft.status === "ready").length,
       enrich: prepared.filter((item) => item.draft.status === "enrich").length,
       incomplete: prepared.filter((item) => item.draft.status === "incomplete").length,
-      duplicate: prepared.filter((item) => item.draft.duplicate === true).length
+      duplicate: prepared.filter((item) => item.draft.duplicate === true).length,
+      photo: prepared.filter((item) => !item.draft.photo).length
     };
 
     counts.innerHTML = `
@@ -329,19 +452,53 @@
       <span class="author-preparation-count is-enrich">${summary.enrich} à enrichir</span>
       <span class="author-preparation-count is-incomplete">${summary.incomplete} incomplète(s)</span>
       <span class="author-preparation-count is-duplicate">${summary.duplicate} doublon(s)</span>
+      <span class="author-preparation-count is-photo">${summary.photo} photo(s) manquante(s)</span>
     `;
 
+    const filtered = filterPreparedAuthors(prepared);
+
+    if (visibleCount) {
+      visibleCount.textContent =
+        `${filtered.length} fiche(s) affichée(s) sur ${prepared.length}`;
+    }
+
+    document.querySelectorAll("[data-author-preparation-filter]").forEach((button) => {
+      const active =
+        button.dataset.authorPreparationFilter === currentAuthorPreparationFilter;
+
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+
+    const searchInput = document.getElementById("author-preparation-search");
+    if (searchInput && searchInput.value !== currentAuthorPreparationSearch) {
+      searchInput.value = currentAuthorPreparationSearch;
+    }
+
+    const sortSelect = document.getElementById("author-preparation-sort");
+    if (sortSelect && sortSelect.value !== currentAuthorPreparationSort) {
+      sortSelect.value = currentAuthorPreparationSort;
+    }
+
     if (!prepared.length) {
-      list.innerHTML = `<p class="priority-empty">Aucune identité auteur exploitable pour le moment.</p>`;
+      list.innerHTML =
+        `<p class="priority-empty">Aucune identité auteur exploitable pour le moment.</p>`;
       return;
     }
 
-    list.innerHTML = prepared.map(({ draft, presences }) => {
+    if (!filtered.length) {
+      list.innerHTML =
+        `<p class="priority-empty">Aucune fiche auteur ne correspond à ces critères.</p>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(({ draft, presences }) => {
       const validPresenceCount = presences.filter(
         (row) => row.validated === true && row.rejected !== true
       ).length;
 
       const slug = draft.slug || "";
+
       const previewLink = slug
         ? `<a href="author.html?slug=${encodeURIComponent(slug)}&preview=admin" target="_blank" rel="noopener noreferrer">Aperçu interne</a>`
         : `<span class="author-preparation-no-preview">Aperçu indisponible</span>`;
@@ -350,8 +507,23 @@
         ? draft.missingLabels.join(" · ")
         : "Aucun élément bloquant";
 
+      let priorityLabel = "Prête pour plus tard";
+
+      if (draft.duplicate) {
+        priorityLabel = "Priorité : résoudre le doublon";
+      } else if (!draft.photo) {
+        priorityLabel = "Priorité : ajouter une photo";
+      } else if (draft.status === "incomplete") {
+        priorityLabel = "Priorité : compléter la fiche";
+      } else if (draft.status === "enrich") {
+        priorityLabel = "À enrichir";
+      }
+
       return `
-        <article class="author-preparation-card is-${escapeAttribute(draft.status)}${draft.duplicate ? " has-duplicate" : ""}">
+        <article
+          class="author-preparation-card is-${escapeAttribute(draft.status)}${draft.duplicate ? " has-duplicate" : ""}"
+          data-author-preparation-status="${escapeAttribute(draft.status)}"
+        >
           <div class="author-preparation-main">
             <div>
               <strong>${escapeHtml(draft.identity || "Identité inconnue")}</strong>
@@ -363,11 +535,19 @@
             </span>
           </div>
 
+          <div class="author-preparation-priority">
+            ${escapeHtml(priorityLabel)}
+          </div>
+
           <div class="author-preparation-meta">
             <span>${validPresenceCount} présence(s) validée(s)</span>
             <span>${draft.historyCount || 0} événement(s) historique(s)</span>
-            ${draft.photo ? `<span>Photo OK</span>` : `<span>Photo manquante</span>`}
-            ${draft.duplicate ? `<span class="is-warning">Doublon à résoudre</span>` : ""}
+            ${draft.photo
+              ? `<span class="is-photo-ok">Photo OK</span>`
+              : `<span class="is-photo-missing">Photo manquante</span>`}
+            ${draft.duplicate
+              ? `<span class="is-warning">Doublon à résoudre</span>`
+              : ""}
           </div>
 
           <p class="author-preparation-missing">
@@ -517,6 +697,16 @@
   }
 
   async function handlePanelClick(event) {
+    const authorPreparationFilter = event.target.closest("[data-author-preparation-filter]");
+
+    if (authorPreparationFilter) {
+      currentAuthorPreparationFilter =
+        authorPreparationFilter.dataset.authorPreparationFilter || "all";
+
+      renderAuthorPreparationCockpit();
+      return;
+    }
+
     const filterButton = event.target.closest("[data-author-filter]");
     if (filterButton) {
       currentFilter = filterButton.dataset.authorFilter || "pending";
@@ -548,6 +738,14 @@
   }
 
   function handlePanelChange(event) {
+    const authorPreparationSort = event.target.closest("#author-preparation-sort");
+
+    if (authorPreparationSort) {
+      currentAuthorPreparationSort = authorPreparationSort.value || "priority";
+      renderAuthorPreparationCockpit();
+      return;
+    }
+
     const profileFilter = event.target.closest("#author-requests-profile-filter");
     if (profileFilter) {
       currentProfileFilter = profileFilter.value || "all";
@@ -561,8 +759,17 @@
   }
 
   function handlePanelInput(event) {
+    const authorPreparationSearch = event.target.closest("#author-preparation-search");
+
+    if (authorPreparationSearch) {
+      currentAuthorPreparationSearch = authorPreparationSearch.value || "";
+      renderAuthorPreparationCockpit();
+      return;
+    }
+
     const search = event.target.closest("#author-requests-search");
     if (!search) return;
+
     currentSearch = search.value || "";
     render();
   }
@@ -966,6 +1173,113 @@
         background: rgba(255,158,68,.14);
       }
 
+      .author-preparation-tools {
+        display: grid;
+        gap: 12px;
+        margin: 0 0 16px;
+        padding: 12px;
+        border-radius: 16px;
+        background: rgba(255,255,255,.035);
+        border: 1px solid rgba(255,255,255,.08);
+      }
+
+      .author-preparation-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .author-preparation-filters button {
+        min-height: 34px;
+        padding: 7px 10px;
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 999px;
+        background: rgba(255,255,255,.05);
+        color: var(--cyber-muted);
+        font: inherit;
+        font-size: .72rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .author-preparation-filters button:hover,
+      .author-preparation-filters button.is-active {
+        color: var(--cyber-cyan);
+        border-color: rgba(45,214,255,.46);
+        background: rgba(45,214,255,.10);
+      }
+
+      .author-preparation-controls {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) minmax(180px, .4fr);
+        gap: 10px;
+      }
+
+      .author-preparation-controls label {
+        display: grid;
+        gap: 5px;
+      }
+
+      .author-preparation-controls label > span {
+        color: var(--cyber-muted);
+        font-size: .72rem;
+        font-weight: 900;
+      }
+
+      .author-preparation-controls input,
+      .author-preparation-controls select {
+        width: 100%;
+        min-height: 40px;
+        padding: 9px 11px;
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 11px;
+        background: rgba(255,255,255,.94);
+        color: #111;
+        font: inherit;
+      }
+
+      .author-preparation-visible-count {
+        margin: 0;
+        color: var(--cyber-muted);
+        font-size: .74rem;
+        font-weight: 800;
+      }
+
+      .author-preparation-count.is-photo {
+        color: #ffb58a;
+        background: rgba(255,107,53,.14);
+      }
+
+      .author-preparation-priority {
+        display: inline-flex;
+        margin-top: 10px;
+        padding: 4px 8px;
+        border-radius: 8px;
+        background: rgba(255,255,255,.055);
+        color: #e8edf2;
+        font-size: .7rem;
+        font-weight: 900;
+      }
+
+      .author-preparation-card.has-duplicate .author-preparation-priority {
+        color: var(--cyber-orange);
+        background: rgba(255,158,68,.12);
+      }
+
+      .author-preparation-card.is-incomplete:not(.has-duplicate) .author-preparation-priority {
+        color: #ffb58a;
+      }
+
+      .author-preparation-meta .is-photo-ok {
+        color: #91e6af;
+        font-weight: 800;
+      }
+
+      .author-preparation-meta .is-photo-missing {
+        color: #ffb58a;
+        font-weight: 900;
+      }
+
       .author-preparation-list {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1063,6 +1377,18 @@
 
         .author-preparation-counts {
           justify-content: flex-start;
+        }
+
+        .author-preparation-controls {
+          grid-template-columns: 1fr;
+        }
+
+        .author-preparation-filters {
+          gap: 6px;
+        }
+
+        .author-preparation-filters button {
+          flex: 1 1 auto;
         }
 
         .author-preparation-list {
