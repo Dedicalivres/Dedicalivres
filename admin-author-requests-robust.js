@@ -326,7 +326,8 @@
       return {
         key,
         draft,
-        presences
+        presences,
+        author: author || null
       };
     }).sort((left, right) => {
       const rank = {
@@ -492,7 +493,7 @@
       return;
     }
 
-    list.innerHTML = filtered.map(({ draft, presences }) => {
+    list.innerHTML = filtered.map(({ draft, presences, author }) => {
       const validPresenceCount = presences.filter(
         (row) => row.validated === true && row.rejected !== true
       ).length;
@@ -515,6 +516,14 @@
              data-presence-id="${escapeAttribute(targetPresenceId)}"
              data-author-name="${escapeAttribute(draft.identity || "")}"
            >${draft.duplicate ? "Voir les doublons" : "Voir la présence"}</button>`
+        : "";
+
+      const editAuthorAction = author?.id
+        ? `<button
+             type="button"
+             class="author-preparation-edit"
+             data-author-edit-id="${escapeAttribute(author.id)}"
+           >Modifier la fiche</button>`
         : "";
 
       const missing = draft.missingLabels.length
@@ -570,6 +579,7 @@
 
           <div class="author-preparation-actions">
             ${moderationAction}
+            ${editAuthorAction}
             ${previewLink}
           </div>
         </article>
@@ -747,6 +757,29 @@
       return;
     }
 
+    const authorEditButton = event.target.closest("[data-author-edit-id]");
+
+    if (authorEditButton) {
+      openAuthorEditor(authorEditButton.dataset.authorEditId);
+      return;
+    }
+
+    const authorEditorAction = event.target.closest("[data-author-editor-action]");
+
+    if (authorEditorAction) {
+      const action = authorEditorAction.dataset.authorEditorAction;
+
+      if (action === "cancel") {
+        closeAuthorEditor();
+        return;
+      }
+
+      if (action === "save") {
+        await saveAuthorEditor();
+        return;
+      }
+    }
+
     const actionButton = event.target.closest("[data-action]");
     if (!actionButton) return;
 
@@ -757,6 +790,142 @@
     const action = actionButton.dataset.action;
 
     await updateRequestFromCard(id, card, action);
+  }
+
+  function openAuthorEditor(authorId) {
+    const author = authors.find((item) => String(item.id || "") === String(authorId || ""));
+
+    if (!author) {
+      toast("Fiche auteur introuvable");
+      return;
+    }
+
+    closeAuthorEditor();
+
+    const wrapper = document.createElement("div");
+    wrapper.id = "author-editor-overlay";
+    wrapper.className = "author-editor-overlay";
+
+    wrapper.innerHTML = `
+      <section class="author-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="author-editor-title">
+        <div class="author-editor-head">
+          <div>
+            <h4 id="author-editor-title">MODIFIER LA FICHE AUTEUR</h4>
+            <p>Modification interne. Cette action ne publie pas la fiche auteur.</p>
+          </div>
+          <button type="button" class="author-editor-close" data-author-editor-action="cancel" aria-label="Fermer">×</button>
+        </div>
+
+        <input type="hidden" id="author-editor-id" value="${escapeAttribute(author.id)}" />
+
+        <div class="author-editor-grid">
+          <label>
+            <span>Nom / pseudo</span>
+            <input id="author-editor-pseudo" value="${escapeAttribute(author.pseudo || "")}" />
+          </label>
+
+          <label>
+            <span>Slug</span>
+            <input id="author-editor-slug" value="${escapeAttribute(author.slug || "")}" readonly />
+          </label>
+
+          <label class="author-editor-full">
+            <span>Biographie</span>
+            <textarea id="author-editor-bio" rows="7">${escapeHtml(author.bio || "")}</textarea>
+          </label>
+
+          <label>
+            <span>Site principal</span>
+            <input id="author-editor-website" type="url" value="${escapeAttribute(author.website || "")}" placeholder="https://..." />
+          </label>
+
+          <label>
+            <span>Photo / avatar</span>
+            <input id="author-editor-avatar" type="url" value="${escapeAttribute(author.avatar_url || "")}" placeholder="https://..." />
+          </label>
+
+          <label class="author-editor-check">
+            <input id="author-editor-validated" type="checkbox" ${author.validated === true ? "checked" : ""} />
+            <span>Fiche validée en interne</span>
+          </label>
+        </div>
+
+        <div class="author-editor-warning">
+          Aucun changement n’est publié automatiquement sur le site public.
+        </div>
+
+        <div class="author-editor-actions">
+          <button type="button" class="cyber-btn-secondary" data-author-editor-action="cancel">Annuler</button>
+          <button type="button" class="cyber-btn-primary" data-author-editor-action="save">Enregistrer la fiche</button>
+        </div>
+      </section>
+    `;
+
+    document.body.appendChild(wrapper);
+
+    const firstInput = wrapper.querySelector("#author-editor-pseudo");
+    if (firstInput) firstInput.focus();
+  }
+
+  function closeAuthorEditor() {
+    document.getElementById("author-editor-overlay")?.remove();
+  }
+
+  async function saveAuthorEditor() {
+    const id = document.getElementById("author-editor-id")?.value || "";
+    const pseudo = String(document.getElementById("author-editor-pseudo")?.value || "").trim();
+    const bio = String(document.getElementById("author-editor-bio")?.value || "").trim();
+    const websiteRaw = String(document.getElementById("author-editor-website")?.value || "").trim();
+    const avatarRaw = String(document.getElementById("author-editor-avatar")?.value || "").trim();
+    const validated = document.getElementById("author-editor-validated")?.checked === true;
+
+    if (!id) {
+      toast("Identifiant auteur manquant");
+      return;
+    }
+
+    if (!pseudo) {
+      toast("Le nom / pseudo est obligatoire");
+      return;
+    }
+
+    const website = normalizeOptionalUrl(websiteRaw);
+    const avatarUrl = normalizeOptionalUrl(avatarRaw);
+
+    if (websiteRaw && !website) {
+      toast("URL du site invalide");
+      return;
+    }
+
+    if (avatarRaw && !avatarUrl) {
+      toast("URL de la photo invalide");
+      return;
+    }
+
+    const payload = {
+      pseudo,
+      bio: bio || null,
+      website: website || null,
+      avatar_url: avatarUrl || null,
+      validated,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabaseClient
+      .from("authors")
+      .update(payload)
+      .eq("id", id);
+
+    if (error) {
+      console.warn("Admin auteurs : mise à jour fiche impossible", error);
+      toast("Erreur lors de l’enregistrement de la fiche auteur");
+      return;
+    }
+
+    closeAuthorEditor();
+    await loadRows();
+    render();
+    toast("Fiche auteur enregistrée");
   }
 
   function focusPresenceFromCockpit(button) {
@@ -1470,6 +1639,140 @@
         background: rgba(45,214,255,.15);
       }
 
+      .author-preparation-edit {
+        min-height: 34px;
+        padding: 6px 10px;
+        border: 1px solid rgba(25,255,156,.35);
+        border-radius: 9px;
+        background: rgba(25,255,156,.08);
+        color: var(--cyber-green);
+        font: inherit;
+        font-size: .76rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .author-preparation-edit:hover,
+      .author-preparation-edit:focus-visible {
+        border-color: var(--cyber-green);
+        background: rgba(25,255,156,.14);
+      }
+
+      .author-editor-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(0,0,0,.72);
+        backdrop-filter: blur(6px);
+      }
+
+      .author-editor-dialog {
+        width: min(760px, 100%);
+        max-height: 90vh;
+        overflow: auto;
+        padding: 20px;
+        border: 1px solid rgba(45,214,255,.28);
+        border-radius: 18px;
+        background: #09130f;
+        box-shadow: 0 24px 80px rgba(0,0,0,.55);
+      }
+
+      .author-editor-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+        margin-bottom: 18px;
+      }
+
+      .author-editor-head h4 {
+        margin: 0 0 5px;
+      }
+
+      .author-editor-head p {
+        margin: 0;
+        color: var(--cyber-muted);
+        font-size: .78rem;
+      }
+
+      .author-editor-close {
+        min-width: 36px;
+        min-height: 36px;
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 10px;
+        background: rgba(255,255,255,.06);
+        color: #fff;
+        font-size: 1.4rem;
+        cursor: pointer;
+      }
+
+      .author-editor-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .author-editor-grid label {
+        display: grid;
+        gap: 6px;
+      }
+
+      .author-editor-grid label > span {
+        color: var(--cyber-muted);
+        font-size: .74rem;
+        font-weight: 900;
+      }
+
+      .author-editor-grid input,
+      .author-editor-grid textarea {
+        width: 100%;
+        padding: 10px 11px;
+        border: 1px solid rgba(255,255,255,.15);
+        border-radius: 10px;
+        background: rgba(255,255,255,.95);
+        color: #111;
+        font: inherit;
+      }
+
+      .author-editor-grid textarea {
+        resize: vertical;
+      }
+
+      .author-editor-full {
+        grid-column: 1 / -1;
+      }
+
+      .author-editor-check {
+        grid-column: 1 / -1;
+        display: flex !important;
+        align-items: center;
+        gap: 8px !important;
+      }
+
+      .author-editor-check input {
+        width: 18px;
+        height: 18px;
+      }
+
+      .author-editor-warning {
+        margin-top: 14px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(255,210,111,.08);
+        color: #ffe5a3;
+        font-size: .75rem;
+      }
+
+      .author-editor-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 16px;
+      }
+
       .author-request-card.is-cockpit-focused {
         outline: 3px solid var(--cyber-cyan);
         outline-offset: 4px;
@@ -1493,6 +1796,23 @@
 
         .author-preparation-controls {
           grid-template-columns: 1fr;
+        }
+
+        .author-editor-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .author-editor-full,
+        .author-editor-check {
+          grid-column: auto;
+        }
+
+        .author-editor-actions {
+          flex-direction: column-reverse;
+        }
+
+        .author-editor-actions button {
+          width: 100%;
         }
 
         .author-preparation-filters {
