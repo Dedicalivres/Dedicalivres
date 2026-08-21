@@ -2954,6 +2954,17 @@
     map.setView([userPosition.lat, userPosition.lng], zoom);
   }
 
+  function centerMapOnGlobalView() {
+    if (!map) return;
+
+    const mapView = geo?.getMapView("") || {
+      center: [47.2, 5.1],
+      zoom: 5
+    };
+
+    map.setView(mapView.center, mapView.zoom);
+  }
+
   function getGeolocationErrorMessage(error) {
     if (!error || typeof error.code !== "number") {
       return "Impossible de récupérer votre position pour le moment.";
@@ -3164,6 +3175,7 @@
     calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
     renderFilteredEvents();
+    centerMapOnGlobalView();
   }
 
   function setLoadingState() {
