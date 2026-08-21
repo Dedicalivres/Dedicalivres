@@ -8189,3 +8189,175 @@ html.a11y-soir .participant-option-artist { color: #d5b3ff; }
     max-width: 20px;
   }
 }
+
+/* =========================================================
+   PRÉSENCES DÉCLARÉES — identité visuelle par profil
+   Auteur / Artiste-auteur / Hybride / Maison d’édition
+========================================================= */
+
+.author-presence-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease,
+    background .18s ease;
+}
+
+.author-presence-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Auteur — émeraude */
+.author-presence-card.participant-author {
+  border-color: rgba(22, 128, 60, .32);
+  background:
+    linear-gradient(135deg, rgba(22, 128, 60, .07), rgba(255,255,255,.92));
+  box-shadow:
+    inset 4px 0 0 #16803c,
+    0 8px 22px rgba(22, 128, 60, .06);
+}
+
+.author-presence-card.participant-author .author-presence-card-main small {
+  color: #126a33;
+}
+
+/* Artiste-auteur — améthyste */
+.author-presence-card.participant-artist_author {
+  border-color: rgba(155, 106, 214, .56);
+  background:
+    linear-gradient(135deg, rgba(155, 106, 214, .10), rgba(255,255,255,.92));
+  box-shadow:
+    inset 4px 0 0 #9b6ad6,
+    0 8px 22px rgba(155, 106, 214, .08);
+}
+
+.author-presence-card.participant-artist_author .author-presence-card-main small {
+  color: #6f3bbd;
+}
+
+/* Hybride — fusion améthyste / émeraude */
+.author-presence-card.participant-hybrid {
+  border-color: rgba(91, 111, 153, .32);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(155, 106, 214, .09),
+      rgba(22, 128, 60, .07),
+      rgba(255,255,255,.94)
+    );
+}
+
+.author-presence-card.participant-hybrid::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  content: "";
+  background:
+    linear-gradient(
+      180deg,
+      #9b6ad6 0 50%,
+      #16803c 50% 100%
+    );
+}
+
+.author-presence-card.participant-hybrid .author-presence-card-main small {
+  color: #536288;
+}
+
+/* Maison d’édition — institutionnel */
+.author-presence-card.participant-publisher {
+  border: 1px solid rgba(48, 67, 94, .34);
+  background:
+    linear-gradient(135deg, rgba(48, 67, 94, .08), rgba(255,255,255,.94));
+  box-shadow:
+    inset 4px 0 0 #30435e,
+    0 8px 22px rgba(48, 67, 94, .07);
+}
+
+.author-presence-card.participant-publisher .author-presence-card-main small {
+  color: #30435e;
+}
+
+.author-presence-card.participant-publisher .author-presence-avatar {
+  border-radius: 12px;
+  background: rgba(48, 67, 94, .08);
+}
+
+/* Avatar cohérent avec le profil */
+.author-presence-card.participant-author .author-presence-avatar {
+  box-shadow:
+    0 0 0 2px rgba(22,128,60,.18),
+    0 10px 22px rgba(22,128,60,.08);
+}
+
+.author-presence-card.participant-artist_author .author-presence-avatar {
+  box-shadow:
+    0 0 0 2px rgba(155,106,214,.20),
+    0 10px 22px rgba(155,106,214,.10);
+}
+
+.author-presence-card.participant-hybrid .author-presence-avatar {
+  box-shadow:
+    0 0 0 2px rgba(107,97,174,.18),
+    0 10px 22px rgba(107,97,174,.09);
+}
+
+/* Mode soirée */
+html.a11y-soir .author-presence-card.participant-author {
+  background: rgba(22,128,60,.14);
+  border-color: rgba(145,230,175,.34);
+}
+
+html.a11y-soir .author-presence-card.participant-author .author-presence-card-main small {
+  color: #91e6af;
+}
+
+html.a11y-soir .author-presence-card.participant-artist_author {
+  background: rgba(155,106,214,.14);
+  border-color: rgba(213,179,255,.38);
+}
+
+html.a11y-soir .author-presence-card.participant-artist_author .author-presence-card-main small {
+  color: #d5b3ff;
+}
+
+html.a11y-soir .author-presence-card.participant-hybrid {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(155,106,214,.14),
+      rgba(22,128,60,.12)
+    );
+}
+
+html.a11y-soir .author-presence-card.participant-hybrid .author-presence-card-main small {
+  color: #c7d6f0;
+}
+
+html.a11y-soir .author-presence-card.participant-publisher {
+  background: rgba(86,108,140,.16);
+  border-color: rgba(166,188,218,.32);
+}
+
+html.a11y-soir .author-presence-card.participant-publisher .author-presence-card-main small {
+  color: #b9c9df;
+}
+
+@media (max-width: 760px) {
+  .author-presence-card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .author-presence-card-main {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .author-presence-card-main strong,
+  .author-presence-card-main small {
+    overflow-wrap: anywhere;
+  }
+}
