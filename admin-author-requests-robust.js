@@ -96,6 +96,22 @@
         </label>
       </div>
 
+      <section class="author-preparation-cockpit" aria-labelledby="author-preparation-title">
+        <div class="author-preparation-head">
+          <div>
+            <h4 id="author-preparation-title">FICHES AUTEURS PRÉPARÉES</h4>
+            <p>
+              Préparation interne uniquement. Aucune fiche n’est publiée ou créée automatiquement en base.
+            </p>
+          </div>
+          <div id="author-preparation-counts" class="author-preparation-counts"></div>
+        </div>
+
+        <div id="author-preparation-list" class="author-preparation-list">
+          Chargement…
+        </div>
+      </section>
+
       <div id="author-requests-list" class="author-requests-list">
         Chargement…
       </div>
@@ -227,12 +243,143 @@
       publishAuthorRequestCounter(pending, false);
     }
 
+    renderAuthorPreparationCockpit();
+
     if (!filtered.length) {
       list.innerHTML = `<p class="priority-empty">Aucune déclaration de présence pour ce filtre.</p>`;
       return;
     }
 
     list.innerHTML = filtered.map(renderCard).join("");
+  }
+
+  function buildPreparedAuthors() {
+    const engine = window.DEDICALIVRES_AUTHOR_BACKOFFICE;
+    if (!engine) return [];
+
+    const grouped = new Map();
+
+    rows
+      .filter((row) => row.participant_type !== "publisher")
+      .forEach((row) => {
+        const key = engine.getIdentityKey(row);
+        if (!key) return;
+
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(row);
+      });
+
+    return Array.from(grouped.entries()).map(([key, presences]) => {
+      const reference = presences[0];
+      const author = engine.findAuthorForPresence(authors, reference);
+      const duplicate = presences.some((row) => duplicateById.has(String(row.id || "")));
+      const draft = engine.buildAuthorDraft({
+        author: author || {
+          pseudo: engine.getPresenceName(reference),
+          slug: reference.author_slug || reference.author_identity_key || "",
+          participant_type: reference.participant_type,
+          avatar_url: reference.author_portrait_url || null,
+          website: reference.author_profile_url || reference.website || null,
+          validated: presences.some((row) => row.validated === true)
+        },
+        presences,
+        duplicate
+      });
+
+      return {
+        key,
+        draft,
+        presences
+      };
+    }).sort((left, right) => {
+      const rank = {
+        ready: 0,
+        enrich: 1,
+        incomplete: 2
+      };
+
+      const statusDiff =
+        (rank[left.draft.status] ?? 9) -
+        (rank[right.draft.status] ?? 9);
+
+      if (statusDiff) return statusDiff;
+
+      return String(left.draft.identity || "")
+        .localeCompare(String(right.draft.identity || ""), "fr");
+    });
+  }
+
+  function renderAuthorPreparationCockpit() {
+    const counts = document.getElementById("author-preparation-counts");
+    const list = document.getElementById("author-preparation-list");
+
+    if (!counts || !list) return;
+
+    const prepared = buildPreparedAuthors();
+
+    const summary = {
+      ready: prepared.filter((item) => item.draft.status === "ready").length,
+      enrich: prepared.filter((item) => item.draft.status === "enrich").length,
+      incomplete: prepared.filter((item) => item.draft.status === "incomplete").length,
+      duplicate: prepared.filter((item) => item.draft.duplicate === true).length
+    };
+
+    counts.innerHTML = `
+      <span class="author-preparation-count is-ready">${summary.ready} prête(s)</span>
+      <span class="author-preparation-count is-enrich">${summary.enrich} à enrichir</span>
+      <span class="author-preparation-count is-incomplete">${summary.incomplete} incomplète(s)</span>
+      <span class="author-preparation-count is-duplicate">${summary.duplicate} doublon(s)</span>
+    `;
+
+    if (!prepared.length) {
+      list.innerHTML = `<p class="priority-empty">Aucune identité auteur exploitable pour le moment.</p>`;
+      return;
+    }
+
+    list.innerHTML = prepared.map(({ draft, presences }) => {
+      const validPresenceCount = presences.filter(
+        (row) => row.validated === true && row.rejected !== true
+      ).length;
+
+      const slug = draft.slug || "";
+      const previewLink = slug
+        ? `<a href="author.html?slug=${encodeURIComponent(slug)}&preview=admin" target="_blank" rel="noopener noreferrer">Aperçu interne</a>`
+        : `<span class="author-preparation-no-preview">Aperçu indisponible</span>`;
+
+      const missing = draft.missingLabels.length
+        ? draft.missingLabels.join(" · ")
+        : "Aucun élément bloquant";
+
+      return `
+        <article class="author-preparation-card is-${escapeAttribute(draft.status)}${draft.duplicate ? " has-duplicate" : ""}">
+          <div class="author-preparation-main">
+            <div>
+              <strong>${escapeHtml(draft.identity || "Identité inconnue")}</strong>
+              <small>${escapeHtml(draft.profileLabel || "Auteur")}</small>
+            </div>
+
+            <span class="author-preparation-status is-${escapeAttribute(draft.status)}">
+              ${escapeHtml(draft.statusLabel)}
+            </span>
+          </div>
+
+          <div class="author-preparation-meta">
+            <span>${validPresenceCount} présence(s) validée(s)</span>
+            <span>${draft.historyCount || 0} événement(s) historique(s)</span>
+            ${draft.photo ? `<span>Photo OK</span>` : `<span>Photo manquante</span>`}
+            ${draft.duplicate ? `<span class="is-warning">Doublon à résoudre</span>` : ""}
+          </div>
+
+          <p class="author-preparation-missing">
+            ${escapeHtml(missing)}
+          </p>
+
+          <div class="author-preparation-actions">
+            ${previewLink}
+          </div>
+        </article>
+      `;
+    }).join("");
   }
 
   function renderCard(row) {
@@ -746,6 +893,181 @@
         background: rgba(255,255,255,.94);
         color: #111;
         font: inherit;
+      }
+
+      .author-preparation-cockpit {
+        margin: 18px 0 24px;
+        padding: 18px;
+        border: 1px solid rgba(45,214,255,.18);
+        border-radius: 22px;
+        background: rgba(7,18,22,.82);
+      }
+
+      .author-preparation-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .author-preparation-head h4 {
+        margin: 0;
+        font-size: .95rem;
+        letter-spacing: .04em;
+      }
+
+      .author-preparation-head p {
+        margin: 6px 0 0;
+        max-width: 720px;
+        color: var(--cyber-muted);
+        font-size: .8rem;
+        line-height: 1.45;
+      }
+
+      .author-preparation-counts {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 7px;
+      }
+
+      .author-preparation-count {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .author-preparation-count.is-ready,
+      .author-preparation-status.is-ready {
+        color: #91e6af;
+        background: rgba(22,128,60,.22);
+      }
+
+      .author-preparation-count.is-enrich,
+      .author-preparation-status.is-enrich {
+        color: #ffd26f;
+        background: rgba(255,210,111,.14);
+      }
+
+      .author-preparation-count.is-incomplete,
+      .author-preparation-status.is-incomplete {
+        color: #c7d6f0;
+        background: rgba(91,111,153,.22);
+      }
+
+      .author-preparation-count.is-duplicate {
+        color: var(--cyber-orange);
+        background: rgba(255,158,68,.14);
+      }
+
+      .author-preparation-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+      }
+
+      .author-preparation-card {
+        padding: 14px;
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 16px;
+        background: rgba(255,255,255,.035);
+      }
+
+      .author-preparation-card.is-ready {
+        border-color: rgba(22,128,60,.48);
+      }
+
+      .author-preparation-card.is-enrich {
+        border-color: rgba(255,210,111,.30);
+      }
+
+      .author-preparation-card.has-duplicate {
+        border-color: rgba(255,158,68,.72);
+        box-shadow: inset 4px 0 0 var(--cyber-orange);
+      }
+
+      .author-preparation-main {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .author-preparation-main strong,
+      .author-preparation-main small {
+        display: block;
+      }
+
+      .author-preparation-main small {
+        margin-top: 4px;
+        color: var(--cyber-muted);
+      }
+
+      .author-preparation-status {
+        flex: 0 0 auto;
+        padding: 5px 8px;
+        border-radius: 999px;
+        font-size: .7rem;
+        font-weight: 900;
+      }
+
+      .author-preparation-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        margin-top: 12px;
+        color: var(--cyber-muted);
+        font-size: .74rem;
+      }
+
+      .author-preparation-meta .is-warning {
+        color: var(--cyber-orange);
+        font-weight: 900;
+      }
+
+      .author-preparation-missing {
+        margin: 10px 0 0;
+        color: var(--cyber-muted);
+        font-size: .76rem;
+        line-height: 1.4;
+      }
+
+      .author-preparation-actions {
+        margin-top: 11px;
+      }
+
+      .author-preparation-actions a,
+      .author-preparation-no-preview {
+        font-size: .76rem;
+        font-weight: 900;
+      }
+
+      .author-preparation-actions a {
+        color: var(--cyber-cyan);
+      }
+
+      .author-preparation-no-preview {
+        color: var(--cyber-muted);
+      }
+
+      @media (max-width: 760px) {
+        .author-preparation-head {
+          flex-direction: column;
+        }
+
+        .author-preparation-counts {
+          justify-content: flex-start;
+        }
+
+        .author-preparation-list {
+          grid-template-columns: 1fr;
+        }
       }
 
       .author-requests-list {
