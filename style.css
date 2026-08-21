@@ -1215,6 +1215,15 @@ button:active,
   #locate-me {
     width: 100%;
   }
+
+  .map-radius-control {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .map-radius-control select {
+    min-width: 132px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -5379,6 +5388,29 @@ button,
   font-size: .9rem;
   font-weight: 800;
   line-height: 1.45;
+}
+
+.map-radius-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 6px 8px 6px 14px;
+  border: 1px solid rgba(58,28,113,.15);
+  border-radius: 16px;
+  background: rgba(255,255,255,.82);
+  color: var(--purple);
+  font-weight: 900;
+}
+
+.map-radius-control select {
+  min-height: 36px;
+  padding: 5px 30px 5px 10px;
+  border: 1px solid rgba(58,28,113,.18);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
 }
 
 .locate-status.success {
