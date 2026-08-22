@@ -1208,4 +1208,77 @@ assert.match(
   "20I.2 : indexation activée après rendu réussi de la fiche publique"
 );
 
+
+// 20J.1 — découverte des fiches auteurs publiées
+const authorsPresenceDiscoverySource = fs.readFileSync(
+  new URL("../authors-presence.js", import.meta.url),
+  "utf8"
+);
+
+assert.match(
+  authorsPresenceDiscoverySource,
+  /"author_id"/,
+  "20J.1 : author_id chargé avec les présences"
+);
+
+assert.match(
+  authorsPresenceDiscoverySource,
+  /"author_slug"/,
+  "20J.1 : author_slug chargé avec les présences"
+);
+
+assert.match(
+  authorsPresenceDiscoverySource,
+  /async function enrichPublishedAuthorProfiles/,
+  "20J.1 : enrichissement des profils publics présent"
+);
+
+assert.match(
+  authorsPresenceDiscoverySource,
+  /\.from\("authors"\)/,
+  "20J.1 : vérification via la table authors"
+);
+
+assert.match(
+  authorsPresenceDiscoverySource,
+  /author\.published === true/,
+  "20J.1 : lien réservé aux auteurs publiés"
+);
+
+assert.match(
+  authorsPresenceDiscoverySource,
+  /author\.validated === true/,
+  "20J.1 : lien réservé aux auteurs validés"
+);
+
+assert.match(
+  authorsPresenceDiscoverySource,
+  /!author\.merged_into/,
+  "20J.1 : aucune fiche fusionnée exposée"
+);
+
+assert.match(
+  authorsPresenceDiscoverySource,
+  /participant\.public_author_slug = isPublic/,
+  "20J.1 : slug public attribué uniquement après vérification"
+);
+
+assert.match(
+  authorsPresenceDiscoverySource,
+  /Voir la fiche Dédicalivres/,
+  "20J.1 : CTA vers la fiche Dédicalivres présent"
+);
+
+assert.match(
+  authorsPresenceDiscoverySource,
+  /author\.html\?slug=\$\{encodeURIComponent\(participant\.public_author_slug\)\}/,
+  "20J.1 : URL construite uniquement depuis le slug public vérifié"
+);
+
+assert.doesNotMatch(
+  authorsPresenceDiscoverySource,
+  /author\.html\?slug=\$\{encodeURIComponent\(participant\.author_slug\)\}/,
+  "20J.1 : aucun lien public construit directement depuis author_slug"
+);
+
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");
