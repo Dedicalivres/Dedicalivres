@@ -150,7 +150,7 @@ assert.match(authorHtmlSource, /author-backoffice\.js/);
 assert.doesNotMatch(authorHtmlSource, /tracking-v4\.js/);
 assert.ok(authorPageSource.indexOf("if (!isAdminPreview)") < authorPageSource.indexOf('.from("authors")'));
 assert.ok(authorPageSource.indexOf("client.auth.getSession()") < authorPageSource.indexOf('.from("authors")'));
-assert.match(authorPageSource, /Cette fiche est préparée en back-office et n’est pas publiée/);
+assert.match(authorPageSource, /Cette vue reste réservée à l’administration et non indexée/);
 assert.match(authorPageSource, /Historique des présences indiquées sur Dédicalivres/);
 
 async function runAuthorPreviewGate(search, session) {
@@ -164,9 +164,27 @@ async function runAuthorPreviewGate(search, session) {
   };
   const client = {
     auth: { getSession: async () => ({ data: { session }, error: null }) },
-    from: () => {
+    from: (table) => {
       fromCalls += 1;
-      throw new Error("Aucune requête de données ne doit partir hors aperçu admin authentifié.");
+
+      if (table !== "authors") {
+        throw new Error(
+          "Le mode public non publié ne doit interroger que la table authors."
+        );
+      }
+
+      return {
+        select() {
+          return this;
+        },
+        eq() {
+          return this;
+        },
+        maybeSingle: async () => ({
+          data: null,
+          error: null
+        })
+      };
     }
   };
   const previewContext = {
@@ -174,7 +192,11 @@ async function runAuthorPreviewGate(search, session) {
     console,
     document: {
       title: "",
-      getElementById: (id) => nodes[id] || null
+      getElementById: (id) => nodes[id] || null,
+      querySelector: (selector) =>
+        selector === 'meta[name="description"]'
+          ? { setAttribute() {} }
+          : null
     },
     window: {
       location: { search },
@@ -190,8 +212,16 @@ async function runAuthorPreviewGate(search, session) {
 }
 
 const publicAuthorGate = await runAuthorPreviewGate("?slug=lina-test", null);
-assert.equal(publicAuthorGate.fromCalls, 0);
-assert.match(publicAuthorGate.nodes["author-profile"].innerHTML, /Fiche auteur non publiée/);
+assert.equal(
+  publicAuthorGate.fromCalls,
+  1,
+  "20I.2 : le mode public vérifie exactement une fois la fiche authors"
+);
+assert.match(
+  publicAuthorGate.nodes["author-profile"].innerHTML,
+  /Fiche auteur indisponible/,
+  "20I.2 : une fiche absente ou non publiée reste indisponible"
+);
 const unauthenticatedPreviewGate = await runAuthorPreviewGate("?slug=lina-test&preview=admin", null);
 assert.equal(unauthenticatedPreviewGate.fromCalls, 0);
 assert.match(unauthenticatedPreviewGate.nodes["author-profile"].innerHTML, /Connexion admin requise/);
@@ -1086,6 +1116,96 @@ assert.match(
   adminPresenceSource,
   /page publique reste encore verrouillée/,
   "20I.1B : interface rappelle que l’exposition publique reste désactivée"
+);
+
+
+// 20I.2 — page auteur publique contrôlée
+const authorPublicHtmlSource = fs.readFileSync(
+  new URL("../author.html", import.meta.url),
+  "utf8"
+);
+
+const authorPublicJsSource = fs.readFileSync(
+  new URL("../author.js", import.meta.url),
+  "utf8"
+);
+
+assert.match(
+  authorPublicHtmlSource,
+  /id="author-robots"[^>]+content="noindex,nofollow,noarchive,nosnippet"/,
+  "20I.2 : author.html reste noindex par défaut"
+);
+
+assert.match(
+  authorPublicJsSource,
+  /author\.published === true/,
+  "20I.2 : mode public exige published=true"
+);
+
+assert.match(
+  authorPublicJsSource,
+  /author\.validated === true/,
+  "20I.2 : mode public exige validated=true"
+);
+
+assert.match(
+  authorPublicJsSource,
+  /!author\.merged_into/,
+  "20I.2 : mode public refuse une fiche fusionnée"
+);
+
+assert.match(
+  authorPublicJsSource,
+  /function renderPublicNotFound/,
+  "20I.2 : fiche non publiée rendue indisponible"
+);
+
+assert.match(
+  authorPublicJsSource,
+  /function unlockPublicIndexing/,
+  "20I.2 : activation d’indexation publique isolée"
+);
+
+assert.match(
+  authorPublicJsSource,
+  /robotsMeta\.setAttribute\("content", "index,follow"\)/,
+  "20I.2 : indexation activée uniquement explicitement"
+);
+
+assert.match(
+  authorPublicJsSource,
+  /if\s*\(isAdminPreview\)[\s\S]*buildAuthorFromPresence/,
+  "20I.2 : fallback depuis les présences conservé pour l’aperçu admin"
+);
+
+const publicBranchStart = authorPublicJsSource.indexOf(
+  "configureNavigation(false);"
+);
+
+const publicBranchEnd = authorPublicJsSource.indexOf(
+  "async function loadAuthor"
+);
+
+assert.ok(
+  publicBranchStart !== -1 && publicBranchEnd > publicBranchStart,
+  "20I.2 : branche publique détectée"
+);
+
+const publicBranch = authorPublicJsSource.slice(
+  publicBranchStart,
+  publicBranchEnd
+);
+
+assert.doesNotMatch(
+  publicBranch,
+  /buildAuthorFromPresence/,
+  "20I.2 : aucun fallback présence dans la branche publique"
+);
+
+assert.match(
+  publicBranch,
+  /unlockPublicIndexing\(draft\)/,
+  "20I.2 : indexation activée après rendu réussi de la fiche publique"
 );
 
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");
