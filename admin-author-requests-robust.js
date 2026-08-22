@@ -256,6 +256,9 @@
   }
 
   async function loadAuthorProfiles() {
+    const readinessColumns =
+      "id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at, merged_into, merged_at, publication_ready, publication_ready_at, publication_ready_by";
+
     const mergeColumns =
       "id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at, merged_into, merged_at";
 
@@ -267,9 +270,17 @@
 
     let response = await supabaseClient
       .from("authors")
-      .select(mergeColumns)
+      .select(readinessColumns)
       .order("created_at", { ascending: false })
       .limit(300);
+
+    if (response.error && isMissingColumnError(response.error)) {
+      response = await supabaseClient
+        .from("authors")
+        .select(mergeColumns)
+        .order("created_at", { ascending: false })
+        .limit(300);
+    }
 
     if (response.error && isMissingColumnError(response.error)) {
       response = await supabaseClient
@@ -710,6 +721,180 @@
     });
   }
 
+  function buildAuthorPublicationChecklist(item) {
+    const draft = item?.draft || {};
+    const author = item?.author || {};
+    const presences = Array.isArray(item?.presences)
+      ? item.presences
+      : [];
+
+    const validPresenceCount = presences.filter(
+      (row) => row.validated === true && row.rejected !== true
+    ).length;
+
+    const profileType =
+      author.profile_type ||
+      draft.profileType ||
+      presences[0]?.participant_type ||
+      "";
+
+    const website =
+      author.website ||
+      draft.website ||
+      draft.profileUrl ||
+      "";
+
+    const shopUrl =
+      author.shop_url ||
+      draft.shopUrl ||
+      presences.find((row) => row.book_or_publisher_url)
+        ?.book_or_publisher_url ||
+      "";
+
+    const bio =
+      author.bio ||
+      draft.bio ||
+      "";
+
+    const location =
+      author.location ||
+      draft.location ||
+      "";
+
+    const photo =
+      author.avatar_url ||
+      draft.photo ||
+      presences.find((row) => row.author_portrait_url)
+        ?.author_portrait_url ||
+      "";
+
+    const historyCount =
+      Number(draft.historyCount || 0) ||
+      validPresenceCount;
+
+    const checks = [
+      {
+        key: "identity",
+        label: "Identité",
+        ok: Boolean(draft.identity || author.pseudo)
+      },
+      {
+        key: "photo",
+        label: "Photo",
+        ok: Boolean(photo)
+      },
+      {
+        key: "profile",
+        label: "Type",
+        ok: ["author", "artist_author", "hybrid"].includes(profileType)
+      },
+      {
+        key: "bio",
+        label: "Biographie",
+        ok: Boolean(String(bio).trim())
+      },
+      {
+        key: "location",
+        label: "Localisation",
+        ok: Boolean(String(location).trim())
+      },
+      {
+        key: "website",
+        label: "Vitrine",
+        ok: Boolean(String(website).trim())
+      },
+      {
+        key: "shop",
+        label: "Boutique",
+        ok: Boolean(String(shopUrl).trim())
+      },
+      {
+        key: "history",
+        label: "Historique",
+        ok: historyCount > 0
+      }
+    ];
+
+    const completed = checks.filter((check) => check.ok).length;
+    const total = checks.length;
+    const percent = Math.round((completed / total) * 100);
+
+    const blocked =
+      draft.duplicate === true ||
+      !checks.find((check) => check.key === "identity")?.ok ||
+      !checks.find((check) => check.key === "photo")?.ok;
+
+    return {
+      checks,
+      completed,
+      total,
+      percent,
+      blocked,
+      ready: completed === total && !blocked
+    };
+  }
+
+  function renderAuthorPublicationChecklist(checklist) {
+    return `
+      <div class="author-publication-readiness">
+        <div class="author-publication-readiness-head">
+          <strong>
+            Préparation publication
+          </strong>
+
+          <span class="author-publication-score${
+            checklist.ready ? " is-ready" : ""
+          }">
+            ${checklist.completed}/${checklist.total}
+            · ${checklist.percent} %
+          </span>
+        </div>
+
+        <div
+          class="author-publication-progress"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="${checklist.percent}"
+        >
+          <span style="width:${checklist.percent}%"></span>
+        </div>
+
+        <div class="author-publication-checks">
+          ${checklist.checks.map((check) => `
+            <span
+              class="author-publication-check ${
+                check.ok ? "is-ok" : "is-missing"
+              }"
+            >
+              <span aria-hidden="true">
+                ${check.ok ? "✓" : "○"}
+              </span>
+              ${escapeHtml(check.label)}
+            </span>
+          `).join("")}
+        </div>
+
+        ${
+          checklist.blocked
+            ? `
+              <p class="author-publication-warning">
+                Publication bloquée tant que l’identité, la photo
+                et les éventuels doublons ne sont pas sécurisés.
+              </p>
+            `
+            : checklist.ready
+              ? `
+                <p class="author-publication-ready">
+                  Fiche éditorialement complète.
+                </p>
+              `
+              : ""
+        }
+      </div>
+    `;
+  }
+
   function renderAuthorPreparationCockpit() {
     const counts = document.getElementById("author-preparation-counts");
     const list = document.getElementById("author-preparation-list");
@@ -773,6 +958,12 @@
     }
 
     list.innerHTML = filtered.map(({ draft, presences, author }) => {
+      const publicationChecklist = buildAuthorPublicationChecklist({
+        draft,
+        presences,
+        author
+      });
+
       const validPresenceCount = presences.filter(
         (row) => row.validated === true && row.rejected !== true
       ).length;
@@ -819,6 +1010,30 @@
              class="author-preparation-create"
              data-author-create-key="${escapeAttribute(String(slug))}"
            >Créer la fiche</button>`
+        : "";
+
+      const publicationReadyAction = author?.id
+        ? author.publication_ready === true
+          ? `<button
+               type="button"
+               class="author-publication-ready-action is-ready"
+               data-author-publication-action="unset"
+               data-author-id="${escapeAttribute(author.id)}"
+               data-author-name="${escapeAttribute(draft.identity || author.pseudo || "")}"
+             >
+               Retirer le statut prêt
+             </button>`
+          : publicationChecklist.ready
+            ? `<button
+                 type="button"
+                 class="author-publication-ready-action"
+                 data-author-publication-action="set"
+                 data-author-id="${escapeAttribute(author.id)}"
+                 data-author-name="${escapeAttribute(draft.identity || author.pseudo || "")}"
+               >
+                 Marquer prête à publier
+               </button>`
+            : ""
         : "";
 
       const missing = draft.missingLabels.length
@@ -872,10 +1087,13 @@
             ${escapeHtml(missing)}
           </p>
 
+          ${renderAuthorPublicationChecklist(publicationChecklist)}
+
           <div class="author-preparation-actions">
             ${moderationAction}
             ${editAuthorAction}
             ${createAuthorAction}
+            ${publicationReadyAction}
             ${previewLink}
           </div>
         </article>
@@ -1069,6 +1287,15 @@
         await executeAuthorMergeRevert(authorMergeAction);
         return;
       }
+    }
+
+    const authorPublicationAction = event.target.closest(
+      "[data-author-publication-action]"
+    );
+
+    if (authorPublicationAction) {
+      await executeAuthorPublicationReadiness(authorPublicationAction);
+      return;
     }
 
     const authorEditButton = event.target.closest("[data-author-edit-id]");
@@ -1756,6 +1983,131 @@
 
     toast(
       `Fusion terminée — ${reassigned} présence${reassigned > 1 ? "s" : ""} réaffectée${reassigned > 1 ? "s" : ""}`
+    );
+  }
+
+  async function executeAuthorPublicationReadiness(button) {
+    const authorId = String(button?.dataset?.authorId || "").trim();
+    const action = String(
+      button?.dataset?.authorPublicationAction || ""
+    ).trim();
+
+    if (!authorId || !["set", "unset"].includes(action)) {
+      toast("Validation éditoriale impossible");
+      return;
+    }
+
+    const authorName =
+      button.dataset.authorName || "cette fiche auteur";
+
+    const author = authors.find(
+      (item) => String(item?.id || "") === authorId
+    );
+
+    if (!author) {
+      toast("Fiche auteur introuvable");
+      return;
+    }
+
+    if (action === "set") {
+      const prepared = buildPreparedAuthors().find(
+        (item) => String(item?.author?.id || "") === authorId
+      );
+
+      if (!prepared) {
+        toast("Préparation éditoriale introuvable");
+        return;
+      }
+
+      const checklist = buildAuthorPublicationChecklist(prepared);
+
+      if (!checklist.ready) {
+        toast("La fiche n’est pas encore éditorialement complète");
+        return;
+      }
+    }
+
+    const confirmation = action === "set"
+      ? window.confirm(
+          `VALIDATION ÉDITORIALE\n\n` +
+          `${authorName}\n\n` +
+          `Marquer cette fiche comme prête à publier ?\n\n` +
+          `Cette action ne publie pas la fiche sur le site.`
+        )
+      : window.confirm(
+          `RETIRER LE STATUT PRÊT\n\n` +
+          `${authorName}\n\n` +
+          `La fiche repassera en préparation interne.`
+        );
+
+    if (!confirmation) return;
+
+    button.disabled = true;
+
+    if (action === "set") {
+      button.textContent = "Validation…";
+    } else {
+      button.textContent = "Mise à jour…";
+    }
+
+    let payload;
+
+    if (action === "set") {
+      const { data: authData, error: authError } =
+        await supabaseClient.auth.getUser();
+
+      const adminId = authData?.user?.id || null;
+
+      if (authError || !adminId) {
+        button.disabled = false;
+        button.textContent = "Marquer prête à publier";
+        toast("Administrateur connecté non identifié");
+        return;
+      }
+
+      payload = {
+        publication_ready: true,
+        publication_ready_at: new Date().toISOString(),
+        publication_ready_by: adminId,
+        updated_at: new Date().toISOString()
+      };
+    } else {
+      payload = {
+        publication_ready: false,
+        publication_ready_at: null,
+        publication_ready_by: null,
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    const { error } = await supabaseClient
+      .from("authors")
+      .update(payload)
+      .eq("id", authorId);
+
+    if (error) {
+      console.warn(
+        "Admin auteurs : statut publication impossible",
+        error
+      );
+
+      button.disabled = false;
+      button.textContent =
+        action === "set"
+          ? "Marquer prête à publier"
+          : "Retirer le statut prêt";
+
+      toast("Impossible de modifier le statut éditorial");
+      return;
+    }
+
+    await loadRows();
+    render();
+
+    toast(
+      action === "set"
+        ? "Fiche marquée prête à publier — aucune publication automatique"
+        : "Statut prêt à publier retiré"
     );
   }
 
@@ -2549,6 +2901,116 @@
         .author-merge-history-details {
           grid-template-columns: 1fr;
         }
+      }
+
+      .author-publication-ready-action {
+        min-height: 36px;
+        padding: 8px 11px;
+        border: 1px solid rgba(50,205,130,.36);
+        border-radius: 10px;
+        background: rgba(50,205,130,.11);
+        color: inherit;
+        font: inherit;
+        font-size: .74rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .author-publication-ready-action.is-ready {
+        border-color: rgba(255,190,70,.3);
+        background: rgba(255,190,70,.08);
+      }
+
+      .author-publication-ready-action:disabled {
+        cursor: wait;
+        opacity: .58;
+      }
+
+      .author-publication-readiness {
+        margin-top: 14px;
+        padding: 12px;
+        border: 1px solid rgba(255,255,255,.1);
+        border-radius: 14px;
+        background: rgba(255,255,255,.025);
+      }
+
+      .author-publication-readiness-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .author-publication-readiness-head strong {
+        font-size: .78rem;
+      }
+
+      .author-publication-score {
+        font-size: .72rem;
+        font-weight: 900;
+        color: var(--cyber-muted);
+      }
+
+      .author-publication-score.is-ready {
+        color: #5de2a5;
+      }
+
+      .author-publication-progress {
+        height: 7px;
+        margin-top: 9px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255,255,255,.08);
+      }
+
+      .author-publication-progress span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: currentColor;
+      }
+
+      .author-publication-checks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 10px;
+      }
+
+      .author-publication-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 8px;
+        border-radius: 999px;
+        font-size: .69rem;
+        border: 1px solid rgba(255,255,255,.1);
+      }
+
+      .author-publication-check.is-ok {
+        background: rgba(50,205,130,.1);
+        border-color: rgba(50,205,130,.28);
+      }
+
+      .author-publication-check.is-missing {
+        background: rgba(255,180,70,.08);
+        border-color: rgba(255,180,70,.22);
+      }
+
+      .author-publication-warning,
+      .author-publication-ready {
+        margin: 10px 0 0;
+        font-size: .72rem;
+        line-height: 1.4;
+      }
+
+      .author-publication-warning {
+        color: #ffcf7a;
+      }
+
+      .author-publication-ready {
+        color: #5de2a5;
+        font-weight: 800;
       }
 
       .author-preparation-cockpit {

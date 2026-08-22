@@ -873,4 +873,139 @@ assert.doesNotMatch(
   "20G.2 : aucune suppression physique"
 );
 
+
+// 20H.1 — préparation publication auteur
+assert.match(
+  adminPresenceSource,
+  /function buildAuthorPublicationChecklist/,
+  "20H.1 : moteur de checklist présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /function renderAuthorPublicationChecklist/,
+  "20H.1 : rendu de checklist présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Préparation publication/,
+  "20H.1 : bloc de préparation publication affiché"
+);
+
+for (const label of [
+  "Identité",
+  "Photo",
+  "Type",
+  "Biographie",
+  "Localisation",
+  "Vitrine",
+  "Boutique",
+  "Historique"
+]) {
+  assert.match(
+    adminPresenceSource,
+    new RegExp(`label:\\s*"${label}"`),
+    `20H.1 : critère ${label} présent`
+  );
+}
+
+assert.match(
+  adminPresenceSource,
+  /completed === total && !blocked/,
+  "20H.1 : état prêt exige checklist complète et absence de blocage"
+);
+
+assert.match(
+  adminPresenceSource,
+  /draft\.duplicate === true/,
+  "20H.1 : doublon considéré comme bloquant"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Publication bloquée/,
+  "20H.1 : blocage publication expliqué"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Fiche éditorialement complète/,
+  "20H.1 : état éditorial complet affiché"
+);
+
+
+// 20H.2B — validation manuelle prête à publier
+assert.match(
+  adminPresenceSource,
+  /publication_ready,\s*publication_ready_at,\s*publication_ready_by/,
+  "20H.2B : champs de préparation éditoriale chargés"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Marquer prête à publier/,
+  "20H.2B : action de validation éditoriale présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Retirer le statut prêt/,
+  "20H.2B : retrait du statut prêt présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /async function executeAuthorPublicationReadiness/,
+  "20H.2B : fonction de gestion du statut éditorial présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /if\s*\(!checklist\.ready\)/,
+  "20H.2B : validation refusée si checklist incomplète"
+);
+
+assert.match(
+  adminPresenceSource,
+  /supabaseClient\.auth\.getUser\(\)/,
+  "20H.2B : administrateur connecté identifié"
+);
+
+assert.match(
+  adminPresenceSource,
+  /publication_ready:\s*true/,
+  "20H.2B : activation du statut prête à publier"
+);
+
+assert.match(
+  adminPresenceSource,
+  /publication_ready_at:\s*new Date\(\)\.toISOString\(\)/,
+  "20H.2B : date de validation enregistrée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /publication_ready_by:\s*adminId/,
+  "20H.2B : administrateur validateur enregistré"
+);
+
+assert.match(
+  adminPresenceSource,
+  /publication_ready:\s*false[\s\S]*publication_ready_at:\s*null[\s\S]*publication_ready_by:\s*null/,
+  "20H.2B : retrait du statut nettoie date et administrateur"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Cette action ne publie pas la fiche sur le site/,
+  "20H.2B : absence de publication automatique explicitée"
+);
+
+assert.doesNotMatch(
+  adminPresenceSource,
+  /publish_author/,
+  "20H.2B : aucune fonction de publication automatique"
+);
+
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");
