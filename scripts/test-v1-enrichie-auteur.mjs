@@ -1281,4 +1281,86 @@ assert.doesNotMatch(
   "20J.1 : aucun lien public construit directement depuis author_slug"
 );
 
+
+// 20J.2 — préparation SEO fiche auteur publique
+const authorSeoHtmlSource = fs.readFileSync(
+  new URL("../author.html", import.meta.url),
+  "utf8"
+);
+
+const authorSeoJsSource = fs.readFileSync(
+  new URL("../author.js", import.meta.url),
+  "utf8"
+);
+
+assert.match(
+  authorSeoHtmlSource,
+  /id="author-canonical"[^>]+rel="canonical"/,
+  "20J.2 : canonical statique de sécurité présent"
+);
+
+assert.match(
+  authorSeoHtmlSource,
+  /property="og:type" content="profile"/,
+  "20J.2 : Open Graph profile présent"
+);
+
+assert.match(
+  authorSeoHtmlSource,
+  /name="twitter:card" content="summary_large_image"/,
+  "20J.2 : Twitter Card présente"
+);
+
+assert.match(
+  authorSeoJsSource,
+  /function configurePublicMetadata/,
+  "20J.2 : métadonnées publiques dynamiques présentes"
+);
+
+assert.match(
+  authorSeoJsSource,
+  /function injectAuthorSchema/,
+  "20J.2 : JSON-LD auteur présent"
+);
+
+assert.match(
+  authorSeoJsSource,
+  /"@type": "Person"/,
+  "20J.2 : schéma Schema.org Person utilisé"
+);
+
+assert.match(
+  authorSeoJsSource,
+  /script\.id = "author-jsonld"/,
+  "20J.2 : JSON-LD injecté avec un identifiant dédié"
+);
+
+assert.match(
+  authorSeoJsSource,
+  /configurePublicMetadata\(draft\)[\s\S]*injectAuthorSchema\(draft\)[\s\S]*unlockPublicIndexing\(draft\)/,
+  "20J.2 : SEO appliqué uniquement dans le parcours public validé"
+);
+
+const headersSeoSource = fs.readFileSync(
+  new URL("../_headers", import.meta.url),
+  "utf8"
+);
+
+assert.match(
+  headersSeoSource,
+  /\/author\.html[\s\S]*X-Robots-Tag: noindex, nofollow, noarchive, nosnippet/,
+  "20J.2 : verrou serveur author.html conservé pendant la préparation"
+);
+
+const robotsSeoSource = fs.readFileSync(
+  new URL("../robots.txt", import.meta.url),
+  "utf8"
+);
+
+assert.match(
+  robotsSeoSource,
+  /Disallow: \/author\.html/,
+  "20J.2 : author.html reste bloqué dans robots.txt pendant la préparation"
+);
+
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");

@@ -8361,3 +8361,752 @@ html.a11y-soir .author-presence-card.participant-publisher .author-presence-card
     overflow-wrap: anywhere;
   }
 }
+
+
+/* =========================================================
+   20J.6 — FICHE AUTEUR — DIRECTION VISUELLE FINALE
+   Référence : maquette éditoriale Dédicalivres validée
+========================================================= */
+
+.author-page {
+  --author-ink: #26103f;
+  --author-purple: #3a1c71;
+  --author-purple-deep: #2d0d58;
+  --author-green: #28785f;
+  --author-cream: #fffaf6;
+  --author-paper: rgba(255, 252, 250, .91);
+  --author-border: rgba(58, 28, 113, .105);
+
+  background:
+    radial-gradient(circle at 4% 2%, rgba(75, 196, 147, .16), transparent 25%),
+    radial-gradient(circle at 92% 3%, rgba(115, 83, 188, .18), transparent 28%),
+    radial-gradient(circle at 52% 62%, rgba(238, 184, 157, .12), transparent 32%),
+    linear-gradient(155deg, #fffdf9 0%, #fbf7fb 50%, #f3eef8 100%);
+  color: var(--author-ink);
+}
+
+.author-page::before,
+.author-page::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(12px);
+  opacity: .65;
+}
+
+.author-page::before {
+  width: 38vw;
+  height: 38vw;
+  min-width: 380px;
+  min-height: 380px;
+  left: -16vw;
+  top: 18vh;
+  border-radius: 50%;
+  background: rgba(59, 172, 126, .11);
+}
+
+.author-page::after {
+  width: 42vw;
+  height: 42vw;
+  min-width: 420px;
+  min-height: 420px;
+  right: -17vw;
+  top: 8vh;
+  border-radius: 50%;
+  background: rgba(104, 70, 177, .12);
+}
+
+.author-page main.container {
+  width: min(1380px, calc(100% - 42px));
+  max-width: 1380px;
+}
+
+/* ---------- HERO ---------- */
+
+.author-page .author-profile {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--author-border);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 94% 7%, rgba(111, 76, 180, .14), transparent 31%),
+    radial-gradient(circle at 87% 97%, rgba(42, 155, 111, .12), transparent 30%),
+    linear-gradient(140deg, rgba(255,255,255,.97), rgba(250,246,250,.92));
+  box-shadow:
+    0 28px 75px rgba(58, 28, 113, .13),
+    0 3px 12px rgba(58, 28, 113, .055);
+}
+
+.author-page .author-profile-inner {
+  display: grid;
+  grid-template-columns: minmax(0, .98fr) minmax(0, 1.02fr);
+  align-items: stretch;
+  gap: 0;
+  min-height: clamp(610px, 50vw, 740px);
+}
+
+.author-page .author-visual {
+  position: relative;
+  overflow: hidden;
+  min-height: inherit;
+  background:
+    linear-gradient(150deg, rgba(58,28,113,.12), rgba(39,125,91,.10)),
+    #e9e7ed;
+}
+
+.author-page .author-avatar,
+.author-page .author-avatar-placeholder {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: inherit;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.author-page .author-avatar {
+  object-fit: cover;
+  object-position: center 22%;
+}
+
+.author-page .author-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(6rem, 12vw, 11rem);
+  font-weight: 600;
+  color: var(--author-purple);
+  background:
+    radial-gradient(circle at 30% 20%, #fff, #eee5f5 72%),
+    #eee8f4;
+}
+
+.author-page .author-visual-wash {
+  position: absolute;
+  inset: auto 0 0;
+  height: 42%;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to top,
+      rgba(40, 15, 67, .68),
+      rgba(30, 121, 84, .20) 44%,
+      transparent
+    );
+  opacity: .72;
+}
+
+/* décor botanique — CSS pur */
+.author-page .author-botanical {
+  position: absolute;
+  pointer-events: none;
+  opacity: .46;
+}
+
+.author-page .author-botanical::before,
+.author-page .author-botanical::after {
+  content: "";
+  position: absolute;
+  border: 1px solid currentColor;
+  border-radius: 100% 0 100% 0;
+  transform-origin: bottom center;
+}
+
+.author-page .author-botanical-left {
+  left: 18px;
+  bottom: 22px;
+  width: 165px;
+  height: 225px;
+  color: rgba(239, 220, 174, .82);
+}
+
+.author-page .author-botanical-left::before {
+  width: 72px;
+  height: 145px;
+  left: 22px;
+  bottom: 0;
+  transform: rotate(-29deg);
+}
+
+.author-page .author-botanical-left::after {
+  width: 54px;
+  height: 120px;
+  left: 82px;
+  bottom: 52px;
+  transform: rotate(18deg);
+}
+
+.author-page .author-botanical-right {
+  right: 16px;
+  top: 24px;
+  width: 165px;
+  height: 220px;
+  color: rgba(91, 58, 157, .19);
+}
+
+.author-page .author-botanical-right::before {
+  width: 66px;
+  height: 145px;
+  right: 12px;
+  top: 10px;
+  transform: rotate(24deg);
+}
+
+.author-page .author-botanical-right::after {
+  width: 52px;
+  height: 110px;
+  right: 70px;
+  top: 64px;
+  transform: rotate(-22deg);
+}
+
+.author-page .author-profile-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding:
+    clamp(42px, 5vw, 78px)
+    clamp(38px, 5vw, 76px);
+}
+
+.author-page .author-kicker {
+  margin: 0 0 14px;
+  color: var(--author-purple);
+  font-family: Inter, sans-serif;
+  font-size: .75rem;
+  font-weight: 900;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+}
+
+.author-page .author-title {
+  margin: 0;
+  max-width: 680px;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(4.4rem, 7.2vw, 7.6rem);
+  font-weight: 600;
+  line-height: .77;
+  letter-spacing: -.045em;
+  color: var(--author-purple-deep);
+}
+
+.author-page .author-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 27px 0 0;
+  color: var(--author-green);
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.author-page .author-lead {
+  position: relative;
+  max-width: 650px;
+  margin: 32px 0 0;
+  padding-left: 38px;
+}
+
+.author-page .author-quote-mark {
+  position: absolute;
+  left: -3px;
+  top: -19px;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 5rem;
+  line-height: 1;
+  color: rgba(91, 52, 153, .29);
+}
+
+.author-page .author-lead p {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.35rem, 1.8vw, 1.8rem);
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.38;
+  color: #402552;
+}
+
+.author-page .author-bio {
+  max-width: 650px;
+  margin-top: 28px;
+  font-size: .96rem;
+  line-height: 1.75;
+  color: #332a39;
+}
+
+.author-page .author-bio p {
+  margin: 0 0 13px;
+}
+
+.author-page .author-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 32px;
+}
+
+.author-page .author-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: .86rem;
+  font-weight: 850;
+}
+
+.author-page .author-action-primary {
+  background: linear-gradient(135deg, #301056, #501486) !important;
+  border-color: transparent !important;
+  box-shadow: 0 13px 28px rgba(58, 28, 113, .23);
+}
+
+.author-page .author-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 650px;
+  margin: 30px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid rgba(58,28,113,.10);
+  color: var(--muted);
+  font-size: .77rem;
+  line-height: 1.55;
+}
+
+.author-page .author-note-icon {
+  color: var(--author-purple);
+  font-size: 1.15rem;
+}
+
+.author-page .author-mobile-overlay {
+  display: none;
+}
+
+/* ---------- PARCOURS ---------- */
+
+.author-page .author-travel-section {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(230px, .48fr) minmax(0, 1.52fr);
+  grid-template-areas:
+    "heading map"
+    "legend map"
+    "stats map";
+  align-items: end;
+  gap: 18px 30px;
+  margin-top: clamp(30px, 4vw, 54px);
+  padding: clamp(26px, 3.5vw, 38px);
+  border: 1px solid var(--author-border);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 4% 100%, rgba(110,74,181,.095), transparent 30%),
+    rgba(255,252,250,.88);
+  box-shadow: 0 20px 60px rgba(58,28,113,.085);
+}
+
+.author-page .author-travel-heading {
+  grid-area: heading;
+  display: block;
+  margin: 0;
+}
+
+.author-page .author-travel-heading h2 {
+  margin: 4px 0 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(2.7rem, 4vw, 4rem);
+  font-weight: 600;
+  line-height: .93;
+  color: var(--author-purple-deep);
+}
+
+.author-page .author-travel-heading .author-history-label {
+  margin: 18px 0 0;
+  max-width: 260px;
+  font-size: .84rem;
+  line-height: 1.65;
+}
+
+.author-page .author-travel-legend {
+  grid-area: legend;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 0;
+  font-size: .82rem;
+  font-weight: 750;
+}
+
+.author-page .author-map-dot {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.author-page .author-map-dot.is-upcoming {
+  background: #19944c;
+  box-shadow: 0 0 0 4px rgba(25,148,76,.10);
+}
+
+.author-page .author-map-dot.is-past {
+  background: #cf3037;
+  box-shadow: 0 0 0 4px rgba(207,48,55,.10);
+}
+
+.author-page .author-travel-stats {
+  grid-area: stats;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  width: 100%;
+  padding: 17px 4px;
+  border: 1px solid rgba(58,28,113,.09);
+  border-radius: 20px;
+  background: rgba(255,255,255,.82);
+  box-shadow: 0 14px 32px rgba(58,28,113,.085);
+}
+
+.author-page .author-travel-stats > * {
+  text-align: center;
+}
+
+.author-page .author-travel-stats > * + * {
+  border-left: 1px solid rgba(58,28,113,.11);
+}
+
+.author-page .author-travel-stats strong {
+  display: block;
+  color: var(--author-purple);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 2.35rem;
+  font-weight: 600;
+  line-height: .88;
+}
+
+.author-page .author-travel-stats span {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 750;
+}
+
+.author-page .author-travel-map {
+  grid-area: map;
+  width: 100%;
+  min-height: clamp(400px, 37vw, 520px);
+  overflow: hidden;
+  border: 1px solid rgba(58,28,113,.11);
+  border-radius: 24px;
+  background: #e7e5df;
+  box-shadow: inset 0 0 45px rgba(58,28,113,.05);
+}
+
+/* ---------- EVENEMENTS ---------- */
+
+.author-page #author-upcoming-section,
+.author-page #author-past-section {
+  margin-top: clamp(32px, 4vw, 54px);
+}
+
+.author-page #author-upcoming-section {
+  padding: clamp(24px, 3vw, 34px);
+  border-radius: 28px;
+  border: 1px solid rgba(36,130,86,.09);
+  background:
+    linear-gradient(135deg, rgba(41,153,102,.075), rgba(255,255,255,.76));
+}
+
+.author-page #author-upcoming-section > h2,
+.author-page #author-past-section > h2 {
+  margin-bottom: 4px;
+  font-family: "Cormorant Garamond", serif;
+  color: var(--author-purple-deep);
+}
+
+.author-page #author-upcoming-section > h2 {
+  font-size: clamp(2.6rem, 4vw, 3.8rem);
+}
+
+.author-page #author-upcoming-section .events-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.author-page #author-upcoming-section .event-card {
+  overflow: hidden;
+  border-radius: 19px;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 13px 34px rgba(58,28,113,.085);
+}
+
+.author-page #author-upcoming-section .card-image {
+  height: 175px;
+  object-fit: cover;
+}
+
+.author-page #author-upcoming-section .card-title {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.55rem;
+  line-height: 1.02;
+  color: var(--author-purple-deep);
+}
+
+.author-page #author-past-section {
+  padding: clamp(22px, 3vw, 32px);
+  border-radius: 28px;
+  border: 1px solid rgba(58,28,113,.07);
+  background: rgba(255,252,250,.64);
+}
+
+.author-page #author-past-section > h2 {
+  font-size: clamp(2.15rem, 3.2vw, 3.1rem);
+}
+
+.author-page #author-past-section .events-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.author-page #author-past-section .event-card {
+  display: grid;
+  grid-template-columns: 105px minmax(0,1fr);
+  overflow: hidden;
+  min-height: 112px;
+  border-radius: 17px;
+  background: rgba(255,255,255,.80);
+  box-shadow: 0 9px 24px rgba(58,28,113,.055);
+}
+
+.author-page #author-past-section .card-image {
+  width: 105px;
+  height: 100%;
+  min-height: 112px;
+  object-fit: cover;
+}
+
+.author-page #author-past-section .card-body {
+  padding: 13px 15px;
+}
+
+.author-page #author-past-section .card-title {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.3rem;
+  line-height: 1.05;
+}
+
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 760px) {
+  .author-page main.container {
+    width: min(100% - 18px, 520px);
+  }
+
+  .author-page .author-profile {
+    border-radius: 24px;
+  }
+
+  .author-page .author-profile-inner {
+    display: block;
+    min-height: 0;
+  }
+
+  .author-page .author-visual {
+    height: min(118vw, 520px);
+    min-height: 0;
+    border-radius: 0 0 24px 24px;
+  }
+
+  .author-page .author-avatar,
+  .author-page .author-avatar-placeholder {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .author-page .author-avatar {
+    object-position: center 18%;
+  }
+
+  .author-page .author-visual-wash {
+    height: 62%;
+    opacity: .88;
+  }
+
+  .author-page .author-mobile-overlay {
+    position: absolute;
+    z-index: 5;
+    left: 20px;
+    right: 20px;
+    bottom: 22px;
+    display: block;
+    color: #fff;
+  }
+
+  .author-page .author-mobile-type {
+    display: inline-block;
+    margin-bottom: 9px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(75,18,118,.89);
+    font-size: .64rem;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+
+  .author-page .author-mobile-overlay h1 {
+    margin: 0;
+    max-width: 96%;
+    color: #fff;
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(3.9rem, 18vw, 5.8rem);
+    font-weight: 600;
+    line-height: .74;
+    letter-spacing: -.045em;
+    text-shadow: 0 5px 20px rgba(0,0,0,.30);
+  }
+
+  .author-page .author-mobile-overlay p {
+    margin: 16px 0 0;
+    font-size: .78rem;
+    font-weight: 800;
+  }
+
+  .author-page .author-profile-content {
+    padding: 30px 20px 24px;
+  }
+
+  .author-page .author-editorial-heading {
+    display: none;
+  }
+
+  .author-page .author-lead {
+    margin-top: 0;
+    padding-left: 30px;
+  }
+
+  .author-page .author-lead p {
+    font-size: 1.4rem;
+  }
+
+  .author-page .author-bio {
+    margin-top: 24px;
+    font-size: .89rem;
+    line-height: 1.72;
+  }
+
+  .author-page .author-actions {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 27px;
+  }
+
+  .author-page .author-actions a {
+    width: 100%;
+  }
+
+  .author-page .author-note {
+    margin-top: 24px;
+  }
+
+  .author-page .author-travel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 20px 14px 6px;
+    border-radius: 24px;
+  }
+
+  .author-page .author-travel-heading {
+    width: 100%;
+  }
+
+  .author-page .author-travel-heading h2 {
+    font-size: 2.6rem;
+  }
+
+  .author-page .author-travel-heading .author-history-label {
+    max-width: none;
+  }
+
+  .author-page .author-travel-legend {
+    margin: 14px 0 14px;
+  }
+
+  .author-page .author-travel-map {
+    order: 3;
+    min-height: 335px;
+    border-radius: 18px;
+  }
+
+  .author-page .author-travel-stats {
+    order: 4;
+    position: relative;
+    z-index: 500;
+    margin: -12px 8px 0;
+    width: calc(100% - 16px);
+  }
+
+  .author-page .author-travel-stats strong {
+    font-size: 1.95rem;
+  }
+
+  .author-page #author-upcoming-section,
+  .author-page #author-past-section {
+    padding: 20px 13px;
+    border-radius: 24px;
+  }
+
+  .author-page #author-upcoming-section .events-grid,
+  .author-page #author-past-section .events-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .author-page #author-upcoming-section .event-card,
+  .author-page #author-past-section .event-card {
+    display: grid;
+    grid-template-columns: 104px minmax(0,1fr);
+    min-height: 112px;
+    border-radius: 16px;
+  }
+
+  .author-page #author-upcoming-section .card-image,
+  .author-page #author-past-section .card-image {
+    width: 104px;
+    height: 100%;
+    min-height: 112px;
+    object-fit: cover;
+  }
+
+  .author-page #author-upcoming-section .card-body,
+  .author-page #author-past-section .card-body {
+    padding: 11px 12px;
+  }
+
+  .author-page #author-upcoming-section .card-title,
+  .author-page #author-past-section .card-title {
+    font-size: 1.2rem;
+  }
+
+  .author-page #author-upcoming-section .card-meta,
+  .author-page #author-past-section .card-meta {
+    font-size: .72rem;
+  }
+}
