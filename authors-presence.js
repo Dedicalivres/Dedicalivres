@@ -385,6 +385,8 @@
       "id",
       "pseudo",
       "website",
+      "author_id",
+      "author_slug",
       "author_profile_url",
       "author_profile_url_type",
       "publication_mode",
@@ -428,6 +430,8 @@
         : "author"
     }));
 
+    await enrichPublishedAuthorProfiles(participants);
+
     if (!participants.length) {
       list.innerHTML = "";
       empty.hidden = false;
@@ -447,6 +451,90 @@
     return participants;
   }
 
+  async function enrichPublishedAuthorProfiles(participants) {
+    const authorIds = [
+      ...new Set(
+        participants
+          .filter((participant) => participant.participant_type !== "publisher")
+          .map((participant) => participant.author_id)
+          .filter(Boolean)
+      )
+    ];
+
+    const authorSlugs = [
+      ...new Set(
+        participants
+          .filter((participant) => participant.participant_type !== "publisher")
+          .map((participant) => participant.author_slug)
+          .filter(Boolean)
+      )
+    ];
+
+    if (!authorIds.length && !authorSlugs.length) return;
+
+    const filters = [];
+
+    if (authorIds.length) {
+      filters.push(`id.in.(${authorIds.join(",")})`);
+    }
+
+    if (authorSlugs.length) {
+      const quotedSlugs = authorSlugs
+        .map((slug) => `"${String(slug).replace(/"/g, "")}"`)
+        .join(",");
+      filters.push(`slug.in.(${quotedSlugs})`);
+    }
+
+    const { data, error } = await supabaseClient
+      .from("authors")
+      .select("id, slug, pseudo, published, validated, merged_into")
+      .or(filters.join(","));
+
+    if (error) {
+      console.warn(
+        "Fiches auteurs publiques indisponibles pour cet événement :",
+        error
+      );
+      return;
+    }
+
+    const publishedAuthors = Array.isArray(data) ? data : [];
+
+    const byId = new Map(
+      publishedAuthors
+        .filter((author) => author?.id)
+        .map((author) => [String(author.id), author])
+    );
+
+    const bySlug = new Map(
+      publishedAuthors
+        .filter((author) => author?.slug)
+        .map((author) => [String(author.slug), author])
+    );
+
+    participants.forEach((participant) => {
+      if (participant.participant_type === "publisher") return;
+
+      const author =
+        (participant.author_id &&
+          byId.get(String(participant.author_id))) ||
+        (participant.author_slug &&
+          bySlug.get(String(participant.author_slug))) ||
+        null;
+
+      const isPublic =
+        author &&
+        author.published === true &&
+        author.validated === true &&
+        !author.merged_into &&
+        author.slug;
+
+      participant.public_author_slug = isPublic
+        ? String(author.slug)
+        : "";
+    });
+  }
+
   function renderParticipantPresenceCard(participant) {
     const participantType = participant.participant_type || "author";
     const isPublisher = participantType === "publisher";
@@ -457,6 +545,10 @@
     const secondLabel = getSecondLinkLabel(participant.book_or_publisher_url_type, participant.publisher_name);
     const portraitUrl = isPublisher ? "" : resolveImageUrl(participant.author_portrait_url);
     const typeLabel = getParticipantTypeLabel(participantType);
+    const publicAuthorUrl =
+      !isPublisher && participant.public_author_slug
+        ? `author.html?slug=${encodeURIComponent(participant.public_author_slug)}`
+        : "";
 
     return `
       <article class="author-presence-card author-presence-card-extended participant-${escapeAttribute(participantType)}">
@@ -474,6 +566,11 @@
         </div>
 
         <div class="author-presence-links" aria-label="Liens utiles pour ${escapeAttribute(displayName)}">
+          ${publicAuthorUrl ? `
+            <a class="author-presence-dedicalivres-profile" href="${escapeAttribute(publicAuthorUrl)}">
+              Voir la fiche Dédicalivres
+            </a>
+          ` : ""}
           ${profileUrl ? `
             <a href="${escapeAttribute(profileUrl)}" target="_blank" rel="noopener noreferrer">
               ${escapeHtml(profileLabel)}
