@@ -35,6 +35,7 @@
   let currentAuthorPreparationSort = "priority";
   let duplicateGroups = [];
   let duplicateById = new Map();
+  let authorDuplicateGroups = [];
 
   ensureStyles();
   bindAuthEvents();
@@ -280,7 +281,23 @@
       publishAuthorRequestCounter(pending, false);
     }
 
+    const authorEngine = window.DEDICALIVRES_AUTHOR_BACKOFFICE;
+
+    authorDuplicateGroups =
+      authorEngine && typeof authorEngine.findProbableAuthorDuplicates === "function"
+        ? authorEngine.findProbableAuthorDuplicates(authors)
+        : [];
+
     renderAuthorPreparationCockpit();
+
+    const preparationList = document.getElementById("author-preparation-list");
+
+    if (preparationList && authorDuplicateGroups.length) {
+      preparationList.insertAdjacentHTML(
+        "afterbegin",
+        renderAuthorDuplicateSummary()
+      );
+    }
 
     if (!filtered.length) {
       list.innerHTML = `<p class="priority-empty">Aucune déclaration de présence pour ce filtre.</p>`;
@@ -288,6 +305,21 @@
     }
 
     list.innerHTML = filtered.map(renderCard).join("");
+  }
+
+  function renderAuthorDuplicateSummary() {
+    const count = authorDuplicateGroups.length;
+
+    if (!count) return "";
+
+    return `
+      <div class="author-duplicate-summary" data-author-duplicate-summary>
+        <strong>
+          ${count} doublon${count > 1 ? "s" : ""} auteur probable${count > 1 ? "s" : ""}
+        </strong>
+        <span>Détection uniquement — aucune fusion automatique.</span>
+      </div>
+    `;
   }
 
   function buildPreparedAuthors() {
@@ -1726,6 +1758,34 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 12px;
+      }
+
+      .author-duplicate-summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 107, 53, .45);
+        border-radius: 12px;
+        background: rgba(255, 107, 53, .08);
+      }
+
+      .author-duplicate-summary strong {
+        color: #ffb08a;
+      }
+
+      .author-duplicate-summary span {
+        opacity: .75;
+        font-size: .86rem;
+      }
+
+      @media (max-width: 640px) {
+        .author-duplicate-summary {
+          flex-direction: column;
+          align-items: flex-start;
+        }
       }
 
       .author-preparation-card {

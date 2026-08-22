@@ -407,4 +407,96 @@ assert.match(
   "20E.3 : moteur auteur privilégie profile_type"
 );
 
+
+// 20F.1 — doublons auteurs
+{
+  const duplicates = authorBackoffice.findProbableAuthorDuplicates([
+    {
+      id: "author-a",
+      pseudo: "Élodie Martin",
+      slug: "elodie-martin",
+      website: "https://example.test/elodie",
+      shop_url: "https://shop.example.test/elodie",
+      location: "Bretagne"
+    },
+    {
+      id: "author-b",
+      pseudo: "Elodie Martin",
+      slug: "elodie-martin-2",
+      website: "https://example.test/elodie",
+      shop_url: "https://shop.example.test/elodie",
+      location: "Bretagne"
+    },
+    {
+      id: "author-c",
+      pseudo: "Camille Durand",
+      slug: "camille-durand",
+      website: "https://example.test/camille",
+      location: "Normandie"
+    }
+  ]);
+
+  assert.equal(duplicates.length, 1);
+  assert.equal(duplicates[0].left.id, "author-a");
+  assert.equal(duplicates[0].right.id, "author-b");
+  assert.equal(duplicates[0].score, 100);
+
+  assert.ok(
+    Array.from(duplicates[0].reasons).includes("identité")
+  );
+
+  assert.ok(
+    Array.from(duplicates[0].reasons).includes("site")
+  );
+}
+
+{
+  const unrelated = authorBackoffice.scoreAuthorDuplicate(
+    {
+      id: "author-x",
+      pseudo: "Lina Martin"
+    },
+    {
+      id: "author-y",
+      pseudo: "Morgan Le Gall"
+    }
+  );
+
+  assert.equal(unrelated.score, 0);
+  assert.deepEqual(Array.from(unrelated.reasons), []);
+}
+
+{
+  const accentDuplicate = authorBackoffice.scoreAuthorDuplicate(
+    {
+      id: "author-accent-a",
+      pseudo: "Élodie Martin"
+    },
+    {
+      id: "author-accent-b",
+      pseudo: "Elodie Martin"
+    }
+  );
+
+  assert.equal(accentDuplicate.score, 70);
+}
+
+assert.match(
+  adminPresenceSource,
+  /findProbableAuthorDuplicates\(authors\)/,
+  "20F.1 : cockpit analyse les fiches authors"
+);
+
+assert.match(
+  adminPresenceSource,
+  /data-author-duplicate-summary/,
+  "20F.1 : résumé des doublons auteurs présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Détection uniquement — aucune fusion automatique/,
+  "20F.1 : aucune fusion automatique"
+);
+
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");
