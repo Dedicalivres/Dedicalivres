@@ -499,4 +499,104 @@ assert.match(
   "20F.1 : aucune fusion automatique"
 );
 
+
+// 20F.2A — comparaison doublons
+assert.match(
+  adminPresenceSource,
+  /openAuthorDuplicateCompare\(authorPreparationAction\)/,
+  "20F.2A : le clic doublon ouvre la comparaison"
+);
+
+assert.match(
+  adminPresenceSource,
+  /function openAuthorDuplicateCompare/,
+  "20F.2A : fonction de comparaison présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Score de rapprochement/,
+  "20F.2A : score affiché"
+);
+
+assert.match(
+  adminPresenceSource,
+  /duplicate\.reasons\.join/,
+  "20F.2A : raisons du rapprochement affichées"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Fiche A/,
+  "20F.2A : fiche A affichée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Fiche B/,
+  "20F.2A : fiche B affichée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Lecture seule — aucune fusion ni modification n’est effectuée/,
+  "20F.2A : comparaison explicitement en lecture seule"
+);
+
+assert.doesNotMatch(
+  adminPresenceSource,
+  /data-author-duplicate-action="merge"/,
+  "20F.2A : aucune action de fusion disponible"
+);
+
+
+// 20F.2B — sélection fiche principale
+assert.match(
+  adminPresenceSource,
+  /function selectAuthorDuplicatePrimary/,
+  "20F.2B : fonction de sélection présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /data-author-duplicate-action="select-primary"/,
+  "20F.2B : action de sélection présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /data-author-duplicate-side=/,
+  "20F.2B : côté de fiche identifié"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Fiche principale sélectionnée/,
+  "20F.2B : état visuel de sélection affiché"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Simulation uniquement — aucun changement n’est enregistré/,
+  "20F.2B : sélection explicitement non persistée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /author-duplicate-profile\.is-primary/,
+  "20F.2B : style de fiche principale présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /author-duplicate-select\.is-selected/,
+  "20F.2B : style du bouton sélectionné présent"
+);
+
+assert.doesNotMatch(
+  adminPresenceSource,
+  /data-author-duplicate-action="merge"/,
+  "20F.2B : aucune fusion disponible"
+);
+
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");

@@ -774,6 +774,13 @@
     const authorPreparationAction = event.target.closest("[data-author-preparation-action]");
 
     if (authorPreparationAction) {
+      const action = authorPreparationAction.dataset.authorPreparationAction;
+
+      if (action === "duplicate") {
+        openAuthorDuplicateCompare(authorPreparationAction);
+        return;
+      }
+
       focusPresenceFromCockpit(authorPreparationAction);
       return;
     }
@@ -817,6 +824,26 @@
 
     if (authorCreateButton) {
       await createAuthorFromCockpit(authorCreateButton);
+      return;
+    }
+
+    const authorDuplicateAction = event.target.closest("[data-author-duplicate-action]");
+
+    if (authorDuplicateAction) {
+      const action = authorDuplicateAction.dataset.authorDuplicateAction;
+
+      if (action === "close") {
+        closeAuthorDuplicateCompare();
+        return;
+      }
+
+      if (action === "select-primary") {
+        selectAuthorDuplicatePrimary(
+          authorDuplicateAction.dataset.authorDuplicateSide
+        );
+        return;
+      }
+
       return;
     }
 
@@ -976,6 +1003,213 @@
     render();
 
     toast("Fiche auteur créée — à enrichir et valider");
+  }
+
+  function openAuthorDuplicateCompare(button) {
+    const engine = window.DEDICALIVRES_AUTHOR_BACKOFFICE;
+    const authorName = String(button?.dataset?.authorName || "").trim();
+
+    if (!engine || !authorName) {
+      toast("Comparaison des doublons indisponible");
+      return;
+    }
+
+    const normalizedName = engine.normalizeAuthorIdentity(authorName);
+
+    const duplicate = authorDuplicateGroups.find((group) => {
+      const leftName = engine.normalizeAuthorIdentity(
+        group?.left?.pseudo || group?.left?.name || group?.left?.pen_name || ""
+      );
+
+      const rightName = engine.normalizeAuthorIdentity(
+        group?.right?.pseudo || group?.right?.name || group?.right?.pen_name || ""
+      );
+
+      return normalizedName && (
+        normalizedName === leftName ||
+        normalizedName === rightName
+      );
+    });
+
+    if (!duplicate?.left || !duplicate?.right) {
+      toast("Aucune paire de doublons trouvée pour cette fiche");
+      return;
+    }
+
+    closeAuthorDuplicateCompare();
+
+    const wrapper = document.createElement("div");
+    wrapper.id = "author-duplicate-overlay";
+    wrapper.className = "author-editor-overlay";
+
+    const renderProfile = (author, label, side) => `
+      <article
+        class="author-duplicate-profile"
+        data-author-duplicate-profile="${escapeAttribute(side)}"
+      >
+        <div class="author-duplicate-profile-head">
+          ${
+            author.avatar_url
+              ? `<img
+                   class="author-duplicate-avatar"
+                   src="${escapeAttribute(author.avatar_url)}"
+                   alt=""
+                 />`
+              : `<div class="author-duplicate-avatar is-empty">Sans photo</div>`
+          }
+
+          <div>
+            <small>${escapeHtml(label)}</small>
+            <strong>${escapeHtml(author.pseudo || "Nom inconnu")}</strong>
+            <span>${escapeHtml(author.slug || "Slug absent")}</span>
+          </div>
+        </div>
+
+        <dl class="author-duplicate-fields">
+          <div>
+            <dt>Type</dt>
+            <dd>${escapeHtml(author.profile_type || "Non défini")}</dd>
+          </div>
+          <div>
+            <dt>Localisation</dt>
+            <dd>${escapeHtml(author.location || "Non renseignée")}</dd>
+          </div>
+          <div>
+            <dt>Site</dt>
+            <dd>${escapeHtml(author.website || "Non renseigné")}</dd>
+          </div>
+          <div>
+            <dt>Boutique</dt>
+            <dd>${escapeHtml(author.shop_url || "Non renseignée")}</dd>
+          </div>
+          <div>
+            <dt>Biographie</dt>
+            <dd>${escapeHtml(author.bio || "Non renseignée")}</dd>
+          </div>
+          <div>
+            <dt>Validation interne</dt>
+            <dd>${author.validated === true ? "Validée" : "Non validée"}</dd>
+          </div>
+        </dl>
+
+        <button
+          type="button"
+          class="cyber-btn-secondary author-duplicate-select"
+          data-author-duplicate-action="select-primary"
+          data-author-duplicate-side="${escapeAttribute(side)}"
+        >
+          Choisir comme fiche principale
+        </button>
+      </article>
+    `;
+
+    wrapper.innerHTML = `
+      <section
+        class="author-editor-dialog author-duplicate-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="author-duplicate-title"
+      >
+        <div class="author-editor-head">
+          <div>
+            <h4 id="author-duplicate-title">COMPARER LES DOUBLONS AUTEURS</h4>
+            <p>Lecture seule — aucune fusion ni modification n’est effectuée.</p>
+          </div>
+
+          <button
+            type="button"
+            class="author-editor-close"
+            data-author-duplicate-action="close"
+            aria-label="Fermer"
+          >×</button>
+        </div>
+
+        <div class="author-duplicate-score">
+          <strong>Score de rapprochement : ${Number(duplicate.score || 0)}/100</strong>
+          <span>
+            ${escapeHtml(
+              Array.isArray(duplicate.reasons) && duplicate.reasons.length
+                ? duplicate.reasons.join(" · ")
+                : "Aucun motif détaillé"
+            )}
+          </span>
+        </div>
+
+        <div class="author-duplicate-grid">
+          ${renderProfile(duplicate.left, "Fiche A", "left")}
+          ${renderProfile(duplicate.right, "Fiche B", "right")}
+        </div>
+
+        <div
+          id="author-duplicate-primary-status"
+          class="author-editor-warning"
+          aria-live="polite"
+        >
+          Choisissez éventuellement une fiche principale pour préparer la résolution.
+          Ce choix reste local à cette fenêtre et n’est pas enregistré.
+        </div>
+
+        <div class="author-editor-actions">
+          <button
+            type="button"
+            class="cyber-btn-secondary"
+            data-author-duplicate-action="close"
+          >Fermer</button>
+        </div>
+      </section>
+    `;
+
+    document.body.appendChild(wrapper);
+  }
+
+  function selectAuthorDuplicatePrimary(side) {
+    if (!["left", "right"].includes(side)) return;
+
+    const overlay = document.getElementById("author-duplicate-overlay");
+    if (!overlay) return;
+
+    overlay.dataset.primarySide = side;
+
+    overlay
+      .querySelectorAll("[data-author-duplicate-profile]")
+      .forEach((profile) => {
+        const selected =
+          profile.dataset.authorDuplicateProfile === side;
+
+        profile.classList.toggle("is-primary", selected);
+      });
+
+    overlay
+      .querySelectorAll("[data-author-duplicate-action=\"select-primary\"]")
+      .forEach((button) => {
+        const selected =
+          button.dataset.authorDuplicateSide === side;
+
+        button.classList.toggle("is-selected", selected);
+        button.textContent = selected
+          ? "Fiche principale sélectionnée"
+          : "Choisir comme fiche principale";
+        button.setAttribute("aria-pressed", String(selected));
+      });
+
+    const status = document.getElementById(
+      "author-duplicate-primary-status"
+    );
+
+    if (status) {
+      status.innerHTML = `
+        <strong>
+          ${side === "left" ? "Fiche A" : "Fiche B"}
+          sélectionnée comme fiche principale.
+        </strong>
+        <br>
+        Simulation uniquement — aucun changement n’est enregistré.
+      `;
+    }
+  }
+
+  function closeAuthorDuplicateCompare() {
+    document.getElementById("author-duplicate-overlay")?.remove();
   }
 
   function openAuthorEditor(authorId) {
@@ -1942,6 +2176,131 @@
         padding: 20px;
         background: rgba(0,0,0,.72);
         backdrop-filter: blur(6px);
+      }
+
+      .author-duplicate-dialog {
+        width: min(1100px, calc(100vw - 32px));
+      }
+
+      .author-duplicate-score {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,.10);
+        background: rgba(255,255,255,.04);
+      }
+
+      .author-duplicate-score span {
+        opacity: .75;
+      }
+
+      .author-duplicate-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .author-duplicate-profile {
+        padding: 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,.10);
+        background: rgba(255,255,255,.03);
+        transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+      }
+
+      .author-duplicate-profile.is-primary {
+        border-color: rgba(46, 204, 113, .75);
+        background: rgba(46, 204, 113, .08);
+        box-shadow: 0 0 0 1px rgba(46, 204, 113, .18);
+      }
+
+      .author-duplicate-select {
+        width: 100%;
+        margin-top: 14px;
+      }
+
+      .author-duplicate-select.is-selected {
+        font-weight: 700;
+      }
+
+      .author-duplicate-profile-head {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+
+      .author-duplicate-profile-head strong,
+      .author-duplicate-profile-head span,
+      .author-duplicate-profile-head small {
+        display: block;
+      }
+
+      .author-duplicate-profile-head small {
+        opacity: .6;
+        margin-bottom: 4px;
+      }
+
+      .author-duplicate-profile-head span {
+        opacity: .7;
+        margin-top: 4px;
+        font-size: .84rem;
+      }
+
+      .author-duplicate-avatar {
+        width: 74px;
+        height: 74px;
+        flex: 0 0 74px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid rgba(255,255,255,.12);
+      }
+
+      .author-duplicate-avatar.is-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        text-align: center;
+        font-size: .72rem;
+        opacity: .65;
+        background: rgba(255,255,255,.05);
+      }
+
+      .author-duplicate-fields {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+      }
+
+      .author-duplicate-fields > div {
+        padding: 10px 0;
+        border-top: 1px solid rgba(255,255,255,.07);
+      }
+
+      .author-duplicate-fields dt {
+        margin-bottom: 3px;
+        font-size: .75rem;
+        text-transform: uppercase;
+        opacity: .55;
+      }
+
+      .author-duplicate-fields dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 760px) {
+        .author-duplicate-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .author-duplicate-score {
+          flex-direction: column;
+        }
       }
 
       .author-editor-dialog {
