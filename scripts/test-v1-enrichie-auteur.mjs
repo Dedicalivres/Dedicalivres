@@ -761,4 +761,116 @@ assert.doesNotMatch(
   "20F.3D : aucune suppression physique introduite"
 );
 
+
+// 20G.1 — historique des fusions en lecture seule
+assert.match(
+  adminPresenceSource,
+  /HISTORIQUE DES FUSIONS/,
+  "20G.1 : panneau historique présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /async function loadAuthorMergeHistory/,
+  "20G.1 : chargement historique présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /\.from\("author_merge_audit"\)/,
+  "20G.1 : journal d’audit utilisé"
+);
+
+assert.match(
+  adminPresenceSource,
+  /function renderAuthorMergeHistory/,
+  "20G.1 : rendu historique présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Présences déplacées/,
+  "20G.1 : compteur de présences affiché"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Annulée/,
+  "20G.1 : statut annulé géré"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Active/,
+  "20G.1 : statut actif géré"
+);
+
+assert.match(
+  adminPresenceSource,
+  /\.rpc\(\s*"revert_author_merge"/,
+  "20G.2 : RPC de retour arrière contrôlé présente"
+);
+
+
+// 20G.2 — retour arrière admin contrôlé
+assert.match(
+  adminPresenceSource,
+  /data-author-merge-action="revert"/,
+  "20G.2 : action de retour arrière présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Annuler cette fusion/,
+  "20G.2 : bouton d’annulation explicite présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /async function executeAuthorMergeRevert/,
+  "20G.2 : fonction de rollback contrôlé présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /CONFIRMER LE RETOUR ARRIÈRE/,
+  "20G.2 : confirmation forte avant rollback"
+);
+
+assert.match(
+  adminPresenceSource,
+  /p_audit_id:\s*auditId/,
+  "20G.2 : identifiant du journal transmis à la RPC"
+);
+
+assert.match(
+  adminPresenceSource,
+  /merge_already_reverted/,
+  "20G.2 : fusion déjà annulée gérée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /merge_state_changed/,
+  "20G.2 : changement d’état géré"
+);
+
+assert.match(
+  adminPresenceSource,
+  /presence_restore_count_mismatch/,
+  "20G.2 : divergence des présences gérée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /admin_required/,
+  "20G.2 : droits administrateur contrôlés"
+);
+
+assert.doesNotMatch(
+  adminPresenceSource,
+  /\.delete\(/,
+  "20G.2 : aucune suppression physique"
+);
+
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");
