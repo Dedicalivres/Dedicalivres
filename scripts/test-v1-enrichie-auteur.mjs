@@ -1008,4 +1008,84 @@ assert.doesNotMatch(
   "20H.2B : aucune fonction de publication automatique"
 );
 
+
+// 20I.1B — publication publique contrôlée
+assert.match(
+  adminPresenceSource,
+  /published,\s*published_at,\s*published_by/,
+  "20I.1B : champs de publication chargés"
+);
+
+assert.match(
+  adminPresenceSource,
+  /async function executeAuthorControlledPublication/,
+  "20I.1B : fonction de publication contrôlée présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /author\.publication_ready === true/,
+  "20I.1B : publication exige le statut prêt"
+);
+
+assert.match(
+  adminPresenceSource,
+  /author\.validated === true/,
+  "20I.1B : publication exige une fiche validée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /!author\.merged_into/,
+  "20I.1B : publication interdite pour une fiche fusionnée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /author\.published !== true/,
+  "20I.1B : une fiche déjà publiée n’est pas republiée"
+);
+
+assert.match(
+  adminPresenceSource,
+  />\s*Publier\s*</,
+  "20I.1B : bouton Publier présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  />\s*Dépublier\s*</,
+  "20I.1B : bouton Dépublier présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /PUBLICATION PUBLIQUE/,
+  "20I.1B : confirmation forte avant publication"
+);
+
+assert.match(
+  adminPresenceSource,
+  /supabaseClient\.auth\.getUser\(\)/,
+  "20I.1B : administrateur connecté identifié"
+);
+
+assert.match(
+  adminPresenceSource,
+  /published:\s*true[\s\S]*published_at:\s*new Date\(\)\.toISOString\(\)[\s\S]*published_by:\s*adminId/,
+  "20I.1B : publication enregistre état, date et administrateur"
+);
+
+assert.match(
+  adminPresenceSource,
+  /published:\s*false[\s\S]*published_at:\s*null[\s\S]*published_by:\s*null/,
+  "20I.1B : dépublication nettoie les métadonnées"
+);
+
+assert.match(
+  adminPresenceSource,
+  /page publique reste encore verrouillée/,
+  "20I.1B : interface rappelle que l’exposition publique reste désactivée"
+);
+
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");

@@ -256,6 +256,9 @@
   }
 
   async function loadAuthorProfiles() {
+    const publicationColumns =
+      "id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at, merged_into, merged_at, publication_ready, publication_ready_at, publication_ready_by, published, published_at, published_by";
+
     const readinessColumns =
       "id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at, merged_into, merged_at, publication_ready, publication_ready_at, publication_ready_by";
 
@@ -270,9 +273,17 @@
 
     let response = await supabaseClient
       .from("authors")
-      .select(readinessColumns)
+      .select(publicationColumns)
       .order("created_at", { ascending: false })
       .limit(300);
+
+    if (response.error && isMissingColumnError(response.error)) {
+      response = await supabaseClient
+        .from("authors")
+        .select(readinessColumns)
+        .order("created_at", { ascending: false })
+        .limit(300);
+    }
 
     if (response.error && isMissingColumnError(response.error)) {
       response = await supabaseClient
@@ -1036,6 +1047,37 @@
             : ""
         : "";
 
+      const canPublishAuthor =
+        author?.id &&
+        author.publication_ready === true &&
+        author.validated === true &&
+        !author.merged_into &&
+        author.published !== true;
+
+      const publicationAction = author?.id
+        ? author.published === true
+          ? `<button
+               type="button"
+               class="author-publication-action is-published"
+               data-author-live-action="unpublish"
+               data-author-id="${escapeAttribute(author.id)}"
+               data-author-name="${escapeAttribute(draft.identity || author.pseudo || "")}"
+             >
+               Dépublier
+             </button>`
+          : canPublishAuthor
+            ? `<button
+                 type="button"
+                 class="author-publication-action"
+                 data-author-live-action="publish"
+                 data-author-id="${escapeAttribute(author.id)}"
+                 data-author-name="${escapeAttribute(draft.identity || author.pseudo || "")}"
+               >
+                 Publier
+               </button>`
+            : ""
+        : "";
+
       const missing = draft.missingLabels.length
         ? draft.missingLabels.join(" · ")
         : "Aucun élément bloquant";
@@ -1094,6 +1136,7 @@
             ${editAuthorAction}
             ${createAuthorAction}
             ${publicationReadyAction}
+            ${publicationAction}
             ${previewLink}
           </div>
         </article>
@@ -1295,6 +1338,15 @@
 
     if (authorPublicationAction) {
       await executeAuthorPublicationReadiness(authorPublicationAction);
+      return;
+    }
+
+    const authorLiveAction = event.target.closest(
+      "[data-author-live-action]"
+    );
+
+    if (authorLiveAction) {
+      await executeAuthorControlledPublication(authorLiveAction);
       return;
     }
 
@@ -1983,6 +2035,119 @@
 
     toast(
       `Fusion terminée — ${reassigned} présence${reassigned > 1 ? "s" : ""} réaffectée${reassigned > 1 ? "s" : ""}`
+    );
+  }
+
+  async function executeAuthorControlledPublication(button) {
+    const authorId = String(button?.dataset?.authorId || "").trim();
+    const action = String(button?.dataset?.authorLiveAction || "").trim();
+
+    if (!authorId || !["publish", "unpublish"].includes(action)) {
+      toast("Action de publication impossible");
+      return;
+    }
+
+    const author = authors.find(
+      (item) => String(item?.id || "") === authorId
+    );
+
+    if (!author) {
+      toast("Fiche auteur introuvable");
+      return;
+    }
+
+    const authorName =
+      button.dataset.authorName || author.pseudo || "cette fiche auteur";
+
+    if (action === "publish") {
+      const canPublish =
+        author.publication_ready === true &&
+        author.validated === true &&
+        !author.merged_into &&
+        author.published !== true;
+
+      if (!canPublish) {
+        toast("Cette fiche ne remplit pas les conditions de publication");
+        return;
+      }
+    }
+
+    const confirmed = action === "publish"
+      ? window.confirm(
+          `PUBLICATION PUBLIQUE\n\n` +
+          `${authorName}\n\n` +
+          `Confirmer la publication de cette fiche auteur ?\n\n` +
+          `Cette action marque la fiche comme publiée, mais la page publique reste encore verrouillée tant que 20I.2 n’est pas activé.`
+        )
+      : window.confirm(
+          `DÉPUBLICATION\n\n` +
+          `${authorName}\n\n` +
+          `Confirmer la dépublication de cette fiche auteur ?`
+        );
+
+    if (!confirmed) return;
+
+    button.disabled = true;
+    button.textContent =
+      action === "publish" ? "Publication…" : "Dépublication…";
+
+    let payload;
+
+    if (action === "publish") {
+      const { data: authData, error: authError } =
+        await supabaseClient.auth.getUser();
+
+      const adminId = authData?.user?.id || null;
+
+      if (authError || !adminId) {
+        button.disabled = false;
+        button.textContent = "Publier";
+        toast("Administrateur connecté non identifié");
+        return;
+      }
+
+      payload = {
+        published: true,
+        published_at: new Date().toISOString(),
+        published_by: adminId,
+        updated_at: new Date().toISOString()
+      };
+    } else {
+      payload = {
+        published: false,
+        published_at: null,
+        published_by: null,
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    const { error } = await supabaseClient
+      .from("authors")
+      .update(payload)
+      .eq("id", authorId);
+
+    if (error) {
+      console.warn("Admin auteurs : publication impossible", error);
+
+      button.disabled = false;
+      button.textContent =
+        action === "publish" ? "Publier" : "Dépublier";
+
+      toast(
+        action === "publish"
+          ? "Impossible de publier cette fiche"
+          : "Impossible de dépublier cette fiche"
+      );
+      return;
+    }
+
+    await loadRows();
+    render();
+
+    toast(
+      action === "publish"
+        ? "Fiche marquée publiée — page publique encore verrouillée"
+        : "Fiche dépubliée"
     );
   }
 
@@ -2901,6 +3066,29 @@
         .author-merge-history-details {
           grid-template-columns: 1fr;
         }
+      }
+
+      .author-publication-action {
+        min-height: 36px;
+        padding: 8px 12px;
+        border: 1px solid rgba(58, 28, 113, .38);
+        border-radius: 10px;
+        background: rgba(58, 28, 113, .12);
+        color: inherit;
+        font: inherit;
+        font-size: .74rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .author-publication-action.is-published {
+        border-color: rgba(190, 70, 70, .35);
+        background: rgba(190, 70, 70, .08);
+      }
+
+      .author-publication-action:disabled {
+        cursor: wait;
+        opacity: .58;
       }
 
       .author-publication-ready-action {
