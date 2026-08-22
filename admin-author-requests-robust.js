@@ -227,17 +227,33 @@
   }
 
   async function loadAuthorProfiles() {
-    const columns = "id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at";
+    const mergeColumns =
+      "id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at, merged_into, merged_at";
+
+    const enrichedColumns =
+      "id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at";
+
+    const legacyColumns =
+      "id, pseudo, slug, website, validated, created_at";
+
     let response = await supabaseClient
       .from("authors")
-      .select(columns)
+      .select(mergeColumns)
       .order("created_at", { ascending: false })
       .limit(300);
 
     if (response.error && isMissingColumnError(response.error)) {
       response = await supabaseClient
         .from("authors")
-        .select("id, pseudo, slug, website, validated, created_at")
+        .select(enrichedColumns)
+        .order("created_at", { ascending: false })
+        .limit(300);
+    }
+
+    if (response.error && isMissingColumnError(response.error)) {
+      response = await supabaseClient
+        .from("authors")
+        .select(legacyColumns)
         .order("created_at", { ascending: false })
         .limit(300);
     }
@@ -283,9 +299,13 @@
 
     const authorEngine = window.DEDICALIVRES_AUTHOR_BACKOFFICE;
 
+    const activeAuthors = authors.filter(
+      (author) => !author?.merged_into
+    );
+
     authorDuplicateGroups =
       authorEngine && typeof authorEngine.findProbableAuthorDuplicates === "function"
-        ? authorEngine.findProbableAuthorDuplicates(authors)
+        ? authorEngine.findProbableAuthorDuplicates(activeAuthors)
         : [];
 
     renderAuthorPreparationCockpit();
@@ -844,6 +864,11 @@
         return;
       }
 
+      if (action === "merge") {
+        await executeAuthorDuplicateMerge(authorDuplicateAction);
+        return;
+      }
+
       return;
     }
 
@@ -1041,6 +1066,7 @@
     const wrapper = document.createElement("div");
     wrapper.id = "author-duplicate-overlay";
     wrapper.className = "author-editor-overlay";
+    wrapper._authorDuplicate = duplicate;
 
     const renderProfile = (author, label, side) => `
       <article
@@ -1113,7 +1139,10 @@
         <div class="author-editor-head">
           <div>
             <h4 id="author-duplicate-title">COMPARER LES DOUBLONS AUTEURS</h4>
-            <p>Lecture seule — aucune fusion ni modification n’est effectuée.</p>
+            <p>
+              Comparez les fiches, choisissez la principale puis contrôlez le plan
+              avant toute fusion.
+            </p>
           </div>
 
           <button
@@ -1148,6 +1177,12 @@
           Choisissez éventuellement une fiche principale pour préparer la résolution.
           Ce choix reste local à cette fenêtre et n’est pas enregistré.
         </div>
+
+        <div
+          id="author-duplicate-merge-plan"
+          class="author-duplicate-merge-plan"
+          hidden
+        ></div>
 
         <div class="author-editor-actions">
           <button
@@ -1203,9 +1238,287 @@
           sélectionnée comme fiche principale.
         </strong>
         <br>
-        Simulation uniquement — aucun changement n’est enregistré.
+        Aucun changement n’est effectué tant que vous ne confirmez pas la fusion.
       `;
     }
+
+    renderAuthorDuplicateMergePlan(side);
+  }
+
+  function getAuthorLinkedPresences(author) {
+    if (!author) return [];
+
+    const id = String(author.id || "").trim();
+    const slug = String(author.slug || "").trim();
+
+    return rows.filter((row) => {
+      const rowId = String(row.author_id || "").trim();
+      const rowSlug = String(
+        row.author_slug || row.author_identity_key || ""
+      ).trim();
+
+      return (
+        (id && rowId === id) ||
+        (slug && rowSlug === slug)
+      );
+    });
+  }
+
+  function getAuthorNameOnlyPresences(author) {
+    const engine = window.DEDICALIVRES_AUTHOR_BACKOFFICE;
+
+    if (
+      !author ||
+      !engine ||
+      typeof engine.normalizeAuthorIdentity !== "function"
+    ) {
+      return [];
+    }
+
+    const authorName = engine.normalizeAuthorIdentity(
+      author.pseudo || author.name || author.pen_name || ""
+    );
+
+    if (!authorName) return [];
+
+    return rows.filter((row) => {
+      const hasTechnicalIdentity =
+        String(row.author_id || "").trim() ||
+        String(row.author_slug || "").trim() ||
+        String(row.author_identity_key || "").trim();
+
+      if (hasTechnicalIdentity) return false;
+
+      const presenceName = engine.normalizeAuthorIdentity(
+        row.pseudo ||
+        row.author_name ||
+        row.pen_name ||
+        ""
+      );
+
+      return presenceName && presenceName === authorName;
+    });
+  }
+
+  function renderAuthorDuplicateMergePlan(primarySide) {
+    const overlay = document.getElementById("author-duplicate-overlay");
+    const plan = document.getElementById("author-duplicate-merge-plan");
+
+    if (!overlay || !plan) return;
+
+    const duplicate = overlay._authorDuplicate;
+
+    if (!duplicate?.left || !duplicate?.right) {
+      plan.hidden = true;
+      return;
+    }
+
+    const primary =
+      primarySide === "left" ? duplicate.left : duplicate.right;
+
+    const secondary =
+      primarySide === "left" ? duplicate.right : duplicate.left;
+
+    const primaryPresences = getAuthorLinkedPresences(primary);
+    const secondaryPresences = getAuthorLinkedPresences(secondary);
+    const ambiguousPresences = getAuthorNameOnlyPresences(secondary);
+
+    const primaryId = String(primary.id || "").trim();
+    const primarySlug = String(primary.slug || "").trim();
+
+    const transferRows = secondaryPresences.map((row) => `
+      <li>
+        <strong>${escapeHtml(row.pseudo || secondary.pseudo || "Auteur")}</strong>
+        <span>
+          présence ${escapeHtml(String(row.id || "sans identifiant"))}
+          → author_id=${escapeHtml(primaryId || "absent")}
+          · author_slug=${escapeHtml(primarySlug || "absent")}
+          · author_identity_key=${escapeHtml(primarySlug || "absent")}
+        </span>
+      </li>
+    `).join("");
+
+    plan.innerHTML = `
+      <div class="author-duplicate-plan-head">
+        <div>
+          <small>20F.3A — SIMULATION</small>
+          <strong>Plan de fusion contrôlée</strong>
+        </div>
+        <span>Aucune écriture en base</span>
+      </div>
+
+      <div class="author-duplicate-plan-summary">
+        <div>
+          <span>Fiche principale</span>
+          <strong>${escapeHtml(primary.pseudo || "Sans nom")}</strong>
+          <small>${escapeHtml(primary.slug || "Slug absent")}</small>
+        </div>
+
+        <div>
+          <span>Fiche secondaire</span>
+          <strong>${escapeHtml(secondary.pseudo || "Sans nom")}</strong>
+          <small>${escapeHtml(secondary.slug || "Slug absent")}</small>
+        </div>
+
+        <div>
+          <span>Présences déjà sur la principale</span>
+          <strong>${primaryPresences.length}</strong>
+        </div>
+
+        <div>
+          <span>Présences à réaffecter</span>
+          <strong>${secondaryPresences.length}</strong>
+        </div>
+      </div>
+
+      <div class="author-duplicate-plan-target">
+        <strong>Identité cible simulée</strong>
+        <code>author_id = ${escapeHtml(primaryId || "ABSENT")}</code>
+        <code>author_slug = ${escapeHtml(primarySlug || "ABSENT")}</code>
+        <code>author_identity_key = ${escapeHtml(primarySlug || "ABSENT")}</code>
+      </div>
+
+      ${
+        secondaryPresences.length
+          ? `
+            <div class="author-duplicate-plan-list">
+              <strong>Présences qui seraient réaffectées</strong>
+              <ul>${transferRows}</ul>
+            </div>
+          `
+          : `
+            <p class="author-duplicate-plan-empty">
+              Aucune présence techniquement reliée à la fiche secondaire.
+            </p>
+          `
+      }
+
+      ${
+        ambiguousPresences.length
+          ? `
+            <div class="author-duplicate-plan-ambiguous">
+              <strong>
+                ${ambiguousPresences.length}
+                présence${ambiguousPresences.length > 1 ? "s" : ""}
+                trouvée${ambiguousPresences.length > 1 ? "s" : ""}
+                uniquement par le nom
+              </strong>
+              <p>
+                Elles sont signalées pour contrôle humain et ne sont pas incluses
+                dans la fusion automatique.
+              </p>
+            </div>
+          `
+          : ""
+      }
+
+      <div class="author-editor-warning">
+        La fusion réaffectera les présences techniquement liées et archivera
+        logiquement la fiche secondaire. Aucune suppression physique ne sera faite.
+      </div>
+
+      <div class="author-editor-actions author-duplicate-merge-actions">
+        <button
+          type="button"
+          class="cyber-btn-primary"
+          data-author-duplicate-action="merge"
+          data-author-duplicate-primary="${escapeAttribute(primaryId)}"
+          data-author-duplicate-secondary="${escapeAttribute(String(secondary.id || ""))}"
+        >
+          Fusionner ces fiches
+        </button>
+      </div>
+    `;
+
+    plan.hidden = false;
+  }
+
+  async function executeAuthorDuplicateMerge(button) {
+    const primaryId = String(
+      button?.dataset?.authorDuplicatePrimary || ""
+    ).trim();
+
+    const secondaryId = String(
+      button?.dataset?.authorDuplicateSecondary || ""
+    ).trim();
+
+    if (!primaryId || !secondaryId || primaryId === secondaryId) {
+      toast("Fusion impossible : fiches invalides");
+      return;
+    }
+
+    const primary = authors.find(
+      (author) => String(author.id || "") === primaryId
+    );
+
+    const secondary = authors.find(
+      (author) => String(author.id || "") === secondaryId
+    );
+
+    if (!primary || !secondary) {
+      toast("Fusion impossible : fiche auteur introuvable");
+      return;
+    }
+
+    if (primary.merged_into || secondary.merged_into) {
+      toast("Fusion impossible : une fiche est déjà fusionnée");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `CONFIRMER LA FUSION\n\n` +
+      `Fiche conservée : ${primary.pseudo || primary.slug}\n` +
+      `Fiche archivée : ${secondary.pseudo || secondary.slug}\n\n` +
+      `Les présences techniquement liées seront réaffectées.\n` +
+      `La fiche secondaire ne sera pas supprimée.\n\n` +
+      `Continuer ?`
+    );
+
+    if (!confirmed) return;
+
+    button.disabled = true;
+    button.textContent = "Fusion en cours…";
+
+    const { data, error } = await supabaseClient.rpc(
+      "merge_author_profiles",
+      {
+        p_primary_id: primaryId,
+        p_secondary_id: secondaryId
+      }
+    );
+
+    if (error) {
+      button.disabled = false;
+      button.textContent = "Fusionner ces fiches";
+
+      const message = String(error.message || "");
+
+      if (message.includes("presence_event_conflict")) {
+        toast("Fusion bloquée : présence en conflit sur un même événement");
+      } else if (message.includes("already_merged")) {
+        toast("Fusion bloquée : une fiche est déjà fusionnée");
+      } else if (message.includes("cannot_merge_author_into_itself")) {
+        toast("Fusion impossible : même fiche sélectionnée");
+      } else if (message.includes("admin_required")) {
+        toast("Fusion refusée : droits administrateur requis");
+      } else {
+        console.warn("Admin auteurs : fusion impossible", error);
+        toast("Erreur lors de la fusion des fiches auteurs");
+      }
+
+      return;
+    }
+
+    const result = Array.isArray(data) ? data[0] : data;
+    const reassigned = Number(result?.reassigned_presences || 0);
+
+    closeAuthorDuplicateCompare();
+    await loadRows();
+    render();
+
+    toast(
+      `Fusion terminée — ${reassigned} présence${reassigned > 1 ? "s" : ""} réaffectée${reassigned > 1 ? "s" : ""}`
+    );
   }
 
   function closeAuthorDuplicateCompare() {
@@ -2224,6 +2537,131 @@
 
       .author-duplicate-select.is-selected {
         font-weight: 700;
+      }
+
+      .author-duplicate-merge-plan {
+        margin-top: 18px;
+        padding: 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,.10);
+        background: rgba(255,255,255,.025);
+      }
+
+      .author-duplicate-plan-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: flex-start;
+        margin-bottom: 16px;
+      }
+
+      .author-duplicate-plan-head small,
+      .author-duplicate-plan-head strong {
+        display: block;
+      }
+
+      .author-duplicate-plan-head small {
+        margin-bottom: 3px;
+        opacity: .6;
+      }
+
+      .author-duplicate-plan-head > span {
+        opacity: .7;
+        font-size: .85rem;
+      }
+
+      .author-duplicate-plan-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .author-duplicate-plan-summary > div {
+        padding: 12px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.04);
+      }
+
+      .author-duplicate-plan-summary span,
+      .author-duplicate-plan-summary strong,
+      .author-duplicate-plan-summary small {
+        display: block;
+      }
+
+      .author-duplicate-plan-summary span {
+        margin-bottom: 4px;
+        font-size: .75rem;
+        text-transform: uppercase;
+        opacity: .55;
+      }
+
+      .author-duplicate-plan-summary small {
+        margin-top: 3px;
+        opacity: .65;
+      }
+
+      .author-duplicate-plan-target {
+        display: grid;
+        gap: 5px;
+        margin: 14px 0;
+        padding: 12px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.04);
+      }
+
+      .author-duplicate-plan-target code {
+        overflow-wrap: anywhere;
+      }
+
+      .author-duplicate-plan-list {
+        margin-top: 14px;
+      }
+
+      .author-duplicate-plan-list ul {
+        margin: 8px 0 0;
+        padding-left: 20px;
+      }
+
+      .author-duplicate-plan-list li {
+        margin-bottom: 8px;
+      }
+
+      .author-duplicate-plan-list li span {
+        display: block;
+        margin-top: 2px;
+        opacity: .7;
+        font-size: .84rem;
+        overflow-wrap: anywhere;
+      }
+
+      .author-duplicate-plan-empty,
+      .author-duplicate-plan-ambiguous {
+        margin: 14px 0;
+        padding: 12px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.04);
+      }
+
+      .author-duplicate-plan-ambiguous p {
+        margin: 5px 0 0;
+        opacity: .75;
+      }
+
+      @media (max-width: 760px) {
+        .author-duplicate-plan-summary {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .author-duplicate-plan-head {
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .author-duplicate-plan-summary {
+          grid-template-columns: 1fr;
+        }
       }
 
       .author-duplicate-profile-head {

@@ -483,7 +483,7 @@ assert.match(
 
 assert.match(
   adminPresenceSource,
-  /findProbableAuthorDuplicates\(authors\)/,
+  /findProbableAuthorDuplicates\((authors|activeAuthors)\)/,
   "20F.1 : cockpit analyse les fiches authors"
 );
 
@@ -539,14 +539,8 @@ assert.match(
 
 assert.match(
   adminPresenceSource,
-  /Lecture seule — aucune fusion ni modification n’est effectuée/,
-  "20F.2A : comparaison explicitement en lecture seule"
-);
-
-assert.doesNotMatch(
-  adminPresenceSource,
-  /data-author-duplicate-action="merge"/,
-  "20F.2A : aucune action de fusion disponible"
+  /Comparez les fiches, choisissez la principale puis contrôlez le plan/,
+  "20F.2A : comparaison encadrée avant toute fusion"
 );
 
 
@@ -577,7 +571,7 @@ assert.match(
 
 assert.match(
   adminPresenceSource,
-  /Simulation uniquement — aucun changement n’est enregistré/,
+  /Aucun changement n’est effectué tant que vous ne confirmez pas la fusion/,
   "20F.2B : sélection explicitement non persistée"
 );
 
@@ -593,10 +587,178 @@ assert.match(
   "20F.2B : style du bouton sélectionné présent"
 );
 
+
+// 20F.3A — simulation fusion contrôlée
+assert.match(
+  adminPresenceSource,
+  /function renderAuthorDuplicateMergePlan/,
+  "20F.3A : fonction de simulation de fusion présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /function getAuthorLinkedPresences/,
+  "20F.3A : présences techniquement liées identifiées"
+);
+
+assert.match(
+  adminPresenceSource,
+  /function getAuthorNameOnlyPresences/,
+  "20F.3A : correspondances uniquement par nom isolées"
+);
+
+assert.match(
+  adminPresenceSource,
+  /author_id = \$\{escapeHtml\(primaryId/,
+  "20F.3A : author_id cible affiché"
+);
+
+assert.match(
+  adminPresenceSource,
+  /author_slug = \$\{escapeHtml\(primarySlug/,
+  "20F.3A : author_slug cible affiché"
+);
+
+assert.match(
+  adminPresenceSource,
+  /author_identity_key = \$\{escapeHtml\(primarySlug/,
+  "20F.3A : author_identity_key cible affiché"
+);
+
+assert.match(
+  adminPresenceSource,
+  /ne sont pas incluses\s+dans la fusion automatique/,
+  "20F.3A : correspondances par nom exclues de la fusion automatique"
+);
+
+assert.match(
+  adminPresenceSource,
+  /La fusion réaffectera les présences techniquement liées/,
+  "20F.3A : réaffectation annoncée avant confirmation"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Aucune suppression physique ne sera faite/,
+  "20F.3A : aucune suppression physique"
+);
+
+
+// 20F.3B — lecture fiches fusionnées
+assert.match(
+  adminPresenceSource,
+  /merged_into, merged_at/,
+  "20F.3B : colonnes de fusion demandées"
+);
+
+assert.match(
+  adminPresenceSource,
+  /const enrichedColumns/,
+  "20F.3B : fallback schéma enrichi présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /const legacyColumns/,
+  "20F.3B : fallback legacy présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /const activeAuthors = authors\.filter/,
+  "20F.3B : filtrage des fiches actives présent"
+);
+
+assert.match(
+  adminPresenceSource,
+  /!author\?\.merged_into/,
+  "20F.3B : fiches fusionnées exclues de la détection"
+);
+
+assert.match(
+  adminPresenceSource,
+  /findProbableAuthorDuplicates\(activeAuthors\)/,
+  "20F.3B : détection limitée aux fiches actives"
+);
+
 assert.doesNotMatch(
   adminPresenceSource,
+  /\.delete\([^)]*merged_into/,
+  "20F.3B : aucune suppression liée au statut fusion"
+);
+
+
+// 20F.3D — fusion contrôlée réelle
+assert.match(
+  adminPresenceSource,
   /data-author-duplicate-action="merge"/,
-  "20F.2B : aucune fusion disponible"
+  "20F.3D : action de fusion explicite présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /async function executeAuthorDuplicateMerge/,
+  "20F.3D : fonction de fusion contrôlée présente"
+);
+
+assert.match(
+  adminPresenceSource,
+  /CONFIRMER LA FUSION/,
+  "20F.3D : confirmation forte avant fusion"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Fiche conservée/,
+  "20F.3D : fiche principale clairement identifiée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /Fiche archivée/,
+  "20F.3D : fiche secondaire clairement identifiée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /\.rpc\(\s*"merge_author_profiles"/,
+  "20F.3D : RPC transactionnelle utilisée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /p_primary_id:\s*primaryId/,
+  "20F.3D : identifiant principal transmis"
+);
+
+assert.match(
+  adminPresenceSource,
+  /p_secondary_id:\s*secondaryId/,
+  "20F.3D : identifiant secondaire transmis"
+);
+
+assert.match(
+  adminPresenceSource,
+  /presence_event_conflict/,
+  "20F.3D : conflit de présence géré"
+);
+
+assert.match(
+  adminPresenceSource,
+  /already_merged/,
+  "20F.3D : fiche déjà fusionnée gérée"
+);
+
+assert.match(
+  adminPresenceSource,
+  /admin_required/,
+  "20F.3D : refus de droits administrateur géré"
+);
+
+assert.doesNotMatch(
+  adminPresenceSource,
+  /\.delete\(/,
+  "20F.3D : aucune suppression physique introduite"
 );
 
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");
