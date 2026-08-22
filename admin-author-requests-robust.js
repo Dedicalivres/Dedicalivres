@@ -36,6 +36,8 @@
   let duplicateGroups = [];
   let duplicateById = new Map();
   let authorDuplicateGroups = [];
+  let authorMergeHistory = [];
+  let authorMergeHistoryError = "";
 
   ensureStyles();
   bindAuthEvents();
@@ -150,6 +152,32 @@
         </div>
       </section>
 
+      <section
+        class="author-merge-history"
+        aria-labelledby="author-merge-history-title"
+      >
+        <div class="author-preparation-head">
+          <div>
+            <h4 id="author-merge-history-title">HISTORIQUE DES FUSIONS</h4>
+            <p>
+              Journal interne des rapprochements de fiches auteurs.
+              Consultation uniquement.
+            </p>
+          </div>
+          <div
+            id="author-merge-history-count"
+            class="author-preparation-counts"
+          ></div>
+        </div>
+
+        <div
+          id="author-merge-history-list"
+          class="author-merge-history-list"
+        >
+          Chargement…
+        </div>
+      </section>
+
       <div id="author-requests-list" class="author-requests-list">
         Chargement…
       </div>
@@ -222,6 +250,7 @@
         : "author"
     }));
     await loadAuthorProfiles();
+    await loadAuthorMergeHistory();
     refreshDuplicateIndex();
     publishAuthorRequestCounter(rows.filter(isPending).length, false);
   }
@@ -269,6 +298,203 @@
     authorsLoadError = "";
   }
 
+  async function loadAuthorMergeHistory() {
+    const response = await supabaseClient
+      .from("author_merge_audit")
+      .select(
+        "id, primary_author_id, secondary_author_id, primary_author_snapshot, secondary_author_snapshot, reassigned_presences, created_at, reverted_at"
+      )
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (response.error) {
+      authorMergeHistory = [];
+      authorMergeHistoryError =
+        response.error.message || "Historique des fusions indisponible";
+
+      console.warn(
+        "Admin auteurs : historique des fusions indisponible",
+        response.error
+      );
+      return;
+    }
+
+    authorMergeHistory = Array.isArray(response.data)
+      ? response.data
+      : [];
+
+    authorMergeHistoryError = "";
+  }
+
+  function getMergeSnapshotName(snapshot, fallback) {
+    if (!snapshot || typeof snapshot !== "object") {
+      return fallback || "Auteur inconnu";
+    }
+
+    return (
+      snapshot.pseudo ||
+      snapshot.name ||
+      snapshot.pen_name ||
+      snapshot.slug ||
+      fallback ||
+      "Auteur inconnu"
+    );
+  }
+
+  function formatMergeHistoryDate(value) {
+    if (!value) return "Date inconnue";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "Date inconnue";
+    }
+
+    return date.toLocaleString("fr-FR", {
+      dateStyle: "medium",
+      timeStyle: "short"
+    });
+  }
+
+  function renderAuthorMergeHistory() {
+    const count = document.getElementById(
+      "author-merge-history-count"
+    );
+
+    const list = document.getElementById(
+      "author-merge-history-list"
+    );
+
+    if (!list) return;
+
+    if (authorMergeHistoryError) {
+      if (count) count.innerHTML = "";
+
+      list.innerHTML = `
+        <p class="priority-empty">
+          Historique indisponible.
+        </p>
+      `;
+      return;
+    }
+
+    const activeCount = authorMergeHistory.filter(
+      (entry) => !entry.reverted_at
+    ).length;
+
+    const revertedCount =
+      authorMergeHistory.length - activeCount;
+
+    if (count) {
+      count.innerHTML = `
+        <span class="author-preparation-count">
+          ${authorMergeHistory.length} fusion(s)
+        </span>
+        <span class="author-preparation-count is-ready">
+          ${activeCount} active(s)
+        </span>
+        <span class="author-preparation-count is-incomplete">
+          ${revertedCount} annulée(s)
+        </span>
+      `;
+    }
+
+    if (!authorMergeHistory.length) {
+      list.innerHTML = `
+        <p class="priority-empty">
+          Aucune fusion enregistrée pour le moment.
+        </p>
+      `;
+      return;
+    }
+
+    list.innerHTML = authorMergeHistory.map((entry) => {
+      const primaryName = getMergeSnapshotName(
+        entry.primary_author_snapshot,
+        entry.primary_author_id
+      );
+
+      const secondaryName = getMergeSnapshotName(
+        entry.secondary_author_snapshot,
+        entry.secondary_author_id
+      );
+
+      const reverted = Boolean(entry.reverted_at);
+
+      return `
+        <article class="author-merge-history-card">
+          <div class="author-merge-history-card-head">
+            <div>
+              <strong>
+                ${escapeHtml(secondaryName)}
+                →
+                ${escapeHtml(primaryName)}
+              </strong>
+              <span>
+                ${escapeHtml(formatMergeHistoryDate(entry.created_at))}
+              </span>
+            </div>
+
+            <div class="author-merge-history-head-actions">
+              <span
+                class="author-merge-history-status ${
+                  reverted ? "is-reverted" : "is-active"
+                }"
+              >
+                ${reverted ? "Annulée" : "Active"}
+              </span>
+
+              ${
+                reverted
+                  ? ""
+                  : `
+                    <button
+                      type="button"
+                      class="cyber-btn-secondary author-merge-revert-button"
+                      data-author-merge-action="revert"
+                      data-author-merge-audit-id="${escapeAttribute(entry.id)}"
+                      data-author-merge-primary="${escapeAttribute(primaryName)}"
+                      data-author-merge-secondary="${escapeAttribute(secondaryName)}"
+                    >
+                      Annuler cette fusion
+                    </button>
+                  `
+              }
+            </div>
+          </div>
+
+          <dl class="author-merge-history-details">
+            <div>
+              <dt>Fiche conservée</dt>
+              <dd>${escapeHtml(primaryName)}</dd>
+            </div>
+
+            <div>
+              <dt>Fiche archivée</dt>
+              <dd>${escapeHtml(secondaryName)}</dd>
+            </div>
+
+            <div>
+              <dt>Présences déplacées</dt>
+              <dd>${Number(entry.reassigned_presences || 0)}</dd>
+            </div>
+
+            <div>
+              <dt>Retour arrière</dt>
+              <dd>
+                ${
+                  reverted
+                    ? escapeHtml(formatMergeHistoryDate(entry.reverted_at))
+                    : "Non"
+                }
+              </dd>
+            </div>
+          </dl>
+        </article>
+      `;
+    }).join("");
+  }
+
   function render() {
     const count = document.getElementById("author-requests-count");
     const list = document.getElementById("author-requests-list");
@@ -309,6 +535,7 @@
         : [];
 
     renderAuthorPreparationCockpit();
+    renderAuthorMergeHistory();
 
     const preparationList = document.getElementById("author-preparation-list");
 
@@ -831,6 +1058,17 @@
       render();
       toast("Présences déclarées actualisées");
       return;
+    }
+
+    const authorMergeAction = event.target.closest("[data-author-merge-action]");
+
+    if (authorMergeAction) {
+      const action = authorMergeAction.dataset.authorMergeAction;
+
+      if (action === "revert") {
+        await executeAuthorMergeRevert(authorMergeAction);
+        return;
+      }
     }
 
     const authorEditButton = event.target.closest("[data-author-edit-id]");
@@ -1521,6 +1759,81 @@
     );
   }
 
+  async function executeAuthorMergeRevert(button) {
+    const auditId = String(
+      button?.dataset?.authorMergeAuditId || ""
+    ).trim();
+
+    if (!auditId) {
+      toast("Retour arrière impossible : journal introuvable");
+      return;
+    }
+
+    const primaryName =
+      button.dataset.authorMergePrimary || "fiche principale";
+
+    const secondaryName =
+      button.dataset.authorMergeSecondary || "fiche archivée";
+
+    const confirmed = window.confirm(
+      `CONFIRMER LE RETOUR ARRIÈRE\n\n` +
+      `Fusion à annuler : ${secondaryName} → ${primaryName}\n\n` +
+      `La fiche archivée sera restaurée ainsi que les présences ` +
+      `enregistrées dans le journal de fusion.\n\n` +
+      `Si l’état a changé depuis la fusion, l’opération sera bloquée.\n\n` +
+      `Continuer ?`
+    );
+
+    if (!confirmed) return;
+
+    button.disabled = true;
+    button.textContent = "Annulation en cours…";
+
+    const { data, error } = await supabaseClient.rpc(
+      "revert_author_merge",
+      {
+        p_audit_id: auditId
+      }
+    );
+
+    if (error) {
+      button.disabled = false;
+      button.textContent = "Annuler cette fusion";
+
+      const message = String(error.message || "");
+
+      if (message.includes("merge_already_reverted")) {
+        toast("Cette fusion a déjà été annulée");
+      } else if (message.includes("merge_state_changed")) {
+        toast("Retour arrière bloqué : l’état des fiches a changé");
+      } else if (message.includes("presence_restore_count_mismatch")) {
+        toast("Retour arrière bloqué : certaines présences ont changé");
+      } else if (message.includes("merge_audit_not_found")) {
+        toast("Retour arrière impossible : journal introuvable");
+      } else if (message.includes("admin_required")) {
+        toast("Retour arrière refusé : droits administrateur requis");
+      } else {
+        console.warn(
+          "Admin auteurs : retour arrière fusion impossible",
+          error
+        );
+        toast("Erreur lors du retour arrière de la fusion");
+      }
+
+      return;
+    }
+
+    const result = Array.isArray(data) ? data[0] : data;
+    const restored = Number(result?.restored_presences || 0);
+
+    await loadRows();
+    render();
+
+    toast(
+      `Fusion annulée — ${restored} présence${restored > 1 ? "s" : ""} restaurée${restored > 1 ? "s" : ""}`
+    );
+  }
+
   function closeAuthorDuplicateCompare() {
     document.getElementById("author-duplicate-overlay")?.remove();
   }
@@ -2121,6 +2434,121 @@
         background: rgba(255,255,255,.94);
         color: #111;
         font: inherit;
+      }
+
+      .author-merge-history {
+        margin: 18px 0 24px;
+        padding: 18px;
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 22px;
+        background: rgba(7,18,22,.62);
+      }
+
+      .author-merge-history-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .author-merge-history-card {
+        padding: 14px;
+        border: 1px solid rgba(255,255,255,.1);
+        border-radius: 16px;
+        background: rgba(255,255,255,.035);
+      }
+
+      .author-merge-history-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .author-merge-history-card-head strong {
+        display: block;
+      }
+
+      .author-merge-history-card-head span {
+        display: block;
+        margin-top: 4px;
+        color: var(--cyber-muted);
+        font-size: .78rem;
+      }
+
+      .author-merge-history-head-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .author-merge-revert-button {
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: .72rem;
+      }
+
+      .author-merge-history-status {
+        flex: 0 0 auto;
+        padding: 5px 9px;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 900;
+      }
+
+      .author-merge-history-status.is-active {
+        background: rgba(50,205,130,.13);
+        border: 1px solid rgba(50,205,130,.35);
+      }
+
+      .author-merge-history-status.is-reverted {
+        background: rgba(255,255,255,.07);
+        border: 1px solid rgba(255,255,255,.14);
+      }
+
+      .author-merge-history-details {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 14px 0 0;
+      }
+
+      .author-merge-history-details div {
+        min-width: 0;
+      }
+
+      .author-merge-history-details dt {
+        color: var(--cyber-muted);
+        font-size: .68rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+
+      .author-merge-history-details dd {
+        margin: 4px 0 0;
+        overflow-wrap: anywhere;
+        font-size: .82rem;
+      }
+
+      @media (max-width: 760px) {
+        .author-merge-history-details {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 480px) {
+        .author-merge-history-card-head {
+          display: block;
+        }
+
+        .author-merge-history-status {
+          display: inline-block;
+          margin-top: 10px;
+        }
+
+        .author-merge-history-details {
+          grid-template-columns: 1fr;
+        }
       }
 
       .author-preparation-cockpit {
