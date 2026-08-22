@@ -1,7 +1,16 @@
 /*
-  DÉDICALIVRES — Aperçu interne d’une fiche auteur
+  DÉDICALIVRES — Fiche auteur publique + aperçu interne admin
   Fichier : author.js
-  Cette page reste noindex et exige une session admin + preview=admin.
+
+  Mode public :
+  - exige une fiche explicitement publiée ;
+  - aucun fallback depuis les présences ;
+  - indexation activée uniquement après validation de l’état publié.
+
+  Mode aperçu admin :
+  - exige preview=admin ;
+  - exige une session authentifiée ;
+  - reste noindex.
 */
 
 (function () {
@@ -15,6 +24,10 @@
   const pastGrid = document.getElementById("author-events-past");
   const upcomingSection = document.getElementById("author-upcoming-section");
   const pastSection = document.getElementById("author-past-section");
+  const robotsMeta = document.getElementById("author-robots");
+  const descriptionMeta = document.querySelector('meta[name="description"]');
+  const contextLink = document.getElementById("author-context-link");
+  const backLink = document.getElementById("author-back-link");
 
   if (!profile || !upcomingGrid || !pastGrid) return;
 
@@ -38,42 +51,102 @@
   init();
 
   async function init() {
-    if (!isAdminPreview) {
-      renderLocked("Cette fiche est préparée en back-office et n’est pas publiée.");
-      return;
-    }
-
-    const { data, error } = await client.auth.getSession();
-    if (error || !data?.session) {
-      renderLocked("Connexion admin requise pour cet aperçu.");
-      return;
-    }
+    lockIndexing();
 
     if (!slug) {
       renderNotFound();
       return;
     }
 
-    const author = await loadAuthor(slug);
-    const presences = await loadAuthorPresences(slug, author);
-    const fallbackAuthor = author || buildAuthorFromPresence(slug, presences);
+    if (isAdminPreview) {
+      configureNavigation(true);
 
-    if (!fallbackAuthor) {
-      renderNotFound();
+      const { data, error } = await client.auth.getSession();
+
+      if (error || !data?.session) {
+        renderLocked("Connexion admin requise pour cet aperçu.");
+        return;
+      }
+
+      const author = await loadAuthor(slug);
+      const presences = await loadAuthorPresences(slug, author);
+      const fallbackAuthor =
+        author || buildAuthorFromPresence(slug, presences);
+
+      if (!fallbackAuthor) {
+        renderNotFound();
+        return;
+      }
+
+      const duplicate = hasProbableDuplicate(presences);
+      const draft = engine.buildAuthorDraft({
+        author: fallbackAuthor,
+        presences,
+        duplicate
+      });
+
+      renderAuthor(draft, { adminPreview: true });
+      renderEvents(
+        draft.upcomingEvents,
+        upcomingGrid,
+        upcomingSection,
+        "Aucun événement à venir indiqué."
+      );
+      renderEvents(
+        draft.pastEvents,
+        pastGrid,
+        pastSection,
+        "Aucun événement passé indiqué."
+      );
+
       return;
     }
 
+    configureNavigation(false);
+
+    const author = await loadAuthor(slug);
+
+    const isPubliclyAvailable =
+      author &&
+      author.published === true &&
+      author.validated === true &&
+      !author.merged_into;
+
+    if (!isPubliclyAvailable) {
+      renderPublicNotFound();
+      return;
+    }
+
+    const presences = await loadAuthorPresences(slug, author);
     const duplicate = hasProbableDuplicate(presences);
-    const draft = engine.buildAuthorDraft({ author: fallbackAuthor, presences, duplicate });
-    renderAuthor(draft);
-    renderEvents(draft.upcomingEvents, upcomingGrid, upcomingSection, "Aucun événement à venir indiqué.");
-    renderEvents(draft.pastEvents, pastGrid, pastSection, "Aucun événement passé indiqué.");
+
+    const draft = engine.buildAuthorDraft({
+      author,
+      presences,
+      duplicate
+    });
+
+    renderAuthor(draft, { adminPreview: false });
+    renderEvents(
+      draft.upcomingEvents,
+      upcomingGrid,
+      upcomingSection,
+      "Aucun événement à venir indiqué."
+    );
+    renderEvents(
+      draft.pastEvents,
+      pastGrid,
+      pastSection,
+      "Aucun événement passé indiqué."
+    );
+
+    unlockPublicIndexing(draft);
   }
 
   async function loadAuthor(slugValue) {
     let response = await client
       .from("authors")
-      .select("id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at")
+      .select("id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at, merged_into, merged_at, publication_ready, published, published_at")
       .eq("slug", slugValue)
       .maybeSingle();
 
@@ -160,15 +233,22 @@
     return typeof detector?.groupPresences === "function" && detector.groupPresences(presences).length > 0;
   }
 
-  function renderAuthor(draft) {
-    document.title = `Aperçu interne — ${draft.identity || "Auteur"} — Dédicalivres`;
+  function renderAuthor(draft, { adminPreview = false } = {}) {
+    document.title = adminPreview
+      ? `Aperçu interne — ${draft.identity || "Auteur"} — Dédicalivres`
+      : `${draft.identity || "Auteur"} — Dédicalivres`;
+
     const avatarUrl = resolveImageUrl(draft.photo);
 
     profile.innerHTML = `
-      <div class="author-preview-notice" role="status">
-        <strong>Aperçu interne — non publié</strong>
-        <span>Cette fiche n’est ni indexée ni liée depuis le site public.</span>
-      </div>
+      ${
+        adminPreview
+          ? `<div class="author-preview-notice" role="status">
+               <strong>Aperçu interne — non publié</strong>
+               <span>Cette vue reste réservée à l’administration et non indexée.</span>
+             </div>`
+          : ""
+      }
       <div class="author-profile-inner">
         ${
           avatarUrl
@@ -179,8 +259,12 @@
         <div class="author-profile-content">
           <div class="author-preview-badges">
             <span class="badge">${escapeHtml(draft.profileLabel)}</span>
-            <span class="badge author-readiness-${escapeAttribute(draft.status)}">${escapeHtml(draft.statusLabel)}</span>
-            ${draft.publishableLater ? `<span class="badge">Publiable plus tard</span>` : ""}
+            ${
+              adminPreview
+                ? `<span class="badge author-readiness-${escapeAttribute(draft.status)}">${escapeHtml(draft.statusLabel)}</span>
+                   ${draft.publishableLater ? `<span class="badge">Publiable plus tard</span>` : ""}`
+                : ""
+            }
           </div>
 
           <h1 class="author-title">${escapeHtml(draft.identity || "Identité à compléter")}</h1>
@@ -190,17 +274,25 @@
           <div class="author-actions">
             ${draft.primaryLink ? `<a class="btn-primary" href="${escapeAttribute(draft.primaryLink)}" target="_blank" rel="noopener noreferrer">Vitrine / profil</a>` : ""}
             ${draft.secondaryLink ? `<a class="btn-secondary" href="${escapeAttribute(draft.secondaryLink)}" target="_blank" rel="noopener noreferrer">Boutique / précommande</a>` : ""}
-            <a class="btn-secondary" href="admin.html">Retour à l’administration</a>
+            ${
+              adminPreview
+                ? `<a class="btn-secondary" href="admin.html">Retour à l’administration</a>`
+                : `<a class="btn-secondary" href="index.html#agenda">Voir l’agenda</a>`
+            }
           </div>
 
           <p class="author-note">
             Historique des présences indiquées sur Dédicalivres, sous contrôle de modération.
             Cette liste n’est pas une liste exhaustive des participants officiels.
           </p>
-          <p class="author-preview-missing">
-            <strong>AUTEUR_PRÊT : ${draft.ready ? "oui" : "non"}</strong>
-            ${draft.missingLabels.length ? ` · Manque : ${escapeHtml(draft.missingLabels.join(" · "))}` : ""}
-          </p>
+          ${
+            adminPreview
+              ? `<p class="author-preview-missing">
+                   <strong>AUTEUR_PRÊT : ${draft.ready ? "oui" : "non"}</strong>
+                   ${draft.missingLabels.length ? ` · Manque : ${escapeHtml(draft.missingLabels.join(" · "))}` : ""}
+                 </p>`
+              : ""
+          }
         </div>
       </div>
     `;
@@ -238,6 +330,61 @@
         </div>
       </article>
     `;
+  }
+
+  function configureNavigation(adminPreview) {
+    if (contextLink) {
+      contextLink.href = adminPreview ? "admin.html" : "index.html";
+      contextLink.innerHTML = adminPreview
+        ? "<span>← Administration</span>"
+        : "<span>← Dédicalivres</span>";
+    }
+
+    if (backLink) {
+      backLink.href = adminPreview ? "admin.html" : "index.html";
+      backLink.textContent = adminPreview
+        ? "← Retour à l’administration"
+        : "← Retour à Dédicalivres";
+    }
+  }
+
+  function lockIndexing() {
+    if (robotsMeta) {
+      robotsMeta.setAttribute(
+        "content",
+        "noindex,nofollow,noarchive,nosnippet"
+      );
+    }
+  }
+
+  function unlockPublicIndexing(draft) {
+    if (robotsMeta) {
+      robotsMeta.setAttribute("content", "index,follow");
+    }
+
+    if (descriptionMeta) {
+      const identity = cleanText(draft?.identity || "Auteur");
+      descriptionMeta.setAttribute(
+        "content",
+        `Découvrez ${identity}, sa fiche et ses présences littéraires sur Dédicalivres.`
+      );
+    }
+  }
+
+  function renderPublicNotFound() {
+    lockIndexing();
+    document.title = "Fiche auteur indisponible — Dédicalivres";
+
+    profile.innerHTML = `
+      <div class="empty-state">
+        <h1>Fiche auteur indisponible</h1>
+        <p>Cette fiche n’est pas publiée ou n’est plus disponible.</p>
+        <a class="btn-secondary" href="index.html">Retour à Dédicalivres</a>
+      </div>
+    `;
+
+    upcomingSection.hidden = true;
+    pastSection.hidden = true;
   }
 
   function renderLocked(message) {
