@@ -322,4 +322,89 @@ secondaryFiles.forEach((file) => {
   assert.match(source, /publisher/);
 });
 
+
+// 20E.3 — champs enrichis auteur
+{
+  const enriched = authorBackoffice.buildAuthorDraft({
+    author: {
+      pseudo: "Lina Enrichie",
+      slug: "lina-enrichie",
+      avatar_url: "https://images.test/lina.webp",
+      bio: "Biographie complète.",
+      website: "https://example.test/lina",
+      shop_url: "https://shop.example.test/lina",
+      location: "Bretagne",
+      profile_type: "artist_author",
+      validated: true
+    },
+    presences: [
+      {
+        id: "presence-enriched",
+        pseudo: "Lina Enrichie",
+        participant_type: "author",
+        validated: true,
+        rejected: false,
+        events: {
+          id: "event-enriched",
+          title: "Salon enrichi",
+          city: "Lorient",
+          region: "Bretagne",
+          start_date: "2027-05-10",
+          validated: true,
+          rejected: false
+        }
+      }
+    ],
+    duplicate: false
+  });
+
+  assert.equal(enriched.location, "Bretagne");
+  assert.equal(enriched.secondaryLink, "https://shop.example.test/lina");
+  assert.equal(enriched.profileType, "artist_author");
+  assert.equal(enriched.profileLabel, "Artiste-auteur");
+  assert.equal(enriched.ready, true);
+}
+
+assert.match(
+  adminPresenceSource,
+  /id="author-editor-location"/,
+  "20E.3 : localisation éditable dans le cockpit admin"
+);
+
+assert.match(
+  adminPresenceSource,
+  /id="author-editor-shop"/,
+  "20E.3 : boutique éditable dans le cockpit admin"
+);
+
+assert.match(
+  adminPresenceSource,
+  /id="author-editor-profile-type"/,
+  "20E.3 : type de profil éditable dans le cockpit admin"
+);
+
+assert.match(
+  adminPresenceSource,
+  /shop_url:\s*shopUrl\s*\|\|\s*null/,
+  "20E.3 : shop_url enregistré dans authors"
+);
+
+assert.match(
+  adminPresenceSource,
+  /profile_type:\s*profileType\s*\|\|\s*null/,
+  "20E.3 : profile_type enregistré dans authors"
+);
+
+assert.match(
+  authorPageSource,
+  /location,\s*shop_url,\s*profile_type/,
+  "20E.3 : aperçu auteur charge les champs enrichis"
+);
+
+assert.match(
+  authorBackofficeSource,
+  /author\.profile_type/,
+  "20E.3 : moteur auteur privilégie profile_type"
+);
+
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");
