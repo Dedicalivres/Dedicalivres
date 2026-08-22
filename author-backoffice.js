@@ -113,7 +113,11 @@
     const presences = Array.isArray(options.presences) ? options.presences : [];
     const validPresences = presences.filter((row) => row?.validated === true && row?.rejected !== true);
     const latestPresence = validPresences[0] || presences[0] || {};
-    const profileType = normalizeProfileType(author.participant_type || latestPresence.participant_type);
+    const profileType = normalizeProfileType(
+      author.profile_type ||
+      author.participant_type ||
+      latestPresence.participant_type
+    );
     const identity = clean(author.pseudo || author.name || author.pen_name || getPresenceName(latestPresence));
     const photo = clean(author.avatar_url || author.photo_url || author.image_url || validPresences.find((row) => row.author_portrait_url)?.author_portrait_url);
     const bio = clean(author.bio || author.biography || author.description);

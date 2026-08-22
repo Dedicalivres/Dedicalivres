@@ -226,7 +226,7 @@
   }
 
   async function loadAuthorProfiles() {
-    const columns = "id, pseudo, slug, website, bio, avatar_url, validated, created_at";
+    const columns = "id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at";
     let response = await supabaseClient
       .from("authors")
       .select(columns)
@@ -903,12 +903,19 @@
         ""
       ) || null;
 
+    const profileType = ["author", "artist_author", "hybrid"].includes(draft.profileType)
+      ? draft.profileType
+      : null;
+
     const payload = {
       pseudo,
       slug,
       website,
       bio: null,
       avatar_url: avatarUrl,
+      location: draft.location || null,
+      shop_url: draft.secondaryLink || null,
+      profile_type: profileType,
       validated: false
     };
 
@@ -917,7 +924,7 @@
     const { data, error } = await supabaseClient
       .from("authors")
       .insert(payload)
-      .select("id, pseudo, slug, website, bio, avatar_url, validated, created_at, updated_at")
+      .select("id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at, updated_at")
       .single();
 
     if (error) {
@@ -991,6 +998,26 @@
             <input id="author-editor-avatar" type="url" value="${escapeAttribute(author.avatar_url || "")}" placeholder="https://..." />
           </label>
 
+          <label>
+            <span>Localisation</span>
+            <input id="author-editor-location" value="${escapeAttribute(author.location || "")}" placeholder="Ex. Bretagne" />
+          </label>
+
+          <label>
+            <span>Boutique / précommande</span>
+            <input id="author-editor-shop" type="url" value="${escapeAttribute(author.shop_url || "")}" placeholder="https://..." />
+          </label>
+
+          <label>
+            <span>Type de profil</span>
+            <select id="author-editor-profile-type">
+              <option value="">Non défini</option>
+              <option value="author" ${author.profile_type === "author" ? "selected" : ""}>Auteur</option>
+              <option value="artist_author" ${author.profile_type === "artist_author" ? "selected" : ""}>Artiste-auteur</option>
+              <option value="hybrid" ${author.profile_type === "hybrid" ? "selected" : ""}>Hybride</option>
+            </select>
+          </label>
+
           <label class="author-editor-check">
             <input id="author-editor-validated" type="checkbox" ${author.validated === true ? "checked" : ""} />
             <span>Fiche validée en interne</span>
@@ -1024,6 +1051,9 @@
     const bio = String(document.getElementById("author-editor-bio")?.value || "").trim();
     const websiteRaw = String(document.getElementById("author-editor-website")?.value || "").trim();
     const avatarRaw = String(document.getElementById("author-editor-avatar")?.value || "").trim();
+    const location = String(document.getElementById("author-editor-location")?.value || "").trim();
+    const shopRaw = String(document.getElementById("author-editor-shop")?.value || "").trim();
+    const profileType = String(document.getElementById("author-editor-profile-type")?.value || "").trim();
     const validated = document.getElementById("author-editor-validated")?.checked === true;
 
     if (!id) {
@@ -1038,6 +1068,7 @@
 
     const website = normalizeOptionalUrl(websiteRaw);
     const avatarUrl = normalizeOptionalUrl(avatarRaw);
+    const shopUrl = normalizeOptionalUrl(shopRaw);
 
     if (websiteRaw && !website) {
       toast("URL du site invalide");
@@ -1049,11 +1080,24 @@
       return;
     }
 
+    if (shopRaw && !shopUrl) {
+      toast("URL de la boutique invalide");
+      return;
+    }
+
+    if (profileType && !["author", "artist_author", "hybrid"].includes(profileType)) {
+      toast("Type de profil invalide");
+      return;
+    }
+
     const payload = {
       pseudo,
       bio: bio || null,
       website: website || null,
       avatar_url: avatarUrl || null,
+      location: location || null,
+      shop_url: shopUrl || null,
+      profile_type: profileType || null,
       validated,
       updated_at: new Date().toISOString()
     };

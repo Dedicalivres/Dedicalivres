@@ -73,7 +73,7 @@
   async function loadAuthor(slugValue) {
     let response = await client
       .from("authors")
-      .select("id, pseudo, slug, website, bio, avatar_url, validated, created_at")
+      .select("id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at")
       .eq("slug", slugValue)
       .maybeSingle();
 
@@ -144,6 +144,11 @@
       website: row.author_profile_url || row.website || null,
       bio: null,
       avatar_url: row.author_portrait_url || null,
+      location: row?.events?.region || row?.events?.city || null,
+      shop_url: row.book_or_publisher_url || null,
+      profile_type: ["author", "artist_author", "hybrid"].includes(row.participant_type)
+        ? row.participant_type
+        : "author",
       participant_type: row.participant_type || "author",
       validated: row.validated === true,
       created_at: row.created_at
