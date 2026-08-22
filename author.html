@@ -7,6 +7,21 @@
   <title>Auteur — Dédicalivres</title>
   <meta name="description" content="Découvrez cette fiche auteur et ses présences littéraires sur Dédicalivres." />
   <meta id="author-robots" name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <link id="author-canonical" rel="canonical" href="https://dedicalivres.fr/author.html" />
+
+  <meta id="author-og-title" property="og:title" content="Auteur — Dédicalivres" />
+  <meta id="author-og-description" property="og:description" content="Découvrez cette fiche auteur et ses présences littéraires sur Dédicalivres." />
+  <meta id="author-og-url" property="og:url" content="https://dedicalivres.fr/author.html" />
+  <meta id="author-og-image" property="og:image" content="https://dedicalivres.fr/logo.png" />
+  <meta property="og:type" content="profile" />
+  <meta property="og:site_name" content="Dédicalivres" />
+  <meta property="og:locale" content="fr_FR" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta id="author-twitter-title" name="twitter:title" content="Auteur — Dédicalivres" />
+  <meta id="author-twitter-description" name="twitter:description" content="Découvrez cette fiche auteur et ses présences littéraires sur Dédicalivres." />
+  <meta id="author-twitter-image" name="twitter:image" content="https://dedicalivres.fr/logo.png" />
+
   <meta name="theme-color" content="#3A1C71" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -14,14 +29,15 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css?v=hero-slim-1" />
   <link rel="stylesheet" href="ludique.css?v=ludique-21" />
   <link rel="stylesheet" href="accessibilite.css?v=a11y-8" />
 </head>
 
-<body>
+<body class="author-page">
 <header class="header">
   <div class="container header-inner">
     <a href="index.html" aria-label="Accueil Dédicalivres">
@@ -47,6 +63,27 @@
       <p>Chargement de la fiche auteur…</p>
     </div>
   </article>
+
+  <section id="author-travel-section" class="author-travel-section section" hidden>
+    <div class="author-travel-heading">
+      <div>
+        <p class="category-kicker">Parcours littéraire</p>
+        <h2>Ses déplacements sur Dédicalivres</h2>
+        <p class="author-history-label">
+          Les points correspondent aux événements auxquels cette personne a indiqué sa présence.
+        </p>
+      </div>
+
+      <div id="author-travel-stats" class="author-travel-stats" aria-live="polite"></div>
+    </div>
+
+    <div class="author-travel-legend" aria-label="Légende de la carte">
+      <span><i class="author-map-dot is-upcoming"></i> À venir</span>
+      <span><i class="author-map-dot is-past"></i> Terminé</span>
+    </div>
+
+    <div id="author-travel-map" class="author-travel-map" aria-label="Carte des déplacements littéraires"></div>
+  </section>
 
   <section id="author-upcoming-section" class="section" hidden>
     <h2>Événements à venir</h2>
@@ -99,6 +136,7 @@
   </div>
 </footer>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="geography.js?v=v1-francophone-20260615"></script>
