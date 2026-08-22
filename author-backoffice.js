@@ -41,6 +41,95 @@
     return clean(row.participant_type === "publisher" ? row.organization_name || row.pseudo : row.pseudo);
   }
 
+  function normalizeAuthorIdentity(value) {
+    return normalize(value)
+      .replace(/\b(mme|mr|m|madame|monsieur)\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getAuthorIdentityCandidates(author) {
+    return Array.from(new Set([
+      author?.pseudo,
+      author?.name,
+      author?.pen_name,
+      author?.slug
+    ]
+      .map(normalizeAuthorIdentity)
+      .filter(Boolean)));
+  }
+
+  function scoreAuthorDuplicate(left, right) {
+    if (!left || !right || (left.id && right.id && left.id === right.id)) {
+      return { score: 0, reasons: [] };
+    }
+
+    let score = 0;
+    const reasons = [];
+
+    const leftIdentities = getAuthorIdentityCandidates(left);
+    const rightIdentities = getAuthorIdentityCandidates(right);
+
+    if (leftIdentities.some((value) => rightIdentities.includes(value))) {
+      score += 70;
+      reasons.push("identité");
+    }
+
+    const leftWebsite = clean(left.website).toLowerCase();
+    const rightWebsite = clean(right.website).toLowerCase();
+
+    if (leftWebsite && rightWebsite && leftWebsite === rightWebsite) {
+      score += 20;
+      reasons.push("site");
+    }
+
+    const leftShop = clean(left.shop_url).toLowerCase();
+    const rightShop = clean(right.shop_url).toLowerCase();
+
+    if (leftShop && rightShop && leftShop === rightShop) {
+      score += 10;
+      reasons.push("boutique");
+    }
+
+    const leftLocation = normalizeAuthorIdentity(left.location);
+    const rightLocation = normalizeAuthorIdentity(right.location);
+
+    if (leftLocation && rightLocation && leftLocation === rightLocation) {
+      score += 5;
+      reasons.push("localisation");
+    }
+
+    return {
+      score: Math.min(score, 100),
+      reasons
+    };
+  }
+
+  function findProbableAuthorDuplicates(authors) {
+    const source = Array.isArray(authors) ? authors : [];
+    const matches = [];
+
+    for (let i = 0; i < source.length; i += 1) {
+      for (let j = i + 1; j < source.length; j += 1) {
+        const left = source[i];
+        const right = source[j];
+
+        const result = scoreAuthorDuplicate(left, right);
+
+        if (result.score >= 70) {
+          matches.push({
+            left,
+            right,
+            score: result.score,
+            reasons: result.reasons
+          });
+        }
+      }
+    }
+
+    return matches.sort((a, b) => b.score - a.score);
+  }
+
   function getIdentityKey(row) {
     if (!row) return "";
     return clean(row.author_id) || clean(row.author_slug) || clean(row.author_identity_key) || normalize(getPresenceName(row));
@@ -199,6 +288,9 @@
     getIdentityKey,
     sameIdentity,
     findAuthorForPresence,
+    normalizeAuthorIdentity,
+    scoreAuthorDuplicate,
+    findProbableAuthorDuplicates,
     getRelatedPresences,
     splitPresenceEvents,
     evaluateAuthor,
