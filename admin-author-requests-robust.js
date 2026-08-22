@@ -526,6 +526,22 @@
            >Modifier la fiche</button>`
         : "";
 
+      const canCreateAuthor =
+        !author?.id &&
+        draft.duplicate !== true &&
+        validPresenceCount > 0 &&
+        draft.profileType !== "publisher" &&
+        Boolean(slug) &&
+        Boolean(draft.identity);
+
+      const createAuthorAction = canCreateAuthor
+        ? `<button
+             type="button"
+             class="author-preparation-create"
+             data-author-create-key="${escapeAttribute(String(slug))}"
+           >Créer la fiche</button>`
+        : "";
+
       const missing = draft.missingLabels.length
         ? draft.missingLabels.join(" · ")
         : "Aucun élément bloquant";
@@ -580,6 +596,7 @@
           <div class="author-preparation-actions">
             ${moderationAction}
             ${editAuthorAction}
+            ${createAuthorAction}
             ${previewLink}
           </div>
         </article>
@@ -764,6 +781,13 @@
       return;
     }
 
+    const authorCreateButton = event.target.closest("[data-author-create-key]");
+
+    if (authorCreateButton) {
+      await createAuthorFromCockpit(authorCreateButton);
+      return;
+    }
+
     const authorEditorAction = event.target.closest("[data-author-editor-action]");
 
     if (authorEditorAction) {
@@ -790,6 +814,129 @@
     const action = actionButton.dataset.action;
 
     await updateRequestFromCard(id, card, action);
+  }
+
+  async function createAuthorFromCockpit(button) {
+    const key = String(button.dataset.authorCreateKey || "").trim();
+
+    if (!key) {
+      toast("Identité auteur inexploitable");
+      return;
+    }
+
+    const prepared = buildPreparedAuthors().find((item) => {
+      const slug = String(item?.draft?.slug || "").trim();
+      return slug === key;
+    });
+
+    if (!prepared) {
+      toast("Fiche préparée introuvable");
+      return;
+    }
+
+    if (prepared.author?.id) {
+      toast("Cette fiche auteur existe déjà");
+      return;
+    }
+
+    const draft = prepared.draft || {};
+    const presences = Array.isArray(prepared.presences) ? prepared.presences : [];
+    const validPresences = presences.filter(
+      (row) => row.validated === true && row.rejected !== true
+    );
+
+    if (!validPresences.length) {
+      toast("Une présence validée est nécessaire");
+      return;
+    }
+
+    if (draft.duplicate === true) {
+      toast("Résolvez le doublon avant de créer la fiche");
+      return;
+    }
+
+    if (draft.profileType === "publisher") {
+      toast("Les maisons d’édition ne créent pas de fiche auteur");
+      return;
+    }
+
+    const pseudo = String(draft.identity || "").trim();
+    const slug = String(draft.slug || "").trim();
+
+    if (!pseudo || !slug) {
+      toast("Nom ou identifiant auteur manquant");
+      return;
+    }
+
+    const alreadyExists = authors.some((author) =>
+      String(author?.slug || "").trim() === slug
+    );
+
+    if (alreadyExists) {
+      toast("Une fiche avec cet identifiant existe déjà");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Créer une fiche auteur interne pour « ${pseudo} » ?\n\n` +
+      "Cette fiche sera créée non validée et ne sera pas publiée automatiquement."
+    );
+
+    if (!confirmed) return;
+
+    const sourcePresence =
+      validPresences.find((row) => row.author_portrait_url) ||
+      validPresences[0];
+
+    const website =
+      normalizeOptionalUrl(
+        sourcePresence.author_profile_url ||
+        sourcePresence.website ||
+        draft.primaryLink ||
+        ""
+      ) || null;
+
+    const avatarUrl =
+      normalizeOptionalUrl(
+        sourcePresence.author_portrait_url ||
+        draft.photo ||
+        ""
+      ) || null;
+
+    const payload = {
+      pseudo,
+      slug,
+      website,
+      bio: null,
+      avatar_url: avatarUrl,
+      validated: false
+    };
+
+    button.disabled = true;
+
+    const { data, error } = await supabaseClient
+      .from("authors")
+      .insert(payload)
+      .select("id, pseudo, slug, website, bio, avatar_url, validated, created_at, updated_at")
+      .single();
+
+    if (error) {
+      button.disabled = false;
+      console.warn("Admin auteurs : création fiche impossible", error);
+      toast("Erreur lors de la création de la fiche auteur");
+      return;
+    }
+
+    if (!data?.id) {
+      button.disabled = false;
+      toast("La fiche auteur n’a pas pu être confirmée");
+      return;
+    }
+
+    await loadRows();
+    render();
+
+    toast("Fiche auteur créée — à enrichir et valider");
   }
 
   function openAuthorEditor(authorId) {
@@ -1656,6 +1803,30 @@
       .author-preparation-edit:focus-visible {
         border-color: var(--cyber-green);
         background: rgba(25,255,156,.14);
+      }
+
+      .author-preparation-create {
+        min-height: 34px;
+        padding: 6px 10px;
+        border: 1px solid rgba(255,210,111,.42);
+        border-radius: 9px;
+        background: rgba(255,210,111,.09);
+        color: #ffe5a3;
+        font: inherit;
+        font-size: .76rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .author-preparation-create:hover,
+      .author-preparation-create:focus-visible {
+        border-color: #ffe5a3;
+        background: rgba(255,210,111,.16);
+      }
+
+      .author-preparation-create:disabled {
+        opacity: .55;
+        cursor: wait;
       }
 
       .author-editor-overlay {
