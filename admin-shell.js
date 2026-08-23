@@ -283,6 +283,54 @@
     );
   }
 
+  // V11.48 pending-only shortcut
+  if (communityPendingOnly) {
+    communityPendingOnly.addEventListener(
+      "click",
+      function () {
+        if (presenceSearch) {
+          presenceSearch.value = "";
+        }
+
+        if (presenceStatus) {
+          presenceStatus.value =
+            "pending";
+        }
+
+        if (presenceType) {
+          presenceType.value =
+            "all";
+        }
+
+        if (testimonialPhotoFilter) {
+          testimonialPhotoFilter.value =
+            "all";
+        }
+
+        const activeView =
+          getV11ActiveCommunityView();
+
+        const state =
+          context.getState();
+
+        if (
+          activeView ===
+          "testimonials"
+        ) {
+          renderTestimonials(
+            state.community
+              ?.testimonials || []
+          );
+        } else {
+          renderPresences(
+            state.community
+              ?.presences || []
+          );
+        }
+      }
+    );
+  }
+
   // V11.47 reset community filters
   if (communityResetFilters) {
     communityResetFilters.addEventListener(
@@ -332,6 +380,10 @@
               ?.presences || []
           );
         }
+
+        updateV11CommunityActiveFilters(
+          activeView
+        );
 
         if (presenceSearch) {
           presenceSearch.focus();
@@ -2189,6 +2241,17 @@ function renderEvents(events, status) {
       "v11-community-results-count"
     );
 
+
+  const communityPendingOnly =
+    document.getElementById(
+      "v11-community-pending-only"
+    );
+
+  const communityActiveFilters =
+    document.getElementById(
+      "v11-community-active-filters"
+    );
+
   const presenceTypeField =
     presenceType
       ? presenceType.closest("label")
@@ -2277,6 +2340,20 @@ function renderEvents(events, status) {
     }
   }
 
+  function getV11ActiveCommunityView() {
+    const activeTab =
+      document.querySelector(
+        "[data-community-view].is-active"
+      );
+
+    return (
+      activeTab
+        ?.dataset
+        ?.communityView ||
+      "presence"
+    );
+  }
+
   function updateV11CommunityResultsCount(
     visible,
     total
@@ -2304,6 +2381,64 @@ function renderEvents(events, status) {
           safeTotal +
           " affiché" +
           (safeVisible > 1 ? "s" : "");
+  }
+
+  function updateV11CommunityActiveFilters(
+    view
+  ) {
+    if (!communityActiveFilters) {
+      return;
+    }
+
+    const activeView =
+      view ||
+      getV11ActiveCommunityView();
+
+    let count = 0;
+
+    if (
+      presenceSearch &&
+      String(presenceSearch.value || "")
+        .trim()
+    ) {
+      count += 1;
+    }
+
+    if (
+      presenceStatus &&
+      presenceStatus.value !== "all"
+    ) {
+      count += 1;
+    }
+
+    if (
+      activeView === "presence" &&
+      presenceType &&
+      presenceType.value !== "all"
+    ) {
+      count += 1;
+    }
+
+    if (
+      activeView === "testimonials" &&
+      testimonialPhotoFilter &&
+      testimonialPhotoFilter.value !== "all"
+    ) {
+      count += 1;
+    }
+
+    communityActiveFilters.hidden =
+      count === 0;
+
+    communityActiveFilters.textContent =
+      count +
+      " filtre" +
+      (count > 1 ? "s" : "");
+
+    communityActiveFilters.classList.toggle(
+      "is-active",
+      count > 0
+    );
   }
 
   function profileLabel(type) {
@@ -2396,6 +2531,10 @@ function renderEvents(events, status) {
       items.length
     );
 
+    updateV11CommunityActiveFilters(
+      "presence"
+    );
+
     presenceList.replaceChildren();
 
     filtered.forEach((item) => {
@@ -2481,7 +2620,15 @@ function renderEvents(events, status) {
     });
 
     if (presenceEmpty) {
-      presenceEmpty.hidden = filtered.length !== 0;
+      presenceEmpty.hidden =
+        filtered.length !== 0;
+
+      if (filtered.length === 0) {
+        presenceEmpty.textContent =
+          items.length === 0
+            ? "Aucune présence enregistrée."
+            : "Aucune présence ne correspond aux filtres actuels.";
+      }
     }
   }
 
@@ -2927,6 +3074,10 @@ function renderEvents(events, status) {
     updateV11CommunityResultsCount(
       filtered.length,
       items.length
+    );
+
+    updateV11CommunityActiveFilters(
+      "testimonials"
     );
 
     testimonialsList.replaceChildren();
@@ -5923,6 +6074,54 @@ function renderEvents(events, status) {
             item
           );
         }
+      }
+    }
+  );
+
+  // V11.48 slash search shortcut
+  document.addEventListener(
+    "keydown",
+    function (event) {
+      if (
+        event.key !== "/" ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const target =
+        event.target;
+
+      const tagName =
+        String(
+          target?.tagName || ""
+        ).toLowerCase();
+
+      if (
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      const activeView =
+        getV11ActiveCommunityView();
+
+      if (
+        activeView !== "presence" &&
+        activeView !== "testimonials"
+      ) {
+        return;
+      }
+
+      if (presenceSearch) {
+        event.preventDefault();
+        presenceSearch.focus();
+        presenceSearch.select();
       }
     }
   );
