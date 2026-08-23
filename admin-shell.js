@@ -2549,6 +2549,16 @@ function renderEvents(events, status) {
       "v11-author-editorial-filter"
     );
 
+  const authorEditorialSort =
+    document.getElementById(
+      "v11-author-editorial-sort"
+    );
+
+  const authorEditorialCount =
+    document.getElementById(
+      "v11-author-editorial-count"
+    );
+
   const testimonialsList =
     document.getElementById("v11-testimonials-list");
 
@@ -3076,7 +3086,6 @@ function renderEvents(events, status) {
 
       body.appendChild(badge);
       body.appendChild(title);
-      body.appendChild(readinessLine);
       body.appendChild(meta);
 
       const side = document.createElement("div");
@@ -3213,19 +3222,148 @@ function renderEvents(events, status) {
   }
 
 
+
+  function sortV11AuthorsEditorially(items) {
+    const mode =
+      authorEditorialSort?.value ||
+      "priority";
+
+    return [...items].sort((a, b) => {
+      if (mode === "name") {
+        return String(
+          a?.pseudo || ""
+        ).localeCompare(
+          String(b?.pseudo || ""),
+          "fr",
+          {
+            sensitivity: "base"
+          }
+        );
+      }
+
+      const aReady =
+        getV11AuthorEditorialReadiness(a);
+
+      const bReady =
+        getV11AuthorEditorialReadiness(b);
+
+      if (
+        a.published === true &&
+        b.published !== true
+      ) {
+        return 1;
+      }
+
+      if (
+        b.published === true &&
+        a.published !== true
+      ) {
+        return -1;
+      }
+
+      if (aReady.score !== bReady.score) {
+        return (
+          bReady.score -
+          aReady.score
+        );
+      }
+
+      return String(
+        a?.pseudo || ""
+      ).localeCompare(
+        String(b?.pseudo || ""),
+        "fr",
+        {
+          sensitivity: "base"
+        }
+      );
+    });
+  }
+
+  function getV11AuthorPriorityTargetId(
+    readiness
+  ) {
+    const targets = {
+      "Identité":
+        "v11-author-edit-pseudo",
+      "Portrait":
+        "v11-author-edit-avatar",
+      "Type":
+        "v11-author-edit-type",
+      "Biographie":
+        "v11-author-edit-bio"
+    };
+
+    return (
+      targets[
+        readiness?.nextPriority
+      ] || null
+    );
+  }
+
+  function openV11AuthorPriorityEditor(
+    author,
+    readiness
+  ) {
+    openV11AuthorEditor(author);
+
+    const targetId =
+      getV11AuthorPriorityTargetId(
+        readiness
+      );
+
+    if (!targetId) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const target =
+        document.getElementById(
+          targetId
+        );
+
+      if (!target) {
+        return;
+      }
+
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
+      target.focus({
+        preventScroll: true
+      });
+    });
+  }
+
+
   function renderAuthors(items) {
     if (!authorsList) return;
 
     authorsList.replaceChildren();
 
-    const visible = items.filter((item) => {
-      return (
-        !item.merged_into &&
-        matchesV11AuthorEditorialFilter(
-          item
-        )
+    const visible =
+      sortV11AuthorsEditorially(
+        items.filter((item) => {
+          return (
+            !item.merged_into &&
+            matchesV11AuthorEditorialFilter(
+              item
+            )
+          );
+        })
       );
-    });
+
+    if (authorEditorialCount) {
+      authorEditorialCount.textContent =
+        visible.length +
+        (
+          visible.length > 1
+            ? " fiches dans la file"
+            : " fiche dans la file"
+        );
+    }
 
     updateV11CommunityOperationalSummary(
       "authors",
@@ -3310,6 +3448,7 @@ function renderEvents(events, status) {
 
       body.appendChild(badge);
       body.appendChild(title);
+      body.appendChild(readinessLine);
       body.appendChild(meta);
 
       const side = document.createElement("div");
@@ -3329,6 +3468,45 @@ function renderEvents(events, status) {
       }
 
       side.appendChild(statusBadge);
+
+      const priorityTarget =
+        getV11AuthorPriorityTargetId(
+          readiness
+        );
+
+      if (
+        item.published !== true &&
+        readiness.nextPriority &&
+        priorityTarget
+      ) {
+        const quickEdit =
+          document.createElement("button");
+
+        quickEdit.type = "button";
+        quickEdit.className =
+          "v11-author-quick-edit";
+
+        quickEdit.textContent =
+          "Compléter";
+
+        quickEdit.title =
+          "Ouvrir : " +
+          readiness.nextPriority;
+
+        quickEdit.addEventListener(
+          "click",
+          () => {
+            openV11AuthorPriorityEditor(
+              item,
+              readiness
+            );
+          }
+        );
+
+        side.appendChild(
+          quickEdit
+        );
+      }
 
       const detailButton =
         document.createElement("button");
@@ -4262,6 +4440,21 @@ function renderEvents(events, status) {
           subtree: true
         }
       );
+  }
+
+  // V11.56 author editorial sort
+  if (authorEditorialSort) {
+    authorEditorialSort.addEventListener(
+      "change",
+      () => {
+        const state =
+          context.getState();
+
+        renderAuthors(
+          state.community?.authors || []
+        );
+      }
+    );
   }
 
   // V11.55 author editorial filter

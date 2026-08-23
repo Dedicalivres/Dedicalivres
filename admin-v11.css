@@ -4934,3 +4934,55 @@ label.is-artist-author {
     min-width: 0;
   }
 }
+
+
+/* ==========================================================
+   ADMIN V11.56 — FILE EDITORIALE AUTEURS
+   ========================================================== */
+
+.v11-author-editorial-count {
+  display: block;
+  margin-top: 5px;
+  color: #53d7e8;
+  font-size: .78rem;
+}
+
+.v11-author-editorial-controls {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+
+.v11-author-editorial-controls label {
+  min-width: 170px;
+}
+
+.v11-author-quick-edit {
+  appearance: none;
+  padding: 7px 10px;
+  border: 1px solid rgba(83, 215, 232, .22);
+  border-radius: 9px;
+  background: rgba(83, 215, 232, .07);
+  color: #53d7e8;
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v11-author-quick-edit:hover,
+.v11-author-quick-edit:focus-visible {
+  background: rgba(83, 215, 232, .13);
+  border-color: rgba(83, 215, 232, .42);
+}
+
+@media (max-width: 760px) {
+  .v11-author-editorial-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .v11-author-editorial-controls label {
+    min-width: 0;
+  }
+}

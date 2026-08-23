@@ -1772,3 +1772,109 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "20M.1 : seuil presque prêt présent"
   );
 }
+
+
+// 20N.1 — file éditoriale auteur
+{
+  const source =
+    fs.readFileSync(
+      path.join(root, "admin-shell.js"),
+      "utf8"
+    );
+
+  const html =
+    fs.readFileSync(
+      path.join(root, "admin-v11.html"),
+      "utf8"
+    );
+
+  assert.ok(
+    html.includes(
+      'id="v11-author-editorial-sort"'
+    ),
+    "20N.1 : tri éditorial présent"
+  );
+
+  assert.ok(
+    html.includes(
+      'id="v11-author-editorial-count"'
+    ),
+    "20N.1 : compteur de file présent"
+  );
+
+  assert.ok(
+    source.includes(
+      "function sortV11AuthorsEditorially"
+    ),
+    "20N.1 : tri de file présent"
+  );
+
+  assert.ok(
+    source.includes(
+      "bReady.score -"
+    ),
+    "20N.1 : score décroissant utilisé pour la priorité"
+  );
+
+  assert.ok(
+    source.includes(
+      "function openV11AuthorPriorityEditor"
+    ),
+    "20N.1 : action rapide vers éditeur présente"
+  );
+
+  assert.ok(
+    source.includes(
+      '"v11-author-edit-bio"'
+    ),
+    "20N.1 : priorité biographie ciblable"
+  );
+
+  const presenceStart =
+    source.indexOf(
+      "function renderPresences"
+    );
+
+  const presenceEnd =
+    source.indexOf(
+      "function getV11AuthorEditorialReadiness",
+      presenceStart
+    );
+
+  const presenceSource =
+    source.slice(
+      presenceStart,
+      presenceEnd
+    );
+
+  assert.ok(
+    !presenceSource.includes(
+      "body.appendChild(readinessLine)"
+    ),
+    "20N.1 : aucune readiness auteur injectée dans les présences"
+  );
+
+  const authorStart =
+    source.indexOf(
+      "function renderAuthors"
+    );
+
+  const authorEnd =
+    source.indexOf(
+      "\n  function ",
+      authorStart + 10
+    );
+
+  const authorSource =
+    source.slice(
+      authorStart,
+      authorEnd
+    );
+
+  assert.ok(
+    authorSource.includes(
+      "body.appendChild(readinessLine)"
+    ),
+    "20N.1 : readiness affichée dans les cartes auteurs"
+  );
+}
