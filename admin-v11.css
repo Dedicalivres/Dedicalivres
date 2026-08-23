@@ -5032,3 +5032,65 @@ label.is-artist-author {
   border-color: rgba(255,184,107,.34);
   background: rgba(255,184,107,.08);
 }
+
+
+/* ==========================================================
+   ADMIN V11.58 — ACCUEIL OPERATIONNEL
+   ========================================================== */
+
+.v11-home-priority-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.v11-home-priority-row:last-child {
+  border-bottom: 0;
+}
+
+.v11-home-priority-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  min-height: 46px;
+  border-radius: 12px;
+  background: rgba(83,215,232,.08);
+  border: 1px solid rgba(83,215,232,.18);
+  color: #53d7e8;
+  font-size: 1.05rem;
+}
+
+.v11-home-priority-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.v11-home-priority-content > strong {
+  color: #f5f7fb;
+}
+
+.v11-home-priority-content > span {
+  color: #8fa1b2;
+  font-size: .8rem;
+  line-height: 1.35;
+}
+
+#v11-priority-list {
+  margin-top: 14px;
+}
+
+@media (max-width: 760px) {
+  .v11-home-priority-row {
+    grid-template-columns: 44px 1fr;
+  }
+
+  .v11-home-priority-row .v11-text-button {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

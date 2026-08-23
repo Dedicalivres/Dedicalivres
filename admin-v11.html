@@ -62,7 +62,7 @@
 
       <header class="v11-topbar">
         <div>
-          <p class="v11-eyebrow">DIMANCHE · 23 AOÛT 2026</p>
+          <p id="v11-current-date" class="v11-eyebrow">—</p>
           <h1>Bonjour Jean Christophe</h1>
         </div>
 
@@ -79,12 +79,24 @@
 
         <section class="v11-priority">
           <div>
-            <p class="v11-section-label">PRIORITÉ</p>
-            <h2><span data-admin-bind="events-pending">12</span> événements attendent une décision</h2>
-            <p>Ils sont suffisamment complets pour être vérifiés maintenant.</p>
+            <p class="v11-section-label">PRIORITÉS DU JOUR</p>
+
+            <h2 id="v11-home-priority-title">
+              Chargement des priorités…
+            </h2>
+
+            <p id="v11-home-priority-detail">
+              Analyse des données administratives en cours.
+            </p>
           </div>
 
-          <button class="v11-primary-button">Ouvrir la file</button>
+          <button
+            class="v11-primary-button"
+            type="button"
+            data-home-jump="first-priority"
+          >
+            Ouvrir la priorité
+          </button>
         </section>
 
         <section class="v11-grid v11-grid-4">
@@ -103,7 +115,7 @@
               <span>Présences</span>
               <span class="v11-status-dot warning"></span>
             </div>
-            <strong>8</strong>
+            <strong data-admin-bind="presence-pending">—</strong>
             <p>À modérer</p>
           </article>
 
@@ -112,7 +124,7 @@
               <span>Auteurs</span>
               <span class="v11-status-dot info"></span>
             </div>
-            <strong>5</strong>
+            <strong data-admin-bind="authors-editorial-pending">—</strong>
             <p>À compléter</p>
           </article>
 
@@ -140,48 +152,15 @@
                 </div>
               </div>
               </div>
-              <button class="v11-text-button">Tout voir</button>
+              <button
+                class="v11-text-button"
+                type="button"
+                data-home-jump="first-priority"
+              >
+                Tout voir
+              </button>
             </div>
 
-            <div class="v11-task-list">
-
-              <div class="v11-task v11-event-card event-salon">
-                <div class="v11-task-icon">E</div>
-                <div class="v11-task-body">
-                  <div class="v11-business-badges">
-                    <span class="v11-type-badge event-salon">Salon</span>
-                  </div>
-                  <strong>Salon du livre de Lannion</strong>
-                  <span>20 septembre · Lannion</span>
-                </div>
-                <span class="v11-chip warning">À vérifier</span>
-              </div>
-
-              <div class="v11-task v11-profile-card profile-artist-author">
-                <div class="v11-task-icon">A</div>
-                <div class="v11-task-body">
-                  <div class="v11-business-badges">
-                    <span class="v11-profile-badge profile-artist-author">Artiste-auteur</span>
-                  </div>
-                  <strong>Claire Martin</strong>
-                  <span>Présence déclarée · profil presque complet</span>
-                </div>
-                <span class="v11-chip warning">À traiter</span>
-              </div>
-
-              <div class="v11-task v11-profile-card profile-publisher">
-                <div class="v11-task-icon">M</div>
-                <div class="v11-task-body">
-                  <div class="v11-business-badges">
-                    <span class="v11-profile-badge profile-publisher">Maison d’édition</span>
-                  </div>
-                  <strong>Éditions du Rivage</strong>
-                  <span>Présence déclarée · à confirmer</span>
-                </div>
-                <span class="v11-chip info">Présence</span>
-              </div>
-
-            </div>
           </article>
 
           <article class="v11-panel">

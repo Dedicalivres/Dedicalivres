@@ -62,6 +62,21 @@
   const eventsDebug =
     document.getElementById("v11-events-debug");
 
+  const currentDateLabel =
+    document.getElementById(
+      "v11-current-date"
+    );
+
+  const homePriorityTitle =
+    document.getElementById(
+      "v11-home-priority-title"
+    );
+
+  const homePriorityDetail =
+    document.getElementById(
+      "v11-home-priority-detail"
+    );
+
   if (!authGate) {
     console.error("V11 : auth gate absent du DOM");
   }
@@ -416,6 +431,40 @@
         element.textContent = value;
       });
   }
+
+  function renderV11CurrentDate() {
+    if (!currentDateLabel) {
+      return;
+    }
+
+    const now = new Date();
+
+    const weekday =
+      new Intl.DateTimeFormat(
+        "fr-FR",
+        {
+          weekday: "long"
+        }
+      )
+        .format(now)
+        .toUpperCase();
+
+    const date =
+      new Intl.DateTimeFormat(
+        "fr-FR",
+        {
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        }
+      )
+        .format(now)
+        .toUpperCase();
+
+    currentDateLabel.textContent =
+      weekday + " · " + date;
+  }
+
 
   function toast(message, kind = "ok") {
     if (!toastRegion) return;
@@ -2471,32 +2520,449 @@ function renderEvents(events, status) {
   const topReferrers =
     document.getElementById("v11-top-referrers");
 
-  function renderPriority(events) {
-    if (!priorityList) return;
+  let v11FirstHomePriority = null;
 
-    const pending = events.filter((event) => {
-      return event.validated === false && event.rejected === false;
-    });
+  function getV11HomePriorities(state) {
+    const events =
+      Array.isArray(state?.events)
+        ? state.events
+        : [];
 
-    priorityList.replaceChildren();
+    const presences =
+      Array.isArray(
+        state?.community?.presences
+      )
+        ? state.community.presences
+        : [];
 
-    if (pending.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "v11-priority-empty";
-      empty.innerHTML =
-        "<strong>Aucun événement en attente</strong>" +
-        "<span>La file de modération est à jour.</span>";
+    const testimonials =
+      Array.isArray(
+        state?.community?.testimonials
+      )
+        ? state.community.testimonials
+        : [];
 
-      priorityList.appendChild(empty);
+    const authors =
+      Array.isArray(
+        state?.community?.authors
+      )
+        ? state.community.authors
+            .filter(
+              (author) =>
+                !author.merged_into
+            )
+        : [];
+
+    const pendingEvents =
+      events.filter(
+        (event) =>
+          event.validated !== true &&
+          event.rejected !== true
+      ).length;
+
+    const pendingPresences =
+      presences.filter(
+        (item) =>
+          item.validated !== true &&
+          item.rejected !== true
+      ).length;
+
+    const pendingTestimonials =
+      testimonials.filter(
+        (item) =>
+          item.validated !== true &&
+          item.rejected !== true
+      ).length;
+
+    const editorialAuthors =
+      authors.filter((author) => {
+        if (author.published === true) {
+          return false;
+        }
+
+        const readiness =
+          getV11AuthorEditorialReadiness(
+            author
+          );
+
+        return readiness.score < 100;
+      });
+
+    const almostAuthors =
+      editorialAuthors.filter(
+        (author) => {
+          const readiness =
+            getV11AuthorEditorialReadiness(
+              author
+            );
+
+          return readiness.score >= 80;
+        }
+      ).length;
+
+    const missingRegistrationLink =
+      events.filter((event) => {
+        return (
+          event.registration_enabled ===
+            true &&
+          !String(
+            event.registration_url || ""
+          ).trim()
+        );
+      }).length;
+
+    const priorities = [
+      {
+        key: "events-pending",
+        count: pendingEvents,
+        title: "Événements à vérifier",
+        detail:
+          "Soumissions en attente de décision.",
+        kind: "warning"
+      },
+      {
+        key: "presence-pending",
+        count: pendingPresences,
+        title: "Présences à modérer",
+        detail:
+          "Déclarations de présence à contrôler.",
+        kind: "warning"
+      },
+      {
+        key: "testimonials-pending",
+        count: pendingTestimonials,
+        title: "Témoignages à modérer",
+        detail:
+          "Témoignages en attente de décision.",
+        kind: "warning"
+      },
+      {
+        key: "registration-missing-link",
+        count: missingRegistrationLink,
+        title: "Inscriptions sans lien",
+        detail:
+          "Workflow activé mais lien d’inscription absent.",
+        kind: "warning"
+      },
+      {
+        key: "authors-almost",
+        count: almostAuthors,
+        title: "Auteurs presque prêts",
+        detail:
+          "Fiches à 80 % ou plus pouvant être finalisées rapidement.",
+        kind: "info"
+      }
+    ];
+
+    return {
+      priorities:
+        priorities.filter(
+          (item) => item.count > 0
+        ),
+
+      editorialAuthors:
+        editorialAuthors.length,
+
+      pendingTestimonials
+    };
+  }
+
+  function createV11HomePriorityRow(item) {
+    const row =
+      document.createElement("article");
+
+    row.className =
+      "v11-home-priority-row";
+
+    const count =
+      document.createElement("strong");
+
+    count.className =
+      "v11-home-priority-count";
+
+    count.textContent =
+      String(item.count);
+
+    const content =
+      document.createElement("div");
+
+    content.className =
+      "v11-home-priority-content";
+
+    const title =
+      document.createElement("strong");
+
+    title.textContent =
+      item.title;
+
+    const detail =
+      document.createElement("span");
+
+    detail.textContent =
+      item.detail;
+
+    content.appendChild(title);
+    content.appendChild(detail);
+
+    const action =
+      document.createElement("button");
+
+    action.type = "button";
+
+    action.className =
+      "v11-text-button";
+
+    action.textContent =
+      "Ouvrir";
+
+    action.dataset.homeJump =
+      item.key;
+
+    row.appendChild(count);
+    row.appendChild(content);
+    row.appendChild(action);
+
+    return row;
+  }
+
+  function renderPriority(state) {
+    if (!priorityList) {
       return;
     }
 
-    pending.slice(0, 5).forEach((event) => {
-      priorityList.appendChild(
-        createEventCard(event)
+    const summary =
+      getV11HomePriorities(state);
+
+    setBoundText(
+      "authors-editorial-pending",
+      String(
+        summary.editorialAuthors
+      )
+    );
+
+    setBoundText(
+      "testimonials-pending",
+      String(
+        summary.pendingTestimonials
+      )
+    );
+
+    priorityList.replaceChildren();
+
+    v11FirstHomePriority =
+      summary.priorities[0]?.key ||
+      null;
+
+    if (
+      summary.priorities.length === 0
+    ) {
+      if (homePriorityTitle) {
+        homePriorityTitle.textContent =
+          "Aucune action urgente";
+      }
+
+      if (homePriorityDetail) {
+        homePriorityDetail.textContent =
+          "Les principales files administratives sont à jour.";
+      }
+
+      const empty =
+        document.createElement("div");
+
+      empty.className =
+        "v11-priority-empty";
+
+      empty.innerHTML =
+        "<strong>Tout est à jour</strong>" +
+        "<span>Aucune priorité opérationnelle détectée.</span>";
+
+      priorityList.appendChild(empty);
+
+      return;
+    }
+
+    const total =
+      summary.priorities.reduce(
+        (sum, item) =>
+          sum + item.count,
+        0
       );
-    });
+
+    if (homePriorityTitle) {
+      homePriorityTitle.textContent =
+        total +
+        " action" +
+        (total > 1 ? "s" : "") +
+        " à traiter";
+    }
+
+    if (homePriorityDetail) {
+      homePriorityDetail.textContent =
+        summary.priorities.length +
+        " file" +
+        (
+          summary.priorities.length > 1
+            ? "s"
+            : ""
+        ) +
+        " opérationnelle" +
+        (
+          summary.priorities.length > 1
+            ? "s"
+            : ""
+        ) +
+        (
+          summary.priorities.length > 1
+            ? " nécessitent ton attention."
+            : " nécessite ton attention."
+        );
+    }
+
+    summary.priorities
+      .slice(0, 5)
+      .forEach((item) => {
+        priorityList.appendChild(
+          createV11HomePriorityRow(
+            item
+          )
+        );
+      });
   }
+
+  function openV11HomePriority(target) {
+    const state =
+      context.getState();
+
+    const resolvedTarget =
+      target === "first-priority"
+        ? v11FirstHomePriority
+        : target;
+
+    if (!resolvedTarget) {
+      return;
+    }
+
+    if (
+      resolvedTarget ===
+        "events-pending" ||
+      resolvedTarget ===
+        "registration-missing-link"
+    ) {
+      if (eventSearch) {
+        eventSearch.value = "";
+      }
+
+      if (eventTypeFilter) {
+        eventTypeFilter.value =
+          "all";
+      }
+
+      if (eventQualityFilter) {
+        eventQualityFilter.value =
+          "all";
+      }
+
+      if (eventStatusFilter) {
+        eventStatusFilter.value =
+          resolvedTarget ===
+            "events-pending"
+            ? "pending"
+            : "all";
+      }
+
+      if (eventRegistrationFilter) {
+        eventRegistrationFilter.value =
+          resolvedTarget ===
+            "registration-missing-link"
+            ? "missing-link"
+            : "all";
+      }
+
+      openView("events");
+
+      renderEvents(
+        state.events || [],
+        state.status
+      );
+
+      return;
+    }
+
+    openView("community");
+
+    if (
+      resolvedTarget ===
+      "presence-pending"
+    ) {
+      openCommunityView("presence");
+      syncV11CommunityToolbar(
+        "presence"
+      );
+
+      if (presenceStatus) {
+        presenceStatus.value =
+          "pending";
+      }
+
+      renderPresences(
+        state.community
+          ?.presences || []
+      );
+
+      return;
+    }
+
+    if (
+      resolvedTarget ===
+      "testimonials-pending"
+    ) {
+      openCommunityView(
+        "testimonials"
+      );
+
+      syncV11CommunityToolbar(
+        "testimonials"
+      );
+
+      if (presenceStatus) {
+        presenceStatus.value =
+          "pending";
+      }
+
+      renderTestimonials(
+        state.community
+          ?.testimonials || []
+      );
+
+      return;
+    }
+
+    if (
+      resolvedTarget ===
+      "authors-almost"
+    ) {
+      openCommunityView("authors");
+      syncV11CommunityToolbar(
+        "authors"
+      );
+
+      if (authorEditorialFilter) {
+        authorEditorialFilter.value =
+          "almost";
+      }
+
+      if (authorEditorialSort) {
+        authorEditorialSort.value =
+          "priority";
+      }
+
+      renderAuthors(
+        state.community
+          ?.authors || []
+      );
+    }
+  }
+
 
   function renderRanking(container, items) {
     if (!container) return;
@@ -9063,7 +9529,7 @@ function openCommunityView(name) {
     );
 
     renderPriority(
-      state.events || []
+      state
     );
 
     renderRanking(
@@ -9107,6 +9573,25 @@ function openCommunityView(name) {
 
 
 
+
+
+  document.addEventListener(
+    "click",
+    function (event) {
+      const trigger =
+        event.target.closest(
+          "[data-home-jump]"
+        );
+
+      if (!trigger) {
+        return;
+      }
+
+      openV11HomePriority(
+        trigger.dataset.homeJump
+      );
+    }
+  );
 
 
   buttons.forEach((button) => {
@@ -9317,6 +9802,8 @@ function openCommunityView(name) {
         );
     }
   );
+  renderV11CurrentDate();
+
   context.subscribe(renderState);
 
   context
