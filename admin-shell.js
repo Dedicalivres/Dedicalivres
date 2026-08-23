@@ -3968,6 +3968,26 @@ function renderEvents(events, status) {
       "v11-author-detail-content"
     );
 
+  const authorEnrichmentPanel =
+    document.getElementById(
+      "v11-author-enrichment"
+    );
+
+  const authorEnrichmentStatus =
+    document.getElementById(
+      "v11-author-enrichment-status"
+    );
+
+  const authorEnrichmentSources =
+    document.getElementById(
+      "v11-author-enrichment-sources"
+    );
+
+  const authorEnrichmentEdit =
+    document.getElementById(
+      "v11-author-enrichment-edit"
+    );
+
   const authorDetailClose =
     document.getElementById(
       "v11-author-detail-close"
@@ -4090,6 +4110,46 @@ function renderEvents(events, status) {
     document.getElementById(
       "v11-author-edit-save"
     );
+
+  const v11AuthorDetailEnrichmentObserver =
+    authorDetailContent
+      ? new MutationObserver(() => {
+          const author =
+            getSelectedV11Author();
+
+          renderV11AuthorEnrichment(
+            author
+          );
+        })
+      : null;
+
+  if (
+    v11AuthorDetailEnrichmentObserver &&
+    authorDetailContent
+  ) {
+    v11AuthorDetailEnrichmentObserver
+      .observe(
+        authorDetailContent,
+        {
+          childList: true,
+          subtree: true
+        }
+      );
+  }
+
+  if (authorEnrichmentEdit) {
+    authorEnrichmentEdit.addEventListener(
+      "click",
+      () => {
+        const author =
+          getSelectedV11Author();
+
+        if (author) {
+          openV11AuthorEditor(author);
+        }
+      }
+    );
+  }
 
   if (authorDetailClose) {
     authorDetailClose.addEventListener(
@@ -6080,6 +6140,417 @@ function renderEvents(events, status) {
     authorDetailContent.appendChild(
       row
     );
+  }
+
+
+
+  function getV11AuthorRelatedPresences(author) {
+    const state = context.getState();
+
+    const presences =
+      Array.isArray(
+        state.community?.presences
+      )
+        ? state.community.presences
+        : [];
+
+    const authorId =
+      String(author?.id || "").trim();
+
+    const authorSlug =
+      String(author?.slug || "").trim();
+
+    const authorName =
+      normalize(
+        author?.pseudo || ""
+      );
+
+    return presences.filter((row) => {
+      if (
+        row.validated !== true ||
+        row.rejected === true
+      ) {
+        return false;
+      }
+
+      const rowId =
+        String(
+          row.author_id || ""
+        ).trim();
+
+      const rowSlug =
+        String(
+          row.author_slug ||
+          row.author_identity_key ||
+          ""
+        ).trim();
+
+      const rowName =
+        normalize(
+          row.pseudo || ""
+        );
+
+      return (
+        (
+          authorId &&
+          rowId === authorId
+        ) ||
+        (
+          authorSlug &&
+          rowSlug === authorSlug
+        ) ||
+        (
+          authorName &&
+          rowName === authorName
+        )
+      );
+    });
+  }
+
+  function uniqueV11AuthorValues(values) {
+    const seen = new Set();
+
+    return values
+      .map((value) =>
+        String(value || "").trim()
+      )
+      .filter(Boolean)
+      .filter((value) => {
+        const key =
+          value.toLowerCase();
+
+        if (seen.has(key)) {
+          return false;
+        }
+
+        seen.add(key);
+        return true;
+      });
+  }
+
+  function buildV11AuthorEnrichmentGuide(author) {
+    const presences =
+      getV11AuthorRelatedPresences(
+        author
+      );
+
+    const profileLinks =
+      uniqueV11AuthorValues(
+        presences.flatMap((row) => [
+          row.author_profile_url,
+          row.website
+        ])
+      );
+
+    const shopLinks =
+      uniqueV11AuthorValues(
+        presences.map(
+          (row) =>
+            row.book_or_publisher_url
+        )
+      );
+
+    const portraitLinks =
+      uniqueV11AuthorValues(
+        presences.map(
+          (row) =>
+            row.author_portrait_url
+        )
+      );
+
+    const eventIds =
+      new Set(
+        presences
+          .map((row) =>
+            row.event_id ||
+            row.events?.id
+          )
+          .filter(Boolean)
+          .map(String)
+      );
+
+    const fields = [
+      {
+        key: "identity",
+        label: "Identité",
+        ok: Boolean(
+          String(
+            author?.pseudo || ""
+          ).trim()
+        ),
+        required: true
+      },
+      {
+        key: "photo",
+        label: "Portrait",
+        ok: Boolean(
+          String(
+            author?.avatar_url || ""
+          ).trim()
+        ),
+        required: true
+      },
+      {
+        key: "type",
+        label: "Type",
+        ok: [
+          "author",
+          "artist_author",
+          "hybrid"
+        ].includes(
+          author?.profile_type
+        ),
+        required: true
+      },
+      {
+        key: "bio",
+        label: "Biographie",
+        ok: Boolean(
+          String(
+            author?.bio || ""
+          ).trim()
+        ),
+        required: true
+      },
+      {
+        key: "history",
+        label: "Historique",
+        ok: eventIds.size > 0,
+        required: true
+      },
+      {
+        key: "location",
+        label: "Localisation",
+        ok: Boolean(
+          String(
+            author?.location || ""
+          ).trim()
+        ),
+        required: false
+      },
+      {
+        key: "website",
+        label: "Vitrine",
+        ok: Boolean(
+          String(
+            author?.website || ""
+          ).trim()
+        ),
+        required: false
+      },
+      {
+        key: "shop",
+        label: "Boutique",
+        ok: Boolean(
+          String(
+            author?.shop_url || ""
+          ).trim()
+        ),
+        required: false
+      }
+    ];
+
+    return {
+      fields,
+      presences,
+      eventCount:
+        eventIds.size,
+      profileLinks,
+      shopLinks,
+      portraitLinks
+    };
+  }
+
+  function appendV11AuthorSourceLink(
+    container,
+    label,
+    url
+  ) {
+    if (!container || !url) {
+      return;
+    }
+
+    const link =
+      document.createElement("a");
+
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener";
+
+    link.className =
+      "v11-author-enrichment-source";
+
+    const strong =
+      document.createElement("strong");
+
+    const span =
+      document.createElement("span");
+
+    strong.textContent = label;
+    span.textContent = url;
+
+    link.appendChild(strong);
+    link.appendChild(span);
+
+    container.appendChild(link);
+  }
+
+  function renderV11AuthorEnrichment(author) {
+    if (
+      !authorEnrichmentPanel ||
+      !authorEnrichmentStatus ||
+      !authorEnrichmentSources
+    ) {
+      return;
+    }
+
+    if (!author) {
+      authorEnrichmentPanel.hidden =
+        true;
+
+      return;
+    }
+
+    const guide =
+      buildV11AuthorEnrichmentGuide(
+        author
+      );
+
+    authorEnrichmentPanel.hidden =
+      false;
+
+    authorEnrichmentStatus
+      .replaceChildren();
+
+    guide.fields.forEach((field) => {
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "v11-author-enrichment-field " +
+        (
+          field.ok
+            ? "is-complete"
+            : "is-missing"
+        );
+
+      const marker =
+        document.createElement("span");
+
+      const label =
+        document.createElement("strong");
+
+      const meta =
+        document.createElement("small");
+
+      marker.textContent =
+        field.ok ? "✓" : "○";
+
+      label.textContent =
+        field.label;
+
+      meta.textContent =
+        field.ok
+          ? "Renseigné"
+          : field.required
+            ? "À compléter"
+            : "Facultatif";
+
+      row.appendChild(marker);
+      row.appendChild(label);
+      row.appendChild(meta);
+
+      authorEnrichmentStatus
+        .appendChild(row);
+    });
+
+    authorEnrichmentSources
+      .replaceChildren();
+
+    const title =
+      document.createElement("h5");
+
+    title.textContent =
+      "Sources disponibles";
+
+    authorEnrichmentSources
+      .appendChild(title);
+
+    const summary =
+      document.createElement("p");
+
+    summary.textContent =
+      guide.presences.length +
+      " présence" +
+      (
+        guide.presences.length > 1
+          ? "s"
+          : ""
+      ) +
+      " validée" +
+      (
+        guide.presences.length > 1
+          ? "s"
+          : ""
+      ) +
+      " · " +
+      guide.eventCount +
+      " événement" +
+      (
+        guide.eventCount > 1
+          ? "s"
+          : ""
+      ) +
+      " lié" +
+      (
+        guide.eventCount > 1
+          ? "s"
+          : ""
+      );
+
+    authorEnrichmentSources
+      .appendChild(summary);
+
+    guide.profileLinks.forEach(
+      (url, index) => {
+        appendV11AuthorSourceLink(
+          authorEnrichmentSources,
+          index === 0
+            ? "Vitrine / profil"
+            : "Autre profil",
+          url
+        );
+      }
+    );
+
+    guide.shopLinks.forEach(
+      (url, index) => {
+        appendV11AuthorSourceLink(
+          authorEnrichmentSources,
+          index === 0
+            ? "Livre / boutique"
+            : "Autre lien livre",
+          url
+        );
+      }
+    );
+
+    if (
+      !guide.profileLinks.length &&
+      !guide.shopLinks.length
+    ) {
+      const empty =
+        document.createElement("p");
+
+      empty.className =
+        "v11-author-enrichment-empty";
+
+      empty.textContent =
+        "Aucun lien source exploitable dans les présences validées.";
+
+      authorEnrichmentSources
+        .appendChild(empty);
+    }
   }
 
 

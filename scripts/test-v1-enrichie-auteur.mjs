@@ -1625,3 +1625,78 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "20K.2 : type d'action explicite"
   );
 }
+
+
+// 20L.1 — assistant enrichissement auteur
+{
+  const source =
+    fs.readFileSync(
+      path.join(root, "admin-shell.js"),
+      "utf8"
+    );
+
+  const html =
+    fs.readFileSync(
+      path.join(root, "admin-v11.html"),
+      "utf8"
+    );
+
+  assert.match(
+    html,
+    /id="v11-author-enrichment"/,
+    "20L.1 : assistant enrichissement présent"
+  );
+
+  assert.match(
+    source,
+    /function buildV11AuthorEnrichmentGuide/,
+    "20L.1 : moteur de synthèse présent"
+  );
+
+  assert.ok(
+    source.includes(
+      "row.author_profile_url"
+    ),
+    "20L.1 : liens profil issus des présences"
+  );
+
+  assert.ok(
+    source.includes(
+      "row.book_or_publisher_url"
+    ),
+    "20L.1 : liens livre issus des présences"
+  );
+
+  assert.ok(
+    source.includes(
+      "author?.location"
+    ),
+    "20L.1 : localisation lue uniquement depuis la fiche auteur"
+  );
+
+  assert.doesNotMatch(
+    source.slice(
+      source.indexOf(
+        "function buildV11AuthorEnrichmentGuide"
+      ),
+      source.indexOf(
+        "function appendV11AuthorSourceLink"
+      )
+    ),
+    /events\\?\\.(city|region)|events\\.(city|region)/,
+    "20L.1 : aucun lieu d’événement utilisé comme localisation auteur"
+  );
+
+  assert.ok(
+    source.includes(
+      "openV11AuthorEditor(author)"
+    ),
+    "20L.1 : l’assistant ouvre l’éditeur existant"
+  );
+
+  assert.match(
+    html,
+    /Aucune information n’est inventée ou enregistrée automatiquement/,
+    "20L.1 : absence d’automatisation éditoriale explicitée"
+  );
+}
