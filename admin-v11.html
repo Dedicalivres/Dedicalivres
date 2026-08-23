@@ -1,0 +1,1754 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dédicalivres — Admin V11 Preview</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="admin-v11.css">
+</head>
+
+<body>
+  <div class="v11-app">
+
+    <aside class="v11-sidebar">
+      <div class="v11-brand">
+        <div class="v11-brand-mark">D</div>
+        <div>
+          <strong>Dédicalivres</strong>
+          <span>Control Center</span>
+        </div>
+      </div>
+
+      <nav class="v11-nav" aria-label="Navigation principale">
+        <button class="v11-nav-item is-active" data-view="home">
+          <span class="v11-nav-icon">⌂</span>
+          <span>Accueil</span>
+        </button>
+
+        <button class="v11-nav-item" data-view="events">
+          <span class="v11-nav-icon">◫</span>
+          <span>Événements</span>
+          <span class="v11-badge" data-admin-bind="events-pending">—</span>
+        </button>
+
+        <button class="v11-nav-item" data-view="community">
+          <span class="v11-nav-icon">◎</span>
+          <span>Communauté</span>
+          <span class="v11-badge" data-admin-bind="presence-pending">—</span>
+        </button>
+
+        <button class="v11-nav-item" data-view="tools">
+          <span class="v11-nav-icon">◇</span>
+          <span>Outils</span>
+        </button>
+
+        <button class="v11-nav-item" data-view="pilotage">
+          <span class="v11-nav-icon">⌁</span>
+          <span>Pilotage</span>
+        </button>
+      </nav>
+
+      <div class="v11-sidebar-footer">
+        <div class="v11-system-dot"></div>
+        <div>
+          <strong>Système opérationnel</strong>
+          <span>Preview V11</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="v11-main">
+
+      <header class="v11-topbar">
+        <div>
+          <p class="v11-eyebrow">DIMANCHE · 23 AOÛT 2026</p>
+          <h1>Bonjour Jean Christophe</h1>
+        </div>
+
+        <div class="v11-top-actions">
+          <button id="v11-refresh" class="v11-icon-button" aria-label="Actualiser" title="Actualiser">↻</button>
+          <button id="v11-logout" class="v11-icon-button" aria-label="Déconnexion" title="Déconnexion">○</button>
+          <button class="v11-profile v11-profile-logo" aria-label="Dédicalivres">
+            <img src="assets/brand/logo-dedicalivres-sombre.webp" alt="Dédicalivres">
+          </button>
+        </div>
+      </header>
+
+      <section class="v11-view is-active" data-view-panel="home">
+
+        <section class="v11-priority">
+          <div>
+            <p class="v11-section-label">PRIORITÉ</p>
+            <h2><span data-admin-bind="events-pending">12</span> événements attendent une décision</h2>
+            <p>Ils sont suffisamment complets pour être vérifiés maintenant.</p>
+          </div>
+
+          <button class="v11-primary-button">Ouvrir la file</button>
+        </section>
+
+        <section class="v11-grid v11-grid-4">
+
+          <article class="v11-kpi">
+            <div class="v11-kpi-head">
+              <span>Événements</span>
+              <span class="v11-status-dot warning"></span>
+            </div>
+            <strong data-admin-bind="events-pending">12</strong>
+            <p>À vérifier</p>
+          </article>
+
+          <article class="v11-kpi">
+            <div class="v11-kpi-head">
+              <span>Présences</span>
+              <span class="v11-status-dot warning"></span>
+            </div>
+            <strong>8</strong>
+            <p>À modérer</p>
+          </article>
+
+          <article class="v11-kpi">
+            <div class="v11-kpi-head">
+              <span>Auteurs</span>
+              <span class="v11-status-dot info"></span>
+            </div>
+            <strong>5</strong>
+            <p>À compléter</p>
+          </article>
+
+          <article class="v11-kpi v11-kpi-traffic">
+            <div class="v11-kpi-head">
+              <span>Visites aujourd’hui</span>
+              <span class="v11-status-dot ok"></span>
+            </div>
+            <strong data-admin-bind="visits-today">—</strong>
+            <p class="v11-traffic-delta" data-admin-bind="visits-status">Chargement</p>
+          </article>
+
+        </section>
+
+        <section class="v11-content-grid">
+
+          <article class="v11-panel">
+            <div class="v11-panel-head">
+              <div>
+                <p class="v11-section-label">À TRAITER</p>
+                <h3>File prioritaire</h3>
+              <div id="v11-priority-list" class="v11-priority-list">
+                <div class="v11-priority-empty">
+                  Chargement de la file prioritaire...
+                </div>
+              </div>
+              </div>
+              <button class="v11-text-button">Tout voir</button>
+            </div>
+
+            <div class="v11-task-list">
+
+              <div class="v11-task v11-event-card event-salon">
+                <div class="v11-task-icon">E</div>
+                <div class="v11-task-body">
+                  <div class="v11-business-badges">
+                    <span class="v11-type-badge event-salon">Salon</span>
+                  </div>
+                  <strong>Salon du livre de Lannion</strong>
+                  <span>20 septembre · Lannion</span>
+                </div>
+                <span class="v11-chip warning">À vérifier</span>
+              </div>
+
+              <div class="v11-task v11-profile-card profile-artist-author">
+                <div class="v11-task-icon">A</div>
+                <div class="v11-task-body">
+                  <div class="v11-business-badges">
+                    <span class="v11-profile-badge profile-artist-author">Artiste-auteur</span>
+                  </div>
+                  <strong>Claire Martin</strong>
+                  <span>Présence déclarée · profil presque complet</span>
+                </div>
+                <span class="v11-chip warning">À traiter</span>
+              </div>
+
+              <div class="v11-task v11-profile-card profile-publisher">
+                <div class="v11-task-icon">M</div>
+                <div class="v11-task-body">
+                  <div class="v11-business-badges">
+                    <span class="v11-profile-badge profile-publisher">Maison d’édition</span>
+                  </div>
+                  <strong>Éditions du Rivage</strong>
+                  <span>Présence déclarée · à confirmer</span>
+                </div>
+                <span class="v11-chip info">Présence</span>
+              </div>
+
+            </div>
+          </article>
+
+          <article class="v11-panel">
+            <div class="v11-panel-head">
+              <div>
+                <p class="v11-section-label">SYSTÈMES</p>
+                <h3>État des services</h3>
+              </div>
+            </div>
+
+            <div class="v11-service-list">
+
+              <div class="v11-service v11-service-automatte">
+                <div>
+                  <strong>Auto-Matte</strong>
+                  <span>Dernière veille · 08:42</span>
+                </div>
+                <span class="v11-chip ok">Opérationnel</span>
+              </div>
+
+              <div class="v11-service">
+                <div>
+                  <strong>Supabase</strong>
+                  <span data-admin-bind="supabase-status">Initialisation</span>
+                </div>
+                <span class="v11-chip neutral" data-admin-status-chip="supabase">Connexion</span>
+              </div>
+
+              <div class="v11-service">
+                <div>
+                  <strong>Studio dédicace</strong>
+                  <span>Accès interne uniquement</span>
+                </div>
+                <span class="v11-chip amethyst">Privé</span>
+              </div>
+
+            </div>
+          </article>
+
+        </section>
+
+        <section class="v11-telemetry">
+          <div>
+            <span class="v11-telemetry-label">VISITEURS</span>
+            <strong>284 visites aujourd’hui</strong>
+            <span>Direct / SEO · NFC · Réseaux / partenaires</span>
+          </div>
+
+          <div>
+            <span class="v11-telemetry-label">AUTO-MATTE</span>
+            <strong>Dernière veille réussie · 08:42</strong>
+            <span>49 nouveaux candidats · 12 à vérifier</span>
+          </div>
+
+          <div>
+            <span class="v11-telemetry-label">STUDIO</span>
+            <strong>Mode privé</strong>
+            <span>Aucune session publique</span>
+          </div>
+        </section>
+
+      </section>
+
+      
+      <section class="v11-view" data-view-panel="events">
+
+        <div class="v11-section-heading">
+          <div>
+            <p class="v11-section-label">ÉVÉNEMENTS</p>
+            <h2>Soumissions et agenda</h2>
+            <p>Lecture réelle de la base · aucune action d’écriture branchée.</p>
+          </div>
+
+          <div class="v11-events-counter">
+            <strong data-events-visible-count>0</strong>
+          <span>affichés</span>
+          </div>
+        </div>
+
+        <div class="v11-color-legend">
+          <span class="v11-type-badge event-salon">Salon</span>
+          <span class="v11-type-badge event-festival">Festival</span>
+          <span class="v11-type-badge event-signing">Dédicace</span>
+          <span class="v11-type-badge event-other">Autre</span>
+        </div>
+
+        <div class="v11-event-summary">
+          <div>
+            <span>Total chargé</span>
+            <strong data-admin-bind="events-total">—</strong>
+          </div>
+          <div>
+            <span>À vérifier</span>
+            <strong data-admin-bind="events-pending">—</strong>
+          </div>
+          <div>
+            <span>Validés</span>
+            <strong data-admin-bind="events-validated">—</strong>
+          </div>
+          <div>
+            <span>Rejetés</span>
+            <strong data-admin-bind="events-rejected">—</strong>
+          </div>
+        </div>
+
+
+        <div class="v11-event-quality-summary">
+          <article data-quality-filter="missing-image">
+            <span>Sans image</span>
+            <strong data-admin-bind="quality-missing-image">—</strong>
+          </article>
+
+          <article data-quality-filter="missing-coords">
+            <span>Sans coordonnées</span>
+            <strong data-admin-bind="quality-missing-coords">—</strong>
+          </article>
+
+          <article data-quality-filter="missing-website">
+            <span>Sans site officiel</span>
+            <strong data-admin-bind="quality-missing-website">—</strong>
+          </article>
+
+          <article data-quality-filter="soon">
+            <span>Sous 14 jours</span>
+            <strong data-admin-bind="quality-soon">—</strong>
+          </article>
+
+          <article data-quality-filter="featured-past">
+            <span>Mis en avant passés</span>
+            <strong data-admin-bind="quality-featured-past">—</strong>
+          </article>
+        </div>
+
+        <div class="v11-event-toolbar">
+          <label class="v11-search-field">
+            <span>Recherche</span>
+            <input
+              id="v11-event-search"
+              type="search"
+              placeholder="Titre, ville, région..."
+              autocomplete="off"
+            >
+          </label>
+
+          <label>
+            <span>Statut</span>
+            <select id="v11-event-status-filter">
+              <option value="pending">À vérifier</option>
+              <option value="all">Tous</option>
+              <option value="validated">Validés</option>
+              <option value="rejected">Rejetés</option>
+              <option value="past">Passés</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Type</span>
+            <select id="v11-event-type-filter">
+              <option value="all">Tous</option>
+              <option value="Salon">Salon</option>
+              <option value="Festival">Festival</option>
+              <option value="Dédicace">Dédicace</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Qualité</span>
+            <select id="v11-event-quality-filter">
+              <option value="all">Toutes</option>
+              <option value="missing-image">Sans image</option>
+              <option value="missing-coords">Sans coordonnées</option>
+              <option value="missing-website">Sans site officiel</option>
+              <option value="soon">Sous 14 jours</option>
+              <option value="featured-past">Mis en avant passés</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="v11-events-loading" class="v11-inline-status">
+          Chargement des événements...
+        </div>
+
+
+
+        <div id="v11-event-detail" class="v11-event-detail" hidden>
+          <div class="v11-event-detail-head">
+            <div>
+              <p class="v11-section-label">FICHE ÉVÉNEMENT</p>
+              <h3 id="v11-event-detail-title">Événement</h3>
+            </div>
+
+            <button
+              id="v11-event-detail-close"
+              class="v11-text-button"
+              type="button"
+            >
+              Fermer
+            </button>
+          </div>
+
+          <div
+            id="v11-event-detail-content"
+            class="v11-event-detail-content"
+          ></div>
+
+          <div class="v11-event-detail-actions">
+            <a
+              id="v11-event-public-link"
+              class="v11-action-button"
+              target="_blank"
+              rel="noopener"
+            >
+              Voir sur le site
+            </a>
+
+            <button
+              id="v11-event-edit"
+              type="button"
+              class="v11-action-button"
+            >
+              Modifier
+            </button>
+
+            <button
+              id="v11-event-validate"
+              type="button"
+              class="v11-action-button"
+            >
+              Valider
+            </button>
+
+            <button
+              id="v11-event-reject"
+              type="button"
+              class="v11-action-button"
+            >
+              Rejeter
+            </button>
+
+            <button
+              id="v11-event-featured"
+              type="button"
+              class="v11-action-button"
+            >
+              Mise en avant
+            </button>
+
+            <button
+              id="v11-event-delete"
+              type="button"
+              class="v11-action-button danger"
+              disabled
+            >
+              Supprimer
+            </button>
+          </div>
+
+          <p class="v11-write-lock">
+            Validation, rejet et mise en avant sont actifs. Modification et suppression restent verrouillées.
+          </p>
+        </div>
+
+        <div
+          id="v11-event-editor"
+          class="v11-event-editor"
+          hidden
+        >
+          <div class="v11-event-detail-head">
+            <div>
+              <p class="v11-section-label">ÉDITION ÉVÉNEMENT</p>
+              <h3 id="v11-event-editor-title">Modifier</h3>
+            </div>
+
+            <button
+              id="v11-event-editor-close"
+              class="v11-text-button"
+              type="button"
+            >
+              Fermer
+            </button>
+          </div>
+
+          <form id="v11-event-editor-form" class="v11-event-editor-form">
+
+            <label class="wide">
+              <span>Titre</span>
+              <input id="v11-edit-title" type="text">
+            </label>
+
+            <label>
+              <span>Type</span>
+              <select id="v11-edit-type">
+                <option value="Salon">Salon</option>
+                <option value="Festival">Festival</option>
+                <option value="Dédicace">Dédicace</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Pays</span>
+              <select id="v11-edit-country">
+                <option value="FR">France</option>
+                <option value="BE">Belgique</option>
+                <option value="LU">Luxembourg</option>
+                <option value="CH">Suisse</option>
+                <option value="MC">Monaco</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Ville</span>
+              <input id="v11-edit-city" type="text">
+            </label>
+
+            <label>
+              <span>Région</span>
+              <input id="v11-edit-region" type="text">
+            </label>
+
+            <label>
+              <span>Date début</span>
+              <input id="v11-edit-start" type="date">
+            </label>
+
+            <label>
+              <span>Date fin</span>
+              <input id="v11-edit-end" type="date">
+            </label>
+
+            <label class="wide">
+              <span>Site officiel</span>
+              <input id="v11-edit-website" type="url">
+            </label>
+
+            <label>
+              <span>Latitude</span>
+              <input id="v11-edit-lat" type="number" step="any">
+            </label>
+
+            <label>
+              <span>Longitude</span>
+              <input id="v11-edit-lng" type="number" step="any">
+            </label>
+
+            <label class="wide">
+              <span>Image URL</span>
+              <input id="v11-edit-image" type="url">
+            </label>
+
+            <div class="v11-edit-image-preview wide">
+              <img id="v11-edit-image-preview" alt="" hidden>
+              <span id="v11-edit-image-empty">Aucune affiche</span>
+            </div>
+
+            <label class="wide">
+              <span>Description</span>
+              <textarea id="v11-edit-description" rows="7"></textarea>
+            </label>
+
+            <fieldset
+              id="v11-edit-registration"
+              class="v11-registration-editor wide"
+            >
+              <legend>Inscriptions Salon / Festival</legend>
+
+              <label class="v11-check-row">
+                <input id="v11-edit-registration-enabled" type="checkbox">
+                <span>Inscriptions activées</span>
+              </label>
+
+              <div class="v11-registration-grid">
+                <label>
+                  <span>Ouverture</span>
+                  <input id="v11-edit-registration-open" type="date">
+                </label>
+
+                <label>
+                  <span>Clôture</span>
+                  <input id="v11-edit-registration-deadline" type="date">
+                </label>
+
+                <label class="wide">
+                  <span>Lien d’inscription</span>
+                  <input id="v11-edit-registration-url" type="url">
+                </label>
+
+                <label class="wide">
+                  <span>Public concerné</span>
+                  <input
+                    id="v11-edit-registration-audience"
+                    type="text"
+                    placeholder="Auteur, Artiste-auteur, Maison d’édition..."
+                  >
+                </label>
+
+                <label class="wide">
+                  <span>Note</span>
+                  <textarea id="v11-edit-registration-note" rows="3"></textarea>
+                </label>
+
+                <label>
+                  <span>Statut forcé</span>
+                  <select id="v11-edit-registration-status">
+                    <option value="">Automatique</option>
+                    <option value="soon">Bientôt</option>
+                    <option value="open">Ouvertes</option>
+                    <option value="last_days">Derniers jours</option>
+                    <option value="closed">Clôturées</option>
+                  </select>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="v11-editor-actions wide">
+              <button
+                id="v11-edit-cancel"
+                type="button"
+                class="v11-action-button"
+              >
+                Annuler
+              </button>
+
+              <button
+                id="v11-edit-save"
+                type="submit"
+                class="v11-action-button"
+              >
+                Enregistrer
+              </button>
+            </div>
+
+            <p class="v11-write-lock wide">
+              La sauvegarde modifie directement la fiche événement en production.
+            </p>
+
+          </form>
+        </div>
+
+        <div id="v11-events-list" class="v11-real-event-list"></div>
+
+        <div id="v11-events-empty" class="v11-inline-status" hidden>
+          Aucun événement pour ces filtres.
+        </div>
+
+      </section>
+
+
+      
+      <section class="v11-view" data-view-panel="community">
+
+        <div class="v11-section-heading">
+          <div>
+            <p class="v11-section-label">COMMUNAUTÉ</p>
+            <h2>Présences et profils</h2>
+            <p>Lecture réelle des déclarations, auteurs et témoignages.</p>
+          </div>
+        </div>
+
+        <div class="v11-community-summary">
+          <article>
+            <span>Présences</span>
+            <strong data-admin-bind="presence-total">—</strong>
+            <small>déclarations</small>
+          </article>
+
+          <article>
+            <span>À traiter</span>
+            <strong data-admin-bind="presence-pending">—</strong>
+            <small>modération</small>
+          </article>
+
+          <article>
+            <span>Validées</span>
+            <strong data-admin-bind="presence-validated">—</strong>
+            <small>présences</small>
+          </article>
+
+          <article>
+            <span>Rejetées</span>
+            <strong data-admin-bind="presence-rejected">—</strong>
+            <small>historique</small>
+          </article>
+
+          <article>
+            <span>Auteurs</span>
+            <strong data-admin-bind="authors-total">—</strong>
+            <small>fiches consolidées</small>
+          </article>
+
+          <article>
+            <span>Témoignages</span>
+            <strong data-admin-bind="testimonials-total">—</strong>
+            <small>enregistrés</small>
+          </article>
+        </div>
+
+        <div class="v11-color-legend">
+          <span class="v11-profile-badge profile-author">Auteur</span>
+          <span class="v11-profile-badge profile-artist-author">Artiste-auteur</span>
+          <span class="v11-profile-badge profile-hybrid">Hybride</span>
+          <span class="v11-profile-badge profile-publisher">Maison d’édition</span>
+        </div>
+
+        <div class="v11-community-tabs">
+          <button class="is-active" data-community-view="presence">Présences</button>
+          <button data-community-view="authors">Auteurs</button>
+          <button data-community-view="testimonials">Témoignages</button>
+        </div>
+
+        <div class="v11-community-toolbar" data-community-toolbar="presence">
+          <label class="v11-search-field">
+            <span>Recherche</span>
+            <input
+              id="v11-presence-search"
+              type="search"
+              placeholder="Nom, maison d’édition, événement..."
+              autocomplete="off"
+            >
+          </label>
+
+          <label>
+            <span>Statut</span>
+            <select id="v11-presence-status">
+              <option value="pending">À traiter</option>
+              <option value="all">Tous</option>
+              <option value="validated">Validées</option>
+              <option value="rejected">Rejetées</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Profil</span>
+            <select id="v11-presence-type">
+              <option value="all">Tous</option>
+              <option value="author">Auteur</option>
+              <option value="artist_author">Artiste-auteur</option>
+              <option value="hybrid">Hybride</option>
+              <option value="publisher">Maison d’édition</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="v11-community-presence" class="v11-community-panel is-active">
+          <div
+          id="v11-community-detail"
+          class="v11-community-detail"
+          hidden
+        >
+          <div class="v11-event-detail-head">
+            <div>
+              <p
+                id="v11-community-detail-label"
+                class="v11-section-label"
+              >
+                COMMUNAUTÉ
+              </p>
+
+              <h3 id="v11-community-detail-title">
+                Détail
+              </h3>
+            </div>
+
+            <button
+              id="v11-community-detail-close"
+              class="v11-text-button"
+              type="button"
+            >
+              Fermer
+            </button>
+          </div>
+
+          <div
+            id="v11-community-detail-content"
+            class="v11-community-detail-content"
+          ></div>
+
+          <div
+            id="v11-community-detail-actions"
+            class="v11-event-detail-actions"
+          >
+            <button
+              id="v11-community-validate"
+              type="button"
+              class="v11-action-button"
+              disabled
+            >
+              Valider
+            </button>
+
+            <button
+              id="v11-community-pending"
+              type="button"
+              class="v11-action-button"
+              disabled
+            >
+              Remettre en attente
+            </button>
+
+            <button
+              id="v11-community-reject"
+              type="button"
+              class="v11-action-button"
+              disabled
+            >
+              Refuser
+            </button>
+
+            <button
+              id="v11-community-edit"
+              type="button"
+              class="v11-action-button"
+              disabled
+            >
+              Modifier
+            </button>
+
+            <button
+              id="v11-community-delete"
+              type="button"
+              class="v11-action-button danger"
+              disabled
+            >
+              Supprimer
+            </button>
+          </div>
+
+          <p class="v11-write-lock">
+            Modération active. Modification et suppression restent verrouillées.
+          </p>
+        </div>
+
+        <section
+          id="v11-presence-editor"
+          class="v11-community-detail"
+          hidden
+        >
+          <div class="v11-event-detail-head">
+            <div>
+              <p class="v11-section-label">
+                ÉDITION PRÉSENCE
+              </p>
+              <h3 id="v11-presence-editor-title">
+                Modifier une présence
+              </h3>
+            </div>
+
+            <button
+              id="v11-presence-editor-close"
+              class="v11-text-button"
+              type="button"
+            >
+              Fermer
+            </button>
+          </div>
+
+          <form id="v11-presence-editor-form">
+            <div class="v11-community-detail-content">
+
+              <label class="v11-form-field">
+                <span>Pseudo</span>
+                <input id="v11-presence-edit-pseudo" type="text">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Type de profil</span>
+                <select id="v11-presence-edit-type">
+                  <option value="author">Auteur</option>
+                  <option value="artist_author">Artiste-auteur</option>
+                  <option value="hybrid">Hybride</option>
+                  <option value="publisher">Maison d’édition</option>
+                </select>
+              </label>
+
+              <label class="v11-form-field">
+                <span>Organisation</span>
+                <input id="v11-presence-edit-organization" type="text">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Maison d’édition</span>
+                <input id="v11-presence-edit-publisher" type="text">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Profil public</span>
+                <input id="v11-presence-edit-profile-url" type="url">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Type lien profil</span>
+                <input id="v11-presence-edit-profile-url-type" type="text">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Livre / éditeur</span>
+                <input id="v11-presence-edit-book-url" type="url">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Type lien livre</span>
+                <input id="v11-presence-edit-book-url-type" type="text">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Contact</span>
+                <input id="v11-presence-edit-contact" type="text">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Email privé</span>
+                <input id="v11-presence-edit-email" type="email">
+              </label>
+
+              <label class="v11-form-field v11-form-field-wide">
+                <span>Note admin</span>
+                <textarea
+                  id="v11-presence-edit-note"
+                  rows="4"
+                ></textarea>
+              </label>
+
+              <label class="v11-check-field">
+                <input
+                  id="v11-presence-edit-verified"
+                  type="checkbox"
+                >
+                <span>Présence vérifiée</span>
+              </label>
+            </div>
+
+            <div class="v11-event-detail-actions">
+              <button
+                id="v11-presence-edit-cancel"
+                type="button"
+                class="v11-action-button"
+              >
+                Annuler
+              </button>
+
+              <button
+                id="v11-presence-edit-save"
+                type="submit"
+                class="v11-action-button"
+              >
+                Enregistrer
+              </button>
+            </div>
+
+            <p class="v11-write-lock">
+              La sauvegarde modifie directement cette présence en production.
+            </p>
+          </form>
+        </section>
+
+        <div id="v11-presence-list" class="v11-community-list"></div>
+          <div id="v11-presence-empty" class="v11-inline-status" hidden>
+            Aucune présence pour ces filtres.
+          </div>
+        </div>
+
+        <div id="v11-community-authors" class="v11-community-panel">
+          <section
+          id="v11-author-detail"
+          class="v11-community-detail"
+          hidden
+        >
+          <div class="v11-event-detail-head">
+            <div>
+              <p class="v11-section-label">
+                AUTEUR CONSOLIDÉ
+              </p>
+
+              <h3 id="v11-author-detail-title">
+                Fiche auteur
+              </h3>
+            </div>
+
+            <button
+              id="v11-author-detail-close"
+              class="v11-text-button"
+              type="button"
+            >
+              Fermer
+            </button>
+          </div>
+
+          <div
+            id="v11-author-detail-content"
+            class="v11-community-detail-content"
+          ></div>
+
+          <div class="v11-event-detail-actions">
+            <button
+              id="v11-author-edit"
+              type="button"
+              class="v11-action-button"
+            >
+              Modifier
+            </button>
+
+            <button
+              id="v11-author-ready"
+              type="button"
+              class="v11-action-button"
+              disabled
+            >
+              Prêt à publier
+            </button>
+
+            <button
+              id="v11-author-publish"
+              type="button"
+              class="v11-action-button"
+              disabled
+            >
+              Publier
+            </button>
+
+            <button
+              id="v11-author-merge"
+              type="button"
+              class="v11-action-button danger"
+              disabled
+            >
+              Fusionner
+            </button>
+          </div>
+
+          <p class="v11-write-lock">
+            Écriture auteur, publication et fusion verrouillées dans V11.28.
+          </p>
+        </section>
+
+        <section
+          id="v11-author-editor"
+          class="v11-community-detail"
+          hidden
+        >
+          <div class="v11-event-detail-head">
+            <div>
+              <p class="v11-section-label">
+                ÉDITION AUTEUR
+              </p>
+
+              <h3 id="v11-author-editor-title">
+                Modifier un auteur
+              </h3>
+            </div>
+
+            <button
+              id="v11-author-editor-close"
+              class="v11-text-button"
+              type="button"
+            >
+              Fermer
+            </button>
+          </div>
+
+          <form id="v11-author-editor-form">
+            <div class="v11-community-detail-content">
+
+              <label class="v11-form-field">
+                <span>Pseudo / nom public</span>
+                <input id="v11-author-edit-pseudo" type="text">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Slug</span>
+                <input id="v11-author-edit-slug" type="text">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Type de profil</span>
+                <select id="v11-author-edit-type">
+                  <option value="author">Auteur</option>
+                  <option value="artist_author">Artiste-auteur</option>
+                  <option value="hybrid">Hybride</option>
+                  <option value="publisher">Maison d’édition</option>
+                </select>
+              </label>
+
+              <label class="v11-form-field">
+                <span>Localisation</span>
+                <input id="v11-author-edit-location" type="text">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Site web</span>
+                <input id="v11-author-edit-website" type="url">
+              </label>
+
+              <label class="v11-form-field">
+                <span>Boutique / livre</span>
+                <input id="v11-author-edit-shop" type="url">
+              </label>
+
+              <label class="v11-form-field v11-form-field-wide">
+                <span>Avatar / portrait</span>
+                <input id="v11-author-edit-avatar" type="url">
+              </label>
+
+              <label class="v11-form-field v11-form-field-wide">
+                <span>Biographie</span>
+                <textarea
+                  id="v11-author-edit-bio"
+                  rows="8"
+                ></textarea>
+              </label>
+            </div>
+
+            <div class="v11-event-detail-actions">
+              <button
+                id="v11-author-edit-cancel"
+                type="button"
+                class="v11-action-button"
+              >
+                Annuler
+              </button>
+
+              <button
+                id="v11-author-edit-save"
+                type="submit"
+                class="v11-action-button"
+                disabled
+              >
+                Enregistrer
+              </button>
+            </div>
+
+            <p class="v11-write-lock">
+              Sauvegarde auteur verrouillée dans V11.28.
+            </p>
+          </form>
+        </section>
+
+        <div id="v11-authors-list" class="v11-community-list"></div>
+          <div id="v11-authors-empty" class="v11-inline-status" hidden>
+            Aucune fiche auteur disponible.
+          </div>
+        </div>
+
+        <div id="v11-community-testimonials" class="v11-community-panel">
+          <div id="v11-testimonials-list" class="v11-community-list"></div>
+          <div id="v11-testimonials-empty" class="v11-inline-status" hidden>
+            Aucun témoignage disponible.
+          </div>
+        </div>
+
+      </section>
+
+
+      
+      
+      <section class="v11-view" data-view-panel="tools">
+
+        <div class="v11-section-heading">
+          <div>
+            <p class="v11-section-label">OUTILS</p>
+            <h2>Services et production</h2>
+            <p>Accès aux outils opérationnels de Dédicalivres.</p>
+          </div>
+        </div>
+
+        <div class="v11-tools-grid">
+
+          <article class="v11-tool-card is-operational" data-tool-open="watch">
+            <div class="v11-tool-icon">↯</div>
+
+            <div class="v11-tool-content">
+              <div class="v11-tool-head">
+                <div>
+                  <span class="v11-tool-kicker">VEILLE</span>
+                  <h3>Auto-Matte</h3>
+                </div>
+
+                <span class="v11-chip ok">Opérationnel</span>
+              </div>
+
+              <p>
+                Veille littéraire, contrôle des sources et suivi des événements.
+              </p>
+
+              <div class="v11-tool-meta">
+                <span>Dernière veille · 08:42</span>
+                <span>Connexion existante à préserver</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="v11-tool-card" data-tool-open="exports">
+            <div class="v11-tool-icon">⇩</div>
+
+            <div class="v11-tool-content">
+              <div class="v11-tool-head">
+                <div>
+                  <span class="v11-tool-kicker">DONNÉES</span>
+                  <h3>Exports</h3>
+                </div>
+
+                <span class="v11-chip info">Existant</span>
+              </div>
+
+              <p>
+                Exports Dédicalivres, fichiers de diffusion et contrôles associés.
+              </p>
+
+              <div class="v11-tool-meta">
+                <span>JSON · CSV · MD</span>
+                <span>Moteur V10 conservé</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="v11-tool-card" data-tool-open="social">
+            <div class="v11-tool-icon">◇</div>
+
+            <div class="v11-tool-content">
+              <div class="v11-tool-head">
+                <div>
+                  <span class="v11-tool-kicker">COMMUNICATION</span>
+                  <h3>Social</h3>
+                </div>
+
+                <span class="v11-chip info">Existant</span>
+              </div>
+
+              <p>
+                Génération des visuels Story, Instagram 4:5 et carré.
+              </p>
+
+              <div class="v11-tool-meta">
+                <span>Pack événement</span>
+                <span>Générateur actuel conservé</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="v11-tool-card" data-tool-open="partners">
+            <div class="v11-tool-icon">⌁</div>
+
+            <div class="v11-tool-content">
+              <div class="v11-tool-head">
+                <div>
+                  <span class="v11-tool-kicker">PARTENAIRES</span>
+                  <h3>Widget</h3>
+                </div>
+
+                <span class="v11-chip info">Disponible</span>
+              </div>
+
+              <p>
+                Configurateur du widget Dédicalivres pour partenaires et territoires.
+              </p>
+
+              <div class="v11-tool-meta">
+                <span>FR · BE · CH · LU · MC</span>
+                <span>Prévisualisation existante</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="v11-tool-card" data-tool-open="maintenance">
+            <div class="v11-tool-icon">◎</div>
+
+            <div class="v11-tool-content">
+              <div class="v11-tool-head">
+                <div>
+                  <span class="v11-tool-kicker">SYSTÈME</span>
+                  <h3>Maintenance</h3>
+                </div>
+
+                <span class="v11-chip neutral">Contrôle</span>
+              </div>
+
+              <p>
+                Santé technique, sauvegardes, diagnostics et sécurité.
+              </p>
+
+              <div class="v11-tool-meta">
+                <span>Lecture d’état</span>
+                <span>Aucun chemin local affiché</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="v11-tool-card is-reserved">
+            <div class="v11-tool-icon">◈</div>
+
+            <div class="v11-tool-content">
+              <div class="v11-tool-head">
+                <div>
+                  <span class="v11-tool-kicker">TERRAIN</span>
+                  <h3>NFC</h3>
+                </div>
+
+                <span class="v11-chip neutral">En déploiement</span>
+              </div>
+
+              <p>
+                Emplacement réservé au futur module NFC & terrain.
+              </p>
+
+              <div class="v11-tool-meta">
+                <span>Aucun développement V11</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="v11-tool-card is-reserved">
+            <div class="v11-tool-icon">◌</div>
+
+            <div class="v11-tool-content">
+              <div class="v11-tool-head">
+                <div>
+                  <span class="v11-tool-kicker">LIVE</span>
+                  <h3>Studio de dédicace</h3>
+                </div>
+
+                <span class="v11-chip amethyst">Privé</span>
+              </div>
+
+              <p>
+                Emplacement réservé au Studio avant son futur déploiement.
+              </p>
+
+              <div class="v11-tool-meta">
+                <span>Interne uniquement</span>
+                <span>Aucune activation publique</span>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <div id="v11-tool-workspace" class="v11-tool-workspace" hidden>
+
+          <div class="v11-tool-workspace-head">
+            <div>
+              <p class="v11-section-label">ESPACE OUTIL</p>
+              <h3 id="v11-tool-workspace-title">Outil</h3>
+            </div>
+
+            <button
+              id="v11-tool-close"
+              class="v11-text-button"
+              type="button"
+            >
+              Fermer
+            </button>
+          </div>
+
+          <div id="v11-tool-placeholder" class="v11-tool-placeholder">
+            Le moteur existant sera reconnecté ici après comparaison avec V10.
+          </div>
+
+          <div id="tab-watch" class="v11-legacy-slot" hidden></div>
+          <div id="tab-events" class="v11-legacy-slot" hidden></div>
+          <div id="tab-overview" class="v11-legacy-slot" hidden></div>
+          <div id="tab-moderation" class="v11-legacy-slot" hidden></div>
+          <div id="tab-exports" class="v11-legacy-slot" hidden></div>
+          <div id="tab-social" class="v11-legacy-slot" hidden></div>
+
+        </div>
+
+      </section>
+
+
+
+      
+      <section class="v11-view" data-view-panel="pilotage">
+
+        <div class="v11-section-heading">
+          <div>
+            <p class="v11-section-label">PILOTAGE</p>
+            <h2>Analyse et couverture</h2>
+            <p>Audience, acquisition, territoires et santé du système.</p>
+          </div>
+
+          <div class="v11-period-switch" role="group" aria-label="Période d'analyse">
+            <button data-period="7">7 j</button>
+            <button class="is-active" data-period="30">30 j</button>
+            <button data-period="90">90 j</button>
+            <button data-period="365">1 an</button>
+          </div>
+        </div>
+
+        <div class="v11-pilotage-kpis">
+          <article>
+            <span>Visites</span>
+            <strong data-admin-bind="visits-30d">—</strong>
+            <small>30 derniers jours</small>
+          </article>
+
+          <article>
+            <span>Visiteurs estimés</span>
+            <strong data-admin-bind="visits-7d">—</strong>
+            <small>7 derniers jours</small>
+          </article>
+
+          <article>
+            <span>Événements actifs</span>
+            <strong data-admin-bind="events-active">464</strong>
+            <small>agenda public</small>
+          </article>
+
+          <article>
+            <span>Territoires couverts</span>
+            <strong>5</strong>
+            <small>FR · BE · CH · LU · MC</small>
+          </article>
+        </div>
+
+        <div class="v11-analysis-grid">
+
+          <article class="v11-panel v11-chart-panel">
+            <div class="v11-panel-head">
+              <div>
+                <p class="v11-section-label">AUDIENCE</p>
+                <h3>Évolution des visites</h3>
+              </div>
+
+              <div class="v11-chart-metric">
+                <strong>216</strong>
+                <span>moy. / jour</span>
+              </div>
+            </div>
+
+            <div class="v11-line-chart v11-line-chart-large" aria-label="Courbe factice de fréquentation">
+              <div class="v11-chart-grid"></div>
+
+              <svg viewBox="0 0 700 220" preserveAspectRatio="none" role="img">
+                <path
+                  class="v11-line-area"
+                  d="M0,184 C35,180 56,164 90,168 C130,175 152,145 188,150 C228,157 250,126 290,132 C330,140 348,109 390,114 C430,120 452,92 493,98 C535,105 557,75 598,81 C640,87 660,51 700,60 L700,220 L0,220 Z">
+                </path>
+
+                <path
+                  class="v11-line-path"
+                  d="M0,184 C35,180 56,164 90,168 C130,175 152,145 188,150 C228,157 250,126 290,132 C330,140 348,109 390,114 C430,120 452,92 493,98 C535,105 557,75 598,81 C640,87 660,51 700,60">
+                </path>
+              </svg>
+
+              <div class="v11-chart-axis">
+                <span>25 juil.</span>
+                <span>1 août</span>
+                <span>8 août</span>
+                <span>15 août</span>
+                <span>23 août</span>
+              </div>
+            </div>
+
+            <div class="v11-chart-summary">
+              <span><strong class="v11-trend-up">+14,2 %</strong> vs période précédente</span>
+              <span>Pic · 341 visites</span>
+            </div>
+          </article>
+
+          <article class="v11-panel v11-chart-panel">
+            <div class="v11-panel-head">
+              <div>
+                <p class="v11-section-label">ACQUISITION</p>
+                <h3>Origine du trafic</h3>
+              </div>
+            </div>
+
+            <div class="v11-donut-layout">
+              <div class="v11-donut">
+                <div class="v11-donut-center">
+                  <strong data-admin-bind="visits-total">—</strong>
+                  <span>pages vues</span>
+                </div>
+              </div>
+
+              <div class="v11-donut-legend">
+                <div>
+                  <span class="v11-legend-dot direct"></span>
+                  <strong>62 %</strong>
+                  <span>Direct / SEO</span>
+                </div>
+
+                <div>
+                  <span class="v11-legend-dot social"></span>
+                  <strong>18 %</strong>
+                  <span>Réseaux</span>
+                </div>
+
+                <div>
+                  <span class="v11-legend-dot nfc"></span>
+                  <strong>12 %</strong>
+                  <span>NFC</span>
+                </div>
+
+                <div>
+                  <span class="v11-legend-dot partner"></span>
+                  <strong>8 %</strong>
+                  <span>Partenaires</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="v11-preview-note">
+              Les catégories réelles seront limitées aux sources réellement mesurables.
+            </p>
+          </article>
+        </div>
+
+        <div class="v11-pilotage-secondary-grid">
+
+          <article class="v11-panel">
+            <div class="v11-panel-head">
+              <div>
+                <p class="v11-section-label">TERRITOIRES</p>
+                <h3>Couverture de l’agenda</h3>
+              </div>
+
+              <button class="v11-text-button">Voir le détail</button>
+            </div>
+
+            <div class="v11-territory-list">
+
+              <div class="v11-territory-row">
+                <div>
+                  <strong>France</strong>
+                  <span>Couverture principale</span>
+                </div>
+                <div class="v11-territory-meter">
+                  <span style="width:82%"></span>
+                </div>
+                <strong>82 %</strong>
+              </div>
+
+              <div class="v11-territory-row">
+                <div>
+                  <strong>Belgique francophone</strong>
+                  <span>En développement</span>
+                </div>
+                <div class="v11-territory-meter">
+                  <span style="width:48%"></span>
+                </div>
+                <strong>48 %</strong>
+              </div>
+
+              <div class="v11-territory-row">
+                <div>
+                  <strong>Suisse romande</strong>
+                  <span>En développement</span>
+                </div>
+                <div class="v11-territory-meter">
+                  <span style="width:34%"></span>
+                </div>
+                <strong>34 %</strong>
+              </div>
+
+              <div class="v11-territory-row">
+                <div>
+                  <strong>Luxembourg</strong>
+                  <span>Couverture ciblée</span>
+                </div>
+                <div class="v11-territory-meter">
+                  <span style="width:27%"></span>
+                </div>
+                <strong>27 %</strong>
+              </div>
+
+              <div class="v11-territory-row">
+                <div>
+                  <strong>Monaco</strong>
+                  <span>Couverture ciblée</span>
+                </div>
+                <div class="v11-territory-meter">
+                  <span style="width:18%"></span>
+                </div>
+                <strong>18 %</strong>
+              </div>
+
+            </div>
+          </article>
+
+          <article class="v11-panel">
+            <div class="v11-panel-head">
+              <div>
+                <p class="v11-section-label">QUALITÉ</p>
+                <h3>État des données</h3>
+              </div>
+            </div>
+
+            <div class="v11-health-list">
+
+              <div class="v11-health-row">
+                <div>
+                  <strong>Fiches complètes</strong>
+                  <span>Événements prêts à être exploités</span>
+                </div>
+                <span class="v11-chip ok">96 %</span>
+              </div>
+
+              <div class="v11-health-row">
+                <div>
+                  <strong>Images disponibles</strong>
+                  <span>Couverture visuelle</span>
+                </div>
+                <span class="v11-chip info">89 %</span>
+              </div>
+
+              <div class="v11-health-row">
+                <div>
+                  <strong>Doublons</strong>
+                  <span>Éléments à contrôler</span>
+                </div>
+                <span class="v11-chip warning">57</span>
+              </div>
+
+              <div class="v11-health-row">
+                <div>
+                  <strong>Fiches incomplètes</strong>
+                  <span>À enrichir ou vérifier</span>
+                </div>
+                <span class="v11-chip warning">115</span>
+              </div>
+
+            </div>
+          </article>
+        </div>
+
+
+        <div class="v11-secondary-analytics">
+
+          <article class="v11-panel">
+            <div class="v11-panel-head">
+              <div>
+                <p class="v11-section-label">CONTENUS</p>
+                <h3>Pages les plus consultées</h3>
+              </div>
+            </div>
+
+            <div id="v11-top-pages" class="v11-ranking-list">
+              <div class="v11-inline-status">Chargement...</div>
+            </div>
+          </article>
+
+          <article class="v11-panel">
+            <div class="v11-panel-head">
+              <div>
+                <p class="v11-section-label">ACQUISITION</p>
+                <h3>Origines mesurées</h3>
+              </div>
+            </div>
+
+            <div id="v11-top-referrers" class="v11-ranking-list">
+              <div class="v11-inline-status">Chargement...</div>
+            </div>
+          </article>
+
+        </div>
+
+        <article class="v11-panel v11-system-overview">
+          <div class="v11-panel-head">
+            <div>
+              <p class="v11-section-label">SYSTÈME</p>
+              <h3>Santé opérationnelle</h3>
+            </div>
+          </div>
+
+          <div class="v11-system-grid">
+
+            <div>
+              <span class="v11-system-dot"></span>
+              <div>
+                <strong>Site public</strong>
+                <small>Opérationnel</small>
+              </div>
+            </div>
+
+            <div>
+              <span class="v11-system-dot"></span>
+              <div>
+                <strong>Supabase</strong>
+                <small>Connexion active</small>
+              </div>
+            </div>
+
+            <div>
+              <span class="v11-system-dot"></span>
+              <div>
+                <strong>Auto-Matte</strong>
+                <small>Dernière veille · 08:42</small>
+              </div>
+            </div>
+
+            <div>
+              <span class="v11-system-dot muted"></span>
+              <div>
+                <strong>NFC & terrain</strong>
+                <small>Emplacement réservé</small>
+              </div>
+            </div>
+
+            <div>
+              <span class="v11-system-dot muted"></span>
+              <div>
+                <strong>Studio dédicace</strong>
+                <small>Privé · emplacement réservé</small>
+              </div>
+            </div>
+
+          </div>
+        </article>
+
+      </section>
+
+
+    </main>
+
+    <nav class="v11-mobile-nav" aria-label="Navigation mobile">
+      <button class="is-active" data-view="home"><span>⌂</span><small>Accueil</small></button>
+      <button data-view="events"><span>◫</span><small>Événements</small></button>
+      <button data-view="community"><span>◎</span><small>Communauté</small></button>
+      <button data-view="tools"><span>◇</span><small>Outils</small></button>
+      <button data-view="pilotage"><span>•••</span><small>Plus</small></button>
+    </nav>
+
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="config.js?v=shared-client-1"></script>
+  <script defer src="admin-context.js?v=v11-context-28"></script>
+  <script defer src="duplicate-detection.js?v=v11-18-1"></script>
+  <script defer src="admin-v11-bridge.js?v=v11-bridge-1"></script>
+  <script defer src="admin-shell.js?v=v11-shell-28-2"></script>
+
+  <section id="v11-auth-gate" class="v11-auth-gate" hidden aria-hidden="true">
+    <div class="v11-auth-panel">
+      <img
+        src="assets/brand/logo-dedicalivres-sombre.webp"
+        alt="Dédicalivres"
+        class="v11-auth-logo"
+      >
+
+      <p class="v11-section-label">ADMIN V11</p>
+      <h1>Connexion</h1>
+      <p class="v11-auth-copy">
+        Accès réservé à l’administration Dédicalivres.
+      </p>
+
+      <form id="v11-login-form" class="v11-auth-form">
+        <label>
+          <span>Email</span>
+          <input id="v11-email" type="email" autocomplete="username" required>
+        </label>
+
+        <label>
+          <span>Mot de passe</span>
+          <input id="v11-password" type="password" autocomplete="current-password" required>
+        </label>
+
+        <button type="submit" class="v11-primary-button">
+          Connexion
+        </button>
+
+        <p id="v11-login-feedback" class="v11-auth-feedback"></p>
+      </form>
+    </div>
+  </section>
+
+  <div id="v11-toast-region" class="v11-toast-region" aria-live="polite"></div>
+
+</body>
+</html>

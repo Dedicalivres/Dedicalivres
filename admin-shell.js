@@ -1,0 +1,4682 @@
+"use strict";
+
+(function createAdminShell() {
+  const context =
+    window.DEDICALIVRES_ADMIN_CONTEXT;
+
+  const buttons =
+    document.querySelectorAll("[data-view]");
+
+  const panels =
+    document.querySelectorAll("[data-view-panel]");
+
+  const authGate =
+    document.getElementById("v11-auth-gate");
+
+  const loginForm =
+    document.getElementById("v11-login-form");
+
+  const loginFeedback =
+    document.getElementById("v11-login-feedback");
+
+  const refreshButton =
+    document.getElementById("v11-refresh");
+
+  const logoutButton =
+    document.getElementById("v11-logout");
+
+  const toastRegion =
+    document.getElementById("v11-toast-region");
+
+  const eventSearch =
+    document.getElementById("v11-event-search");
+
+  const eventStatusFilter =
+    document.getElementById("v11-event-status-filter");
+
+  const eventTypeFilter =
+    document.getElementById("v11-event-type-filter");
+
+  const eventQualityFilter =
+    document.getElementById("v11-event-quality-filter");
+
+  const eventsList =
+    document.getElementById("v11-events-list");
+
+  const eventsEmpty =
+    document.getElementById("v11-events-empty");
+
+  const eventsLoading =
+    document.getElementById("v11-events-loading");
+
+  const eventsVisibleCount =
+    document.querySelector(
+      "[data-events-visible-count]"
+    );
+
+  const eventsDebug =
+    document.getElementById("v11-events-debug");
+
+  if (!authGate) {
+    console.error("V11 : auth gate absent du DOM");
+  }
+
+  if (!loginForm) {
+    console.error("V11 : formulaire de connexion absent du DOM");
+  }
+
+  function openView(name) {
+    panels.forEach((panel) => {
+      panel.classList.toggle(
+        "is-active",
+        panel.dataset.viewPanel === name
+      );
+    });
+
+  
+  document
+    .querySelectorAll("[data-quality-filter]")
+    .forEach((card) => {
+      card.addEventListener("click", () => {
+        if (!eventQualityFilter) return;
+
+        eventQualityFilter.value =
+          card.dataset.qualityFilter || "all";
+
+        openView("events");
+
+        const state = context.getState();
+
+        renderEvents(
+          state.events || [],
+          state.status
+        );
+      });
+    });
+
+  communityTabs.forEach((button) => {
+    button.addEventListener("click", () => {
+      openCommunityView(
+        button.dataset.communityView
+      );
+    });
+  });
+
+  [
+    presenceSearch,
+    presenceStatus,
+    presenceType
+  ].forEach((control) => {
+    if (!control) return;
+
+    const eventName =
+      control.tagName === "INPUT"
+        ? "input"
+        : "change";
+
+    control.addEventListener(eventName, () => {
+      const state = context.getState();
+
+      renderPresences(
+        state.community
+          ? state.community.presences || []
+          : []
+      );
+    });
+  });
+
+
+  const toolCards =
+    document.querySelectorAll("[data-tool-open]");
+
+  const toolWorkspace =
+    document.getElementById("v11-tool-workspace");
+
+  const toolWorkspaceTitle =
+    document.getElementById("v11-tool-workspace-title");
+
+  const toolPlaceholder =
+    document.getElementById("v11-tool-placeholder");
+
+  const toolClose =
+    document.getElementById("v11-tool-close");
+
+  const toolLabels = {
+    watch: "Auto-Matte / Veille",
+    exports: "Exports",
+    social: "Social",
+    partners: "Widget partenaires",
+    maintenance: "Maintenance"
+  };
+
+  const toolDescriptions = {
+    watch:
+      "Le module de veille existant sera remonté dans cet espace sans modifier son moteur.",
+    exports:
+      "Les exports existants seront reconnectés ici après validation de leur comportement V10.",
+    social:
+      "Le générateur social existant sera remonté ici sans modifier sa logique de production.",
+    partners:
+      "Le configurateur partenaires conservera son moteur actuel et recevra une présentation V11.",
+    maintenance:
+      "Cet espace regroupera les états système, sauvegardes et contrôles techniques."
+  };
+
+  function openToolWorkspace(name) {
+    if (!toolWorkspace) return;
+
+    toolWorkspace.hidden = false;
+
+    if (toolWorkspaceTitle) {
+      toolWorkspaceTitle.textContent =
+        toolLabels[name] || "Outil";
+    }
+
+    if (toolPlaceholder) {
+      toolPlaceholder.textContent =
+        toolDescriptions[name] ||
+        "Module en préparation.";
+    }
+
+    document
+      .querySelectorAll(".v11-legacy-slot")
+      .forEach((slot) => {
+        slot.hidden = true;
+      });
+
+    toolWorkspace.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  toolCards.forEach((card) => {
+    card.addEventListener("click", () => {
+      openToolWorkspace(
+        card.dataset.toolOpen
+      );
+    });
+  });
+
+  if (toolClose) {
+    toolClose.addEventListener("click", () => {
+      if (toolWorkspace) {
+        toolWorkspace.hidden = true;
+      }
+    });
+  }
+
+  buttons.forEach((button) => {
+      button.classList.toggle(
+        "is-active",
+        button.dataset.view === name
+      );
+    });
+  }
+
+  function setBoundText(name, value) {
+    document
+      .querySelectorAll(
+        '[data-admin-bind="' + name + '"]'
+      )
+      .forEach((element) => {
+        element.textContent = value;
+      });
+  }
+
+  function toast(message, kind = "ok") {
+    if (!toastRegion) return;
+
+    const item = document.createElement("div");
+
+    item.className =
+      "v11-toast " +
+      (kind === "error"
+        ? "is-error"
+        : "is-ok");
+
+    item.textContent = message;
+
+    toastRegion.appendChild(item);
+
+    window.setTimeout(() => {
+      item.remove();
+    }, 3200);
+  }
+
+  function normalize(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  function isPastEvent(event) {
+    const raw =
+      event.end_date ||
+      event.start_date ||
+      "";
+
+    if (!raw) return false;
+
+    const date = new Date(
+      String(raw).slice(0, 10) +
+      "T00:00:00"
+    );
+
+    if (Number.isNaN(date.getTime())) {
+      return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return date < today;
+  }
+
+  function eventTypeClass(type) {
+    if (type === "Salon") {
+      return "event-salon";
+    }
+
+    if (type === "Festival") {
+      return "event-festival";
+    }
+
+    if (type === "Dédicace") {
+      return "event-signing";
+    }
+
+    return "event-other";
+  }
+
+  function formatDate(value) {
+    if (!value) {
+      return "Date à confirmer";
+    }
+
+    const date = new Date(
+      String(value).slice(0, 10) +
+      "T00:00:00"
+    );
+
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return new Intl.DateTimeFormat(
+      "fr-FR",
+      {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      }
+    ).format(date);
+  }
+
+  function getEventStatus(event) {
+    if (event.rejected === true) {
+      return {
+        label: "Rejeté",
+        className: "neutral"
+      };
+    }
+
+    if (event.validated === true) {
+      return {
+        label:
+          isPastEvent(event)
+            ? "Passé"
+            : "Validé",
+        className: "ok"
+      };
+    }
+
+    return {
+      label: "À vérifier",
+      className: "warning"
+    };
+  }
+
+  function getFilteredEvents(events) {
+    const query = normalize(
+      eventSearch
+        ? eventSearch.value
+        : ""
+    );
+
+    const status =
+      eventStatusFilter
+        ? eventStatusFilter.value
+        : "pending";
+
+    const type =
+      eventTypeFilter
+        ? eventTypeFilter.value
+        : "all";
+
+    const quality =
+      eventQualityFilter
+        ? eventQualityFilter.value
+        : "all";
+
+    return events.filter((event) => {
+      if (
+        type !== "all" &&
+        event.type !== type
+      ) {
+        return false;
+      }
+
+      if (
+        status === "pending" &&
+        (
+          event.validated === true ||
+          event.rejected === true
+        )
+      ) {
+        return false;
+      }
+
+      if (
+        status === "validated" &&
+        event.validated !== true
+      ) {
+        return false;
+      }
+
+      if (
+        status === "rejected" &&
+        event.rejected !== true
+      ) {
+        return false;
+      }
+
+      if (
+        status === "past" &&
+        isPastEvent(event) === false
+      ) {
+        return false;
+      }
+
+      if (quality !== "all") {
+        const upcoming =
+          event.validated === true &&
+          event.rejected !== true &&
+          isPastEvent(event) === false;
+
+        if (quality === "missing-image") {
+          if (
+            !upcoming ||
+            String(event.image_url || "").trim()
+          ) {
+            return false;
+          }
+        }
+
+        if (quality === "missing-coords") {
+          const lat = Number(event.lat);
+          const lng = Number(event.lng);
+
+          if (
+            !upcoming ||
+            (
+              Number.isFinite(lat) &&
+              Number.isFinite(lng)
+            )
+          ) {
+            return false;
+          }
+        }
+
+        if (quality === "missing-website") {
+          if (
+            !upcoming ||
+            String(event.website || "").trim()
+          ) {
+            return false;
+          }
+        }
+
+        if (quality === "soon") {
+          if (!upcoming) return false;
+
+          const raw =
+            event.start_date ||
+            event.end_date ||
+            "";
+
+          if (!raw) return false;
+
+          const date = new Date(
+            String(raw).slice(0, 10) +
+            "T00:00:00"
+          );
+
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const limit = new Date(today);
+          limit.setDate(limit.getDate() + 14);
+
+          if (
+            Number.isNaN(date.getTime()) ||
+            date < today ||
+            date > limit
+          ) {
+            return false;
+          }
+        }
+
+        if (quality === "featured-past") {
+          if (
+            event.featured !== true ||
+            isPastEvent(event) === false
+          ) {
+            return false;
+          }
+        }
+      }
+
+      if (query) {
+        const haystack = normalize(
+          [
+            event.title,
+            event.city,
+            event.region,
+            event.country_code,
+            event.type
+          ].join(" ")
+        );
+
+        if (!haystack.includes(query)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
+
+  function createEventCard(event) {
+    const article =
+      document.createElement("article");
+
+    const typeClass =
+      eventTypeClass(event.type);
+
+    const status =
+      getEventStatus(event);
+
+    article.className =
+      "v11-real-event-card " +
+      typeClass;
+
+    const main =
+      document.createElement("div");
+
+    main.className =
+      "v11-real-event-main";
+
+    const top =
+      document.createElement("div");
+
+    top.className =
+      "v11-real-event-top";
+
+    const typeBadge =
+      document.createElement("span");
+
+    typeBadge.className =
+      "v11-type-badge " +
+      typeClass;
+
+    typeBadge.textContent =
+      event.type || "Autre";
+
+    top.appendChild(typeBadge);
+
+    if (event.featured === true) {
+      const featured =
+        document.createElement("span");
+
+      featured.className =
+        "v11-mini-flag";
+
+      featured.textContent =
+        "Mis en avant";
+
+      top.appendChild(featured);
+    }
+
+    const title =
+      document.createElement("h3");
+
+    title.textContent =
+      event.title || "Sans titre";
+
+    const meta =
+      document.createElement("p");
+
+    const location =
+      [
+        event.city,
+        event.region
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+    meta.textContent =
+      formatDate(event.start_date) +
+      (
+        location
+          ? " · " + location
+          : ""
+      );
+
+    main.appendChild(top);
+    main.appendChild(title);
+    main.appendChild(meta);
+
+    const side =
+      document.createElement("div");
+
+    side.className =
+      "v11-real-event-side";
+
+    const statusBadge =
+      document.createElement("span");
+
+    statusBadge.className =
+      "v11-chip " +
+      status.className;
+
+    statusBadge.textContent =
+      status.label;
+
+    const id =
+      document.createElement("small");
+
+    id.textContent =
+      "#" + String(event.id || "");
+
+    side.appendChild(statusBadge);
+    side.appendChild(id);
+
+    article.appendChild(main);
+    article.appendChild(side);
+
+
+    const detailButton =
+      document.createElement("button");
+
+    detailButton.type = "button";
+    detailButton.className =
+      "v11-event-detail-trigger";
+
+    detailButton.textContent =
+      "Détails";
+
+    detailButton.dataset.eventDetail =
+      String(event.id);
+
+    side.appendChild(detailButton);
+
+    return article;
+  }
+
+  
+  let selectedV11EventId = null;
+  let v11EventActionRunning = false;
+
+  const eventDetail =
+    document.getElementById("v11-event-detail");
+
+  const eventDetailTitle =
+    document.getElementById("v11-event-detail-title");
+
+  const eventDetailContent =
+    document.getElementById("v11-event-detail-content");
+
+  const eventDetailClose =
+    document.getElementById("v11-event-detail-close");
+
+  const eventPublicLink =
+    document.getElementById("v11-event-public-link");
+
+  const eventValidateButton =
+    document.getElementById("v11-event-validate");
+
+  const eventRejectButton =
+    document.getElementById("v11-event-reject");
+
+  const eventFeaturedButton =
+    document.getElementById("v11-event-featured");
+
+  const eventDeleteButton =
+    document.getElementById("v11-event-delete");
+
+  const eventEditButton =
+    document.getElementById("v11-event-edit");
+
+  const eventEditor =
+    document.getElementById("v11-event-editor");
+
+  const eventEditorTitle =
+    document.getElementById("v11-event-editor-title");
+
+  const eventEditorClose =
+    document.getElementById("v11-event-editor-close");
+
+  const eventEditorForm =
+    document.getElementById("v11-event-editor-form");
+
+  const editCancel =
+    document.getElementById("v11-edit-cancel");
+
+  const editSave =
+    document.getElementById("v11-edit-save");
+
+  const editTitle =
+    document.getElementById("v11-edit-title");
+
+  const editType =
+    document.getElementById("v11-edit-type");
+
+  const editCountry =
+    document.getElementById("v11-edit-country");
+
+  const editCity =
+    document.getElementById("v11-edit-city");
+
+  const editRegion =
+    document.getElementById("v11-edit-region");
+
+  const editStart =
+    document.getElementById("v11-edit-start");
+
+  const editEnd =
+    document.getElementById("v11-edit-end");
+
+  const editWebsite =
+    document.getElementById("v11-edit-website");
+
+  const editLat =
+    document.getElementById("v11-edit-lat");
+
+  const editLng =
+    document.getElementById("v11-edit-lng");
+
+  const editImage =
+    document.getElementById("v11-edit-image");
+
+  const editImagePreview =
+    document.getElementById("v11-edit-image-preview");
+
+  const editImageEmpty =
+    document.getElementById("v11-edit-image-empty");
+
+  const editDescription =
+    document.getElementById("v11-edit-description");
+
+  const editRegistration =
+    document.getElementById("v11-edit-registration");
+
+  const editRegistrationEnabled =
+    document.getElementById("v11-edit-registration-enabled");
+
+  const editRegistrationOpen =
+    document.getElementById("v11-edit-registration-open");
+
+  const editRegistrationDeadline =
+    document.getElementById("v11-edit-registration-deadline");
+
+  const editRegistrationUrl =
+    document.getElementById("v11-edit-registration-url");
+
+  const editRegistrationAudience =
+    document.getElementById("v11-edit-registration-audience");
+
+  const editRegistrationNote =
+    document.getElementById("v11-edit-registration-note");
+
+  const editRegistrationStatus =
+    document.getElementById("v11-edit-registration-status");
+
+  function renderEventDetail(event) {
+    if (!eventDetail || !eventDetailContent || !event) {
+      return;
+    }
+
+    eventDetail.hidden = false;
+    selectedV11EventId = String(event.id);
+
+    if (eventValidateButton) {
+      eventValidateButton.disabled =
+        v11EventActionRunning ||
+        (
+          event.validated === true &&
+          event.rejected !== true
+        );
+    }
+
+    if (eventRejectButton) {
+      eventRejectButton.disabled =
+        v11EventActionRunning ||
+        event.rejected === true;
+    }
+
+    if (eventFeaturedButton) {
+      eventFeaturedButton.disabled =
+        v11EventActionRunning ||
+        event.rejected === true;
+
+      eventFeaturedButton.textContent =
+        event.featured === true
+          ? "Retirer la mise en avant"
+          : "Mettre en avant";
+    }
+
+    if (eventDeleteButton) {
+      eventDeleteButton.disabled =
+        v11EventActionRunning ||
+        event.rejected !== true;
+    }
+
+    if (eventDetailTitle) {
+      eventDetailTitle.textContent =
+        event.title || "Événement";
+    }
+
+    eventDetailContent.replaceChildren();
+
+    const lat = Number(event.lat);
+    const lng = Number(event.lng);
+
+    const hasCoords =
+      Number.isFinite(lat) &&
+      Number.isFinite(lng);
+
+    const rows = [
+      ["Type", event.type],
+      ["Ville", event.city],
+      ["Région", event.region],
+      ["Début", event.start_date],
+      ["Fin", event.end_date],
+      ["Site officiel", event.website],
+      ["Image", event.image_url ? "Présente" : "Absente"],
+      [
+        "Coordonnées",
+        hasCoords
+          ? String(event.lat) + ", " + String(event.lng)
+          : "Absentes"
+      ],
+      [
+        "Statut",
+        event.rejected === true
+          ? "Rejeté"
+          : event.validated === true
+            ? "Validé"
+            : "À vérifier"
+      ],
+      ["Mise en avant", event.featured === true ? "Oui" : "Non"],
+      ["Vérifié", event.verified === true ? "Oui" : "Non"],
+      ["Identifiant", event.id]
+    ];
+
+    rows.forEach(function (entry) {
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "v11-event-detail-row";
+
+      const key =
+        document.createElement("span");
+
+      key.textContent = entry[0];
+
+      const value =
+        document.createElement("strong");
+
+      value.textContent =
+        entry[1] == null || entry[1] === ""
+          ? "Non renseigné"
+          : String(entry[1]);
+
+      row.appendChild(key);
+      row.appendChild(value);
+
+      eventDetailContent.appendChild(row);
+    });
+
+    if (eventPublicLink) {
+      eventPublicLink.href =
+        "event.html?id=" +
+        encodeURIComponent(event.id);
+    }
+
+    eventDetail.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  if (eventDetailClose) {
+    eventDetailClose.addEventListener(
+      "click",
+      function () {
+        eventDetail.hidden = true;
+      }
+    );
+  }
+
+
+  document.addEventListener(
+    "click",
+    function (clickEvent) {
+      const button =
+        clickEvent.target.closest(
+          "[data-event-detail]"
+        );
+
+      if (!button) {
+        return;
+      }
+
+      const state =
+        context.getState();
+
+      const selected =
+        (state.events || []).find(
+          function (item) {
+            return (
+              String(item.id) ===
+              String(
+                button.dataset.eventDetail
+              )
+            );
+          }
+        );
+
+      if (selected) {
+        renderEventDetail(selected);
+      }
+    }
+  );
+
+
+  function getSelectedV11Event() {
+    if (!selectedV11EventId) return null;
+
+    const state = context.getState();
+
+    return (state.events || []).find(
+      function (event) {
+        return String(event.id) === String(selectedV11EventId);
+      }
+    ) || null;
+  }
+
+  function setV11EventActionsBusy(busy) {
+    v11EventActionRunning = busy;
+
+    [
+      eventValidateButton,
+      eventRejectButton,
+      eventFeaturedButton,
+      eventDeleteButton
+    ].forEach(function (button) {
+      if (button) button.disabled = busy;
+    });
+  }
+
+  function v11ActionMessage(message) {
+    const region =
+      document.getElementById("v11-toast-region");
+
+    if (!region) {
+      console.info(message);
+      return;
+    }
+
+    const toast =
+      document.createElement("div");
+
+    toast.className =
+      "v11-action-toast";
+
+    toast.textContent = message;
+
+    region.appendChild(toast);
+
+    window.setTimeout(function () {
+      toast.remove();
+    }, 3200);
+  }
+
+  function duplicateSummary(matches) {
+    return matches
+      .slice(0, 6)
+      .map(function (match, index) {
+        const existing =
+          match.event || {};
+
+        const level =
+          window.DEDICALIVRES_DUPLICATES
+          && window.DEDICALIVRES_DUPLICATES.LEVELS
+          && window.DEDICALIVRES_DUPLICATES.LEVELS[match.level]
+          ? window.DEDICALIVRES_DUPLICATES.LEVELS[match.level].label
+          : match.level || "Doublon potentiel";
+
+        const date =
+          existing.start_date
+            ? String(existing.start_date).slice(0, 10)
+            : "date inconnue";
+
+        return (
+          String(index + 1)
+          + ". "
+          + level
+          + " · "
+          + String(Math.round(Number(match.score || 0)))
+          + "%\n"
+          + (existing.title || "Sans titre")
+          + "\n"
+          + [date, existing.city]
+              .filter(Boolean)
+              .join(" · ")
+        );
+      })
+      .join("\n\n");
+  }
+
+  async function checkV11Duplicates(event) {
+    const detector =
+      window.DEDICALIVRES_DUPLICATES;
+
+    const client =
+      context.getClient();
+
+    if (!detector || !client) {
+      return window.confirm(
+        "Le contrôle des doublons est indisponible.\n\n"
+        + "Valider tout de même cet événement ?"
+      );
+    }
+
+    try {
+      v11ActionMessage(
+        "Analyse des doublons…"
+      );
+
+      const matches =
+        await detector.findMatches(
+          client,
+          event,
+          {
+            excludeId: event.id,
+            limit: 250
+          }
+        );
+
+      if (!matches.length) {
+        return true;
+      }
+
+      return window.confirm(
+        "VÉRIFICATION OBLIGATOIRE AVANT VALIDATION\n\n"
+        + "Cette fiche ressemble à "
+        + String(matches.length)
+        + " événement(s) existant(s).\n\n"
+        + duplicateSummary(matches)
+        + "\n\nValider malgré cette alerte ?"
+      );
+    } catch (error) {
+      console.warn(
+        "Contrôle doublon V11 indisponible",
+        error
+      );
+
+      return window.confirm(
+        "Le contrôle des doublons est momentanément indisponible.\n\n"
+        + "Valider tout de même cet événement ?"
+      );
+    }
+  }
+
+  async function refreshV11AfterEventAction(id) {
+    await context.refresh();
+
+    const state =
+      context.getState();
+
+    const refreshed =
+      (state.events || []).find(
+        function (event) {
+          return String(event.id) === String(id);
+        }
+      );
+
+    if (refreshed) {
+      renderEventDetail(refreshed);
+    } else if (eventDetail) {
+      eventDetail.hidden = true;
+      selectedV11EventId = null;
+    }
+  }
+
+  async function runV11EventAction(action) {
+    if (v11EventActionRunning) return;
+
+    const state =
+      context.getState();
+
+    if (state.authenticated !== true) {
+      window.alert(
+        "Session admin absente."
+      );
+      return;
+    }
+
+    const client =
+      context.getClient();
+
+    const event =
+      getSelectedV11Event();
+
+    if (!client || !event) {
+      window.alert(
+        "Événement ou client Supabase indisponible."
+      );
+      return;
+    }
+
+    setV11EventActionsBusy(true);
+
+    try {
+      if (action === "validate") {
+        const approved =
+          await checkV11Duplicates(event);
+
+        if (!approved) {
+          v11ActionMessage(
+            "Validation annulée."
+          );
+          return;
+        }
+
+        const response =
+          await client
+            .from("events")
+            .update({
+              validated: true,
+              rejected: false
+            })
+            .eq("id", event.id);
+
+        if (response.error) {
+          throw response.error;
+        }
+
+        v11ActionMessage(
+          "Événement validé."
+        );
+
+        await refreshV11AfterEventAction(
+          event.id
+        );
+
+        return;
+      }
+
+      if (action === "reject") {
+        const confirmed =
+          window.confirm(
+            "Rejeter cet événement ?\n\n"
+            + (event.title || "Sans titre")
+          );
+
+        if (!confirmed) return;
+
+        const response =
+          await client
+            .from("events")
+            .update({
+              rejected: true,
+              validated: false
+            })
+            .eq("id", event.id);
+
+        if (response.error) {
+          throw response.error;
+        }
+
+        v11ActionMessage(
+          "Événement rejeté."
+        );
+
+        await refreshV11AfterEventAction(
+          event.id
+        );
+
+        return;
+      }
+
+      if (action === "featured") {
+        const nextValue =
+          event.featured !== true;
+
+        const response =
+          await client
+            .from("events")
+            .update({
+              featured: nextValue
+            })
+            .eq("id", event.id);
+
+        if (response.error) {
+          throw response.error;
+        }
+
+        v11ActionMessage(
+          nextValue
+            ? "Événement mis en avant."
+            : "Mise en avant retirée."
+        );
+
+        await refreshV11AfterEventAction(
+          event.id
+        );
+
+        return;
+      }
+
+      if (action === "delete") {
+        if (event.rejected !== true) {
+          window.alert(
+            "Suppression réservée aux événements refusés."
+          );
+          return;
+        }
+
+        const confirmed =
+          window.confirm(
+            "Supprimer définitivement l’événement refusé :\n\n"
+            + (event.title || "Sans titre")
+            + "\n\nCette action est irréversible."
+          );
+
+        if (!confirmed) {
+          return;
+        }
+
+        const response =
+          await client
+            .from("events")
+            .delete()
+            .eq("id", event.id)
+            .eq("rejected", true);
+
+        if (response.error) {
+          throw response.error;
+        }
+
+        v11ActionMessage(
+          "Événement refusé supprimé."
+        );
+
+        selectedV11EventId = null;
+
+        if (eventDetail) {
+          eventDetail.hidden = true;
+        }
+
+        if (eventEditor) {
+          eventEditor.hidden = true;
+        }
+
+        await context.refresh();
+
+        return;
+      }
+    } catch (error) {
+      console.error(
+        "Action événement V11 impossible",
+        error
+      );
+
+      window.alert(
+        "Action impossible.\n\n"
+        + (
+          error && error.message
+            ? error.message
+            : "Erreur Supabase"
+        )
+      );
+    } finally {
+      setV11EventActionsBusy(false);
+
+      const current =
+        getSelectedV11Event();
+
+      if (current) {
+        renderEventDetail(current);
+      }
+    }
+  }
+
+  if (eventValidateButton) {
+    eventValidateButton.addEventListener(
+      "click",
+      function () {
+        runV11EventAction("validate");
+      }
+    );
+  }
+
+  if (eventRejectButton) {
+    eventRejectButton.addEventListener(
+      "click",
+      function () {
+        runV11EventAction("reject");
+      }
+    );
+  }
+
+  if (eventFeaturedButton) {
+    eventFeaturedButton.addEventListener(
+      "click",
+      function () {
+        runV11EventAction("featured");
+      }
+    );
+  }
+
+  if (eventDeleteButton) {
+    eventDeleteButton.addEventListener(
+      "click",
+      function () {
+        runV11EventAction("delete");
+      }
+    );
+  }
+
+
+  function isoInputDate(value) {
+    const raw =
+      String(value || "").trim();
+
+    return /^\d{4}-\d{2}-\d{2}/.test(raw)
+      ? raw.slice(0, 10)
+      : "";
+  }
+
+  function normalizeAudience(value) {
+    if (Array.isArray(value)) {
+      return value.join(", ");
+    }
+
+    return String(value || "");
+  }
+
+  function renderV11EditImage(url) {
+    const value =
+      String(url || "").trim();
+
+    if (!editImagePreview || !editImageEmpty) {
+      return;
+    }
+
+    if (!value) {
+      editImagePreview.hidden = true;
+      editImagePreview.removeAttribute("src");
+      editImageEmpty.hidden = false;
+      return;
+    }
+
+    editImagePreview.src = value;
+    editImagePreview.hidden = false;
+    editImageEmpty.hidden = true;
+  }
+
+  function updateRegistrationVisibility() {
+    if (!editRegistration || !editType) {
+      return;
+    }
+
+    const eligible =
+      editType.value === "Salon" ||
+      editType.value === "Festival";
+
+    editRegistration.hidden =
+      !eligible;
+  }
+
+  function openV11EventEditor(event) {
+    if (!event || !eventEditor) {
+      return;
+    }
+
+    eventEditor.hidden = false;
+
+    if (eventEditorTitle) {
+      eventEditorTitle.textContent =
+        "Modifier · " +
+        (event.title || "Sans titre");
+    }
+
+    if (editTitle) {
+      editTitle.value =
+        event.title || "";
+    }
+
+    if (editType) {
+      editType.value =
+        event.type || "Autre";
+    }
+
+    if (editCountry) {
+      editCountry.value =
+        event.country_code || "FR";
+    }
+
+    if (editCity) {
+      editCity.value =
+        event.city || "";
+    }
+
+    if (editRegion) {
+      editRegion.value =
+        event.region || "";
+    }
+
+    if (editStart) {
+      editStart.value =
+        isoInputDate(event.start_date);
+    }
+
+    if (editEnd) {
+      editEnd.value =
+        isoInputDate(event.end_date);
+    }
+
+    if (editWebsite) {
+      editWebsite.value =
+        event.website || "";
+    }
+
+    if (editLat) {
+      editLat.value =
+        event.lat == null
+          ? ""
+          : String(event.lat);
+    }
+
+    if (editLng) {
+      editLng.value =
+        event.lng == null
+          ? ""
+          : String(event.lng);
+    }
+
+    if (editImage) {
+      editImage.value =
+        event.image_url || "";
+    }
+
+    renderV11EditImage(
+      event.image_url
+    );
+
+    if (editDescription) {
+      editDescription.value =
+        event.description || "";
+    }
+
+    if (editRegistrationEnabled) {
+      editRegistrationEnabled.checked =
+        event.registration_enabled === true;
+    }
+
+    if (editRegistrationOpen) {
+      editRegistrationOpen.value =
+        isoInputDate(
+          event.registration_open_date
+        );
+    }
+
+    if (editRegistrationDeadline) {
+      editRegistrationDeadline.value =
+        isoInputDate(
+          event.registration_deadline
+        );
+    }
+
+    if (editRegistrationUrl) {
+      editRegistrationUrl.value =
+        event.registration_url || "";
+    }
+
+    if (editRegistrationAudience) {
+      editRegistrationAudience.value =
+        normalizeAudience(
+          event.registration_audience
+        );
+    }
+
+    if (editRegistrationNote) {
+      editRegistrationNote.value =
+        event.registration_note || "";
+    }
+
+    if (editRegistrationStatus) {
+      editRegistrationStatus.value =
+        event.registration_force_status || "";
+    }
+
+    updateRegistrationVisibility();
+
+    eventEditor.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  function closeV11EventEditor() {
+    if (eventEditor) {
+      eventEditor.hidden = true;
+    }
+  }
+
+  if (eventEditButton) {
+    eventEditButton.addEventListener(
+      "click",
+      function () {
+        const event =
+          getSelectedV11Event();
+
+        if (event) {
+          openV11EventEditor(event);
+        }
+      }
+    );
+  }
+
+  if (eventEditorClose) {
+    eventEditorClose.addEventListener(
+      "click",
+      closeV11EventEditor
+    );
+  }
+
+  if (editCancel) {
+    editCancel.addEventListener(
+      "click",
+      closeV11EventEditor
+    );
+  }
+
+  if (editType) {
+    editType.addEventListener(
+      "change",
+      updateRegistrationVisibility
+    );
+  }
+
+  if (editImage) {
+    editImage.addEventListener(
+      "input",
+      function () {
+        renderV11EditImage(
+          editImage.value
+        );
+      }
+    );
+  }
+
+  if (eventEditorForm) {
+    eventEditorForm.addEventListener(
+      "submit",
+      function (event) {
+        event.preventDefault();
+        saveV11EventEdition();
+      }
+    );
+  }
+
+
+  function isV11MissingColumnError(error) {
+    const code =
+      String(error?.code || "");
+
+    const message =
+      String(error?.message || "").toLowerCase();
+
+    return (
+      code === "42703" ||
+      code === "PGRST204" ||
+      message.includes("column") ||
+      message.includes("schema cache")
+    );
+  }
+
+  function cleanV11Value(value) {
+    const text =
+      String(value || "").trim();
+
+    return text || null;
+  }
+
+  function buildV11RegistrationPayload() {
+    const eligible =
+      editType &&
+      (
+        editType.value === "Salon" ||
+        editType.value === "Festival"
+      );
+
+    const enabled =
+      eligible &&
+      Boolean(
+        editRegistrationEnabled?.checked
+      );
+
+    if (!enabled) {
+      return {
+        registration_enabled: false,
+        registration_open_date: null,
+        registration_deadline: null,
+        registration_url: null,
+        registration_audience: [],
+        registration_note: null,
+        registration_force_status: null
+      };
+    }
+
+    const audience =
+      String(
+        editRegistrationAudience?.value || ""
+      )
+        .split(",")
+        .map(function (item) {
+          return item.trim();
+        })
+        .filter(Boolean);
+
+    return {
+      registration_enabled: true,
+
+      registration_open_date:
+        cleanV11Value(
+          editRegistrationOpen?.value
+        ),
+
+      registration_deadline:
+        cleanV11Value(
+          editRegistrationDeadline?.value
+        ),
+
+      registration_url:
+        cleanV11Value(
+          editRegistrationUrl?.value
+        ),
+
+      registration_audience:
+        audience,
+
+      registration_note:
+        cleanV11Value(
+          editRegistrationNote?.value
+        ),
+
+      registration_force_status:
+        cleanV11Value(
+          editRegistrationStatus?.value
+        )
+    };
+  }
+
+  function buildV11EventEditPayload() {
+    const latText =
+      String(editLat?.value || "").trim();
+
+    const lngText =
+      String(editLng?.value || "").trim();
+
+    const lat =
+      latText === ""
+        ? null
+        : Number(latText);
+
+    const lng =
+      lngText === ""
+        ? null
+        : Number(lngText);
+
+    if (
+      latText !== "" &&
+      !Number.isFinite(lat)
+    ) {
+      throw new Error(
+        "Latitude invalide."
+      );
+    }
+
+    if (
+      lngText !== "" &&
+      !Number.isFinite(lng)
+    ) {
+      throw new Error(
+        "Longitude invalide."
+      );
+    }
+
+    const title =
+      String(
+        editTitle?.value || ""
+      ).trim();
+
+    if (!title) {
+      throw new Error(
+        "Le titre est obligatoire."
+      );
+    }
+
+    const payload = {
+      title: title,
+
+      type:
+        editType?.value || "Autre",
+
+      country_code:
+        editCountry?.value || "FR",
+
+      city:
+        String(
+          editCity?.value || ""
+        ).trim(),
+
+      region:
+        String(
+          editRegion?.value || ""
+        ).trim(),
+
+      start_date:
+        cleanV11Value(
+          editStart?.value
+        ),
+
+      end_date:
+        cleanV11Value(
+          editEnd?.value
+        ),
+
+      website:
+        String(
+          editWebsite?.value || ""
+        ).trim(),
+
+      description:
+        String(
+          editDescription?.value || ""
+        ).trim(),
+
+      image_url:
+        cleanV11Value(
+          editImage?.value
+        ),
+
+      lat: lat,
+      lng: lng
+    };
+
+    Object.assign(
+      payload,
+      buildV11RegistrationPayload()
+    );
+
+    return payload;
+  }
+
+  async function saveV11EventEdition() {
+    if (v11EventActionRunning) {
+      return;
+    }
+
+    const state =
+      context.getState();
+
+    if (
+      state.authenticated !== true
+    ) {
+      window.alert(
+        "Session admin absente."
+      );
+      return;
+    }
+
+    const event =
+      getSelectedV11Event();
+
+    const client =
+      context.getClient();
+
+    if (!event || !client) {
+      window.alert(
+        "Événement ou client Supabase indisponible."
+      );
+      return;
+    }
+
+    let payload;
+
+    try {
+      payload =
+        buildV11EventEditPayload();
+    } catch (error) {
+      window.alert(
+        error?.message ||
+        "Formulaire invalide."
+      );
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        "Enregistrer les modifications de cet événement ?\n\n" +
+        (event.title || "Sans titre")
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    v11EventActionRunning = true;
+
+    if (editSave) {
+      editSave.disabled = true;
+      editSave.textContent =
+        "Enregistrement…";
+    }
+
+    try {
+      let response =
+        await client
+          .from("events")
+          .update(payload)
+          .eq("id", event.id);
+
+      if (
+        response.error &&
+        isV11MissingColumnError(
+          response.error
+        )
+      ) {
+        const legacyPayload = {
+          ...payload
+        };
+
+        Object.keys(
+          legacyPayload
+        )
+          .filter(function (key) {
+            return key.startsWith(
+              "registration_"
+            );
+          })
+          .forEach(function (key) {
+            delete legacyPayload[key];
+          });
+
+        response =
+          await client
+            .from("events")
+            .update(legacyPayload)
+            .eq("id", event.id);
+      }
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      v11ActionMessage(
+        "Événement modifié."
+      );
+
+      closeV11EventEditor();
+
+      await refreshV11AfterEventAction(
+        event.id
+      );
+
+    } catch (error) {
+      console.error(
+        "Erreur édition événement V11",
+        error
+      );
+
+      window.alert(
+        "Enregistrement impossible.\n\n" +
+        (
+          error?.message ||
+          "Erreur Supabase"
+        )
+      );
+
+    } finally {
+      v11EventActionRunning = false;
+
+      if (editSave) {
+        editSave.disabled = false;
+        editSave.textContent =
+          "Enregistrer";
+      }
+    }
+  }
+
+function renderEvents(events, status) {
+    if (!eventsList) return;
+
+    const loading =
+      status === "loading" ||
+      status === "booting";
+
+    if (eventsLoading) {
+      if (loading) {
+        eventsLoading.hidden = false;
+        eventsLoading.textContent =
+          "Chargement des événements...";
+      } else if (status === "error") {
+        eventsLoading.hidden = false;
+        eventsLoading.textContent =
+          "Chargement impossible.";
+      } else {
+        eventsLoading.hidden = true;
+      }
+    }
+
+    if (loading || status === "error") {
+      if (eventsVisibleCount) {
+        eventsVisibleCount.textContent = "0";
+      }
+
+      return;
+    }
+
+    const filtered =
+      getFilteredEvents(events);
+
+    eventsList.replaceChildren();
+
+    filtered
+      .slice(0, 150)
+      .forEach((event) => {
+        eventsList.appendChild(
+          createEventCard(event)
+        );
+      });
+
+    if (eventsVisibleCount) {
+      eventsVisibleCount.textContent =
+        String(filtered.length);
+    }
+
+    if (eventsEmpty) {
+      eventsEmpty.hidden =
+        filtered.length !== 0;
+    }
+  }
+
+
+  const priorityList =
+    document.getElementById("v11-priority-list");
+
+  const topPages =
+    document.getElementById("v11-top-pages");
+
+  const topReferrers =
+    document.getElementById("v11-top-referrers");
+
+  function renderPriority(events) {
+    if (!priorityList) return;
+
+    const pending = events.filter((event) => {
+      return event.validated === false && event.rejected === false;
+    });
+
+    priorityList.replaceChildren();
+
+    if (pending.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "v11-priority-empty";
+      empty.innerHTML =
+        "<strong>Aucun événement en attente</strong>" +
+        "<span>La file de modération est à jour.</span>";
+
+      priorityList.appendChild(empty);
+      return;
+    }
+
+    pending.slice(0, 5).forEach((event) => {
+      priorityList.appendChild(
+        createEventCard(event)
+      );
+    });
+  }
+
+  function renderRanking(container, items) {
+    if (!container) return;
+
+    container.replaceChildren();
+
+    if (!Array.isArray(items) || items.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "v11-inline-status";
+      empty.textContent = "Aucune donnée disponible.";
+      container.appendChild(empty);
+      return;
+    }
+
+    const max = Math.max(...items.map((item) => item.value), 1);
+
+    items.forEach((item, index) => {
+      const row = document.createElement("div");
+      row.className = "v11-ranking-row";
+
+      const info = document.createElement("div");
+      info.className = "v11-ranking-info";
+
+      const rank = document.createElement("span");
+      rank.className = "v11-ranking-rank";
+      rank.textContent = String(index + 1).padStart(2, "0");
+
+      const label = document.createElement("strong");
+      label.textContent = item.label;
+
+      info.appendChild(rank);
+      info.appendChild(label);
+
+      const meter = document.createElement("div");
+      meter.className = "v11-ranking-meter";
+
+      const fill = document.createElement("span");
+      fill.style.width =
+        String(Math.max(4, Math.round((item.value / max) * 100))) + "%";
+
+      meter.appendChild(fill);
+
+      const value = document.createElement("span");
+      value.className = "v11-ranking-value";
+      value.textContent = String(item.value);
+
+      row.appendChild(info);
+      row.appendChild(meter);
+      row.appendChild(value);
+
+      container.appendChild(row);
+    });
+  }
+
+
+  const communityTabs =
+    document.querySelectorAll("[data-community-view]");
+
+  const presenceSearch =
+    document.getElementById("v11-presence-search");
+
+  const presenceStatus =
+    document.getElementById("v11-presence-status");
+
+  const presenceType =
+    document.getElementById("v11-presence-type");
+
+  const presenceList =
+    document.getElementById("v11-presence-list");
+
+  const presenceEmpty =
+    document.getElementById("v11-presence-empty");
+
+  const authorsList =
+    document.getElementById("v11-authors-list");
+
+  const authorsEmpty =
+    document.getElementById("v11-authors-empty");
+
+  const testimonialsList =
+    document.getElementById("v11-testimonials-list");
+
+  const testimonialsEmpty =
+    document.getElementById("v11-testimonials-empty");
+
+  function profileLabel(type) {
+    if (type === "artist_author") return "Artiste-auteur";
+    if (type === "hybrid") return "Hybride";
+    if (type === "publisher") return "Maison d’édition";
+    return "Auteur";
+  }
+
+  function profileClass(type) {
+    if (type === "artist_author") return "profile-artist-author";
+    if (type === "hybrid") return "profile-hybrid";
+    if (type === "publisher") return "profile-publisher";
+    return "profile-author";
+  }
+
+  function presenceDisplayName(item) {
+    if (item.participant_type === "publisher") {
+      return (
+        item.organization_name ||
+        item.publisher_name ||
+        item.pseudo ||
+        "Maison d’édition"
+      );
+    }
+
+    return item.pseudo || "Sans nom";
+  }
+
+  function renderPresences(items) {
+    if (!presenceList) return;
+
+    const query = normalize(
+      presenceSearch ? presenceSearch.value : ""
+    );
+
+    const status =
+      presenceStatus ? presenceStatus.value : "pending";
+
+    const type =
+      presenceType ? presenceType.value : "all";
+
+    const filtered = items.filter((item) => {
+      if (type !== "all" && item.participant_type !== type) {
+        return false;
+      }
+
+      if (
+        status === "pending" &&
+        (item.validated === true || item.rejected === true)
+      ) {
+        return false;
+      }
+
+      if (
+        status === "validated" &&
+        (item.validated !== true || item.rejected === true)
+      ) {
+        return false;
+      }
+
+      if (
+        status === "rejected" &&
+        item.rejected !== true
+      ) {
+        return false;
+      }
+
+      if (query) {
+        const haystack = normalize(
+          [
+            item.pseudo,
+            item.publisher_name,
+            item.organization_name,
+            item.source,
+            item.participant_type
+          ].join(" ")
+        );
+
+        if (!haystack.includes(query)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    presenceList.replaceChildren();
+
+    filtered.forEach((item) => {
+      const card = document.createElement("article");
+
+      const typeClass =
+        profileClass(item.participant_type);
+
+      card.className =
+        "v11-community-card " + typeClass;
+
+      const body = document.createElement("div");
+      body.className = "v11-community-card-body";
+
+      const badge = document.createElement("span");
+      badge.className =
+        "v11-profile-badge " + typeClass;
+
+      badge.textContent =
+        profileLabel(item.participant_type);
+
+      const title = document.createElement("h3");
+      title.textContent =
+        presenceDisplayName(item);
+
+      const meta = document.createElement("p");
+
+      const parts = [];
+
+      if (item.presence_verified === true) {
+        parts.push("Présence vérifiée");
+      } else {
+        parts.push("Présence déclarée");
+      }
+
+      if (item.source) {
+        parts.push(String(item.source));
+      }
+
+      meta.textContent = parts.join(" · ");
+
+      body.appendChild(badge);
+      body.appendChild(title);
+      body.appendChild(meta);
+
+      const side = document.createElement("div");
+      side.className = "v11-community-card-side";
+
+      const statusBadge = document.createElement("span");
+
+      if (item.rejected === true) {
+        statusBadge.className = "v11-chip neutral";
+        statusBadge.textContent = "Rejetée";
+      } else if (item.validated === true) {
+        statusBadge.className = "v11-chip ok";
+        statusBadge.textContent = "Validée";
+      } else {
+        statusBadge.className = "v11-chip warning";
+        statusBadge.textContent = "À traiter";
+      }
+
+      side.appendChild(statusBadge);
+
+      const detailButton =
+        document.createElement("button");
+
+      detailButton.type = "button";
+      detailButton.className =
+        "v11-community-detail-trigger";
+
+      detailButton.textContent =
+        "Détails";
+
+      detailButton.dataset.communityPresence =
+        String(item.id);
+
+      side.appendChild(detailButton);
+
+      card.appendChild(body);
+      card.appendChild(side);
+
+      presenceList.appendChild(card);
+    });
+
+    if (presenceEmpty) {
+      presenceEmpty.hidden = filtered.length !== 0;
+    }
+  }
+
+  function renderAuthors(items) {
+    if (!authorsList) return;
+
+    authorsList.replaceChildren();
+
+    const visible = items.filter((item) => {
+      return !item.merged_into;
+    });
+
+    visible.forEach((item) => {
+      const card = document.createElement("article");
+
+      const typeClass =
+        profileClass(item.profile_type);
+
+      card.className =
+        "v11-community-card " + typeClass;
+
+      const body = document.createElement("div");
+      body.className = "v11-community-card-body";
+
+      const badge = document.createElement("span");
+      badge.className =
+        "v11-profile-badge " + typeClass;
+
+      badge.textContent =
+        profileLabel(item.profile_type);
+
+      const title = document.createElement("h3");
+      title.textContent =
+        item.pseudo || "Auteur sans nom";
+
+      const meta = document.createElement("p");
+
+      const parts = [];
+
+      if (item.location) {
+        parts.push(item.location);
+      }
+
+      if (item.publication_ready === true) {
+        parts.push("Prêt à publier");
+      }
+
+      if (item.published === true) {
+        parts.push("Publié");
+      }
+
+      meta.textContent =
+        parts.length ? parts.join(" · ") : "Fiche auteur";
+
+      body.appendChild(badge);
+      body.appendChild(title);
+      body.appendChild(meta);
+
+      const side = document.createElement("div");
+      side.className = "v11-community-card-side";
+
+      const statusBadge = document.createElement("span");
+
+      if (item.published === true) {
+        statusBadge.className = "v11-chip ok";
+        statusBadge.textContent = "Publié";
+      } else if (item.publication_ready === true) {
+        statusBadge.className = "v11-chip info";
+        statusBadge.textContent = "Prêt";
+      } else {
+        statusBadge.className = "v11-chip warning";
+        statusBadge.textContent = "À compléter";
+      }
+
+      side.appendChild(statusBadge);
+
+      const detailButton =
+        document.createElement("button");
+
+      detailButton.type = "button";
+      detailButton.className =
+        "v11-community-detail-trigger";
+
+      detailButton.textContent =
+        "Détails";
+
+      detailButton.dataset.communityAuthor =
+        String(item.id);
+
+      side.appendChild(detailButton);
+
+      card.appendChild(body);
+      card.appendChild(side);
+
+      authorsList.appendChild(card);
+    });
+
+    if (authorsEmpty) {
+      authorsEmpty.hidden = visible.length !== 0;
+    }
+  }
+
+  function renderTestimonials(items) {
+    if (!testimonialsList) return;
+
+    testimonialsList.replaceChildren();
+
+    items.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "v11-community-card";
+
+      const body = document.createElement("div");
+      body.className = "v11-community-card-body";
+
+      const badge = document.createElement("span");
+      badge.className = "v11-profile-badge profile-author";
+      badge.textContent = "Témoignage";
+
+      const title = document.createElement("h3");
+      title.textContent = item.pseudo || "Anonyme";
+
+      const meta = document.createElement("p");
+
+      const shortMessage =
+        String(item.message || "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 120);
+
+      meta.textContent =
+        shortMessage ||
+        item.event_title ||
+        "Témoignage enregistré";
+
+      body.appendChild(badge);
+      body.appendChild(title);
+      body.appendChild(meta);
+
+      const side = document.createElement("div");
+      side.className = "v11-community-card-side";
+
+      const statusBadge = document.createElement("span");
+
+      if (item.rejected === true) {
+        statusBadge.className = "v11-chip neutral";
+        statusBadge.textContent = "Rejeté";
+      } else if (item.validated === true) {
+        statusBadge.className = "v11-chip ok";
+        statusBadge.textContent = "Validé";
+      } else {
+        statusBadge.className = "v11-chip warning";
+        statusBadge.textContent = "À traiter";
+      }
+
+      side.appendChild(statusBadge);
+
+      const detailButton =
+        document.createElement("button");
+
+      detailButton.type = "button";
+      detailButton.className =
+        "v11-community-detail-trigger";
+
+      detailButton.textContent =
+        "Détails";
+
+      detailButton.dataset.communityTestimonial =
+        String(item.id);
+
+      side.appendChild(detailButton);
+
+      card.appendChild(body);
+      card.appendChild(side);
+
+      testimonialsList.appendChild(card);
+    });
+
+    if (testimonialsEmpty) {
+      testimonialsEmpty.hidden = items.length !== 0;
+    }
+  }
+
+  
+  let selectedV11CommunityKind = null;
+  let selectedV11CommunityId = null;
+  let v11CommunityActionRunning = false;
+
+  const communityDetail =
+    document.getElementById(
+      "v11-community-detail"
+    );
+
+  const communityDetailLabel =
+    document.getElementById(
+      "v11-community-detail-label"
+    );
+
+  const communityDetailTitle =
+    document.getElementById(
+      "v11-community-detail-title"
+    );
+
+  const communityDetailContent =
+    document.getElementById(
+      "v11-community-detail-content"
+    );
+
+  const communityDetailClose =
+    document.getElementById(
+      "v11-community-detail-close"
+    );
+
+  const communityValidateButton =
+    document.getElementById(
+      "v11-community-validate"
+    );
+
+  const communityPendingButton =
+    document.getElementById(
+      "v11-community-pending"
+    );
+
+  const communityRejectButton =
+    document.getElementById(
+      "v11-community-reject"
+    );
+
+  const communityEditButton =
+    document.getElementById(
+      "v11-community-edit"
+    );
+
+  const communityDeleteButton =
+    document.getElementById(
+      "v11-community-delete"
+    );
+
+  const presenceEditor =
+    document.getElementById(
+      "v11-presence-editor"
+    );
+
+  const presenceEditorTitle =
+    document.getElementById(
+      "v11-presence-editor-title"
+    );
+
+  const presenceEditorForm =
+    document.getElementById(
+      "v11-presence-editor-form"
+    );
+
+  const presenceEditPseudo =
+    document.getElementById(
+      "v11-presence-edit-pseudo"
+    );
+
+  const presenceEditType =
+    document.getElementById(
+      "v11-presence-edit-type"
+    );
+
+  const presenceEditOrganization =
+    document.getElementById(
+      "v11-presence-edit-organization"
+    );
+
+  const presenceEditPublisher =
+    document.getElementById(
+      "v11-presence-edit-publisher"
+    );
+
+  const presenceEditProfileUrl =
+    document.getElementById(
+      "v11-presence-edit-profile-url"
+    );
+
+  const presenceEditProfileUrlType =
+    document.getElementById(
+      "v11-presence-edit-profile-url-type"
+    );
+
+  const presenceEditBookUrl =
+    document.getElementById(
+      "v11-presence-edit-book-url"
+    );
+
+  const presenceEditBookUrlType =
+    document.getElementById(
+      "v11-presence-edit-book-url-type"
+    );
+
+  const presenceEditContact =
+    document.getElementById(
+      "v11-presence-edit-contact"
+    );
+
+  const presenceEditEmail =
+    document.getElementById(
+      "v11-presence-edit-email"
+    );
+
+  const presenceEditNote =
+    document.getElementById(
+      "v11-presence-edit-note"
+    );
+
+  const presenceEditVerified =
+    document.getElementById(
+      "v11-presence-edit-verified"
+    );
+
+  const presenceEditCancel =
+    document.getElementById(
+      "v11-presence-edit-cancel"
+    );
+
+  const presenceEditClose =
+    document.getElementById(
+      "v11-presence-editor-close"
+    );
+
+  const presenceEditSave =
+    document.getElementById(
+      "v11-presence-edit-save"
+    );
+
+  let selectedV11AuthorId = null;
+
+  const authorDetail =
+    document.getElementById(
+      "v11-author-detail"
+    );
+
+  const authorDetailTitle =
+    document.getElementById(
+      "v11-author-detail-title"
+    );
+
+  const authorDetailContent =
+    document.getElementById(
+      "v11-author-detail-content"
+    );
+
+  const authorDetailClose =
+    document.getElementById(
+      "v11-author-detail-close"
+    );
+
+  const authorEditButton =
+    document.getElementById(
+      "v11-author-edit"
+    );
+
+  const authorReadyButton =
+    document.getElementById(
+      "v11-author-ready"
+    );
+
+  const authorPublishButton =
+    document.getElementById(
+      "v11-author-publish"
+    );
+
+  const authorMergeButton =
+    document.getElementById(
+      "v11-author-merge"
+    );
+
+  const authorEditor =
+    document.getElementById(
+      "v11-author-editor"
+    );
+
+  const authorEditorTitle =
+    document.getElementById(
+      "v11-author-editor-title"
+    );
+
+  const authorEditorForm =
+    document.getElementById(
+      "v11-author-editor-form"
+    );
+
+  const authorEditPseudo =
+    document.getElementById(
+      "v11-author-edit-pseudo"
+    );
+
+  const authorEditSlug =
+    document.getElementById(
+      "v11-author-edit-slug"
+    );
+
+  const authorEditType =
+    document.getElementById(
+      "v11-author-edit-type"
+    );
+
+  const authorEditLocation =
+    document.getElementById(
+      "v11-author-edit-location"
+    );
+
+  const authorEditWebsite =
+    document.getElementById(
+      "v11-author-edit-website"
+    );
+
+  const authorEditShop =
+    document.getElementById(
+      "v11-author-edit-shop"
+    );
+
+  const authorEditAvatar =
+    document.getElementById(
+      "v11-author-edit-avatar"
+    );
+
+  const authorEditBio =
+    document.getElementById(
+      "v11-author-edit-bio"
+    );
+
+  const authorEditCancel =
+    document.getElementById(
+      "v11-author-edit-cancel"
+    );
+
+  const authorEditorClose =
+    document.getElementById(
+      "v11-author-editor-close"
+    );
+
+  if (authorDetailClose) {
+    authorDetailClose.addEventListener(
+      "click",
+      closeV11AuthorDetail
+    );
+  }
+
+  if (authorEditButton) {
+    authorEditButton.addEventListener(
+      "click",
+      function () {
+        const item =
+          getSelectedV11Author();
+
+        if (item) {
+          openV11AuthorEditor(item);
+        }
+      }
+    );
+  }
+
+  if (authorEditCancel) {
+    authorEditCancel.addEventListener(
+      "click",
+      closeV11AuthorEditor
+    );
+  }
+
+  if (authorEditorClose) {
+    authorEditorClose.addEventListener(
+      "click",
+      closeV11AuthorEditor
+    );
+  }
+
+  if (authorEditorForm) {
+    authorEditorForm.addEventListener(
+      "submit",
+      function (event) {
+        event.preventDefault();
+
+        window.alert(
+          "Sauvegarde auteur volontairement verrouillée dans V11.28."
+        );
+      }
+    );
+  }
+
+
+
+
+
+
+  function getSelectedV11CommunityItem() {
+    if (
+      !selectedV11CommunityKind ||
+      selectedV11CommunityId == null
+    ) {
+      return null;
+    }
+
+    const state =
+      context.getState();
+
+    const rows =
+      selectedV11CommunityKind === "presence"
+        ? (
+            state.community
+              ?.presences || []
+          )
+        : (
+            state.community
+              ?.testimonials || []
+          );
+
+    return rows.find(
+      function (row) {
+        return (
+          String(row.id) ===
+          String(
+            selectedV11CommunityId
+          )
+        );
+      }
+    ) || null;
+  }
+
+
+
+  function normalizeV11OptionalUrl(value) {
+    const text =
+      String(value || "").trim();
+
+    if (!text) {
+      return null;
+    }
+
+    try {
+      const parsed =
+        new URL(text);
+
+      if (
+        parsed.protocol !== "http:" &&
+        parsed.protocol !== "https:"
+      ) {
+        throw new Error(
+          "Protocole non autorisé"
+        );
+      }
+
+      return parsed.toString();
+
+    } catch (error) {
+      throw new Error(
+        "Une URL saisie est invalide."
+      );
+    }
+  }
+
+  function buildV11PresenceEditPayload() {
+    const participantType =
+      presenceEditType?.value ||
+      "author";
+
+    const payload = {
+      pseudo:
+        String(
+          presenceEditPseudo?.value || ""
+        ).trim() || null,
+
+      participant_type:
+        participantType,
+
+      organization_name:
+        String(
+          presenceEditOrganization?.value || ""
+        ).trim() || null,
+
+      publisher_name:
+        String(
+          presenceEditPublisher?.value || ""
+        ).trim() || null,
+
+      author_profile_url:
+        normalizeV11OptionalUrl(
+          presenceEditProfileUrl?.value
+        ),
+
+      author_profile_url_type:
+        String(
+          presenceEditProfileUrlType?.value || ""
+        ).trim() || null,
+
+      book_or_publisher_url:
+        normalizeV11OptionalUrl(
+          presenceEditBookUrl?.value
+        ),
+
+      book_or_publisher_url_type:
+        String(
+          presenceEditBookUrlType?.value || ""
+        ).trim() || null,
+
+      contact_name:
+        String(
+          presenceEditContact?.value || ""
+        ).trim() || null,
+
+      contact_email:
+        String(
+          presenceEditEmail?.value || ""
+        ).trim() || null,
+
+      admin_note:
+        String(
+          presenceEditNote?.value || ""
+        ).trim() || null,
+
+      presence_verified:
+        Boolean(
+          presenceEditVerified?.checked
+        ),
+
+      updated_at:
+        new Date().toISOString()
+    };
+
+    payload.website =
+      payload.author_profile_url;
+
+    if (
+      participantType === "publisher"
+    ) {
+      payload.publication_mode =
+        "unknown";
+
+      payload.author_id = null;
+      payload.author_slug = null;
+      payload.author_identity_key = null;
+      payload.author_portrait_url = null;
+
+      payload.book_or_publisher_url = null;
+      payload.book_or_publisher_url_type = null;
+
+      payload.publisher_name = null;
+
+    } else {
+      payload.organization_name = null;
+      payload.contact_name = null;
+      payload.contact_email = null;
+    }
+
+    return payload;
+  }
+
+  function isV11PresenceMissingColumnError(
+    error
+  ) {
+    const code =
+      String(error?.code || "");
+
+    const message =
+      String(
+        error?.message || ""
+      ).toLowerCase();
+
+    return (
+      code === "42703" ||
+      code === "PGRST204" ||
+      message.includes("column") ||
+      message.includes("schema cache")
+    );
+  }
+
+  async function saveV11PresenceEdition() {
+    if (v11CommunityActionRunning) {
+      return;
+    }
+
+    const state =
+      context.getState();
+
+    if (
+      state.authenticated !== true
+    ) {
+      window.alert(
+        "Session admin absente."
+      );
+      return;
+    }
+
+    const item =
+      getSelectedV11CommunityItem();
+
+    const client =
+      context.getClient();
+
+    if (
+      selectedV11CommunityKind !==
+        "presence" ||
+      !item ||
+      !client
+    ) {
+      window.alert(
+        "Présence indisponible."
+      );
+      return;
+    }
+
+    let payload;
+
+    try {
+      payload =
+        buildV11PresenceEditPayload();
+    } catch (error) {
+      window.alert(
+        error?.message ||
+        "Formulaire invalide."
+      );
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        "Enregistrer les modifications de cette présence ?\n\n" +
+        presenceDisplayName(item)
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setV11CommunityBusy(true);
+
+    if (presenceEditSave) {
+      presenceEditSave.disabled = true;
+      presenceEditSave.textContent =
+        "Enregistrement…";
+    }
+
+    try {
+      let response =
+        await client
+          .from(
+            "event_authors_presence"
+          )
+          .update(payload)
+          .eq("id", item.id);
+
+      if (
+        response.error &&
+        isV11PresenceMissingColumnError(
+          response.error
+        ) &&
+        payload.participant_type !==
+          "publisher"
+      ) {
+        const legacyPayload = {
+          ...payload
+        };
+
+        [
+          "participant_type",
+          "organization_name",
+          "contact_name",
+          "contact_email",
+          "presence_verified"
+        ].forEach(
+          function (key) {
+            delete legacyPayload[key];
+          }
+        );
+
+        response =
+          await client
+            .from(
+              "event_authors_presence"
+            )
+            .update(legacyPayload)
+            .eq("id", item.id);
+      }
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      v11CommunityMessage(
+        "Présence modifiée."
+      );
+
+      closeV11PresenceEditor();
+
+      await context.refresh();
+
+      const refreshed =
+        getSelectedV11CommunityItem();
+
+      if (refreshed) {
+        renderCommunityDetail(
+          "presence",
+          refreshed
+        );
+      }
+
+    } catch (error) {
+      console.error(
+        "Erreur édition présence V11",
+        error
+      );
+
+      window.alert(
+        "Enregistrement impossible.\n\n" +
+        (
+          error?.message ||
+          "Erreur Supabase"
+        )
+      );
+
+    } finally {
+      v11CommunityActionRunning = false;
+
+      if (presenceEditSave) {
+        presenceEditSave.disabled = false;
+        presenceEditSave.textContent =
+          "Enregistrer";
+      }
+
+      const refreshed =
+        getSelectedV11CommunityItem();
+
+      if (refreshed) {
+        setV11CommunityButtons(
+          refreshed
+        );
+      }
+    }
+  }
+
+
+  function getSelectedV11Author() {
+    if (selectedV11AuthorId == null) {
+      return null;
+    }
+
+    const state =
+      context.getState();
+
+    return (
+      state.community
+        ?.authors || []
+    ).find(
+      function (item) {
+        return (
+          String(item.id) ===
+          String(selectedV11AuthorId)
+        );
+      }
+    ) || null;
+  }
+
+  function closeV11AuthorEditor() {
+    if (authorEditor) {
+      authorEditor.hidden = true;
+    }
+  }
+
+  function closeV11AuthorDetail() {
+    if (authorDetail) {
+      authorDetail.hidden = true;
+    }
+
+    closeV11AuthorEditor();
+    selectedV11AuthorId = null;
+  }
+
+  function addV11AuthorDetailRow(
+    label,
+    value
+  ) {
+    if (!authorDetailContent) {
+      return;
+    }
+
+    const row =
+      document.createElement("div");
+
+    row.className =
+      "v11-community-detail-row";
+
+    const key =
+      document.createElement("span");
+
+    key.textContent = label;
+
+    const val =
+      document.createElement("strong");
+
+    const text =
+      String(value ?? "").trim();
+
+    val.textContent =
+      text || "Non renseigné";
+
+    row.appendChild(key);
+    row.appendChild(val);
+
+    authorDetailContent.appendChild(
+      row
+    );
+  }
+
+  function renderV11AuthorDetail(item) {
+    if (
+      !authorDetail ||
+      !authorDetailContent ||
+      !item
+    ) {
+      return;
+    }
+
+    selectedV11AuthorId = item.id;
+
+    const activePanel =
+      document.querySelector(
+        ".v11-community-panel.is-active"
+      );
+
+    if (
+      activePanel &&
+      authorDetail.parentElement !==
+        activePanel
+    ) {
+      activePanel.prepend(authorDetail);
+    }
+
+    authorDetail.hidden = false;
+    authorDetailContent.replaceChildren();
+
+    if (authorDetailTitle) {
+      authorDetailTitle.textContent =
+        item.pseudo ||
+        "Auteur consolidé";
+    }
+
+    addV11AuthorDetailRow(
+      "Type",
+      profileLabel(item.profile_type)
+    );
+
+    addV11AuthorDetailRow(
+      "Pseudo",
+      item.pseudo
+    );
+
+    addV11AuthorDetailRow(
+      "Slug",
+      item.slug
+    );
+
+    addV11AuthorDetailRow(
+      "Localisation",
+      item.location
+    );
+
+    addV11AuthorDetailRow(
+      "Site web",
+      item.website
+    );
+
+    addV11AuthorDetailRow(
+      "Boutique",
+      item.shop_url
+    );
+
+    addV11AuthorDetailRow(
+      "Avatar",
+      item.avatar_url
+        ? "Disponible"
+        : "Absent"
+    );
+
+    addV11AuthorDetailRow(
+      "Biographie",
+      item.bio
+    );
+
+    addV11AuthorDetailRow(
+      "Fiche validée",
+      item.validated === true
+        ? "Oui"
+        : "Non"
+    );
+
+    addV11AuthorDetailRow(
+      "Prêt à publier",
+      item.publication_ready === true
+        ? "Oui"
+        : "Non"
+    );
+
+    addV11AuthorDetailRow(
+      "Publié",
+      item.published === true
+        ? "Oui"
+        : "Non"
+    );
+
+    addV11AuthorDetailRow(
+      "Préparation publication",
+      item.publication_ready_at
+    );
+
+    addV11AuthorDetailRow(
+      "Publication",
+      item.published_at
+    );
+
+    addV11AuthorDetailRow(
+      "Fusionné vers",
+      item.merged_into
+    );
+
+    addV11AuthorDetailRow(
+      "Fusionné le",
+      item.merged_at
+    );
+
+    addV11AuthorDetailRow(
+      "Créé le",
+      item.created_at
+    );
+
+    if (authorReadyButton) {
+      authorReadyButton.textContent =
+        item.publication_ready === true
+          ? "Retirer prêt à publier"
+          : "Prêt à publier";
+
+      authorReadyButton.disabled = true;
+    }
+
+    if (authorPublishButton) {
+      authorPublishButton.textContent =
+        item.published === true
+          ? "Dépublier"
+          : "Publier";
+
+      authorPublishButton.disabled = true;
+    }
+
+    if (authorMergeButton) {
+      authorMergeButton.disabled = true;
+    }
+
+    authorDetail.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  function openV11AuthorEditor(item) {
+    if (!authorEditor || !item) {
+      return;
+    }
+
+    const activePanel =
+      document.querySelector(
+        ".v11-community-panel.is-active"
+      );
+
+    if (
+      activePanel &&
+      authorEditor.parentElement !==
+        activePanel
+    ) {
+      activePanel.prepend(authorEditor);
+    }
+
+    if (authorEditorTitle) {
+      authorEditorTitle.textContent =
+        "Modifier · " +
+        (
+          item.pseudo ||
+          "Auteur"
+        );
+    }
+
+    if (authorEditPseudo) {
+      authorEditPseudo.value =
+        item.pseudo || "";
+    }
+
+    if (authorEditSlug) {
+      authorEditSlug.value =
+        item.slug || "";
+    }
+
+    if (authorEditType) {
+      authorEditType.value =
+        item.profile_type ||
+        "author";
+    }
+
+    if (authorEditLocation) {
+      authorEditLocation.value =
+        item.location || "";
+    }
+
+    if (authorEditWebsite) {
+      authorEditWebsite.value =
+        item.website || "";
+    }
+
+    if (authorEditShop) {
+      authorEditShop.value =
+        item.shop_url || "";
+    }
+
+    if (authorEditAvatar) {
+      authorEditAvatar.value =
+        item.avatar_url || "";
+    }
+
+    if (authorEditBio) {
+      authorEditBio.value =
+        item.bio || "";
+    }
+
+    authorEditor.hidden = false;
+
+    authorEditor.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  function closeV11PresenceEditor() {
+    if (presenceEditor) {
+      presenceEditor.hidden = true;
+    }
+  }
+
+  function openV11PresenceEditor(item) {
+    if (!presenceEditor || !item) {
+      return;
+    }
+
+    if (
+      selectedV11CommunityKind !==
+      "presence"
+    ) {
+      return;
+    }
+
+    const activePanel =
+      document.querySelector(
+        ".v11-community-panel.is-active"
+      );
+
+    if (
+      activePanel &&
+      presenceEditor.parentElement !==
+        activePanel
+    ) {
+      activePanel.prepend(
+        presenceEditor
+      );
+    }
+
+    if (presenceEditorTitle) {
+      presenceEditorTitle.textContent =
+        "Modifier · " +
+        presenceDisplayName(item);
+    }
+
+    if (presenceEditPseudo) {
+      presenceEditPseudo.value =
+        item.pseudo || "";
+    }
+
+    if (presenceEditType) {
+      presenceEditType.value =
+        item.participant_type ||
+        "author";
+    }
+
+    if (presenceEditOrganization) {
+      presenceEditOrganization.value =
+        item.organization_name || "";
+    }
+
+    if (presenceEditPublisher) {
+      presenceEditPublisher.value =
+        item.publisher_name || "";
+    }
+
+    if (presenceEditProfileUrl) {
+      presenceEditProfileUrl.value =
+        item.author_profile_url ||
+        item.website ||
+        "";
+    }
+
+    if (presenceEditProfileUrlType) {
+      presenceEditProfileUrlType.value =
+        item.author_profile_url_type ||
+        "";
+    }
+
+    if (presenceEditBookUrl) {
+      presenceEditBookUrl.value =
+        item.book_or_publisher_url ||
+        "";
+    }
+
+    if (presenceEditBookUrlType) {
+      presenceEditBookUrlType.value =
+        item.book_or_publisher_url_type ||
+        "";
+    }
+
+    if (presenceEditContact) {
+      presenceEditContact.value =
+        item.contact_name || "";
+    }
+
+    if (presenceEditEmail) {
+      presenceEditEmail.value =
+        item.contact_email || "";
+    }
+
+    if (presenceEditNote) {
+      presenceEditNote.value =
+        item.admin_note || "";
+    }
+
+    if (presenceEditVerified) {
+      presenceEditVerified.checked =
+        item.presence_verified === true;
+    }
+
+    presenceEditor.hidden = false;
+
+    presenceEditor.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  function setV11CommunityButtons(item) {
+    if (!item) return;
+
+    const busy =
+      v11CommunityActionRunning;
+
+    if (communityValidateButton) {
+      communityValidateButton.disabled =
+        busy ||
+        (
+          item.validated === true &&
+          item.rejected !== true
+        );
+    }
+
+    if (communityPendingButton) {
+      communityPendingButton.disabled =
+        busy ||
+        (
+          item.validated !== true &&
+          item.rejected !== true
+        );
+    }
+
+    if (communityRejectButton) {
+      communityRejectButton.disabled =
+        busy ||
+        item.rejected === true;
+    }
+
+    if (communityEditButton) {
+      communityEditButton.disabled =
+        busy ||
+        selectedV11CommunityKind !==
+          "presence";
+    }
+
+    if (communityDeleteButton) {
+      communityDeleteButton.disabled = true;
+    }
+  }
+
+  function setV11CommunityBusy(busy) {
+    v11CommunityActionRunning =
+      Boolean(busy);
+
+    const item =
+      getSelectedV11CommunityItem();
+
+    if (item) {
+      setV11CommunityButtons(item);
+    }
+  }
+
+  function v11CommunityMessage(message) {
+    if (
+      typeof window.showToast ===
+      "function"
+    ) {
+      window.showToast(message);
+      return;
+    }
+
+    console.log(message);
+  }
+
+  async function refreshV11CommunityAfterAction() {
+    await context.refresh();
+
+    const item =
+      getSelectedV11CommunityItem();
+
+    if (!item) {
+      if (communityDetail) {
+        communityDetail.hidden = true;
+      }
+
+      selectedV11CommunityKind = null;
+      selectedV11CommunityId = null;
+      return;
+    }
+
+    renderCommunityDetail(
+      selectedV11CommunityKind,
+      item
+    );
+  }
+
+  async function runV11CommunityAction(
+    action
+  ) {
+    if (v11CommunityActionRunning) {
+      return;
+    }
+
+    const state =
+      context.getState();
+
+    if (state.authenticated !== true) {
+      window.alert(
+        "Session admin absente."
+      );
+      return;
+    }
+
+    const item =
+      getSelectedV11CommunityItem();
+
+    const client =
+      context.getClient();
+
+    if (
+      !item ||
+      !client ||
+      !selectedV11CommunityKind
+    ) {
+      window.alert(
+        "Élément Communauté indisponible."
+      );
+      return;
+    }
+
+    let payload;
+
+    if (action === "validate") {
+      payload = {
+        validated: true,
+        rejected: false
+      };
+    } else if (action === "pending") {
+      payload = {
+        validated: false,
+        rejected: false
+      };
+    } else if (action === "reject") {
+      payload = {
+        validated: false,
+        rejected: true
+      };
+    } else {
+      return;
+    }
+
+    const label =
+      selectedV11CommunityKind ===
+      "presence"
+        ? "cette présence"
+        : "ce témoignage";
+
+    const actionLabel =
+      action === "validate"
+        ? "Valider"
+        : action === "pending"
+          ? "Remettre en attente"
+          : "Refuser";
+
+    const confirmed =
+      window.confirm(
+        actionLabel +
+        " " +
+        label +
+        " ?"
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setV11CommunityBusy(true);
+
+    try {
+      if (
+        selectedV11CommunityKind ===
+        "testimonial"
+      ) {
+        const response =
+          await client
+            .from("testimonials")
+            .update(payload)
+            .eq("id", item.id);
+
+        if (response.error) {
+          throw response.error;
+        }
+      }
+
+      if (
+        selectedV11CommunityKind ===
+        "presence"
+      ) {
+        const presencePayload = {
+          ...payload,
+          updated_at:
+            new Date().toISOString()
+        };
+
+        let response =
+          await client
+            .from(
+              "event_authors_presence"
+            )
+            .update(presencePayload)
+            .eq("id", item.id);
+
+        if (
+          response.error &&
+          (
+            String(
+              response.error.code || ""
+            ) === "42703" ||
+            String(
+              response.error.code || ""
+            ) === "PGRST204" ||
+            String(
+              response.error.message || ""
+            )
+              .toLowerCase()
+              .includes("column")
+          )
+        ) {
+          response =
+            await client
+              .from(
+                "event_authors_presence"
+              )
+              .update(payload)
+              .eq("id", item.id);
+        }
+
+        if (response.error) {
+          throw response.error;
+        }
+      }
+
+      v11CommunityMessage(
+        action === "validate"
+          ? "Élément validé."
+          : action === "pending"
+            ? "Élément remis en attente."
+            : "Élément refusé."
+      );
+
+      await refreshV11CommunityAfterAction();
+
+    } catch (error) {
+      console.error(
+        "Erreur modération Communauté V11",
+        error
+      );
+
+      window.alert(
+        "Action impossible.\n\n" +
+        (
+          error?.message ||
+          "Erreur Supabase"
+        )
+      );
+
+    } finally {
+      setV11CommunityBusy(false);
+    }
+  }
+
+  function communityValue(
+    value,
+    fallback = "Non renseigné"
+  ) {
+    if (Array.isArray(value)) {
+      return value.length
+        ? value.join(", ")
+        : fallback;
+    }
+
+    const text =
+      String(value ?? "").trim();
+
+    return text || fallback;
+  }
+
+  function addCommunityDetailRow(
+    label,
+    value
+  ) {
+    if (!communityDetailContent) {
+      return;
+    }
+
+    const row =
+      document.createElement("div");
+
+    row.className =
+      "v11-community-detail-row";
+
+    const key =
+      document.createElement("span");
+
+    key.textContent = label;
+
+    const val =
+      document.createElement("strong");
+
+    val.textContent =
+      communityValue(value);
+
+    row.appendChild(key);
+    row.appendChild(val);
+
+    communityDetailContent.appendChild(
+      row
+    );
+  }
+
+  function renderCommunityDetail(
+    kind,
+    item
+  ) {
+    if (
+      !communityDetail ||
+      !communityDetailContent ||
+      !item
+    ) {
+      return;
+    }
+
+    selectedV11CommunityKind = kind;
+    selectedV11CommunityId = item.id;
+
+    const activeCommunityPanel =
+      document.querySelector(
+        ".v11-community-panel.is-active"
+      );
+
+    if (
+      activeCommunityPanel &&
+      communityDetail.parentElement !==
+        activeCommunityPanel
+    ) {
+      activeCommunityPanel.prepend(
+        communityDetail
+      );
+    }
+
+    communityDetail.hidden = false;
+    communityDetailContent.replaceChildren();
+
+    setV11CommunityButtons(item);
+
+    if (kind === "presence") {
+      if (communityDetailLabel) {
+        communityDetailLabel.textContent =
+          "PRÉSENCE";
+      }
+
+      if (communityDetailTitle) {
+        communityDetailTitle.textContent =
+          presenceDisplayName(item);
+      }
+
+      addCommunityDetailRow(
+        "Profil",
+        profileLabel(
+          item.participant_type
+        )
+      );
+
+      addCommunityDetailRow(
+        "Pseudo",
+        item.pseudo
+      );
+
+      addCommunityDetailRow(
+        "Organisation",
+        item.organization_name
+      );
+
+      addCommunityDetailRow(
+        "Maison d’édition",
+        item.publisher_name
+      );
+
+      addCommunityDetailRow(
+        "Événement",
+        item.event_id
+      );
+
+      addCommunityDetailRow(
+        "Profil public",
+        item.author_profile_url ||
+        item.website
+      );
+
+      addCommunityDetailRow(
+        "Type lien profil",
+        item.author_profile_url_type
+      );
+
+      addCommunityDetailRow(
+        "Livre / éditeur",
+        item.book_or_publisher_url
+      );
+
+      addCommunityDetailRow(
+        "Type lien livre",
+        item.book_or_publisher_url_type
+      );
+
+      addCommunityDetailRow(
+        "Contact",
+        item.contact_name
+      );
+
+      addCommunityDetailRow(
+        "Email privé",
+        item.contact_email
+      );
+
+      addCommunityDetailRow(
+        "Note admin",
+        item.admin_note
+      );
+
+      addCommunityDetailRow(
+        "Présence vérifiée",
+        item.presence_verified === true
+          ? "Oui"
+          : "Non"
+      );
+
+      addCommunityDetailRow(
+        "Statut",
+        item.rejected === true
+          ? "Rejetée"
+          : item.validated === true
+            ? "Validée"
+            : "À traiter"
+      );
+
+      addCommunityDetailRow(
+        "Source",
+        item.source
+      );
+
+      addCommunityDetailRow(
+        "Créée le",
+        item.created_at
+      );
+    }
+
+    if (kind === "testimonial") {
+      if (communityDetailLabel) {
+        communityDetailLabel.textContent =
+          "TÉMOIGNAGE";
+      }
+
+      if (communityDetailTitle) {
+        communityDetailTitle.textContent =
+          item.pseudo || "Anonyme";
+      }
+
+      addCommunityDetailRow(
+        "Pseudo",
+        item.pseudo
+      );
+
+      addCommunityDetailRow(
+        "Événement",
+        item.event_title
+      );
+
+      addCommunityDetailRow(
+        "Message",
+        item.message
+      );
+
+      addCommunityDetailRow(
+        "Photo",
+        item.image_url
+          ? "Disponible"
+          : "Absente"
+      );
+
+      addCommunityDetailRow(
+        "Statut",
+        item.rejected === true
+          ? "Refusé"
+          : item.validated === true
+            ? "Validé"
+            : "À traiter"
+      );
+
+      addCommunityDetailRow(
+        "Créé le",
+        item.created_at
+      );
+    }
+
+    communityDetail.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  if (communityDetailClose) {
+    communityDetailClose.addEventListener(
+      "click",
+      function () {
+        communityDetail.hidden = true;
+        closeV11PresenceEditor();
+        selectedV11CommunityKind = null;
+        selectedV11CommunityId = null;
+      }
+    );
+  }
+
+  if (communityValidateButton) {
+    communityValidateButton.addEventListener(
+      "click",
+      function () {
+        runV11CommunityAction(
+          "validate"
+        );
+      }
+    );
+  }
+
+  if (communityPendingButton) {
+    communityPendingButton.addEventListener(
+      "click",
+      function () {
+        runV11CommunityAction(
+          "pending"
+        );
+      }
+    );
+  }
+
+  if (communityRejectButton) {
+    communityRejectButton.addEventListener(
+      "click",
+      function () {
+        runV11CommunityAction(
+          "reject"
+        );
+      }
+    );
+  }
+
+  if (communityEditButton) {
+    communityEditButton.addEventListener(
+      "click",
+      function () {
+        const item =
+          getSelectedV11CommunityItem();
+
+        if (item) {
+          openV11PresenceEditor(item);
+        }
+      }
+    );
+  }
+
+  if (presenceEditCancel) {
+    presenceEditCancel.addEventListener(
+      "click",
+      closeV11PresenceEditor
+    );
+  }
+
+  if (presenceEditClose) {
+    presenceEditClose.addEventListener(
+      "click",
+      closeV11PresenceEditor
+    );
+  }
+
+  if (presenceEditorForm) {
+    presenceEditorForm.addEventListener(
+      "submit",
+      function (event) {
+        event.preventDefault();
+        saveV11PresenceEdition();
+      }
+    );
+  }
+
+
+  document.addEventListener(
+    "click",
+    function (clickEvent) {
+      const presenceButton =
+        clickEvent.target.closest(
+          "[data-community-presence]"
+        );
+
+      if (presenceButton) {
+        const state =
+          context.getState();
+
+        const item =
+          (
+            state.community
+              ?.presences || []
+          ).find(
+            function (row) {
+              return (
+                String(row.id) ===
+                String(
+                  presenceButton
+                    .dataset
+                    .communityPresence
+                )
+              );
+            }
+          );
+
+        if (item) {
+          renderCommunityDetail(
+            "presence",
+            item
+          );
+        }
+
+        return;
+      }
+
+      const authorButton =
+        clickEvent.target.closest(
+          "[data-community-author]"
+        );
+
+      if (authorButton) {
+        const state =
+          context.getState();
+
+        const item =
+          (
+            state.community
+              ?.authors || []
+          ).find(
+            function (row) {
+              return (
+                String(row.id) ===
+                String(
+                  authorButton
+                    .dataset
+                    .communityAuthor
+                )
+              );
+            }
+          );
+
+        if (item) {
+          renderV11AuthorDetail(item);
+        }
+
+        return;
+      }
+
+      const testimonialButton =
+        clickEvent.target.closest(
+          "[data-community-testimonial]"
+        );
+
+      if (testimonialButton) {
+        const state =
+          context.getState();
+
+        const item =
+          (
+            state.community
+              ?.testimonials || []
+          ).find(
+            function (row) {
+              return (
+                String(row.id) ===
+                String(
+                  testimonialButton
+                    .dataset
+                    .communityTestimonial
+                )
+              );
+            }
+          );
+
+        if (item) {
+          renderCommunityDetail(
+            "testimonial",
+            item
+          );
+        }
+      }
+    }
+  );
+
+function openCommunityView(name) {
+    document
+      .querySelectorAll(".v11-community-panel")
+      .forEach((panel) => {
+        panel.classList.remove("is-active");
+      });
+
+    communityTabs.forEach((button) => {
+      button.classList.toggle(
+        "is-active",
+        button.dataset.communityView === name
+      );
+    });
+
+    const panel =
+      document.getElementById(
+        "v11-community-" + name
+      );
+
+    if (panel) {
+      panel.classList.add("is-active");
+    }
+
+    if (communityDetail) {
+      communityDetail.hidden = true;
+    }
+
+    selectedV11CommunityKind = null;
+    selectedV11CommunityId = null;
+
+    closeV11AuthorDetail();
+
+    const toolbar =
+      document.querySelector(
+        '[data-community-toolbar="presence"]'
+      );
+
+    if (toolbar) {
+      toolbar.hidden = name !== "presence";
+    }
+  }
+
+  function renderSupabaseStatus(state) {
+    const label =
+      document.querySelector(
+        '[data-admin-bind="supabase-status"]'
+      );
+
+    const chip =
+      document.querySelector(
+        '[data-admin-status-chip="supabase"]'
+      );
+
+    if (!label || !chip) return;
+
+    if (state.status === "ready") {
+      label.textContent =
+        "Connexion active";
+
+      chip.textContent =
+        "Opérationnel";
+
+      chip.className =
+        "v11-chip ok";
+
+      return;
+    }
+
+    if (
+      state.status === "loading" ||
+      state.status === "booting"
+    ) {
+      label.textContent = "Chargement";
+      chip.textContent = "Connexion";
+      chip.className =
+        "v11-chip neutral";
+
+      return;
+    }
+
+    if (
+      state.status ===
+      "unauthenticated"
+    ) {
+      label.textContent =
+        "Session requise";
+
+      chip.textContent =
+        "Verrouillé";
+
+      chip.className =
+        "v11-chip warning";
+
+      return;
+    }
+
+    label.textContent =
+      "Indisponible";
+
+    chip.textContent =
+      "Erreur";
+
+    chip.className =
+      "v11-chip warning";
+  }
+
+  function renderState(state) {
+    const loading =
+      state.status === "loading" ||
+      state.status === "booting";
+
+    document.body.classList.toggle(
+      "v11-is-loading",
+      loading
+    );
+
+    const showAuth =
+      state.authenticated === false;
+
+    if (authGate) {
+      authGate.hidden = !showAuth;
+
+      authGate.style.display =
+        showAuth ? "grid" : "none";
+
+      authGate.setAttribute(
+        "aria-hidden",
+        showAuth ? "false" : "true"
+      );
+    }
+
+    if (state.communityMetrics) {
+      const communityMetrics = state.communityMetrics;
+
+      if (communityMetrics.presenceTotal !== null) {
+        setBoundText(
+          "presence-total",
+          String(communityMetrics.presenceTotal)
+        );
+      }
+
+      if (communityMetrics.presencePending !== null) {
+        setBoundText(
+          "presence-pending",
+          String(communityMetrics.presencePending)
+        );
+      }
+
+      if (communityMetrics.presenceValidated !== null) {
+        setBoundText(
+          "presence-validated",
+          String(communityMetrics.presenceValidated)
+        );
+      }
+
+      if (communityMetrics.presenceRejected !== null) {
+        setBoundText(
+          "presence-rejected",
+          String(communityMetrics.presenceRejected)
+        );
+      }
+
+      if (communityMetrics.authorsTotal !== null) {
+        setBoundText(
+          "authors-total",
+          String(communityMetrics.authorsTotal)
+        );
+      }
+
+      if (communityMetrics.testimonialsTotal !== null) {
+        setBoundText(
+          "testimonials-total",
+          String(communityMetrics.testimonialsTotal)
+        );
+      }
+    }
+
+    if (state.metrics.qualityMissingImage !== null) {
+      setBoundText(
+        "quality-missing-image",
+        String(state.metrics.qualityMissingImage)
+      );
+    }
+
+    if (state.metrics.qualityMissingCoords !== null) {
+      setBoundText(
+        "quality-missing-coords",
+        String(state.metrics.qualityMissingCoords)
+      );
+    }
+
+    if (state.metrics.qualityMissingWebsite !== null) {
+      setBoundText(
+        "quality-missing-website",
+        String(state.metrics.qualityMissingWebsite)
+      );
+    }
+
+    if (state.metrics.qualitySoon !== null) {
+      setBoundText(
+        "quality-soon",
+        String(state.metrics.qualitySoon)
+      );
+    }
+
+    if (state.metrics.qualityFeaturedPast !== null) {
+      setBoundText(
+        "quality-featured-past",
+        String(state.metrics.qualityFeaturedPast)
+      );
+    }
+
+    if (state.metrics.eventsTotal !== null) {
+      setBoundText(
+        "events-total",
+        String(state.metrics.eventsTotal)
+      );
+    }
+
+    if (state.metrics.eventsPending !== null) {
+      setBoundText(
+        "events-pending",
+        String(state.metrics.eventsPending)
+      );
+    }
+
+    if (state.metrics.eventsValidated !== null) {
+      setBoundText(
+        "events-validated",
+        String(state.metrics.eventsValidated)
+      );
+    }
+
+    if (state.metrics.eventsRejected !== null) {
+      setBoundText(
+        "events-rejected",
+        String(state.metrics.eventsRejected)
+      );
+    }
+
+    if (
+      state.metrics.eventsActive !== null
+    ) {
+      setBoundText(
+        "events-active",
+        String(
+          state.metrics.eventsActive
+        )
+      );
+    }
+
+    setBoundText(
+      "visits-today",
+      state.metrics.visitsToday === null
+        ? "—"
+        : String(state.metrics.visitsToday)
+    );
+
+    setBoundText(
+      "visits-7d",
+      state.metrics.visits7d === null
+        ? "—"
+        : String(state.metrics.visits7d)
+    );
+
+    setBoundText(
+      "visits-30d",
+      state.metrics.visits30d === null
+        ? "—"
+        : String(state.metrics.visits30d)
+    );
+
+    setBoundText(
+      "visits-total",
+      state.metrics.visitsTotal === null
+        ? "—"
+        : String(state.metrics.visitsTotal)
+    );
+
+    setBoundText(
+      "visits-status",
+      state.metrics.visitsStatus ||
+      "Source à connecter"
+    );
+
+    renderSupabaseStatus(state);
+
+    if (
+      state.status === "ready" &&
+      state.metrics.eventsPending === 0 &&
+      eventStatusFilter &&
+      eventStatusFilter.value === "pending"
+    ) {
+      eventStatusFilter.value = "all";
+    }
+
+    renderEvents(
+      state.events || [],
+      state.status
+    );
+
+    renderPriority(
+      state.events || []
+    );
+
+    renderRanking(
+      topPages,
+      state.trafficDetails
+        ? state.trafficDetails.topPages
+        : []
+    );
+
+    renderRanking(
+      topReferrers,
+      state.trafficDetails
+        ? state.trafficDetails.topReferrers
+        : []
+    );
+
+    if (state.community) {
+      if (
+        state.communityMetrics &&
+        state.communityMetrics.presencePending === 0 &&
+        presenceStatus &&
+        presenceStatus.value === "pending"
+      ) {
+        presenceStatus.value = "all";
+      }
+
+      renderPresences(
+        state.community.presences || []
+      );
+
+      renderAuthors(
+        state.community.authors || []
+      );
+
+      renderTestimonials(
+        state.community.testimonials || []
+      );
+    }
+  }
+
+
+
+
+
+
+  buttons.forEach((button) => {
+    button.addEventListener(
+      "click",
+      () => {
+        openView(
+          button.dataset.view
+        );
+      }
+    );
+  });
+
+  [
+    eventSearch,
+    eventStatusFilter,
+    eventTypeFilter,
+    eventQualityFilter
+  ].forEach((control) => {
+    if (!control) return;
+
+    const name =
+      control.tagName === "INPUT"
+        ? "input"
+        : "change";
+
+    control.addEventListener(
+      name,
+      () => {
+        const state =
+          context.getState();
+
+        renderEvents(
+          state.events || [],
+          state.status
+        );
+      }
+    );
+  });
+
+  if (loginForm) {
+    loginForm.addEventListener(
+      "submit",
+      async (event) => {
+        event.preventDefault();
+
+        loginFeedback.textContent = "";
+
+        const email =
+          document
+            .getElementById(
+              "v11-email"
+            )
+            .value.trim();
+
+        const password =
+          document.getElementById(
+            "v11-password"
+          ).value;
+
+        const submit =
+          loginForm.querySelector(
+            'button[type="submit"]'
+          );
+
+        submit.disabled = true;
+        submit.textContent =
+          "Connexion...";
+
+        try {
+          await context.signIn(
+            email,
+            password
+          );
+
+          loginForm.reset();
+          toast(
+            "Connexion réussie"
+          );
+        } catch (error) {
+          console.error(error);
+
+          loginFeedback.textContent =
+            "Connexion impossible.";
+        } finally {
+          submit.disabled = false;
+          submit.textContent =
+            "Connexion";
+        }
+      }
+    );
+  }
+
+  if (refreshButton) {
+    refreshButton.addEventListener(
+      "click",
+      async () => {
+        refreshButton.disabled = true;
+
+        try {
+          const state =
+            await context.refresh();
+
+          toast(
+            state.status === "ready"
+              ? "Données actualisées"
+              : "Erreur de chargement",
+            state.status === "ready"
+              ? "ok"
+              : "error"
+          );
+        } finally {
+          refreshButton.disabled = false;
+        }
+      }
+    );
+  }
+
+  if (logoutButton) {
+    logoutButton.addEventListener(
+      "click",
+      async () => {
+        await context.signOut();
+        toast("Déconnecté");
+      }
+    );
+  }
+
+  window.addEventListener(
+    "dedicalivres:v11-debug",
+    (event) => {
+      if (!eventsDebug) return;
+
+      const detail =
+        event.detail || {};
+
+      eventsDebug.hidden = false;
+
+      eventsDebug.textContent =
+        "Diagnostic · " +
+        String(
+          detail.step || "inconnu"
+        ) +
+        " · " +
+        String(
+          detail.elapsed || 0
+        ) +
+        " ms" +
+        (
+          detail.count !== undefined
+            ? " · " +
+              String(detail.count) +
+              " événement(s)"
+            : ""
+        ) +
+        (
+          detail.errorCode
+            ? " · code " +
+              String(
+                detail.errorCode
+              )
+            : ""
+        );
+    }
+  );
+  context.subscribe(renderState);
+
+  context
+    .restoreSession()
+    .catch((error) => {
+      console.error(
+        "V11 boot",
+        error
+      );
+    });
+})();
