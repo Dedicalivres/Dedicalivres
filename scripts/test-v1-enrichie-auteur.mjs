@@ -153,7 +153,11 @@ assert.ok(authorPageSource.indexOf("client.auth.getSession()") < authorPageSourc
 assert.match(authorPageSource, /Cette vue reste réservée à l’administration et non indexée/);
 assert.match(authorPageSource, /Historique des présences indiquées sur Dédicalivres/);
 
-async function runAuthorPreviewGate(search, session) {
+async function runAuthorPreviewGate(
+  search,
+  session,
+  authorPublicPublishingEnabled = false
+) {
   let fromCalls = 0;
   const nodes = {
     "author-profile": { innerHTML: "" },
@@ -200,7 +204,11 @@ async function runAuthorPreviewGate(search, session) {
     },
     window: {
       location: { search },
-      DEDICALIVRES_CONFIG: { supabaseUrl: "https://example.supabase.co", supabaseAnonKey: "public-test" },
+      DEDICALIVRES_CONFIG: {
+        supabaseUrl: "https://example.supabase.co",
+        supabaseAnonKey: "public-test",
+        authorPublicPublishingEnabled
+      },
       DEDICALIVRES_AUTHOR_BACKOFFICE: authorBackoffice,
       supabase: { createClient: () => client }
     }
@@ -211,20 +219,66 @@ async function runAuthorPreviewGate(search, session) {
   return { fromCalls, nodes };
 }
 
-const publicAuthorGate = await runAuthorPreviewGate("?slug=lina-test", null);
+const lockedPublicAuthorGate =
+  await runAuthorPreviewGate(
+    "?slug=lina-test",
+    null,
+    false
+  );
+
 assert.equal(
-  publicAuthorGate.fromCalls,
-  1,
-  "20I.2 : le mode public vérifie exactement une fois la fiche authors"
+  lockedPublicAuthorGate.fromCalls,
+  0,
+  "20I.2 : le mode public désactivé ne doit interroger aucune table Supabase"
 );
+
 assert.match(
-  publicAuthorGate.nodes["author-profile"].innerHTML,
+  lockedPublicAuthorGate.nodes[
+    "author-profile"
+  ].innerHTML,
   /Fiche auteur indisponible/,
-  "20I.2 : une fiche absente ou non publiée reste indisponible"
+  "20I.2 : l’Espace Auteur désactivé reste indisponible publiquement"
 );
-const unauthenticatedPreviewGate = await runAuthorPreviewGate("?slug=lina-test&preview=admin", null);
-assert.equal(unauthenticatedPreviewGate.fromCalls, 0);
-assert.match(unauthenticatedPreviewGate.nodes["author-profile"].innerHTML, /Connexion admin requise/);
+
+const enabledPublicAuthorGate =
+  await runAuthorPreviewGate(
+    "?slug=lina-test",
+    null,
+    true
+  );
+
+assert.equal(
+  enabledPublicAuthorGate.fromCalls,
+  1,
+  "20I.2 : une fois activé, le mode public vérifie exactement une fois la fiche authors"
+);
+
+assert.match(
+  enabledPublicAuthorGate.nodes[
+    "author-profile"
+  ].innerHTML,
+  /Fiche auteur indisponible/,
+  "20I.2 : une fiche absente ou non publiée reste indisponible même après activation du service"
+);
+
+const unauthenticatedPreviewGate =
+  await runAuthorPreviewGate(
+    "?slug=lina-test&preview=admin",
+    null,
+    false
+  );
+
+assert.equal(
+  unauthenticatedPreviewGate.fromCalls,
+  0
+);
+
+assert.match(
+  unauthenticatedPreviewGate.nodes[
+    "author-profile"
+  ].innerHTML,
+  /Connexion admin requise/
+);
 
 const headersSourceForAuthor = fs.readFileSync(path.join(root, "_headers"), "utf8");
 assert.match(headersSourceForAuthor, /\/author\.html[\s\S]*X-Robots-Tag: noindex, nofollow, noarchive, nosnippet/);
@@ -1364,3 +1418,55 @@ assert.match(
 );
 
 console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de sécurité validés.");
+
+
+// 20J.1 — Espace Auteur staging
+{
+  const authorConfigSource =
+    fs.readFileSync(
+      path.join(root, "config.js"),
+      "utf8"
+    );
+
+  const authorAdminSource =
+    fs.readFileSync(
+      path.join(root, "admin-shell.js"),
+      "utf8"
+    );
+
+  const authorAdminHtml =
+    fs.readFileSync(
+      path.join(root, "admin-v11.html"),
+      "utf8"
+    );
+
+  assert.match(
+    authorConfigSource,
+    /authorPublicPublishingEnabled:\s*false/,
+    "20J.1 : publication auteur publique verrouillée par défaut"
+  );
+
+  assert.match(
+    authorPageSource,
+    /authorPublicPublishingEnabled !== true/,
+    "20J.1 : author.js respecte le verrou public"
+  );
+
+  assert.match(
+    authorAdminSource,
+    /ESPACE AUTEUR EN PRÉPARATION/,
+    "20J.1 : Admin bloque explicitement la publication"
+  );
+
+  assert.match(
+    authorAdminHtml,
+    /id="v11-author-preview"/,
+    "20J.1 : aperçu interne disponible"
+  );
+
+  assert.match(
+    authorAdminSource,
+    /const optionalChecks/,
+    "20J.1 : enrichissements facultatifs séparés des critères obligatoires"
+  );
+}
