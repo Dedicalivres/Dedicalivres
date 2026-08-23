@@ -737,6 +737,23 @@
               <option value="without-photo">Sans photo</option>
             </select>
           </label>
+
+          <div class="v11-community-toolbar-actions">
+            <span
+              id="v11-community-results-count"
+              class="v11-community-results-count"
+            >
+              —
+            </span>
+
+            <button
+              id="v11-community-reset-filters"
+              class="v11-text-button"
+              type="button"
+            >
+              Réinitialiser
+            </button>
+          </div>
         </div>
 
         <div id="v11-community-presence" class="v11-community-panel is-active">
@@ -1195,9 +1212,20 @@
                 </h3>
               </div>
 
-              <div class="v11-testimonial-trace-counter">
-                <strong id="v11-testimonial-trace-count">0</strong>
-                <span>action</span>
+              <div class="v11-testimonial-trace-tools">
+                <div class="v11-testimonial-trace-counter">
+                  <strong id="v11-testimonial-trace-count">0</strong>
+                  <span>action</span>
+                </div>
+
+                <button
+                  id="v11-testimonial-trace-clear"
+                  class="v11-text-button"
+                  type="button"
+                  disabled
+                >
+                  Vider
+                </button>
               </div>
             </div>
 
