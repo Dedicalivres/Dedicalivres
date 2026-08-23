@@ -688,9 +688,29 @@
         </div>
 
         <div class="v11-community-tabs">
-          <button class="is-active" data-community-view="presence">Présences</button>
-          <button data-community-view="authors">Auteurs</button>
-          <button data-community-view="testimonials">Témoignages</button>
+          <button class="is-active" data-community-view="presence">
+            <span>Présences</span>
+            <strong
+              id="v11-tab-presence-count"
+              class="v11-community-tab-count"
+            >—</strong>
+          </button>
+
+          <button data-community-view="authors">
+            <span>Auteurs</span>
+            <strong
+              id="v11-tab-authors-count"
+              class="v11-community-tab-count"
+            >—</strong>
+          </button>
+
+          <button data-community-view="testimonials">
+            <span>Témoignages</span>
+            <strong
+              id="v11-tab-testimonials-count"
+              class="v11-community-tab-count"
+            >—</strong>
+          </button>
         </div>
 
         <div class="v11-community-toolbar" data-community-toolbar="presence">
@@ -770,6 +790,27 @@
               Réinitialiser
             </button>
           </div>
+        </div>
+
+        <div
+          id="v11-community-status-summary"
+          class="v11-community-status-summary"
+          aria-live="polite"
+        >
+          <div class="v11-community-status-summary-text">
+            <strong id="v11-community-status-summary-title">
+              File de modération
+            </strong>
+
+            <span id="v11-community-status-summary-detail">
+              Chargement…
+            </span>
+          </div>
+
+          <span class="v11-community-search-hint">
+            <kbd>/</kbd>
+            recherche
+          </span>
         </div>
 
         <div id="v11-community-presence" class="v11-community-panel is-active">
