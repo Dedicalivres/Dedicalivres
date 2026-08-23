@@ -1470,3 +1470,158 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "20J.1 : enrichissements facultatifs séparés des critères obligatoires"
   );
 }
+
+
+// 20K.1 — consolidation automatique auteurs
+{
+  const v11AdminSource =
+    fs.readFileSync(
+      path.join(root, "admin-shell.js"),
+      "utf8"
+    );
+
+  const v11AdminHtml =
+    fs.readFileSync(
+      path.join(root, "admin-v11.html"),
+      "utf8"
+    );
+
+  const v11ContextSource =
+    fs.readFileSync(
+      path.join(root, "admin-context.js"),
+      "utf8"
+    );
+
+  assert.match(
+    v11AdminHtml,
+    /id="v11-author-consolidation"/,
+    "20K.1 : bloc de consolidation présent"
+  );
+
+  assert.match(
+    v11AdminHtml,
+    /Appliquer la consolidation/,
+    "20K.1 : application explicite après analyse"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /function buildV11AuthorConsolidationPlan/,
+    "20K.1 : moteur de planification présent"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /presence_verified === true/,
+    "20K.1 : présence vérifiée reconnue comme preuve forte"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /rows\.length >= 2/,
+    "20K.1 : plusieurs présences reconnues comme preuve forte"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /hasEditorialEvidence/,
+    "20K.1 : photo + vitrine restent identifiées comme preuve éditoriale"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /hasVerifiedPresence \|\|[\s\S]*hasMultiplePresences/,
+    "20K.1 : création automatique réservée aux identités suffisamment corroborées"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /photo \+ vitrine à contrôler/,
+    "20K.1 : une présence unique avec photo + vitrine reste à contrôler"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /validated: false/,
+    "20K.1 : nouvelle fiche créée non validée"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /published: false/,
+    "20K.1 : aucune publication automatique"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /plusieurs fiches possibles/,
+    "20K.1 : ambiguïtés isolées"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /types de profil contradictoires/,
+    "20K.1 : profils contradictoires isolés"
+  );
+
+  assert.match(
+    v11AdminSource,
+    /\.in\("id", ids\)/,
+    "20K.1 : seules les présences planifiées sont reliées"
+  );
+
+  assert.match(
+    v11ContextSource,
+    /\.limit\(500\)/,
+    "20K.1 : le cockpit charge suffisamment de fiches auteurs"
+  );
+}
+
+
+// 20K.2 — aperçu détaillé consolidation
+{
+  const source =
+    fs.readFileSync(
+      path.join(root, "admin-shell.js"),
+      "utf8"
+    );
+
+  const html =
+    fs.readFileSync(
+      path.join(root, "admin-v11.html"),
+      "utf8"
+    );
+
+  assert.match(
+    html,
+    /id="v11-author-consolidation-plan"/,
+    "20K.2 : aperçu détaillé du plan présent"
+  );
+
+  assert.match(
+    source,
+    /Plan proposé/,
+    "20K.2 : titre du plan visible"
+  );
+
+  assert.ok(
+    source.includes(
+      "action.authorPayload"
+    ),
+    "20K.2 : les créations affichent leur identité"
+  );
+
+  assert.ok(
+    source.includes(
+      "Array.isArray(action.rows)"
+    ),
+    "20K.2 : nombre de présences visible"
+  );
+
+  assert.ok(
+    source.includes(
+      "Relier + enrichir"
+    ),
+    "20K.2 : type d'action explicite"
+  );
+}
