@@ -1878,3 +1878,96 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "20N.1 : readiness affichée dans les cartes auteurs"
   );
 }
+
+
+// 21A.1 — accueil opérationnel V11.58
+{
+  const source =
+    fs.readFileSync(
+      "admin-shell.js",
+      "utf8"
+    );
+
+  const html =
+    fs.readFileSync(
+      "admin-v11.html",
+      "utf8"
+    );
+
+  assert.ok(
+    html.includes(
+      'id="v11-current-date"'
+    ),
+    "21A.1 : date dynamique présente"
+  );
+
+  assert.ok(
+    html.includes(
+      'id="v11-home-priority-title"'
+    ),
+    "21A.1 : titre priorité dynamique présent"
+  );
+
+  assert.ok(
+    html.includes(
+      'data-admin-bind="presence-pending"'
+    ),
+    "21A.1 : KPI présence réel"
+  );
+
+  assert.ok(
+    html.includes(
+      'data-admin-bind="authors-editorial-pending"'
+    ),
+    "21A.1 : KPI auteur réel"
+  );
+
+  assert.ok(
+    !html.includes(
+      "Claire Martin"
+    ),
+    "21A.1 : fausse présence supprimée"
+  );
+
+  assert.ok(
+    !html.includes(
+      "Éditions du Rivage"
+    ),
+    "21A.1 : fausse maison d’édition supprimée"
+  );
+
+  assert.ok(
+    source.includes(
+      "function getV11HomePriorities"
+    ),
+    "21A.1 : moteur priorités présent"
+  );
+
+  assert.ok(
+    source.includes(
+      "function openV11HomePriority"
+    ),
+    "21A.1 : navigation priorités présente"
+  );
+
+  assert.ok(
+    source.includes(
+      '"registration-missing-link"'
+    ),
+    "21A.1 : anomalie inscription exploitée"
+  );
+
+  assert.ok(
+    source.includes(
+      '"authors-almost"'
+    ),
+    "21A.1 : auteurs presque prêts exploités"
+  );
+
+  assert.ok(
+    source.includes(
+      "renderPriority(\n      state\n    )"
+    ),
+    "21A.1 : accueil alimenté par état complet"
+  );
+}
