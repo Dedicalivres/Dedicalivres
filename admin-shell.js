@@ -2252,6 +2252,32 @@ function renderEvents(events, status) {
       "v11-community-active-filters"
     );
 
+
+  const communityStatusSummaryTitle =
+    document.getElementById(
+      "v11-community-status-summary-title"
+    );
+
+  const communityStatusSummaryDetail =
+    document.getElementById(
+      "v11-community-status-summary-detail"
+    );
+
+  const communityTabPresenceCount =
+    document.getElementById(
+      "v11-tab-presence-count"
+    );
+
+  const communityTabAuthorsCount =
+    document.getElementById(
+      "v11-tab-authors-count"
+    );
+
+  const communityTabTestimonialsCount =
+    document.getElementById(
+      "v11-tab-testimonials-count"
+    );
+
   const presenceTypeField =
     presenceType
       ? presenceType.closest("label")
@@ -2314,6 +2340,25 @@ function renderEvents(events, status) {
         testimonialMode
           ? "Pseudo, événement, message..."
           : "Nom, maison d’édition, événement...";
+    }
+
+
+    if (communityPendingOnly) {
+      const isPending =
+        presenceStatus?.value ===
+        "pending";
+
+      communityPendingOnly.classList.toggle(
+        "is-active",
+        isPending
+      );
+
+      communityPendingOnly.setAttribute(
+        "aria-pressed",
+        isPending
+          ? "true"
+          : "false"
+      );
     }
 
     if (
@@ -2441,6 +2486,201 @@ function renderEvents(events, status) {
     );
   }
 
+  function getV11ModerationCounts(items) {
+    const list =
+      Array.isArray(items)
+        ? items
+        : [];
+
+    let pending = 0;
+    let validated = 0;
+    let rejected = 0;
+
+    list.forEach(function (item) {
+      if (item?.rejected === true) {
+        rejected += 1;
+        return;
+      }
+
+      if (item?.validated === true) {
+        validated += 1;
+        return;
+      }
+
+      pending += 1;
+    });
+
+    return {
+      total: list.length,
+      pending,
+      validated,
+      rejected
+    };
+  }
+
+  function updateV11CommunityTabCounts() {
+    const state =
+      context.getState();
+
+    const presences =
+      state.community?.presences || [];
+
+    const authors =
+      state.community?.authors || [];
+
+    const testimonials =
+      state.community?.testimonials || [];
+
+    const presenceCounts =
+      getV11ModerationCounts(
+        presences
+      );
+
+    const testimonialCounts =
+      getV11ModerationCounts(
+        testimonials
+      );
+
+    if (communityTabPresenceCount) {
+      communityTabPresenceCount.textContent =
+        presenceCounts.pending > 0
+          ? String(presenceCounts.pending)
+          : "0";
+
+      communityTabPresenceCount.classList.toggle(
+        "has-pending",
+        presenceCounts.pending > 0
+      );
+    }
+
+    if (communityTabAuthorsCount) {
+      const visibleAuthors =
+        authors.filter(function (item) {
+          return !item.merged_into;
+        });
+
+      communityTabAuthorsCount.textContent =
+        String(visibleAuthors.length);
+    }
+
+    if (communityTabTestimonialsCount) {
+      communityTabTestimonialsCount.textContent =
+        testimonialCounts.pending > 0
+          ? String(testimonialCounts.pending)
+          : "0";
+
+      communityTabTestimonialsCount.classList.toggle(
+        "has-pending",
+        testimonialCounts.pending > 0
+      );
+    }
+  }
+
+  function updateV11CommunityOperationalSummary(
+    view,
+    items
+  ) {
+    if (
+      !communityStatusSummaryDetail ||
+      !communityStatusSummaryTitle
+    ) {
+      return;
+    }
+
+    const activeView =
+      getV11ActiveCommunityView();
+
+    /*
+     * Seul l'onglet Communauté réellement visible
+     * peut modifier le résumé opérationnel.
+     */
+    if (view !== activeView) {
+      return;
+    }
+
+    const list =
+      Array.isArray(items)
+        ? items
+        : [];
+
+    if (view === "authors") {
+      const visible =
+        list.filter(function (item) {
+          return !item.merged_into;
+        });
+
+      const ready =
+        visible.filter(function (item) {
+          return (
+            item.publication_ready === true &&
+            item.published !== true
+          );
+        }).length;
+
+      const published =
+        visible.filter(function (item) {
+          return item.published === true;
+        }).length;
+
+      communityStatusSummaryTitle.textContent =
+        "Fiches auteurs";
+
+      communityStatusSummaryDetail.textContent =
+        visible.length +
+        " fiche" +
+        (visible.length > 1 ? "s" : "") +
+        " · " +
+        ready +
+        " prête" +
+        (ready > 1 ? "s" : "") +
+        " · " +
+        published +
+        " publiée" +
+        (published > 1 ? "s" : "");
+
+      return;
+    }
+
+    const counts =
+      getV11ModerationCounts(list);
+
+    communityStatusSummaryTitle.textContent =
+      view === "testimonials"
+        ? "Modération témoignages"
+        : "Modération présences";
+
+    communityStatusSummaryDetail.textContent =
+      counts.pending +
+      " à traiter · " +
+      counts.validated +
+      " validé" +
+      (counts.validated > 1 ? "s" : "") +
+      " · " +
+      counts.rejected +
+      " rejeté" +
+      (counts.rejected > 1 ? "s" : "");
+
+    if (communityPendingOnly) {
+      const isPending =
+        presenceStatus?.value ===
+        "pending";
+
+      communityPendingOnly.classList.toggle(
+        "is-active",
+        isPending
+      );
+
+      communityPendingOnly.setAttribute(
+        "aria-pressed",
+        isPending
+          ? "true"
+          : "false"
+      );
+    }
+
+    updateV11CommunityTabCounts();
+  }
+
   function profileLabel(type) {
     if (type === "artist_author") return "Artiste-auteur";
     if (type === "hybrid") return "Hybride";
@@ -2533,6 +2773,11 @@ function renderEvents(events, status) {
 
     updateV11CommunityActiveFilters(
       "presence"
+    );
+
+    updateV11CommunityOperationalSummary(
+      "presence",
+      items
     );
 
     presenceList.replaceChildren();
@@ -2640,6 +2885,11 @@ function renderEvents(events, status) {
     const visible = items.filter((item) => {
       return !item.merged_into;
     });
+
+    updateV11CommunityOperationalSummary(
+      "authors",
+      items
+    );
 
     visible.forEach((item) => {
       const card = document.createElement("article");
@@ -3078,6 +3328,11 @@ function renderEvents(events, status) {
 
     updateV11CommunityActiveFilters(
       "testimonials"
+    );
+
+    updateV11CommunityOperationalSummary(
+      "testimonials",
+      items
     );
 
     testimonialsList.replaceChildren();
