@@ -259,6 +259,87 @@
       );
     });
 
+  if (testimonialTraceClear) {
+    testimonialTraceClear.addEventListener(
+      "click",
+      function () {
+        if (
+          v11TestimonialModerationTrace.length ===
+          0
+        ) {
+          return;
+        }
+
+        if (
+          !window.confirm(
+            "Vider le journal de cette session ?"
+          )
+        ) {
+          return;
+        }
+
+        clearV11TestimonialTrace();
+      }
+    );
+  }
+
+  // V11.47 reset community filters
+  if (communityResetFilters) {
+    communityResetFilters.addEventListener(
+      "click",
+      function () {
+        if (presenceSearch) {
+          presenceSearch.value = "";
+        }
+
+        if (presenceStatus) {
+          presenceStatus.value = "all";
+        }
+
+        if (presenceType) {
+          presenceType.value = "all";
+        }
+
+        if (testimonialPhotoFilter) {
+          testimonialPhotoFilter.value =
+            "all";
+        }
+
+        const activeTab =
+          document.querySelector(
+            "[data-community-view].is-active"
+          );
+
+        const activeView =
+          activeTab
+            ?.dataset
+            ?.communityView ||
+          "presence";
+
+        const state =
+          context.getState();
+
+        if (activeView === "testimonials") {
+          renderTestimonials(
+            state.community
+              ?.testimonials || []
+          );
+        } else if (
+          activeView === "presence"
+        ) {
+          renderPresences(
+            state.community
+              ?.presences || []
+          );
+        }
+
+        if (presenceSearch) {
+          presenceSearch.focus();
+        }
+      }
+    );
+  }
+
   syncV11CommunityToolbar("presence");
 
   buttons.forEach((button) => {
@@ -2097,6 +2178,17 @@ function renderEvents(events, status) {
       "v11-testimonial-photo-field"
     );
 
+
+  const communityResetFilters =
+    document.getElementById(
+      "v11-community-reset-filters"
+    );
+
+  const communityResultsCount =
+    document.getElementById(
+      "v11-community-results-count"
+    );
+
   const presenceTypeField =
     presenceType
       ? presenceType.closest("label")
@@ -2130,6 +2222,12 @@ function renderEvents(events, status) {
   const testimonialTraceCount =
     document.getElementById(
       "v11-testimonial-trace-count"
+    );
+
+
+  const testimonialTraceClear =
+    document.getElementById(
+      "v11-testimonial-trace-clear"
     );
 
   const v11TestimonialModerationTrace = [];
@@ -2177,6 +2275,35 @@ function renderEvents(events, status) {
         presenceStatus.value = "all";
       }
     }
+  }
+
+  function updateV11CommunityResultsCount(
+    visible,
+    total
+  ) {
+    if (!communityResultsCount) {
+      return;
+    }
+
+    const safeVisible =
+      Number.isFinite(visible)
+        ? visible
+        : 0;
+
+    const safeTotal =
+      Number.isFinite(total)
+        ? total
+        : safeVisible;
+
+    communityResultsCount.textContent =
+      safeVisible === safeTotal
+        ? safeVisible + " résultat" +
+          (safeVisible > 1 ? "s" : "")
+        : safeVisible +
+          " / " +
+          safeTotal +
+          " affiché" +
+          (safeVisible > 1 ? "s" : "");
   }
 
   function profileLabel(type) {
@@ -2263,6 +2390,11 @@ function renderEvents(events, status) {
 
       return true;
     });
+
+    updateV11CommunityResultsCount(
+      filtered.length,
+      items.length
+    );
 
     presenceList.replaceChildren();
 
@@ -2486,6 +2618,12 @@ function renderEvents(events, status) {
 
     testimonialTraceList.replaceChildren();
 
+    if (testimonialTraceClear) {
+      testimonialTraceClear.disabled =
+        v11TestimonialModerationTrace.length ===
+        0;
+    }
+
     if (testimonialTraceCount) {
       testimonialTraceCount.textContent =
         String(
@@ -2589,6 +2727,14 @@ function renderEvents(events, status) {
 
         testimonialTraceList.appendChild(row);
       });
+  }
+
+  // V11.47 clear moderation trace
+  function clearV11TestimonialTrace() {
+    v11TestimonialModerationTrace.length =
+      0;
+
+    renderV11TestimonialTrace();
   }
 
   function addV11TestimonialTrace(
@@ -2777,6 +2923,11 @@ function renderEvents(events, status) {
 
           return bDate - aDate;
         });
+
+    updateV11CommunityResultsCount(
+      filtered.length,
+      items.length
+    );
 
     testimonialsList.replaceChildren();
 
@@ -5772,6 +5923,39 @@ function renderEvents(events, status) {
             item
           );
         }
+      }
+    }
+  );
+
+  // V11.47 Escape community panels
+  document.addEventListener(
+    "keydown",
+    function (event) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (
+        communityDetail &&
+        !communityDetail.hidden
+      ) {
+        communityDetail.hidden = true;
+        selectedV11CommunityKind = null;
+        selectedV11CommunityId = null;
+      }
+
+      if (
+        typeof closeV11AuthorDetail ===
+        "function"
+      ) {
+        closeV11AuthorDetail();
+      }
+
+      if (
+        typeof closeV11PresenceEditor ===
+        "function"
+      ) {
+        closeV11PresenceEditor();
       }
     }
   );

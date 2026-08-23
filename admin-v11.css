@@ -4248,3 +4248,51 @@ body.v11-is-loading .v11-app {
     justify-self: start;
   }
 }
+
+
+/* ==========================================================
+   ADMIN V11.47 — UX COMMUNAUTE BATCH
+   ========================================================== */
+
+.v11-community-toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 9px;
+}
+
+.v11-community-results-count {
+  min-width: 78px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 9px;
+  color: var(--muted);
+  background: rgba(255,255,255,.018);
+  font-size: 8px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.v11-testimonial-trace-tools {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+#v11-testimonial-trace-clear:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+@media (max-width: 760px) {
+  .v11-community-toolbar-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .v11-community-results-count {
+    flex: 1;
+  }
+}
