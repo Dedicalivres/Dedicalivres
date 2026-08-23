@@ -3227,6 +3227,8 @@ function renderEvents(events, status) {
     if (authorsEmpty) {
       authorsEmpty.hidden = visible.length !== 0;
     }
+
+    renderV11AuthorConsolidation();
   }
 
   function formatV11TraceTime(date) {
@@ -3934,6 +3936,23 @@ function renderEvents(events, status) {
 
   let selectedV11AuthorId = null;
 
+  const authorConsolidationRun =
+    document.getElementById(
+      "v11-author-consolidation-run"
+    );
+
+  const authorConsolidationSummary =
+    document.getElementById(
+      "v11-author-consolidation-summary"
+    );
+
+  const authorConsolidationPlanList =
+    document.getElementById(
+      "v11-author-consolidation-plan"
+    );
+
+  let v11AuthorConsolidationPlan = null;
+
   const authorDetail =
     document.getElementById(
       "v11-author-detail"
@@ -4076,6 +4095,13 @@ function renderEvents(events, status) {
     authorDetailClose.addEventListener(
       "click",
       closeV11AuthorDetail
+    );
+  }
+
+  if (authorConsolidationRun) {
+    authorConsolidationRun.addEventListener(
+      "click",
+      applyV11AuthorConsolidation
     );
   }
 
@@ -4520,6 +4546,964 @@ function renderEvents(events, status) {
           refreshed
         );
       }
+    }
+  }
+
+
+
+  function normalizeV11ConsolidationName(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getV11ConsolidationPresenceUrl(row) {
+    return String(
+      row?.author_profile_url ||
+      row?.website ||
+      ""
+    ).trim();
+  }
+
+  function getV11ConsolidationShopUrl(row) {
+    return String(
+      row?.book_or_publisher_url ||
+      ""
+    ).trim();
+  }
+
+  function getV11ConsolidationPhoto(row) {
+    return String(
+      row?.author_portrait_url ||
+      ""
+    ).trim();
+  }
+
+  function buildV11UniqueAuthorSlug(
+    source,
+    authors,
+    reserved
+  ) {
+    const base =
+      normalizeV11AuthorSlug(source) ||
+      "auteur";
+
+    const used = new Set(
+      (authors || [])
+        .map((item) =>
+          String(item.slug || "").trim()
+        )
+        .filter(Boolean)
+    );
+
+    (reserved || new Set()).forEach(
+      (slug) => used.add(slug)
+    );
+
+    if (!used.has(base)) {
+      return base;
+    }
+
+    let index = 2;
+
+    while (used.has(base + "-" + index)) {
+      index += 1;
+    }
+
+    return base + "-" + index;
+  }
+
+  function buildV11AuthorConsolidationPlan() {
+    const state = context.getState();
+
+    const presences =
+      Array.isArray(
+        state.community?.presences
+      )
+        ? state.community.presences
+        : [];
+
+    const authors =
+      Array.isArray(
+        state.community?.authors
+      )
+        ? state.community.authors.filter(
+            (item) => !item.merged_into
+          )
+        : [];
+
+    const eligible = presences.filter(
+      (row) => {
+        return (
+          row.validated === true &&
+          row.rejected !== true &&
+          [
+            "author",
+            "artist_author",
+            "hybrid"
+          ].includes(
+            row.participant_type
+          ) &&
+          Boolean(
+            String(row.pseudo || "").trim()
+          )
+        );
+      }
+    );
+
+    const groups = new Map();
+
+    eligible.forEach((row) => {
+      const key =
+        normalizeV11ConsolidationName(
+          row.pseudo
+        );
+
+      if (!key) {
+        return;
+      }
+
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+
+      groups.get(key).push(row);
+    });
+
+    const byId = new Map();
+    const bySlug = new Map();
+    const byName = new Map();
+
+    authors.forEach((author) => {
+      if (author.id) {
+        byId.set(
+          String(author.id),
+          author
+        );
+      }
+
+      if (author.slug) {
+        bySlug.set(
+          String(author.slug),
+          author
+        );
+      }
+
+      const key =
+        normalizeV11ConsolidationName(
+          author.pseudo
+        );
+
+      if (key) {
+        if (!byName.has(key)) {
+          byName.set(key, []);
+        }
+
+        byName.get(key).push(author);
+      }
+    });
+
+    const actions = [];
+    const ambiguous = [];
+    const insufficient = [];
+    const reservedSlugs = new Set();
+
+    groups.forEach((rows, nameKey) => {
+      const candidates = new Map();
+
+      rows.forEach((row) => {
+        const authorId =
+          String(
+            row.author_id || ""
+          ).trim();
+
+        const slug =
+          String(
+            row.author_slug ||
+            row.author_identity_key ||
+            ""
+          ).trim();
+
+        if (
+          authorId &&
+          byId.has(authorId)
+        ) {
+          const candidate =
+            byId.get(authorId);
+
+          candidates.set(
+            String(candidate.id),
+            candidate
+          );
+        }
+
+        if (
+          slug &&
+          bySlug.has(slug)
+        ) {
+          const candidate =
+            bySlug.get(slug);
+
+          candidates.set(
+            String(candidate.id),
+            candidate
+          );
+        }
+      });
+
+      const nameCandidates =
+        byName.get(nameKey) || [];
+
+      if (
+        candidates.size === 0 &&
+        nameCandidates.length === 1
+      ) {
+        candidates.set(
+          String(nameCandidates[0].id),
+          nameCandidates[0]
+        );
+      }
+
+      if (
+        candidates.size > 1 ||
+        (
+          candidates.size === 0 &&
+          nameCandidates.length > 1
+        )
+      ) {
+        ambiguous.push({
+          name:
+            String(
+              rows[0]?.pseudo || nameKey
+            ),
+          rows,
+          reason:
+            "plusieurs fiches possibles"
+        });
+
+        return;
+      }
+
+      if (candidates.size === 1) {
+        const author =
+          Array.from(
+            candidates.values()
+          )[0];
+
+        const needsLink =
+          rows.some((row) => {
+            return (
+              String(
+                row.author_id || ""
+              ) !== String(author.id) ||
+              String(
+                row.author_slug || ""
+              ) !== String(author.slug) ||
+              String(
+                row.author_identity_key ||
+                ""
+              ) !== String(author.slug)
+            );
+          });
+
+        const website =
+          rows
+            .map(
+              getV11ConsolidationPresenceUrl
+            )
+            .find(Boolean) || "";
+
+        const shop =
+          rows
+            .map(
+              getV11ConsolidationShopUrl
+            )
+            .find(Boolean) || "";
+
+        const photo =
+          rows
+            .map(
+              getV11ConsolidationPhoto
+            )
+            .find(Boolean) || "";
+
+        const authorPatch = {};
+
+        if (
+          !String(
+            author.website || ""
+          ).trim() &&
+          website
+        ) {
+          authorPatch.website = website;
+        }
+
+        if (
+          !String(
+            author.shop_url || ""
+          ).trim() &&
+          shop
+        ) {
+          authorPatch.shop_url = shop;
+        }
+
+        if (
+          !String(
+            author.avatar_url || ""
+          ).trim() &&
+          photo
+        ) {
+          authorPatch.avatar_url = photo;
+        }
+
+        const needsEnrichment =
+          Object.keys(
+            authorPatch
+          ).length > 0;
+
+        if (
+          needsLink ||
+          needsEnrichment
+        ) {
+          actions.push({
+            kind: "existing",
+            author,
+            rows,
+            authorPatch,
+            needsLink,
+            needsEnrichment
+          });
+        }
+
+        return;
+      }
+
+      const types =
+        Array.from(
+          new Set(
+            rows.map(
+              (row) =>
+                row.participant_type
+            )
+          )
+        );
+
+      if (types.length !== 1) {
+        ambiguous.push({
+          name:
+            String(
+              rows[0]?.pseudo || nameKey
+            ),
+          rows,
+          reason:
+            "types de profil contradictoires"
+        });
+
+        return;
+      }
+
+      const photo =
+        rows
+          .map(
+            getV11ConsolidationPhoto
+          )
+          .find(Boolean) || "";
+
+      const website =
+        rows
+          .map(
+            getV11ConsolidationPresenceUrl
+          )
+          .find(Boolean) || "";
+
+      const shop =
+        rows
+          .map(
+            getV11ConsolidationShopUrl
+          )
+          .find(Boolean) || "";
+
+      const hasVerifiedPresence =
+        rows.some(
+          (row) =>
+            row.presence_verified === true
+        );
+
+      const hasMultiplePresences =
+        rows.length >= 2;
+
+      const hasEditorialEvidence =
+        Boolean(photo && website);
+
+      /*
+       * Une photo + une vitrine sont de bons éléments
+       * éditoriaux, mais ne suffisent pas seules à créer
+       * automatiquement une identité auteur.
+       *
+       * Création automatique uniquement si :
+       * - présence explicitement vérifiée ;
+       * - ou au moins deux présences validées.
+       */
+      const strongEvidence =
+        hasVerifiedPresence ||
+        hasMultiplePresences;
+
+      if (!strongEvidence) {
+        insufficient.push({
+          name:
+            String(
+              rows[0]?.pseudo || nameKey
+            ),
+          rows,
+          reason:
+            hasEditorialEvidence
+              ? "photo + vitrine à contrôler"
+              : "preuve insuffisante"
+        });
+
+        return;
+      }
+
+      const explicitSlug =
+        rows
+          .map(
+            (row) =>
+              String(
+                row.author_slug ||
+                row.author_identity_key ||
+                ""
+              ).trim()
+          )
+          .find(Boolean);
+
+      const slug =
+        buildV11UniqueAuthorSlug(
+          explicitSlug ||
+          rows[0]?.pseudo,
+          authors,
+          reservedSlugs
+        );
+
+      reservedSlugs.add(slug);
+
+      actions.push({
+        kind: "create",
+        rows,
+        authorPayload: {
+          pseudo:
+            String(
+              rows[0]?.pseudo || ""
+            ).trim(),
+
+          slug,
+
+          website:
+            website || null,
+
+          shop_url:
+            shop || null,
+
+          avatar_url:
+            photo || null,
+
+          profile_type:
+            types[0],
+
+          bio: null,
+          location: null,
+
+          validated: false,
+          publication_ready: false,
+          published: false,
+
+          updated_at:
+            new Date().toISOString()
+        }
+      });
+    });
+
+    return {
+      eligibleCount:
+        eligible.length,
+
+      identityCount:
+        groups.size,
+
+      actions,
+
+      createCount:
+        actions.filter(
+          (action) =>
+            action.kind === "create"
+        ).length,
+
+      linkCount:
+        actions.filter(
+          (action) =>
+            action.kind === "existing" &&
+            action.needsLink
+        ).length,
+
+      enrichCount:
+        actions.filter(
+          (action) =>
+            action.kind === "existing" &&
+            action.needsEnrichment
+        ).length,
+
+      ambiguous,
+      insufficient
+    };
+  }
+
+  function renderV11AuthorConsolidation() {
+    if (
+      !authorConsolidationSummary
+    ) {
+      return;
+    }
+
+    const plan =
+      buildV11AuthorConsolidationPlan();
+
+    v11AuthorConsolidationPlan =
+      plan;
+
+    authorConsolidationSummary
+      .replaceChildren();
+
+    const values = [
+      [
+        "Présences validées",
+        plan.eligibleCount
+      ],
+      [
+        "Identités détectées",
+        plan.identityCount
+      ],
+      [
+        "Fiches à créer",
+        plan.createCount
+      ],
+      [
+        "Fiches à relier",
+        plan.linkCount
+      ],
+      [
+        "Fiches à enrichir",
+        plan.enrichCount
+      ],
+      [
+        "À vérifier",
+        plan.ambiguous.length
+      ],
+      [
+        "Preuve insuffisante",
+        plan.insufficient.length
+      ]
+    ];
+
+    values.forEach(
+      ([label, value]) => {
+        const item =
+          document.createElement(
+            "div"
+          );
+
+        const strong =
+          document.createElement(
+            "strong"
+          );
+
+        const span =
+          document.createElement(
+            "span"
+          );
+
+        strong.textContent =
+          String(value);
+
+        span.textContent =
+          label;
+
+        item.appendChild(strong);
+        item.appendChild(span);
+
+        authorConsolidationSummary
+          .appendChild(item);
+      }
+    );
+
+    if (authorConsolidationRun) {
+      authorConsolidationRun.disabled =
+        plan.actions.length === 0;
+    }
+
+    if (authorConsolidationPlanList) {
+      authorConsolidationPlanList
+        .replaceChildren();
+
+      const title =
+        document.createElement("h4");
+
+      title.textContent =
+        "Plan proposé";
+
+      authorConsolidationPlanList
+        .appendChild(title);
+
+      if (!plan.actions.length) {
+        const empty =
+          document.createElement("p");
+
+        empty.textContent =
+          "Aucune opération automatique proposée.";
+
+        authorConsolidationPlanList
+          .appendChild(empty);
+      } else {
+        plan.actions.forEach(
+          (action) => {
+            const row =
+              document.createElement(
+                "article"
+              );
+
+            row.className =
+              "v11-author-consolidation-plan-row";
+
+            const content =
+              document.createElement(
+                "div"
+              );
+
+            const strong =
+              document.createElement(
+                "strong"
+              );
+
+            const meta =
+              document.createElement(
+                "span"
+              );
+
+            const badge =
+              document.createElement(
+                "span"
+              );
+
+            const name =
+              action.kind === "create"
+                ? action.authorPayload
+                    ?.pseudo
+                : action.author?.pseudo;
+
+            strong.textContent =
+              name || "Auteur";
+
+            const count =
+              Array.isArray(action.rows)
+                ? action.rows.length
+                : 0;
+
+            meta.textContent =
+              count +
+              " présence" +
+              (count > 1 ? "s" : "") +
+              " validée" +
+              (count > 1 ? "s" : "");
+
+            badge.className =
+              "v11-chip " +
+              (
+                action.kind === "create"
+                  ? "info"
+                  : "ok"
+              );
+
+            if (
+              action.kind === "create"
+            ) {
+              badge.textContent =
+                "Créer";
+            } else if (
+              action.needsEnrichment &&
+              action.needsLink
+            ) {
+              badge.textContent =
+                "Relier + enrichir";
+            } else if (
+              action.needsEnrichment
+            ) {
+              badge.textContent =
+                "Enrichir";
+            } else {
+              badge.textContent =
+                "Relier";
+            }
+
+            content.appendChild(strong);
+            content.appendChild(meta);
+
+            row.appendChild(content);
+            row.appendChild(badge);
+
+            authorConsolidationPlanList
+              .appendChild(row);
+          }
+        );
+      }
+    }
+  }
+
+  async function applyV11AuthorConsolidation() {
+    if (v11CommunityActionRunning) {
+      return;
+    }
+
+    const state =
+      context.getState();
+
+    const client =
+      context.getClient();
+
+    if (
+      state.authenticated !== true ||
+      !client
+    ) {
+      window.alert(
+        "Session admin indisponible."
+      );
+      return;
+    }
+
+    const plan =
+      buildV11AuthorConsolidationPlan();
+
+    if (!plan.actions.length) {
+      window.alert(
+        "Aucune consolidation automatique à appliquer."
+      );
+      return;
+    }
+
+    const message =
+      "CONSOLIDATION AUTEURS\n\n" +
+      plan.createCount +
+      " fiche(s) interne(s) à créer\n" +
+      plan.linkCount +
+      " rapprochement(s) à relier\n" +
+      plan.enrichCount +
+      " fiche(s) à enrichir\n\n" +
+      plan.ambiguous.length +
+      " cas ambigu(s) resteront intacts.\n" +
+      plan.insufficient.length +
+      " identité(s) sans preuve suffisante resteront intactes.\n\n" +
+      "Aucune fiche ne sera publiée.\n\n" +
+      "Confirmer ?";
+
+    if (!window.confirm(message)) {
+      return;
+    }
+
+    v11CommunityActionRunning = true;
+
+    if (authorConsolidationRun) {
+      authorConsolidationRun.disabled =
+        true;
+
+      authorConsolidationRun.textContent =
+        "Consolidation…";
+    }
+
+    let created = 0;
+    let linked = 0;
+    let enriched = 0;
+    let failed = 0;
+
+    try {
+      for (
+        const action of plan.actions
+      ) {
+        try {
+          let author = action.author;
+
+          if (
+            action.kind === "create"
+          ) {
+            const check =
+              await client
+                .from("authors")
+                .select(
+                  "id, pseudo, slug"
+                )
+                .eq(
+                  "slug",
+                  action.authorPayload.slug
+                )
+                .maybeSingle();
+
+            if (check.error) {
+              throw check.error;
+            }
+
+            if (check.data) {
+              author =
+                check.data;
+            } else {
+              const inserted =
+                await client
+                  .from("authors")
+                  .insert(
+                    action.authorPayload
+                  )
+                  .select(
+                    "id, pseudo, slug"
+                  )
+                  .single();
+
+              if (inserted.error) {
+                throw inserted.error;
+              }
+
+              author =
+                inserted.data;
+
+              created += 1;
+            }
+          }
+
+          if (
+            action.kind === "existing" &&
+            action.needsEnrichment
+          ) {
+            const authorPatch = {
+              ...action.authorPatch,
+              updated_at:
+                new Date().toISOString()
+            };
+
+            const updated =
+              await client
+                .from("authors")
+                .update(authorPatch)
+                .eq(
+                  "id",
+                  author.id
+                );
+
+            if (updated.error) {
+              throw updated.error;
+            }
+
+            enriched += 1;
+          }
+
+          if (
+            !author?.id ||
+            !author?.slug
+          ) {
+            throw new Error(
+              "Identité auteur incomplète."
+            );
+          }
+
+          const ids =
+            action.rows
+              .map(
+                (row) =>
+                  String(
+                    row.id || ""
+                  ).trim()
+              )
+              .filter(Boolean);
+
+          if (ids.length) {
+            const response =
+              await client
+                .from(
+                  "event_authors_presence"
+                )
+                .update({
+                  author_id:
+                    author.id,
+
+                  author_slug:
+                    author.slug,
+
+                  author_identity_key:
+                    author.slug,
+
+                  updated_at:
+                    new Date()
+                      .toISOString()
+                })
+                .in("id", ids);
+
+            if (response.error) {
+              throw response.error;
+            }
+
+            linked += ids.length;
+          }
+
+        } catch (error) {
+          failed += 1;
+
+          console.error(
+            "V11 consolidation auteur",
+            error
+          );
+        }
+      }
+
+      await context.refresh();
+
+      renderV11AuthorConsolidation();
+
+      v11CommunityMessage(
+        "Consolidation terminée · " +
+        created +
+        " fiche(s) créée(s) · " +
+        linked +
+        " présence(s) reliée(s) · " +
+        enriched +
+        " fiche(s) enrichie(s)" +
+        (
+          failed
+            ? " · " +
+              failed +
+              " erreur(s)"
+            : ""
+        )
+      );
+
+      if (failed) {
+        window.alert(
+          "Consolidation terminée avec " +
+          failed +
+          " erreur(s).\n\n" +
+          "Les opérations réussies sont conservées. " +
+          "Une nouvelle analyse permettra de reprendre les éléments restants."
+        );
+      }
+
+    } finally {
+      v11CommunityActionRunning =
+        false;
+
+      if (authorConsolidationRun) {
+        authorConsolidationRun
+          .textContent =
+            "Appliquer la consolidation";
+      }
+
+      renderV11AuthorConsolidation();
     }
   }
 

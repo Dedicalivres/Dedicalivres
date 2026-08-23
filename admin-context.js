@@ -521,7 +521,7 @@
           ].join(", ")
         )
         .order("created_at", { ascending: false })
-        .limit(100),
+        .limit(500),
 
       client
         .from("testimonials")
