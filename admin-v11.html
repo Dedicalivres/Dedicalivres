@@ -441,7 +441,7 @@
           </div>
 
           <p class="v11-write-lock">
-            Validation, rejet et mise en avant sont actifs. Modification et suppression restent verrouillées.
+            Après validation, les informations publiques de l’événement et des inscriptions restent modifiables uniquement depuis l’administration Dédicalivres.
           </p>
         </div>
 
@@ -570,14 +570,47 @@
                   <input id="v11-edit-registration-url" type="url">
                 </label>
 
-                <label class="wide">
-                  <span>Public concerné</span>
-                  <input
-                    id="v11-edit-registration-audience"
-                    type="text"
-                    placeholder="Auteur, Artiste-auteur, Maison d’édition..."
-                  >
-                </label>
+                <fieldset class="wide v11-registration-audience-editor">
+                  <legend>Profils pouvant s’inscrire</legend>
+
+                  <div class="v11-registration-audience-options">
+                    <label>
+                      <input
+                        type="checkbox"
+                        value="author"
+                        data-v11-registration-audience
+                      >
+                      <span>Auteur</span>
+                    </label>
+
+                    <label class="is-artist-author">
+                      <input
+                        type="checkbox"
+                        value="artist_author"
+                        data-v11-registration-audience
+                      >
+                      <span>Artiste-auteur</span>
+                    </label>
+
+                    <label>
+                      <input
+                        type="checkbox"
+                        value="hybrid"
+                        data-v11-registration-audience
+                      >
+                      <span>Profil hybride</span>
+                    </label>
+
+                    <label>
+                      <input
+                        type="checkbox"
+                        value="publisher"
+                        data-v11-registration-audience
+                      >
+                      <span>Maison d’édition</span>
+                    </label>
+                  </div>
+                </fieldset>
 
                 <label class="wide">
                   <span>Note</span>
@@ -587,11 +620,10 @@
                 <label>
                   <span>Statut forcé</span>
                   <select id="v11-edit-registration-status">
-                    <option value="">Automatique</option>
-                    <option value="soon">Bientôt</option>
-                    <option value="open">Ouvertes</option>
-                    <option value="last_days">Derniers jours</option>
-                    <option value="closed">Clôturées</option>
+                    <option value="">Calculé à partir des dates</option>
+                    <option value="complet">Complet</option>
+                    <option value="cloture">Clôturé</option>
+                    <option value="annule">Annulé</option>
                   </select>
                 </label>
               </div>

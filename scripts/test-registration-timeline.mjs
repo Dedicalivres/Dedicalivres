@@ -196,6 +196,76 @@ assert.ok(
   "Le formulaire doit permettre l'activation des inscriptions"
 );
 
+
+
+const adminSource =
+  fs.readFileSync(
+    "admin-v11.html",
+    "utf8"
+  );
+
+for (const forcedStatus of [
+  'value="complet"',
+  'value="cloture"',
+  'value="annule"'
+]) {
+  assert.ok(
+    adminSource.includes(
+      forcedStatus
+    ),
+    `Admin V11 doit conserver ${forcedStatus}`
+  );
+}
+
+const registrationStatusSelectMatch =
+  adminSource.match(
+    /<select id="v11-edit-registration-status">([\s\S]*?)<\/select>/
+  );
+
+assert.ok(
+  registrationStatusSelectMatch,
+  "Le sélecteur de statut forcé Admin V11 doit exister"
+);
+
+const registrationStatusSelect =
+  registrationStatusSelectMatch[1];
+
+for (const invalidAdminStatus of [
+  'value="soon"',
+  'value="open"',
+  'value="last_days"'
+]) {
+  assert.equal(
+    registrationStatusSelect.includes(
+      invalidAdminStatus
+    ),
+    false,
+    `Le sélecteur de statut forcé ne doit plus proposer ${invalidAdminStatus}`
+  );
+}
+
+for (const audience of [
+  'value="author"',
+  'value="artist_author"',
+  'value="hybrid"',
+  'value="publisher"'
+]) {
+  assert.ok(
+    adminSource.includes(
+      audience
+    ),
+    `Admin V11 doit conserver le profil ${audience}`
+  );
+}
+
+assert.ok(
+  adminSource.includes(
+    "data-v11-registration-audience"
+  ),
+  "Admin V11 doit utiliser les choix contrôlés de profils"
+);
+
+
 console.log(
   "Timeline inscriptions : statuts, profils, éligibilité et structure validés."
 );

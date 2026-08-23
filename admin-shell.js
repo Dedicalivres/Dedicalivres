@@ -923,8 +923,10 @@
   const editRegistrationUrl =
     document.getElementById("v11-edit-registration-url");
 
-  const editRegistrationAudience =
-    document.getElementById("v11-edit-registration-audience");
+  const editRegistrationAudienceInputs =
+    document.querySelectorAll(
+      "[data-v11-registration-audience]"
+    );
 
   const editRegistrationNote =
     document.getElementById("v11-edit-registration-note");
@@ -1009,9 +1011,67 @@
             : "À vérifier"
       ],
       ["Mise en avant", event.featured === true ? "Oui" : "Non"],
-      ["Vérifié", event.verified === true ? "Oui" : "Non"],
-      ["Identifiant", event.id]
+      ["Vérifié", event.verified === true ? "Oui" : "Non"]
     ];
+
+    if (
+      event.type === "Salon" ||
+      event.type === "Festival"
+    ) {
+      const registrationStatus =
+        getV11RegistrationStatus(event);
+
+      rows.push(
+        [
+          "Inscriptions",
+          event.registration_enabled === true
+            ? "Activées"
+            : "Non activées"
+        ]
+      );
+
+      if (
+        event.registration_enabled === true
+      ) {
+        rows.push(
+          [
+            "État inscriptions",
+            registrationStatus?.label ||
+            "Informations à vérifier"
+          ],
+          [
+            "Ouverture inscriptions",
+            event.registration_open_date
+          ],
+          [
+            "Date limite inscriptions",
+            event.registration_deadline
+          ],
+          [
+            "Lien inscription",
+            event.registration_url
+          ],
+          [
+            "Profils concernés",
+            v11RegistrationAudienceLabel(
+              event.registration_audience
+            )
+          ],
+          [
+            "État forcé",
+            event.registration_force_status
+          ],
+          [
+            "Note inscriptions",
+            event.registration_note
+          ]
+        );
+      }
+    }
+
+    rows.push(
+      ["Identifiant", event.id]
+    );
 
     rows.forEach(function (entry) {
       const row =
@@ -1285,6 +1345,31 @@
 
     try {
       if (action === "validate") {
+        try {
+          if (
+            event.registration_enabled ===
+            true
+          ) {
+            validateV11RegistrationPayload(
+              event
+            );
+          }
+        } catch (error) {
+          window.alert(
+            "INSCRIPTIONS À CORRIGER AVANT VALIDATION\n\n" +
+            (
+              error?.message ||
+              "Informations d’inscription invalides."
+            )
+          );
+
+          v11ActionMessage(
+            "Validation bloquée : inscriptions à corriger."
+          );
+
+          return;
+        }
+
         const approved =
           await checkV11Duplicates(event);
 
@@ -1501,12 +1586,155 @@
       : "";
   }
 
-  function normalizeAudience(value) {
-    if (Array.isArray(value)) {
-      return value.join(", ");
+  const V11_REGISTRATION_AUDIENCE = new Set([
+    "author",
+    "artist_author",
+    "hybrid",
+    "publisher"
+  ]);
+
+  const V11_REGISTRATION_FORCE_STATUS = new Set([
+    "complet",
+    "cloture",
+    "annule"
+  ]);
+
+  function normalizeV11RegistrationAudience(value) {
+    const values =
+      Array.isArray(value)
+        ? value
+        : [];
+
+    return [
+      ...new Set(
+        values.filter(function (item) {
+          return V11_REGISTRATION_AUDIENCE.has(
+            String(item || "")
+          );
+        })
+      )
+    ];
+  }
+
+  function v11RegistrationAudienceLabel(value) {
+    const helper =
+      window.DEDICALIVRES_REGISTRATION;
+
+    if (
+      helper &&
+      typeof helper.getAudienceLabels ===
+        "function"
+    ) {
+      return helper
+        .getAudienceLabels(value)
+        .join(", ");
     }
 
-    return String(value || "");
+    const labels = {
+      author: "Auteurs",
+      artist_author: "Artistes-auteurs",
+      hybrid: "Profils hybrides",
+      publisher: "Maisons d’édition"
+    };
+
+    return normalizeV11RegistrationAudience(
+      value
+    )
+      .map(function (item) {
+        return labels[item] || item;
+      })
+      .join(", ");
+  }
+
+  function getV11RegistrationStatus(event) {
+    const helper =
+      window.DEDICALIVRES_REGISTRATION;
+
+    if (
+      !helper ||
+      typeof helper.getStatus !== "function"
+    ) {
+      return null;
+    }
+
+    return helper.getStatus(event);
+  }
+
+  function validateV11RegistrationPayload(
+    payload
+  ) {
+    if (
+      !payload ||
+      payload.registration_enabled !== true
+    ) {
+      return;
+    }
+
+    const audience =
+      normalizeV11RegistrationAudience(
+        payload.registration_audience
+      );
+
+    if (!audience.length) {
+      throw new Error(
+        "Sélectionne au moins un profil pouvant s’inscrire."
+      );
+    }
+
+    const openDate =
+      payload.registration_open_date;
+
+    const deadline =
+      payload.registration_deadline;
+
+    if (
+      openDate &&
+      deadline &&
+      openDate > deadline
+    ) {
+      throw new Error(
+        "La date d’ouverture doit précéder ou être identique à la date limite."
+      );
+    }
+
+    const url =
+      String(
+        payload.registration_url || ""
+      ).trim();
+
+    if (
+      url &&
+      !/^https?:\/\//i.test(url)
+    ) {
+      throw new Error(
+        "Le lien d’inscription doit commencer par http:// ou https://."
+      );
+    }
+
+    const forcedStatus =
+      payload.registration_force_status;
+
+    if (
+      forcedStatus &&
+      !V11_REGISTRATION_FORCE_STATUS.has(
+        forcedStatus
+      )
+    ) {
+      throw new Error(
+        "Statut forcé d’inscription invalide."
+      );
+    }
+
+    if (
+      !openDate &&
+      !deadline &&
+      !url &&
+      !forcedStatus
+    ) {
+      throw new Error(
+        "Indique au moins une date, un lien ou un état d’inscription."
+      );
+    }
   }
 
   function renderV11EditImage(url) {
@@ -1647,12 +1875,18 @@
         event.registration_url || "";
     }
 
-    if (editRegistrationAudience) {
-      editRegistrationAudience.value =
-        normalizeAudience(
-          event.registration_audience
-        );
-    }
+    const registrationAudience =
+      normalizeV11RegistrationAudience(
+        event.registration_audience
+      );
+
+    editRegistrationAudienceInputs
+      .forEach(function (input) {
+        input.checked =
+          registrationAudience.includes(
+            input.value
+          );
+      });
 
     if (editRegistrationNote) {
       editRegistrationNote.value =
@@ -1784,16 +2018,19 @@
     }
 
     const audience =
-      String(
-        editRegistrationAudience?.value || ""
-      )
-        .split(",")
-        .map(function (item) {
-          return item.trim();
-        })
-        .filter(Boolean);
+      normalizeV11RegistrationAudience(
+        Array.from(
+          editRegistrationAudienceInputs
+        )
+          .filter(function (input) {
+            return input.checked;
+          })
+          .map(function (input) {
+            return input.value;
+          })
+      );
 
-    return {
+    const payload = {
       registration_enabled: true,
 
       registration_open_date:
@@ -1820,10 +2057,21 @@
         ),
 
       registration_force_status:
-        cleanV11Value(
-          editRegistrationStatus?.value
+        V11_REGISTRATION_FORCE_STATUS.has(
+          String(
+            editRegistrationStatus?.value ||
+            ""
+          )
         )
+          ? editRegistrationStatus.value
+          : null
     };
+
+    validateV11RegistrationPayload(
+      payload
+    );
+
+    return payload;
   }
 
   function buildV11EventEditPayload() {
