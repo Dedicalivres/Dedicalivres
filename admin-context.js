@@ -534,6 +534,8 @@
             "image_url",
             "validated",
             "rejected",
+            "moderated_at",
+            "moderated_by",
             "created_at"
           ].join(", ")
         )

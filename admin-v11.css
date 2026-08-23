@@ -4510,3 +4510,16 @@ button.is-active
     align-self: flex-end;
   }
 }
+
+
+/* ==========================================================
+   ADMIN V11.50 — TRACE PERSISTANTE TEMOIGNAGES
+   ========================================================== */
+
+.v11-testimonial-trace-warning {
+  line-height: 1.45;
+}
+
+.v11-community-detail-row strong {
+  overflow-wrap: anywhere;
+}
