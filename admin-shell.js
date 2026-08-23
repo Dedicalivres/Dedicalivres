@@ -2353,7 +2353,28 @@ function renderEvents(events, status) {
 
     items.forEach((item) => {
       const card = document.createElement("article");
-      card.className = "v11-community-card";
+      card.className =
+        "v11-community-card v11-testimonial-card";
+
+      if (item.image_url) {
+        const media =
+          document.createElement("div");
+
+        media.className =
+          "v11-testimonial-card-media";
+
+        const image =
+          document.createElement("img");
+
+        image.src = item.image_url;
+        image.alt =
+          "Photo du témoignage de " +
+          (item.pseudo || "un lecteur");
+        image.loading = "lazy";
+
+        media.appendChild(image);
+        card.appendChild(media);
+      }
 
       const body = document.createElement("div");
       body.className = "v11-community-card-body";
@@ -4709,6 +4730,53 @@ function renderEvents(events, status) {
     );
   }
 
+  function addTestimonialPhotoPreview(item) {
+    if (
+      !communityDetailContent ||
+      !item?.image_url
+    ) {
+      return;
+    }
+
+    const figure =
+      document.createElement("figure");
+
+    figure.className =
+      "v11-testimonial-detail-photo";
+
+    const image =
+      document.createElement("img");
+
+    image.src = item.image_url;
+    image.alt =
+      "Photo du témoignage de " +
+      (item.pseudo || "un lecteur");
+    image.loading = "lazy";
+
+    const actions =
+      document.createElement("figcaption");
+
+    const link =
+      document.createElement("a");
+
+    link.href = item.image_url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.className =
+      "v11-testimonial-photo-link";
+    link.textContent =
+      "Ouvrir la photo ↗";
+
+    actions.appendChild(link);
+
+    figure.appendChild(image);
+    figure.appendChild(actions);
+
+    communityDetailContent.appendChild(
+      figure
+    );
+  }
+
   function renderCommunityDetail(
     kind,
     item
@@ -4856,6 +4924,8 @@ function renderEvents(events, status) {
           item.pseudo || "Anonyme";
       }
 
+      addTestimonialPhotoPreview(item);
+
       addCommunityDetailRow(
         "Pseudo",
         item.pseudo
@@ -4874,7 +4944,7 @@ function renderEvents(events, status) {
       addCommunityDetailRow(
         "Photo",
         item.image_url
-          ? "Disponible"
+          ? "Disponible — aperçu ci-dessus"
           : "Absente"
       );
 
