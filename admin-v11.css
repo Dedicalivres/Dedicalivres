@@ -4986,3 +4986,49 @@ label.is-artist-author {
     min-width: 0;
   }
 }
+
+
+/* ==========================================================
+   ADMIN V11.57 — PILOTAGE INSCRIPTIONS
+   ========================================================== */
+
+.v11-registration-card-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.045);
+  font-size: .7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.v11-registration-card-chip.is-soon {
+  color: #53d7e8;
+  border-color: rgba(83,215,232,.24);
+  background: rgba(83,215,232,.07);
+}
+
+.v11-registration-card-chip.is-open {
+  color: #79e7a5;
+  border-color: rgba(121,231,165,.24);
+  background: rgba(121,231,165,.07);
+}
+
+.v11-registration-card-chip.is-last-days {
+  color: #ffd166;
+  border-color: rgba(255,209,102,.25);
+  background: rgba(255,209,102,.07);
+}
+
+.v11-registration-card-chip.is-closed {
+  opacity: .64;
+}
+
+.v11-registration-card-chip.is-missing-link {
+  color: #ffb86b;
+  border-color: rgba(255,184,107,.34);
+  background: rgba(255,184,107,.08);
+}

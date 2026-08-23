@@ -40,6 +40,11 @@
   const eventQualityFilter =
     document.getElementById("v11-event-quality-filter");
 
+  const eventRegistrationFilter =
+    document.getElementById(
+      "v11-event-registration-filter"
+    );
+
   const eventsList =
     document.getElementById("v11-events-list");
 
@@ -549,6 +554,11 @@
         ? eventQualityFilter.value
         : "all";
 
+    const registrationFilter =
+      eventRegistrationFilter
+        ? eventRegistrationFilter.value
+        : "all";
+
     return events.filter((event) => {
       if (
         type !== "all" &&
@@ -586,6 +596,47 @@
         isPastEvent(event) === false
       ) {
         return false;
+      }
+
+      if (
+        registrationFilter !== "all"
+      ) {
+        const registrationStatus =
+          getV11RegistrationStatus(event);
+
+        if (
+          registrationFilter ===
+          "disabled"
+        ) {
+          if (
+            event.registration_enabled ===
+            true
+          ) {
+            return false;
+          }
+        } else if (
+          registrationFilter ===
+          "missing-link"
+        ) {
+          if (
+            event.registration_enabled !==
+              true ||
+            String(
+              event.registration_url || ""
+            ).trim()
+          ) {
+            return false;
+          }
+        } else {
+          if (
+            event.registration_enabled !==
+              true ||
+            registrationStatus?.key !==
+              registrationFilter
+          ) {
+            return false;
+          }
+        }
       }
 
       if (quality !== "all") {
@@ -790,6 +841,51 @@
       "#" + String(event.id || "");
 
     side.appendChild(statusBadge);
+
+    if (event.registration_enabled === true) {
+      const registrationStatus =
+        getV11RegistrationStatus(event);
+
+      const registrationBadge =
+        document.createElement("span");
+
+      registrationBadge.className =
+        "v11-registration-card-chip " +
+        "is-" +
+        (
+          registrationStatus?.key ||
+          "info"
+        );
+
+      registrationBadge.textContent =
+        registrationStatus?.shortLabel ||
+        registrationStatus?.label ||
+        "Inscriptions";
+
+      if (
+        !String(
+          event.registration_url || ""
+        ).trim() &&
+        [
+          "open",
+          "last-days"
+        ].includes(
+          registrationStatus?.key
+        )
+      ) {
+        registrationBadge.classList.add(
+          "is-missing-link"
+        );
+
+        registrationBadge.title =
+          "Inscriptions actives mais lien manquant";
+      }
+
+      side.appendChild(
+        registrationBadge
+      );
+    }
+
     side.appendChild(id);
 
     article.appendChild(main);
@@ -9028,7 +9124,8 @@ function openCommunityView(name) {
     eventSearch,
     eventStatusFilter,
     eventTypeFilter,
-    eventQualityFilter
+    eventQualityFilter,
+    eventRegistrationFilter
   ].forEach((control) => {
     if (!control) return;
 
