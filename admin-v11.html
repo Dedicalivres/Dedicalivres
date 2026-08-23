@@ -1387,23 +1387,45 @@
         <div class="v11-author-editorial-toolbar">
           <div>
             <p class="v11-section-label">
-              PRÉPARATION ÉDITORIALE
+              FILE ÉDITORIALE
             </p>
+
             <strong>
               Prioriser les fiches à finaliser
             </strong>
+
+            <span
+              id="v11-author-editorial-count"
+              class="v11-author-editorial-count"
+            >
+              —
+            </span>
           </div>
 
-          <label>
-            <span>État éditorial</span>
-            <select id="v11-author-editorial-filter">
-              <option value="all">Tous</option>
-              <option value="incomplete">À compléter</option>
-              <option value="almost">Presque prêts</option>
-              <option value="complete">Complets</option>
-              <option value="published">Publiés</option>
-            </select>
-          </label>
+          <div class="v11-author-editorial-controls">
+            <label>
+              <span>État éditorial</span>
+              <select id="v11-author-editorial-filter">
+                <option value="all">Tous</option>
+                <option value="incomplete">À compléter</option>
+                <option value="almost">Presque prêts</option>
+                <option value="complete">Complets</option>
+                <option value="published">Publiés</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Ordre</span>
+              <select id="v11-author-editorial-sort">
+                <option value="priority">
+                  Priorité éditoriale
+                </option>
+                <option value="name">
+                  Nom A → Z
+                </option>
+              </select>
+            </label>
+          </div>
         </div>
 
         <div id="v11-authors-list" class="v11-community-list"></div>
