@@ -52,18 +52,27 @@
             <span class="v11-section-label">DONNÉES</span>
             <h3>Exports Dédicalivres</h3>
             <p>
-              Consultation des fichiers déjà générés.
-              Aucune régénération distante n'est déclenchée depuis V11.
+              Consultation des fichiers générés et régénération authentifiée à la demande.
             </p>
           </div>
 
-          <button
-            id="v11-exports-refresh"
-            type="button"
-            class="v11-action-button"
-          >
-            Vérifier les exports
-          </button>
+          <div class="v11-export-head-actions">
+            <button
+              id="v11-exports-refresh"
+              type="button"
+              class="v11-action-button"
+            >
+              Vérifier les exports
+            </button>
+
+            <button
+              id="v11-exports-regenerate"
+              type="button"
+              class="v11-action-button"
+            >
+              Régénérer latest
+            </button>
+          </div>
         </div>
 
         <div class="v11-export-kpis">
@@ -112,10 +121,10 @@
         </div>
 
         <div class="v11-export-lock">
-          <strong>Régénération latest verrouillée dans V11</strong>
+          <strong>Régénération latest disponible</strong>
           <span>
-            Le POST administrateur vers le Worker sera réactivé
-            dans un lot séparé après validation.
+            La régénération utilise la session administrateur et nécessite
+            une confirmation explicite avant chaque exécution.
           </span>
         </div>
       </section>
@@ -132,7 +141,109 @@
     document
       .getElementById("v11-exports-refresh")
       ?.addEventListener("click", () => load(true));
+
+    document
+      .getElementById("v11-exports-regenerate")
+      ?.addEventListener("click", regenerate);
   }
+
+  async function regenerate() {
+    const status =
+      document.getElementById("v11-export-status");
+
+    const regenerateButton =
+      document.getElementById("v11-exports-regenerate");
+
+    const refreshButton =
+      document.getElementById("v11-exports-refresh");
+
+    if (
+      !window.confirm(
+        "Régénérer les exports latest de production ?"
+      )
+    ) {
+      return;
+    }
+
+    if (status) {
+      status.textContent = "Régénération des exports…";
+    }
+
+    if (regenerateButton) regenerateButton.disabled = true;
+    if (refreshButton) refreshButton.disabled = true;
+
+    try {
+      const client =
+        window.DEDICALIVRES_ADMIN_CONTEXT?.getClient?.() ||
+        window.DEDICALIVRES_SUPABASE_CLIENT;
+
+      if (!client) {
+        throw new Error("Client Supabase introuvable.");
+      }
+
+      const { data, error } =
+        await client.auth.getSession();
+
+      if (error) throw error;
+
+      const accessToken =
+        data?.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("Session admin introuvable.");
+      }
+
+      const workerBase =
+        getBaseUrl().replace(/\/exports$/i, "");
+
+      const response = await fetch(
+        workerBase + "/admin-regenerate",
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + accessToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            source: "dedicalivres-admin-v11"
+          }),
+          cache: "no-store"
+        }
+      );
+
+      const result =
+        await response.json().catch(() => null);
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(
+          result?.error ||
+          ("HTTP " + response.status)
+        );
+      }
+
+      if (status) {
+        status.textContent =
+          "Exports régénérés";
+      }
+
+      await load(true);
+    } catch (error) {
+      console.warn(
+        "Régénération exports V11 impossible",
+        error
+      );
+
+      if (status) {
+        status.textContent =
+          "Régénération impossible · " +
+          (error?.message || "Erreur");
+      }
+    } finally {
+      if (regenerateButton) regenerateButton.disabled = false;
+      if (refreshButton) refreshButton.disabled = false;
+    }
+  }
+
 
   async function getJson(name) {
     const response = await fetch(
