@@ -4844,3 +4844,93 @@ label.is-artist-author {
 .v11-author-enrichment-source:hover {
   background: rgba(83, 215, 232, .08);
 }
+
+
+/* ==========================================================
+   ADMIN V11.55 — READINESS AUTEURS
+   ========================================================== */
+
+.v11-author-editorial-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 18px 0 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 15px;
+  background: rgba(255,255,255,.025);
+}
+
+.v11-author-editorial-toolbar strong {
+  display: block;
+  margin-top: 3px;
+}
+
+.v11-author-editorial-toolbar label {
+  min-width: 190px;
+}
+
+.v11-author-card-readiness {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 7px 0 3px;
+}
+
+.v11-author-card-readiness strong {
+  color: #53d7e8;
+  font-size: .82rem;
+}
+
+.v11-author-card-readiness span {
+  opacity: .72;
+  font-size: .78rem;
+}
+
+.v11-author-enrichment-readiness {
+  grid-column: 1 / -1;
+  padding: 14px;
+  border-radius: 13px;
+  background: rgba(83, 215, 232, .05);
+  border: 1px solid rgba(83, 215, 232, .12);
+}
+
+.v11-author-enrichment-readiness > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.v11-author-enrichment-readiness p {
+  margin: 8px 0 0;
+  opacity: .74;
+  font-size: .82rem;
+}
+
+.v11-author-readiness-track {
+  height: 6px;
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+}
+
+.v11-author-readiness-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #53d7e8;
+  transition: width .2s ease;
+}
+
+@media (max-width: 760px) {
+  .v11-author-editorial-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .v11-author-editorial-toolbar label {
+    min-width: 0;
+  }
+}
