@@ -73,7 +73,7 @@
       );
     });
 
-  
+
   document
     .querySelectorAll("[data-quality-filter]")
     .forEach((card) => {
@@ -649,7 +649,7 @@
     return article;
   }
 
-  
+
   let selectedV11EventId = null;
   let v11EventActionRunning = false;
 
@@ -2426,7 +2426,7 @@ function renderEvents(events, status) {
     }
   }
 
-  
+
   let selectedV11CommunityKind = null;
   let selectedV11CommunityId = null;
   let v11CommunityActionRunning = false;
