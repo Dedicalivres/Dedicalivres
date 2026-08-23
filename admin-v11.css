@@ -3975,3 +3975,38 @@ body.v11-is-loading .v11-app {
     width: 100%;
   }
 }
+
+
+/* ==========================================================
+   ADMIN V11.44 — FILTRES COMMUNAUTÉ
+   ========================================================== */
+
+.v11-testimonial-filter[hidden] {
+  display: none !important;
+}
+
+.v11-community-toolbar label[hidden] {
+  display: none !important;
+}
+
+.v11-community-toolbar select {
+  min-width: 0;
+}
+
+.v11-testimonial-card {
+  transition:
+    border-color .16s ease,
+    background .16s ease,
+    transform .16s ease;
+}
+
+.v11-testimonial-card:hover {
+  border-color: rgba(81,215,232,.22);
+  background: rgba(13,25,36,.86);
+}
+
+@media (max-width: 760px) {
+  .v11-testimonial-filter {
+    min-width: 0;
+  }
+}
