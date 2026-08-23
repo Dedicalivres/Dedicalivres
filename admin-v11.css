@@ -4010,3 +4010,121 @@ body.v11-is-loading .v11-app {
     min-width: 0;
   }
 }
+
+
+/* ==========================================================
+   ADMIN V11.45 — ACTIONS RAPIDES TÉMOIGNAGES
+   ========================================================== */
+
+.v11-testimonial-card
+.v11-community-card-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v11-testimonial-quick-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.v11-testimonial-quick-action {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255,255,255,.025);
+  color: var(--text);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .025em;
+  cursor: pointer;
+  transition:
+    border-color .16s ease,
+    background .16s ease,
+    opacity .16s ease,
+    transform .16s ease;
+}
+
+.v11-testimonial-quick-action:hover {
+  transform: translateY(-1px);
+}
+
+.v11-testimonial-quick-action.is-validate {
+  color: #7ce3b7;
+  border-color: rgba(81,214,168,.25);
+  background: rgba(81,214,168,.055);
+}
+
+.v11-testimonial-quick-action.is-validate:hover {
+  border-color: rgba(81,214,168,.48);
+  background: rgba(81,214,168,.11);
+}
+
+.v11-testimonial-quick-action.is-reject {
+  color: #ff9b9b;
+  border-color: rgba(255,118,118,.22);
+  background: rgba(255,118,118,.045);
+}
+
+.v11-testimonial-quick-action.is-reject:hover {
+  border-color: rgba(255,118,118,.46);
+  background: rgba(255,118,118,.09);
+}
+
+.v11-testimonial-quick-action.is-pending {
+  color: #f4ca72;
+  border-color: rgba(244,202,114,.23);
+  background: rgba(244,202,114,.05);
+}
+
+.v11-testimonial-quick-action.is-pending:hover {
+  border-color: rgba(244,202,114,.46);
+  background: rgba(244,202,114,.10);
+}
+
+.v11-testimonial-quick-action:disabled,
+.v11-testimonial-quick-action[aria-busy="true"] {
+  opacity: .45;
+  cursor: wait;
+  transform: none;
+}
+
+@media (max-width: 900px) {
+  .v11-testimonial-card
+  .v11-community-card-side {
+    align-items: flex-end;
+    flex-direction: column;
+  }
+
+  .v11-testimonial-quick-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 560px) {
+  .v11-testimonial-card
+  .v11-community-card-side {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .v11-testimonial-quick-actions {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0,1fr));
+    width: 100%;
+  }
+
+  .v11-testimonial-quick-action {
+    width: 100%;
+  }
+
+  .v11-testimonial-card
+  .v11-community-detail-trigger {
+    width: 100%;
+  }
+}
