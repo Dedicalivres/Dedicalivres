@@ -2544,6 +2544,11 @@ function renderEvents(events, status) {
   const authorsEmpty =
     document.getElementById("v11-authors-empty");
 
+  const authorEditorialFilter =
+    document.getElementById(
+      "v11-author-editorial-filter"
+    );
+
   const testimonialsList =
     document.getElementById("v11-testimonials-list");
 
@@ -3071,6 +3076,7 @@ function renderEvents(events, status) {
 
       body.appendChild(badge);
       body.appendChild(title);
+      body.appendChild(readinessLine);
       body.appendChild(meta);
 
       const side = document.createElement("div");
@@ -3125,13 +3131,100 @@ function renderEvents(events, status) {
     }
   }
 
+
+  function getV11AuthorEditorialReadiness(author) {
+    const guide =
+      buildV11AuthorEnrichmentGuide(
+        author
+      );
+
+    const mandatory =
+      guide.fields.filter(
+        (field) =>
+          field.required === true
+      );
+
+    const completed =
+      mandatory.filter(
+        (field) =>
+          field.ok === true
+      );
+
+    const missing =
+      mandatory.filter(
+        (field) =>
+          field.ok !== true
+      );
+
+    const score =
+      mandatory.length
+        ? Math.round(
+            (
+              completed.length /
+              mandatory.length
+            ) * 100
+          )
+        : 0;
+
+    let state = "incomplete";
+
+    if (author?.published === true) {
+      state = "published";
+    } else if (score === 100) {
+      state = "complete";
+    } else if (score >= 80) {
+      state = "almost";
+    }
+
+    return {
+      score,
+      state,
+      completedCount:
+        completed.length,
+      totalCount:
+        mandatory.length,
+      missing,
+      nextPriority:
+        missing[0]?.label || null
+    };
+  }
+
+  function matchesV11AuthorEditorialFilter(
+    author
+  ) {
+    const filter =
+      authorEditorialFilter?.value ||
+      "all";
+
+    if (filter === "all") {
+      return true;
+    }
+
+    const readiness =
+      getV11AuthorEditorialReadiness(
+        author
+      );
+
+    if (filter === "published") {
+      return author.published === true;
+    }
+
+    return readiness.state === filter;
+  }
+
+
   function renderAuthors(items) {
     if (!authorsList) return;
 
     authorsList.replaceChildren();
 
     const visible = items.filter((item) => {
-      return !item.merged_into;
+      return (
+        !item.merged_into &&
+        matchesV11AuthorEditorialFilter(
+          item
+        )
+      );
     });
 
     updateV11CommunityOperationalSummary(
@@ -3163,6 +3256,40 @@ function renderEvents(events, status) {
         item.pseudo || "Auteur sans nom";
 
       const meta = document.createElement("p");
+
+      const readiness =
+        getV11AuthorEditorialReadiness(
+          item
+        );
+
+      const readinessLine =
+        document.createElement("div");
+
+      readinessLine.className =
+        "v11-author-card-readiness";
+
+      const readinessScore =
+        document.createElement("strong");
+
+      readinessScore.textContent =
+        readiness.score + "%";
+
+      const readinessText =
+        document.createElement("span");
+
+      readinessText.textContent =
+        readiness.nextPriority
+          ? "Priorité : " +
+            readiness.nextPriority
+          : "Critères obligatoires complets";
+
+      readinessLine.appendChild(
+        readinessScore
+      );
+
+      readinessLine.appendChild(
+        readinessText
+      );
 
       const parts = [];
 
@@ -4135,6 +4262,21 @@ function renderEvents(events, status) {
           subtree: true
         }
       );
+  }
+
+  // V11.55 author editorial filter
+  if (authorEditorialFilter) {
+    authorEditorialFilter.addEventListener(
+      "change",
+      () => {
+        const state =
+          context.getState();
+
+        renderAuthors(
+          state.community?.authors || []
+        );
+      }
+    );
   }
 
   if (authorEnrichmentEdit) {
@@ -6421,6 +6563,82 @@ function renderEvents(events, status) {
 
     authorEnrichmentStatus
       .replaceChildren();
+
+    const readiness =
+      getV11AuthorEditorialReadiness(
+        author
+      );
+
+    const readinessBox =
+      document.createElement("div");
+
+    readinessBox.className =
+      "v11-author-enrichment-readiness";
+
+    const readinessTop =
+      document.createElement("div");
+
+    const readinessLabel =
+      document.createElement("strong");
+
+    const readinessValue =
+      document.createElement("strong");
+
+    readinessLabel.textContent =
+      "Complétude éditoriale";
+
+    readinessValue.textContent =
+      readiness.score + "%";
+
+    readinessTop.appendChild(
+      readinessLabel
+    );
+
+    readinessTop.appendChild(
+      readinessValue
+    );
+
+    const readinessTrack =
+      document.createElement("div");
+
+    readinessTrack.className =
+      "v11-author-readiness-track";
+
+    const readinessProgress =
+      document.createElement("span");
+
+    readinessProgress.style.width =
+      readiness.score + "%";
+
+    readinessTrack.appendChild(
+      readinessProgress
+    );
+
+    const readinessNext =
+      document.createElement("p");
+
+    readinessNext.textContent =
+      readiness.nextPriority
+        ? "Prochaine priorité : " +
+          readiness.nextPriority
+        : "Tous les critères obligatoires sont renseignés.";
+
+    readinessBox.appendChild(
+      readinessTop
+    );
+
+    readinessBox.appendChild(
+      readinessTrack
+    );
+
+    readinessBox.appendChild(
+      readinessNext
+    );
+
+    authorEnrichmentStatus
+      .appendChild(
+        readinessBox
+      );
 
     guide.fields.forEach((field) => {
       const row =

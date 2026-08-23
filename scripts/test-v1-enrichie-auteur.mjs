@@ -1700,3 +1700,75 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "20L.1 : absence d’automatisation éditoriale explicitée"
   );
 }
+
+
+// 20M.1 — readiness éditorial auteur
+{
+  const source =
+    fs.readFileSync(
+      path.join(root, "admin-shell.js"),
+      "utf8"
+    );
+
+  const html =
+    fs.readFileSync(
+      path.join(root, "admin-v11.html"),
+      "utf8"
+    );
+
+  assert.ok(
+    html.includes(
+      'id="v11-author-editorial-filter"'
+    ),
+    "20M.1 : filtre éditorial présent"
+  );
+
+  assert.ok(
+    source.includes(
+      "function getV11AuthorEditorialReadiness"
+    ),
+    "20M.1 : calcul de complétude présent"
+  );
+
+  assert.ok(
+    source.includes(
+      "field.required === true"
+    ),
+    "20M.1 : score fondé uniquement sur les critères obligatoires"
+  );
+
+  assert.ok(
+    source.includes(
+      "readiness.score + \"%\""
+    ),
+    "20M.1 : score affiché"
+  );
+
+  assert.ok(
+    source.includes(
+      "Prochaine priorité : "
+    ),
+    "20M.1 : prochaine priorité éditoriale affichée"
+  );
+
+  assert.ok(
+    source.includes(
+      "matchesV11AuthorEditorialFilter"
+    ),
+    "20M.1 : filtre appliqué aux fiches"
+  );
+
+  assert.ok(
+    source.includes(
+      'state = "published"'
+    ),
+    "20M.1 : état publié distingué"
+  );
+
+  assert.ok(
+    source.includes(
+      'score >= 80'
+    ),
+    "20M.1 : seuil presque prêt présent"
+  );
+}
