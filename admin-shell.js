@@ -2653,6 +2653,80 @@ function renderEvents(events, status) {
 
       side.appendChild(statusBadge);
 
+      const quickActions =
+        document.createElement("div");
+
+      quickActions.className =
+        "v11-testimonial-quick-actions";
+
+      function addQuickAction(
+        action,
+        label,
+        className
+      ) {
+        const button =
+          document.createElement("button");
+
+        button.type = "button";
+
+        button.className =
+          "v11-testimonial-quick-action " +
+          className;
+
+        button.textContent = label;
+
+        button.dataset.testimonialQuickAction =
+          action;
+
+        button.dataset.testimonialQuickId =
+          String(item.id);
+
+        quickActions.appendChild(button);
+      }
+
+      if (
+        item.validated !== true &&
+        item.rejected !== true
+      ) {
+        addQuickAction(
+          "validate",
+          "✓ Valider",
+          "is-validate"
+        );
+
+        addQuickAction(
+          "reject",
+          "✕ Refuser",
+          "is-reject"
+        );
+      } else if (item.validated === true) {
+        addQuickAction(
+          "pending",
+          "↺ Attente",
+          "is-pending"
+        );
+
+        addQuickAction(
+          "reject",
+          "✕ Refuser",
+          "is-reject"
+        );
+      } else if (item.rejected === true) {
+        addQuickAction(
+          "pending",
+          "↺ Attente",
+          "is-pending"
+        );
+
+        addQuickAction(
+          "validate",
+          "✓ Valider",
+          "is-validate"
+        );
+      }
+
+      side.appendChild(quickActions);
+
       const detailButton =
         document.createElement("button");
 
@@ -4921,6 +4995,73 @@ function renderEvents(events, status) {
     }
   }
 
+  async function runV11QuickTestimonialAction(
+    testimonialId,
+    action,
+    trigger
+  ) {
+    if (
+      !testimonialId ||
+      ![
+        "validate",
+        "pending",
+        "reject"
+      ].includes(action)
+    ) {
+      return;
+    }
+
+    const state =
+      context.getState();
+
+    const item =
+      (
+        state.community
+          ?.testimonials || []
+      ).find(
+        (row) =>
+          String(row.id) ===
+          String(testimonialId)
+      );
+
+    if (!item) {
+      window.alert(
+        "Témoignage introuvable."
+      );
+      return;
+    }
+
+    selectedV11CommunityKind =
+      "testimonial";
+
+    selectedV11CommunityId =
+      item.id;
+
+    if (trigger) {
+      trigger.disabled = true;
+      trigger.setAttribute(
+        "aria-busy",
+        "true"
+      );
+    }
+
+    try {
+      await runV11CommunityAction(
+        action
+      );
+    } finally {
+      if (
+        trigger &&
+        trigger.isConnected
+      ) {
+        trigger.disabled = false;
+        trigger.removeAttribute(
+          "aria-busy"
+        );
+      }
+    }
+  }
+
   function communityValue(
     value,
     fallback = "Non renseigné"
@@ -5361,6 +5502,28 @@ function renderEvents(events, status) {
         if (item) {
           renderV11AuthorDetail(item);
         }
+
+        return;
+      }
+
+      const testimonialQuickButton =
+        clickEvent.target.closest(
+          "[data-testimonial-quick-action]"
+        );
+
+      if (testimonialQuickButton) {
+        clickEvent.preventDefault();
+        clickEvent.stopPropagation();
+
+        runV11QuickTestimonialAction(
+          testimonialQuickButton
+            .dataset
+            .testimonialQuickId,
+          testimonialQuickButton
+            .dataset
+            .testimonialQuickAction,
+          testimonialQuickButton
+        );
 
         return;
       }
