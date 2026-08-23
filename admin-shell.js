@@ -2121,6 +2121,19 @@ function renderEvents(events, status) {
   const testimonialsEmpty =
     document.getElementById("v11-testimonials-empty");
 
+
+  const testimonialTraceList =
+    document.getElementById(
+      "v11-testimonial-trace-list"
+    );
+
+  const testimonialTraceCount =
+    document.getElementById(
+      "v11-testimonial-trace-count"
+    );
+
+  const v11TestimonialModerationTrace = [];
+
   function syncV11CommunityToolbar(view) {
     const testimonialMode =
       view === "testimonials";
@@ -2437,6 +2450,190 @@ function renderEvents(events, status) {
     if (authorsEmpty) {
       authorsEmpty.hidden = visible.length !== 0;
     }
+  }
+
+  function formatV11TraceTime(date) {
+    try {
+      return new Intl.DateTimeFormat(
+        "fr-FR",
+        {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        }
+      ).format(date);
+    } catch {
+      return date.toLocaleTimeString();
+    }
+  }
+
+  function testimonialStatusLabel(item) {
+    if (item?.rejected === true) {
+      return "Rejeté";
+    }
+
+    if (item?.validated === true) {
+      return "Validé";
+    }
+
+    return "À traiter";
+  }
+
+  function renderV11TestimonialTrace() {
+    if (!testimonialTraceList) {
+      return;
+    }
+
+    testimonialTraceList.replaceChildren();
+
+    if (testimonialTraceCount) {
+      testimonialTraceCount.textContent =
+        String(
+          v11TestimonialModerationTrace.length
+        );
+
+      const count =
+        v11TestimonialModerationTrace.length;
+
+      const label =
+        testimonialTraceCount
+          .parentElement
+          ?.querySelector("span");
+
+      if (label) {
+        label.textContent =
+          count > 1
+            ? "actions"
+            : "action";
+      }
+    }
+
+    if (
+      v11TestimonialModerationTrace.length === 0
+    ) {
+      const empty =
+        document.createElement("p");
+
+      empty.className =
+        "v11-testimonial-trace-empty";
+
+      empty.textContent =
+        "Aucune action de modération effectuée pendant cette session.";
+
+      testimonialTraceList.appendChild(empty);
+
+      return;
+    }
+
+    v11TestimonialModerationTrace
+      .slice(0, 8)
+      .forEach((entry) => {
+        const row =
+          document.createElement("article");
+
+        row.className =
+          "v11-testimonial-trace-row";
+
+        const time =
+          document.createElement("time");
+
+        time.dateTime =
+          entry.date.toISOString();
+
+        time.textContent =
+          formatV11TraceTime(entry.date);
+
+        const content =
+          document.createElement("div");
+
+        content.className =
+          "v11-testimonial-trace-content";
+
+        const title =
+          document.createElement("strong");
+
+        title.textContent =
+          entry.pseudo ||
+          "Témoignage anonyme";
+
+        const meta =
+          document.createElement("span");
+
+        meta.textContent =
+          entry.actionLabel +
+          " → " +
+          entry.statusLabel;
+
+        content.appendChild(title);
+        content.appendChild(meta);
+
+        const chip =
+          document.createElement("span");
+
+        chip.className =
+          "v11-chip " +
+          (
+            entry.statusLabel === "Validé"
+              ? "ok"
+              : entry.statusLabel === "À traiter"
+                ? "warning"
+                : "neutral"
+          );
+
+        chip.textContent =
+          entry.statusLabel;
+
+        row.appendChild(time);
+        row.appendChild(content);
+        row.appendChild(chip);
+
+        testimonialTraceList.appendChild(row);
+      });
+  }
+
+  function addV11TestimonialTrace(
+    item,
+    action
+  ) {
+    if (!item) {
+      return;
+    }
+
+    const actionLabel =
+      action === "validate"
+        ? "Validation"
+        : action === "pending"
+          ? "Remise en attente"
+          : "Refus";
+
+    const statusLabel =
+      action === "validate"
+        ? "Validé"
+        : action === "pending"
+          ? "À traiter"
+          : "Rejeté";
+
+    v11TestimonialModerationTrace.unshift({
+      id: String(item.id),
+      pseudo:
+        item.pseudo ||
+        item.event_title ||
+        "Témoignage",
+      action,
+      actionLabel,
+      statusLabel,
+      date: new Date()
+    });
+
+    if (
+      v11TestimonialModerationTrace.length >
+      25
+    ) {
+      v11TestimonialModerationTrace.length =
+        25;
+    }
+
+    renderV11TestimonialTrace();
   }
 
   function updateTestimonialFilterSummary(items) {
@@ -4966,6 +5163,16 @@ function renderEvents(events, status) {
         }
       }
 
+      if (
+        selectedV11CommunityKind ===
+        "testimonial"
+      ) {
+        addV11TestimonialTrace(
+          item,
+          action
+        );
+      }
+
       v11CommunityMessage(
         action === "validate"
           ? "Élément validé."
@@ -5330,7 +5537,7 @@ function renderEvents(events, status) {
       );
 
       addCommunityDetailRow(
-        "Statut",
+        "Statut actuel",
         item.rejected === true
           ? "Refusé"
           : item.validated === true
@@ -5339,8 +5546,13 @@ function renderEvents(events, status) {
       );
 
       addCommunityDetailRow(
-        "Créé le",
+        "Soumis le",
         item.created_at
+      );
+
+      addCommunityDetailRow(
+        "Traçabilité",
+        "Journal de session Admin V11"
       );
     }
 
