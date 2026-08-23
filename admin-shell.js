@@ -172,17 +172,40 @@
         toolLabels[name] || "Outil";
     }
 
-    if (toolPlaceholder) {
-      toolPlaceholder.textContent =
-        toolDescriptions[name] ||
-        "Module en préparation.";
-    }
+    const slotMap = {
+      watch: "tab-watch",
+      exports: "tab-exports",
+      social: "tab-social",
+      maintenance: "v11-maintenance-panel"
+    };
+
+    let activeSlot = null;
 
     document
       .querySelectorAll(".v11-legacy-slot")
       .forEach((slot) => {
         slot.hidden = true;
       });
+
+    const targetId = slotMap[name];
+
+    if (targetId) {
+      activeSlot =
+        document.getElementById(targetId);
+
+      if (activeSlot) {
+        activeSlot.hidden = false;
+      }
+    }
+
+    if (toolPlaceholder) {
+      toolPlaceholder.hidden =
+        Boolean(activeSlot);
+
+      toolPlaceholder.textContent =
+        toolDescriptions[name] ||
+        "Module en préparation.";
+    }
 
     toolWorkspace.scrollIntoView({
       behavior: "smooth",
