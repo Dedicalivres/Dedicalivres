@@ -2663,6 +2663,29 @@ function renderEvents(events, status) {
       "v11-author-edit-avatar"
     );
 
+  const authorEditAvatarFile =
+    document.getElementById(
+      "v11-author-edit-avatar-file"
+    );
+
+  const authorEditAvatarPreview =
+    document.getElementById(
+      "v11-author-edit-avatar-preview"
+    );
+
+  const authorEditAvatarPreviewImage =
+    document.getElementById(
+      "v11-author-edit-avatar-preview-image"
+    );
+
+  const authorEditAvatarStatus =
+    document.getElementById(
+      "v11-author-edit-avatar-status"
+    );
+
+  let v11SelectedAuthorPortrait = null;
+  let v11AuthorPortraitObjectUrl = "";
+
   const authorEditBio =
     document.getElementById(
       "v11-author-edit-bio"
@@ -2697,6 +2720,13 @@ function renderEvents(events, status) {
     );
   }
 
+  if (authorPublishButton) {
+    authorPublishButton.addEventListener(
+      "click",
+      toggleV11AuthorPublished
+    );
+  }
+
   if (authorEditButton) {
     authorEditButton.addEventListener(
       "click",
@@ -2706,6 +2736,48 @@ function renderEvents(events, status) {
 
         if (item) {
           openV11AuthorEditor(item);
+        }
+      }
+    );
+  }
+
+  if (authorEditAvatarFile) {
+    authorEditAvatarFile.addEventListener(
+      "change",
+      function () {
+        const file =
+          authorEditAvatarFile.files?.[0] ||
+          null;
+
+        if (!file) {
+          resetV11AuthorPortraitSelection();
+          previewV11AuthorPortrait(
+            null,
+            authorEditAvatar?.value || ""
+          );
+          return;
+        }
+
+        try {
+          validateV11AuthorPortrait(file);
+
+          v11SelectedAuthorPortrait = file;
+
+          previewV11AuthorPortrait(file);
+
+          if (authorEditAvatarStatus) {
+            authorEditAvatarStatus.textContent =
+              "Portrait sélectionné · " +
+              Math.round(file.size / 1024) +
+              " Ko · envoi lors de l’enregistrement.";
+          }
+        } catch (error) {
+          resetV11AuthorPortraitSelection();
+
+          window.alert(
+            error?.message ||
+            "Portrait invalide."
+          );
         }
       }
     );
@@ -3193,6 +3265,192 @@ function renderEvents(events, status) {
     };
   }
 
+  function resetV11AuthorPortraitSelection() {
+    v11SelectedAuthorPortrait = null;
+
+    if (v11AuthorPortraitObjectUrl) {
+      URL.revokeObjectURL(
+        v11AuthorPortraitObjectUrl
+      );
+      v11AuthorPortraitObjectUrl = "";
+    }
+
+    if (authorEditAvatarFile) {
+      authorEditAvatarFile.value = "";
+    }
+  }
+
+  function previewV11AuthorPortrait(file, existingUrl = "") {
+    if (!authorEditAvatarPreview ||
+        !authorEditAvatarPreviewImage) {
+      return;
+    }
+
+    if (v11AuthorPortraitObjectUrl) {
+      URL.revokeObjectURL(
+        v11AuthorPortraitObjectUrl
+      );
+      v11AuthorPortraitObjectUrl = "";
+    }
+
+    if (file) {
+      v11AuthorPortraitObjectUrl =
+        URL.createObjectURL(file);
+
+      authorEditAvatarPreviewImage.src =
+        v11AuthorPortraitObjectUrl;
+
+      authorEditAvatarPreview.hidden = false;
+      return;
+    }
+
+    if (existingUrl) {
+      authorEditAvatarPreviewImage.src =
+        existingUrl;
+
+      authorEditAvatarPreview.hidden = false;
+      return;
+    }
+
+    authorEditAvatarPreviewImage.removeAttribute(
+      "src"
+    );
+
+    authorEditAvatarPreview.hidden = true;
+  }
+
+  function validateV11AuthorPortrait(file) {
+    if (!(file instanceof File) || !file.size) {
+      throw new Error(
+        "Aucun portrait sélectionné."
+      );
+    }
+
+    const allowedTypes = new Set([
+      "image/jpeg",
+      "image/png",
+      "image/webp"
+    ]);
+
+    if (!allowedTypes.has(file.type)) {
+      throw new Error(
+        "Format portrait non accepté. Utilise JPG, PNG ou WEBP."
+      );
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+      throw new Error(
+        "Le portrait dépasse 4 Mo."
+      );
+    }
+  }
+
+  async function uploadV11AuthorPortrait(
+    file,
+    identityKey
+  ) {
+    validateV11AuthorPortrait(file);
+
+    const config =
+      window.DEDICALIVRES_CONFIG || {};
+
+    const endpoint =
+      String(
+        config.imageUploadEndpoint || ""
+      ).trim();
+
+    if (
+      config.imageUploadProvider !== "r2" ||
+      !endpoint.startsWith("http")
+    ) {
+      throw new Error(
+        "Upload R2 indisponible."
+      );
+    }
+
+    const formData = new FormData();
+
+    formData.append(
+      "file",
+      file,
+      file.name || "portrait-auteur.jpg"
+    );
+
+    formData.append(
+      "folder",
+      "author-portraits"
+    );
+
+    formData.append(
+      "file_name",
+      file.name || "portrait-auteur.jpg"
+    );
+
+    formData.append(
+      "identity_key",
+      identityKey || "auteur"
+    );
+
+    const controller =
+      new AbortController();
+
+    const timeoutId =
+      window.setTimeout(
+        function () {
+          controller.abort();
+        },
+        20000
+      );
+
+    let response;
+
+    try {
+      response = await fetch(
+        endpoint,
+        {
+          method: "POST",
+          body: formData,
+          signal: controller.signal
+        }
+      );
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        throw new Error(
+          "L’envoi du portrait a dépassé 20 secondes. Aucune modification de la fiche auteur n’a été enregistrée."
+        );
+      }
+
+      throw new Error(
+        "Connexion au stockage du portrait impossible : " +
+        (error?.message || "erreur réseau")
+      );
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+
+    let payload = null;
+
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (
+      !response.ok ||
+      !payload?.url
+    ) {
+      throw new Error(
+        payload?.error ||
+        "Upload R2 impossible (" +
+        response.status +
+        ")."
+      );
+    }
+
+    return payload.url;
+  }
+
   async function checkV11AuthorSlug(
     client,
     author,
@@ -3335,6 +3593,42 @@ function renderEvents(events, status) {
     }
 
     try {
+      if (v11SelectedAuthorPortrait) {
+        if (authorEditSave) {
+          authorEditSave.textContent =
+            "Envoi du portrait…";
+        }
+
+        if (authorEditAvatarStatus) {
+          authorEditAvatarStatus.textContent =
+            "Envoi du portrait vers Dédicalivres…";
+        }
+
+        const portraitUrl =
+          await uploadV11AuthorPortrait(
+            v11SelectedAuthorPortrait,
+            payload.slug || author.slug || "auteur"
+          );
+
+        payload.avatar_url =
+          portraitUrl;
+
+        if (authorEditAvatar) {
+          authorEditAvatar.value =
+            portraitUrl;
+        }
+
+        if (authorEditAvatarStatus) {
+          authorEditAvatarStatus.textContent =
+            "Portrait envoyé · enregistrement de la fiche…";
+        }
+
+        if (authorEditSave) {
+          authorEditSave.textContent =
+            "Enregistrement…";
+        }
+      }
+
       const response =
         await client
           .from("authors")
@@ -3512,6 +3806,112 @@ function renderEvents(events, status) {
         !duplicate &&
         !author?.merged_into
     };
+  }
+
+  async function toggleV11AuthorPublished() {
+    if (v11CommunityActionRunning) return;
+
+    const state = context.getState();
+    const author = getSelectedV11Author();
+    const client = context.getClient();
+
+    if (state.authenticated !== true || !author || !client) {
+      window.alert("Session ou fiche auteur indisponible.");
+      return;
+    }
+
+    if (author.merged_into) {
+      window.alert("Cette fiche est déjà fusionnée.");
+      return;
+    }
+
+    const publish = author.published !== true;
+
+    if (publish) {
+      const canPublish =
+        author.publication_ready === true &&
+        author.validated === true &&
+        !author.merged_into &&
+        author.published !== true;
+
+      if (!canPublish) {
+        window.alert(
+          "Cette fiche ne remplit pas les conditions de publication."
+        );
+        return;
+      }
+    }
+
+    const authorName =
+      String(author.pseudo || "cette fiche auteur").trim();
+
+    if (!window.confirm(
+      publish
+        ? "PUBLICATION PUBLIQUE\n\n" +
+          authorName +
+          "\n\nConfirmer la publication de cette fiche auteur ?"
+        : "DÉPUBLICATION\n\n" +
+          authorName +
+          "\n\nConfirmer la dépublication de cette fiche auteur ?"
+    )) return;
+
+    v11CommunityActionRunning = true;
+    authorPublishButton.disabled = true;
+    authorPublishButton.textContent =
+      publish ? "Publication…" : "Dépublication…";
+
+    try {
+      let payload;
+
+      if (publish) {
+        const auth = await client.auth.getUser();
+        const adminId = auth.data?.user?.id;
+
+        if (auth.error || !adminId) {
+          throw new Error("Administrateur non identifié.");
+        }
+
+        payload = {
+          published: true,
+          published_at: new Date().toISOString(),
+          published_by: adminId,
+          updated_at: new Date().toISOString()
+        };
+      } else {
+        payload = {
+          published: false,
+          published_at: null,
+          published_by: null,
+          updated_at: new Date().toISOString()
+        };
+      }
+
+      const result = await client
+        .from("authors")
+        .update(payload)
+        .eq("id", author.id);
+
+      if (result.error) throw result.error;
+
+      await context.refresh();
+
+      const refreshed = getSelectedV11Author();
+      if (refreshed) renderV11AuthorDetail(refreshed);
+
+      v11CommunityMessage(
+        publish
+          ? "Fiche auteur publiée."
+          : "Fiche auteur dépubliée."
+      );
+    } catch (error) {
+      console.error("V11 publication auteur", error);
+      window.alert(
+        error?.message ||
+        "Modification de publication impossible."
+      );
+    } finally {
+      v11CommunityActionRunning = false;
+    }
   }
 
   async function toggleV11AuthorReady() {
@@ -3760,12 +4160,28 @@ function renderEvents(events, status) {
     }
 
     if (authorPublishButton) {
+      const canPublish =
+        item.publication_ready === true &&
+        item.validated === true &&
+        !item.merged_into &&
+        item.published !== true;
+
       authorPublishButton.textContent =
         item.published === true
           ? "Dépublier"
           : "Publier";
 
-      authorPublishButton.disabled = true;
+      authorPublishButton.disabled =
+        item.published === true
+          ? false
+          : !canPublish;
+
+      authorPublishButton.title =
+        item.published === true
+          ? "Dépublier cette fiche auteur"
+          : canPublish
+            ? "Publier cette fiche auteur"
+            : "Publication indisponible : fiche non prête ou non validée";
     }
 
     if (authorMergeButton) {
@@ -3836,9 +4252,23 @@ function renderEvents(events, status) {
         item.shop_url || "";
     }
 
+    resetV11AuthorPortraitSelection();
+
     if (authorEditAvatar) {
       authorEditAvatar.value =
         item.avatar_url || "";
+    }
+
+    previewV11AuthorPortrait(
+      null,
+      item.avatar_url || ""
+    );
+
+    if (authorEditAvatarStatus) {
+      authorEditAvatarStatus.textContent =
+        item.avatar_url
+          ? "Portrait actuel chargé."
+          : "Aucun portrait enregistré.";
     }
 
     if (authorEditBio) {
