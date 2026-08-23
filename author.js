@@ -115,6 +115,13 @@
 
     configureNavigation(false);
 
+    if (
+      config.authorPublicPublishingEnabled !== true
+    ) {
+      renderPublicNotFound();
+      return;
+    }
+
     const author = await loadAuthor(slug);
 
     const isPubliclyAvailable =

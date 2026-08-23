@@ -3954,6 +3954,11 @@ function renderEvents(events, status) {
       "v11-author-detail-close"
     );
 
+  const authorPreviewLink =
+    document.getElementById(
+      "v11-author-preview"
+    );
+
   const authorEditButton =
     document.getElementById(
       "v11-author-edit"
@@ -5134,10 +5139,13 @@ function renderEvents(events, status) {
       ["Photo", Boolean(photo)],
       ["Type", ["author","artist_author","hybrid"].includes(author?.profile_type)],
       ["Biographie", Boolean(String(author?.bio || "").trim())],
+      ["Historique", valid.length > 0]
+    ];
+
+    const optionalChecks = [
       ["Localisation", Boolean(String(author?.location || "").trim())],
       ["Vitrine", Boolean(String(website || "").trim())],
-      ["Boutique", Boolean(String(shop || "").trim())],
-      ["Historique", valid.length > 0]
+      ["Boutique", Boolean(String(shop || "").trim())]
     ];
 
     const authors = state.community?.authors || [];
@@ -5156,11 +5164,20 @@ function renderEvents(events, status) {
 
     const completed = checks.filter(([, ok]) => ok).length;
 
+    const optionalCompleted =
+      optionalChecks.filter(([, ok]) => ok).length;
+
     return {
       checks,
+      optionalChecks,
       completed,
       total: checks.length,
-      percent: Math.round(completed / checks.length * 100),
+      percent:
+        Math.round(
+          completed / checks.length * 100
+        ),
+      optionalCompleted,
+      optionalTotal: optionalChecks.length,
       duplicate,
       ready:
         completed === checks.length &&
@@ -5187,6 +5204,19 @@ function renderEvents(events, status) {
     }
 
     const publish = author.published !== true;
+
+    if (
+      publish &&
+      window.DEDICALIVRES_CONFIG
+        ?.authorPublicPublishingEnabled !== true
+    ) {
+      window.alert(
+        "ESPACE AUTEUR EN PRÉPARATION\n\n" +
+        "La publication publique est volontairement désactivée. " +
+        "Utilise « Aperçu interne » pour contrôler la fiche."
+      );
+      return;
+    }
 
     if (publish) {
       const canPublish =
@@ -5489,6 +5519,23 @@ function renderEvents(events, status) {
       item.created_at
     );
 
+    if (authorPreviewLink) {
+      const previewSlug =
+        String(item.slug || "").trim();
+
+      if (previewSlug) {
+        authorPreviewLink.href =
+          "author.html?slug=" +
+          encodeURIComponent(previewSlug) +
+          "&preview=admin";
+
+        authorPreviewLink.hidden = false;
+      } else {
+        authorPreviewLink.hidden = true;
+        authorPreviewLink.removeAttribute("href");
+      }
+    }
+
     if (authorReadyButton) {
       const checklist = v11AuthorReadyChecklist(item);
 
@@ -5508,10 +5555,16 @@ function renderEvents(events, status) {
         checklist.percent + "%";
 
       addV11AuthorDetailRow(
-        "Préparation",
+        "Préparation obligatoire",
         checklist.completed + "/" +
         checklist.total + " · " +
         checklist.percent + "%"
+      );
+
+      addV11AuthorDetailRow(
+        "Enrichissements facultatifs",
+        checklist.optionalCompleted + "/" +
+        checklist.optionalTotal
       );
 
       addV11AuthorDetailRow(
@@ -5521,7 +5574,12 @@ function renderEvents(events, status) {
     }
 
     if (authorPublishButton) {
+      const publicPublishingEnabled =
+        window.DEDICALIVRES_CONFIG
+          ?.authorPublicPublishingEnabled === true;
+
       const canPublish =
+        publicPublishingEnabled &&
         item.publication_ready === true &&
         item.validated === true &&
         !item.merged_into &&
@@ -5540,9 +5598,11 @@ function renderEvents(events, status) {
       authorPublishButton.title =
         item.published === true
           ? "Dépublier cette fiche auteur"
-          : canPublish
-            ? "Publier cette fiche auteur"
-            : "Publication indisponible : fiche non prête ou non validée";
+          : !publicPublishingEnabled
+            ? "Publication publique désactivée — aperçu interne disponible"
+            : canPublish
+              ? "Publier cette fiche auteur"
+              : "Publication indisponible : fiche non prête ou non validée";
     }
 
     if (authorMergeButton) {

@@ -4577,3 +4577,19 @@ label.is-artist-author {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ==========================================================
+   ADMIN V11.52 — ESPACE AUTEUR STAGING
+   ========================================================== */
+
+#v11-author-preview:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#v11-author-publish:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+}
