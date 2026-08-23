@@ -4128,3 +4128,123 @@ body.v11-is-loading .v11-app {
     width: 100%;
   }
 }
+
+
+/* ==========================================================
+   ADMIN V11.46 — JOURNAL MODERATION TEMOIGNAGES
+   ========================================================== */
+
+.v11-testimonial-trace {
+  margin-bottom: 14px;
+  padding: 15px;
+  border: 1px solid rgba(81,215,232,.15);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(81,215,232,.025),
+      transparent 55%
+    ),
+    rgba(13,25,36,.66);
+}
+
+.v11-testimonial-trace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.v11-testimonial-trace-head h3 {
+  margin: 5px 0 0;
+  font-size: 14px;
+}
+
+.v11-testimonial-trace-counter {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 7px 10px;
+  border: 1px solid rgba(81,215,232,.13);
+  border-radius: 10px;
+  background: rgba(81,215,232,.035);
+}
+
+.v11-testimonial-trace-counter strong {
+  color: var(--cyan);
+  font-size: 17px;
+}
+
+.v11-testimonial-trace-counter span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.v11-testimonial-trace-warning {
+  margin: 10px 0 12px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.v11-testimonial-trace-list {
+  display: grid;
+  gap: 6px;
+}
+
+.v11-testimonial-trace-empty {
+  margin: 0;
+  padding: 10px 11px;
+  border: 1px dashed rgba(255,255,255,.08);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.v11-testimonial-trace-row {
+  display: grid;
+  grid-template-columns:
+    64px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 9px;
+  background: rgba(255,255,255,.018);
+}
+
+.v11-testimonial-trace-row time {
+  color: var(--cyan);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.v11-testimonial-trace-content {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.v11-testimonial-trace-content strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.v11-testimonial-trace-content span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+@media (max-width: 560px) {
+  .v11-testimonial-trace-row {
+    grid-template-columns:
+      52px minmax(0,1fr);
+  }
+
+  .v11-testimonial-trace-row
+  > .v11-chip {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
