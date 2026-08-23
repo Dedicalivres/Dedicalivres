@@ -2996,6 +2996,30 @@ function renderEvents(events, status) {
     }
   }
 
+  function formatV11ModerationDate(value) {
+    if (!value) {
+      return "Jamais";
+    }
+
+    try {
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return String(value);
+      }
+
+      return new Intl.DateTimeFormat(
+        "fr-FR",
+        {
+          dateStyle: "short",
+          timeStyle: "short"
+        }
+      ).format(date);
+    } catch {
+      return String(value);
+    }
+  }
+
   function testimonialStatusLabel(item) {
     if (item?.rejected === true) {
       return "Rejeté";
@@ -5610,20 +5634,50 @@ function renderEvents(events, status) {
 
     let payload;
 
+    let testimonialModerationMeta = null;
+
+    if (
+      selectedV11CommunityKind ===
+      "testimonial"
+    ) {
+      const auth =
+        await client.auth.getUser();
+
+      const adminId =
+        auth.data?.user?.id || null;
+
+      if (auth.error || !adminId) {
+        window.alert(
+          "Administrateur non identifié. Aucune modération enregistrée."
+        );
+        return;
+      }
+
+      testimonialModerationMeta = {
+        moderated_at:
+          new Date().toISOString(),
+        moderated_by:
+          adminId
+      };
+    }
+
     if (action === "validate") {
       payload = {
         validated: true,
-        rejected: false
+        rejected: false,
+        ...(testimonialModerationMeta || {})
       };
     } else if (action === "pending") {
       payload = {
         validated: false,
-        rejected: false
+        rejected: false,
+        ...(testimonialModerationMeta || {})
       };
     } else if (action === "reject") {
       payload = {
         validated: false,
-        rejected: true
+        rejected: true,
+        ...(testimonialModerationMeta || {})
       };
     } else {
       return;
@@ -5677,7 +5731,10 @@ function renderEvents(events, status) {
         "presence"
       ) {
         const presencePayload = {
-          ...payload,
+          validated:
+            payload.validated,
+          rejected:
+            payload.rejected,
           updated_at:
             new Date().toISOString()
         };
@@ -5711,7 +5768,12 @@ function renderEvents(events, status) {
               .from(
                 "event_authors_presence"
               )
-              .update(payload)
+              .update({
+                validated:
+                  payload.validated,
+                rejected:
+                  payload.rejected
+              })
               .eq("id", item.id);
         }
 
@@ -6108,8 +6170,23 @@ function renderEvents(events, status) {
       );
 
       addCommunityDetailRow(
+        "Dernière modération",
+        formatV11ModerationDate(
+          item.moderated_at
+        )
+      );
+
+      addCommunityDetailRow(
+        "Modéré par",
+        item.moderated_by ||
+        "Non renseigné"
+      );
+
+      addCommunityDetailRow(
         "Traçabilité",
-        "Journal de session Admin V11"
+        item.moderated_at
+          ? "Persistée dans Supabase"
+          : "Aucune modération persistée"
       );
     }
 
