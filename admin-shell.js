@@ -229,6 +229,38 @@
     });
   }
 
+  // V11.44 community toolbar
+  document
+    .querySelectorAll("[data-community-view]")
+    .forEach((button) => {
+      button.addEventListener(
+        "click",
+        () => {
+          const view =
+            button.dataset.communityView;
+
+          syncV11CommunityToolbar(view);
+
+          const state =
+            context.getState();
+
+          if (view === "testimonials") {
+            renderTestimonials(
+              state.community?.testimonials || []
+            );
+          }
+
+          if (view === "presence") {
+            renderPresences(
+              state.community?.presences || []
+            );
+          }
+        }
+      );
+    });
+
+  syncV11CommunityToolbar("presence");
+
   buttons.forEach((button) => {
       button.classList.toggle(
         "is-active",
@@ -2055,6 +2087,22 @@ function renderEvents(events, status) {
   const presenceType =
     document.getElementById("v11-presence-type");
 
+  const testimonialPhotoFilter =
+    document.getElementById(
+      "v11-testimonial-photo"
+    );
+
+  const testimonialPhotoField =
+    document.getElementById(
+      "v11-testimonial-photo-field"
+    );
+
+  const presenceTypeField =
+    presenceType
+      ? presenceType.closest("label")
+      : null;
+
+
   const presenceList =
     document.getElementById("v11-presence-list");
 
@@ -2072,6 +2120,51 @@ function renderEvents(events, status) {
 
   const testimonialsEmpty =
     document.getElementById("v11-testimonials-empty");
+
+  function syncV11CommunityToolbar(view) {
+    const testimonialMode =
+      view === "testimonials";
+
+    if (testimonialPhotoField) {
+      testimonialPhotoField.hidden =
+        !testimonialMode;
+    }
+
+    if (presenceTypeField) {
+      presenceTypeField.hidden =
+        testimonialMode;
+    }
+
+    if (presenceSearch) {
+      presenceSearch.placeholder =
+        testimonialMode
+          ? "Pseudo, événement, message..."
+          : "Nom, maison d’édition, événement...";
+    }
+
+    if (
+      testimonialMode &&
+      presenceStatus &&
+      presenceStatus.value === "pending"
+    ) {
+      const state =
+        context.getState();
+
+      const testimonials =
+        state.community?.testimonials || [];
+
+      const pending =
+        testimonials.some(
+          (item) =>
+            item.validated !== true &&
+            item.rejected !== true
+        );
+
+      if (!pending) {
+        presenceStatus.value = "all";
+      }
+    }
+  }
 
   function profileLabel(type) {
     if (type === "artist_author") return "Artiste-auteur";
@@ -2346,12 +2439,151 @@ function renderEvents(events, status) {
     }
   }
 
+  function updateTestimonialFilterSummary(items) {
+    const source =
+      Array.isArray(items)
+        ? items
+        : [];
+
+    const pending =
+      source.filter(
+        (item) =>
+          item.validated !== true &&
+          item.rejected !== true
+      ).length;
+
+    const validated =
+      source.filter(
+        (item) =>
+          item.validated === true &&
+          item.rejected !== true
+      ).length;
+
+    const rejected =
+      source.filter(
+        (item) =>
+          item.rejected === true
+      ).length;
+
+    const totalNode =
+      document.querySelector(
+        '[data-admin-bind="testimonials-total"]'
+      );
+
+    if (totalNode) {
+      totalNode.textContent =
+        String(source.length);
+
+      totalNode.title =
+        pending +
+        " à traiter · " +
+        validated +
+        " validés · " +
+        rejected +
+        " rejetés";
+    }
+  }
+
   function renderTestimonials(items) {
     if (!testimonialsList) return;
 
+    updateTestimonialFilterSummary(items);
+
+    const testimonialQuery =
+      normalize(
+        presenceSearch
+          ? presenceSearch.value
+          : ""
+      );
+
+    const testimonialStatus =
+      presenceStatus
+        ? presenceStatus.value
+        : "all";
+
+    const testimonialPhoto =
+      testimonialPhotoFilter
+        ? testimonialPhotoFilter.value
+        : "all";
+
+    const filtered =
+      items
+        .filter((item) => {
+          if (
+            testimonialStatus === "pending" &&
+            (
+              item.validated === true ||
+              item.rejected === true
+            )
+          ) {
+            return false;
+          }
+
+          if (
+            testimonialStatus === "validated" &&
+            (
+              item.validated !== true ||
+              item.rejected === true
+            )
+          ) {
+            return false;
+          }
+
+          if (
+            testimonialStatus === "rejected" &&
+            item.rejected !== true
+          ) {
+            return false;
+          }
+
+          if (
+            testimonialPhoto === "with-photo" &&
+            !String(item.image_url || "").trim()
+          ) {
+            return false;
+          }
+
+          if (
+            testimonialPhoto === "without-photo" &&
+            String(item.image_url || "").trim()
+          ) {
+            return false;
+          }
+
+          if (testimonialQuery) {
+            const haystack =
+              normalize(
+                [
+                  item.pseudo,
+                  item.event_title,
+                  item.message
+                ].join(" ")
+              );
+
+            if (
+              !haystack.includes(
+                testimonialQuery
+              )
+            ) {
+              return false;
+            }
+          }
+
+          return true;
+        })
+        .sort((a, b) => {
+          const aDate =
+            Date.parse(a.created_at || "") || 0;
+
+          const bDate =
+            Date.parse(b.created_at || "") || 0;
+
+          return bDate - aDate;
+        });
+
     testimonialsList.replaceChildren();
 
-    items.forEach((item) => {
+    filtered.forEach((item) => {
       const card = document.createElement("article");
       card.className =
         "v11-community-card v11-testimonial-card";
@@ -2443,7 +2675,15 @@ function renderEvents(events, status) {
     });
 
     if (testimonialsEmpty) {
-      testimonialsEmpty.hidden = items.length !== 0;
+      testimonialsEmpty.hidden =
+        filtered.length !== 0;
+
+      if (filtered.length === 0) {
+        testimonialsEmpty.textContent =
+          items.length === 0
+            ? "Aucun témoignage disponible."
+            : "Aucun témoignage ne correspond aux filtres.";
+      }
     }
   }
 
@@ -5543,6 +5783,50 @@ function openCommunityView(name) {
           state.events || [],
           state.status
         );
+      }
+    );
+  });
+
+  // V11.44 reactive community filters
+  [
+    presenceSearch,
+    presenceStatus,
+    presenceType,
+    testimonialPhotoFilter
+  ].forEach((control) => {
+    if (!control) return;
+
+    const eventName =
+      control.tagName === "INPUT"
+        ? "input"
+        : "change";
+
+    control.addEventListener(
+      eventName,
+      () => {
+        const state =
+          context.getState();
+
+        const activeTab =
+          document.querySelector(
+            "[data-community-view].is-active"
+          );
+
+        const view =
+          activeTab?.dataset.communityView ||
+          "presence";
+
+        if (view === "testimonials") {
+          renderTestimonials(
+            state.community?.testimonials || []
+          );
+        }
+
+        if (view === "presence") {
+          renderPresences(
+            state.community?.presences || []
+          );
+        }
       }
     );
   });
