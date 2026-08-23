@@ -269,3 +269,82 @@ assert.ok(
 console.log(
   "Timeline inscriptions : statuts, profils, éligibilité et structure validés."
 );
+
+
+// V11.57 — pilotage inscriptions admin
+{
+  const shell =
+    fs.readFileSync(
+      "admin-shell.js",
+      "utf8"
+    );
+
+  const html =
+    fs.readFileSync(
+      "admin-v11.html",
+      "utf8"
+    );
+
+  assert.ok(
+    html.includes(
+      'id="v11-event-registration-filter"'
+    ),
+    "V11.57 : filtre inscriptions présent"
+  );
+
+  assert.ok(
+    html.includes(
+      '<option value="open">Ouvertes</option>'
+    ),
+    "V11.57 : filtre ouvert présent"
+  );
+
+  assert.ok(
+    html.includes(
+      '<option value="last-days">Derniers jours</option>'
+    ),
+    "V11.57 : filtre derniers jours présent"
+  );
+
+  assert.ok(
+    html.includes(
+      '<option value="missing-link">Actives sans lien</option>'
+    ),
+    "V11.57 : filtre lien manquant présent"
+  );
+
+  assert.ok(
+    shell.includes(
+      "eventRegistrationFilter"
+    ),
+    "V11.57 : filtre connecté au moteur"
+  );
+
+  assert.ok(
+    shell.includes(
+      'registrationFilter ===\n          "missing-link"'
+    ),
+    "V11.57 : détection inscriptions sans lien"
+  );
+
+  assert.ok(
+    shell.includes(
+      "getV11RegistrationStatus(event)"
+    ),
+    "V11.57 : statut d’inscription existant réutilisé"
+  );
+
+  assert.ok(
+    shell.includes(
+      "v11-registration-card-chip"
+    ),
+    "V11.57 : badge inscription carte présent"
+  );
+
+  assert.ok(
+    shell.includes(
+      "registrationStatus?.shortLabel"
+    ),
+    "V11.57 : libellé court utilisé sur les cartes"
+  );
+}
