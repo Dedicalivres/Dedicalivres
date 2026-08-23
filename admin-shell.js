@@ -2655,10 +2655,22 @@ function renderEvents(events, status) {
       "v11-author-editor-close"
     );
 
+  const authorEditSave =
+    document.getElementById(
+      "v11-author-edit-save"
+    );
+
   if (authorDetailClose) {
     authorDetailClose.addEventListener(
       "click",
       closeV11AuthorDetail
+    );
+  }
+
+  if (authorReadyButton) {
+    authorReadyButton.addEventListener(
+      "click",
+      toggleV11AuthorReady
     );
   }
 
@@ -2695,10 +2707,7 @@ function renderEvents(events, status) {
       "submit",
       function (event) {
         event.preventDefault();
-
-        window.alert(
-          "Sauvegarde auteur volontairement verrouillée dans V11.28."
-        );
+        saveV11AuthorEdition();
       }
     );
   }
@@ -3075,6 +3084,286 @@ function renderEvents(events, status) {
     ) || null;
   }
 
+
+  function normalizeV11AuthorSlug(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function buildV11AuthorEditPayload() {
+    const pseudo =
+      String(
+        authorEditPseudo?.value || ""
+      ).trim();
+
+    if (!pseudo) {
+      throw new Error(
+        "Le nom public est obligatoire."
+      );
+    }
+
+    const slug =
+      normalizeV11AuthorSlug(
+        authorEditSlug?.value
+      );
+
+    if (!slug) {
+      throw new Error(
+        "Le slug est obligatoire."
+      );
+    }
+
+    const profileType =
+      authorEditType?.value ||
+      "author";
+
+    if (
+      ![
+        "author",
+        "artist_author",
+        "hybrid",
+        "publisher"
+      ].includes(profileType)
+    ) {
+      throw new Error(
+        "Type de profil invalide."
+      );
+    }
+
+    return {
+      pseudo: pseudo,
+      slug: slug,
+      profile_type: profileType,
+
+      location:
+        String(
+          authorEditLocation?.value || ""
+        ).trim() || null,
+
+      website:
+        normalizeV11OptionalUrl(
+          authorEditWebsite?.value
+        ),
+
+      shop_url:
+        normalizeV11OptionalUrl(
+          authorEditShop?.value
+        ),
+
+      avatar_url:
+        normalizeV11OptionalUrl(
+          authorEditAvatar?.value
+        ),
+
+      bio:
+        String(
+          authorEditBio?.value || ""
+        ).trim() || null,
+
+      updated_at:
+        new Date().toISOString()
+    };
+  }
+
+  async function checkV11AuthorSlug(
+    client,
+    author,
+    slug
+  ) {
+    const response =
+      await client
+        .from("authors")
+        .select("id, pseudo, slug")
+        .eq("slug", slug)
+        .limit(10);
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    const collision =
+      (
+        Array.isArray(response.data)
+          ? response.data
+          : []
+      ).find(
+        function (row) {
+          return (
+            String(row.id) !==
+            String(author.id)
+          );
+        }
+      );
+
+    return collision || null;
+  }
+
+  async function saveV11AuthorEdition() {
+    if (v11CommunityActionRunning) {
+      return;
+    }
+
+    const state =
+      context.getState();
+
+    if (state.authenticated !== true) {
+      window.alert(
+        "Session admin absente."
+      );
+      return;
+    }
+
+    const author =
+      getSelectedV11Author();
+
+    const client =
+      context.getClient();
+
+    if (!author || !client) {
+      window.alert(
+        "Auteur indisponible."
+      );
+      return;
+    }
+
+    if (author.merged_into) {
+      window.alert(
+        "Cette fiche a déjà été fusionnée vers une autre fiche et ne peut pas être modifiée ici."
+      );
+      return;
+    }
+
+    let payload;
+
+    try {
+      payload =
+        buildV11AuthorEditPayload();
+    } catch (error) {
+      window.alert(
+        error?.message ||
+        "Formulaire invalide."
+      );
+      return;
+    }
+
+    if (authorEditSlug) {
+      authorEditSlug.value =
+        payload.slug;
+    }
+
+    let collision;
+
+    try {
+      collision =
+        await checkV11AuthorSlug(
+          client,
+          author,
+          payload.slug
+        );
+    } catch (error) {
+      console.error(
+        "Contrôle slug auteur indisponible",
+        error
+      );
+
+      window.alert(
+        "Impossible de vérifier l’unicité du slug. Aucune modification n’a été enregistrée."
+      );
+      return;
+    }
+
+    if (collision) {
+      window.alert(
+        "Ce slug est déjà utilisé par :\n\n"
+        + (
+          collision.pseudo ||
+          collision.slug ||
+          "un autre auteur"
+        )
+        + "\n\nChoisis un autre slug."
+      );
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        "Enregistrer les modifications de la fiche auteur ?\n\n"
+        + (
+          author.pseudo ||
+          "Auteur"
+        )
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    v11CommunityActionRunning = true;
+
+    if (authorEditSave) {
+      authorEditSave.disabled = true;
+      authorEditSave.textContent =
+        "Enregistrement…";
+    }
+
+    try {
+      const response =
+        await client
+          .from("authors")
+          .update(payload)
+          .eq("id", author.id);
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      v11CommunityMessage(
+        "Fiche auteur modifiée."
+      );
+
+      closeV11AuthorEditor();
+
+      await context.refresh();
+
+      const refreshed =
+        getSelectedV11Author();
+
+      if (refreshed) {
+        renderV11AuthorDetail(
+          refreshed
+        );
+      }
+
+    } catch (error) {
+      console.error(
+        "Erreur édition auteur V11",
+        error
+      );
+
+      window.alert(
+        "Enregistrement impossible.\n\n"
+        + (
+          error?.message ||
+          "Erreur Supabase"
+        )
+      );
+
+    } finally {
+      v11CommunityActionRunning = false;
+
+      if (authorEditSave) {
+        authorEditSave.disabled = false;
+        authorEditSave.textContent =
+          "Enregistrer";
+      }
+    }
+  }
+
   function closeV11AuthorEditor() {
     if (authorEditor) {
       authorEditor.hidden = true;
@@ -3124,6 +3413,175 @@ function renderEvents(events, status) {
     authorDetailContent.appendChild(
       row
     );
+  }
+
+
+  function v11AuthorReadyChecklist(author) {
+    const state = context.getState();
+    const presences = state.community?.presences || [];
+
+    const id = String(author?.id || "");
+    const slug = String(author?.slug || "");
+    const name = String(author?.pseudo || "").trim().toLowerCase();
+
+    const linked = presences.filter((row) => {
+      const rowName = String(row.pseudo || "").trim().toLowerCase();
+
+      return (
+        (id && String(row.author_id || "") === id) ||
+        (slug && String(row.author_slug || row.author_identity_key || "") === slug) ||
+        (name && rowName === name)
+      );
+    });
+
+    const valid = linked.filter(
+      (row) => row.validated === true && row.rejected !== true
+    );
+
+    const photo =
+      author?.avatar_url ||
+      valid.find((row) => row.author_portrait_url)?.author_portrait_url;
+
+    const website =
+      author?.website ||
+      valid.find((row) => row.author_profile_url || row.website)?.author_profile_url ||
+      valid.find((row) => row.website)?.website;
+
+    const shop =
+      author?.shop_url ||
+      valid.find((row) => row.book_or_publisher_url)?.book_or_publisher_url;
+
+    const checks = [
+      ["Identité", Boolean(String(author?.pseudo || "").trim())],
+      ["Photo", Boolean(photo)],
+      ["Type", ["author","artist_author","hybrid"].includes(author?.profile_type)],
+      ["Biographie", Boolean(String(author?.bio || "").trim())],
+      ["Localisation", Boolean(String(author?.location || "").trim())],
+      ["Vitrine", Boolean(String(website || "").trim())],
+      ["Boutique", Boolean(String(shop || "").trim())],
+      ["Historique", valid.length > 0]
+    ];
+
+    const authors = state.community?.authors || [];
+
+    const duplicate = authors.some((other) => (
+      String(other.id) !== String(author.id) &&
+      !other.merged_into &&
+      (
+        (slug && String(other.slug || "") === slug) ||
+        (
+          name &&
+          String(other.pseudo || "").trim().toLowerCase() === name
+        )
+      )
+    ));
+
+    const completed = checks.filter(([, ok]) => ok).length;
+
+    return {
+      checks,
+      completed,
+      total: checks.length,
+      percent: Math.round(completed / checks.length * 100),
+      duplicate,
+      ready:
+        completed === checks.length &&
+        !duplicate &&
+        !author?.merged_into
+    };
+  }
+
+  async function toggleV11AuthorReady() {
+    if (v11CommunityActionRunning) return;
+
+    const state = context.getState();
+    const author = getSelectedV11Author();
+    const client = context.getClient();
+
+    if (state.authenticated !== true || !author || !client) {
+      window.alert("Session ou fiche auteur indisponible.");
+      return;
+    }
+
+    if (author.merged_into) {
+      window.alert("Cette fiche est déjà fusionnée.");
+      return;
+    }
+
+    const setReady = author.publication_ready !== true;
+    const checklist = v11AuthorReadyChecklist(author);
+
+    if (setReady && !checklist.ready) {
+      const missing = checklist.checks
+        .filter(([, ok]) => !ok)
+        .map(([label]) => label);
+
+      window.alert(
+        "Fiche incomplète.\n\n" +
+        (missing.length ? "Manque : " + missing.join(", ") + "\n" : "") +
+        (checklist.duplicate ? "Doublon potentiel détecté." : "")
+      );
+      return;
+    }
+
+    if (!window.confirm(
+      setReady
+        ? "Marquer cette fiche comme prête à publier ?\n\nAucune publication publique ne sera déclenchée."
+        : "Retirer le statut « prêt à publier » ?"
+    )) return;
+
+    v11CommunityActionRunning = true;
+    authorReadyButton.disabled = true;
+
+    try {
+      let payload;
+
+      if (setReady) {
+        const auth = await client.auth.getUser();
+        const adminId = auth.data?.user?.id;
+
+        if (auth.error || !adminId) {
+          throw new Error("Administrateur non identifié.");
+        }
+
+        payload = {
+          publication_ready: true,
+          publication_ready_at: new Date().toISOString(),
+          publication_ready_by: adminId,
+          updated_at: new Date().toISOString()
+        };
+      } else {
+        payload = {
+          publication_ready: false,
+          publication_ready_at: null,
+          publication_ready_by: null,
+          updated_at: new Date().toISOString()
+        };
+      }
+
+      const result = await client
+        .from("authors")
+        .update(payload)
+        .eq("id", author.id);
+
+      if (result.error) throw result.error;
+
+      await context.refresh();
+
+      const refreshed = getSelectedV11Author();
+      if (refreshed) renderV11AuthorDetail(refreshed);
+
+      v11CommunityMessage(
+        setReady
+          ? "Fiche prête à publier — aucune publication automatique."
+          : "Statut prêt à publier retiré."
+      );
+    } catch (error) {
+      console.error("V11 statut auteur", error);
+      window.alert(error?.message || "Mise à jour impossible.");
+    } finally {
+      v11CommunityActionRunning = false;
+    }
   }
 
   function renderV11AuthorDetail(item) {
@@ -3248,12 +3706,34 @@ function renderEvents(events, status) {
     );
 
     if (authorReadyButton) {
+      const checklist = v11AuthorReadyChecklist(item);
+
       authorReadyButton.textContent =
         item.publication_ready === true
           ? "Retirer prêt à publier"
           : "Prêt à publier";
 
-      authorReadyButton.disabled = true;
+      authorReadyButton.disabled =
+        item.publication_ready !== true &&
+        !checklist.ready;
+
+      authorReadyButton.title =
+        "Préparation " +
+        checklist.completed + "/" +
+        checklist.total + " · " +
+        checklist.percent + "%";
+
+      addV11AuthorDetailRow(
+        "Préparation",
+        checklist.completed + "/" +
+        checklist.total + " · " +
+        checklist.percent + "%"
+      );
+
+      addV11AuthorDetailRow(
+        "Doublon potentiel",
+        checklist.duplicate ? "À vérifier" : "Non détecté"
+      );
     }
 
     if (authorPublishButton) {
