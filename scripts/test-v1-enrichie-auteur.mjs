@@ -2184,3 +2184,85 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.61 : un repli tablette/mobile doit exister."
   );
 }
+
+// V11.62 — author public launch dry-run
+{
+  const adminHtml =
+    fs.readFileSync(
+      "admin-v11.html",
+      "utf8"
+    );
+
+  const adminShell =
+    fs.readFileSync(
+      "admin-shell.js",
+      "utf8"
+    );
+
+  const authorJs =
+    fs.readFileSync(
+      "author.js",
+      "utf8"
+    );
+
+  const config =
+    fs.readFileSync(
+      "config.js",
+      "utf8"
+    );
+
+  assert.ok(
+    adminHtml.includes(
+      'id="v11-author-release-dryrun"'
+    ),
+    "V11.62 : la simulation d’ouverture Auteur doit être visible."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      'id="v11-author-release-dryrun-list"'
+    ),
+    "V11.62 : la liste des fiches exposées doit exister."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "const wouldBePublic"
+    ),
+    "V11.62 : le calcul des fiches réellement exposées doit exister."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "author.published === true"
+    ) &&
+    adminShell.includes(
+      "author.validated === true"
+    ) &&
+    adminShell.includes(
+      "author.publication_ready === true"
+    ),
+    "V11.62 : le dry-run doit reprendre les trois garde-fous publics."
+  );
+
+  assert.ok(
+    authorJs.includes(
+      "author.publication_ready === true"
+    ),
+    "V11.62 : la fiche publique doit exiger publication_ready."
+  );
+
+  assert.ok(
+    config.includes(
+      "authorPublicPublishingEnabled: false"
+    ),
+    "V11.62 : le verrou global doit rester fermé."
+  );
+
+  assert.ok(
+    !adminHtml.includes(
+      "Activer l’ouverture publique"
+    ),
+    "V11.62 : aucun bouton d’ouverture publique ne doit être ajouté."
+  );
+}
