@@ -2700,3 +2700,131 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.68 : les styles V11 Widget doivent exister."
   );
 }
+
+
+// V11.69 — Global truthful polish
+{
+  const adminHtml =
+    fs.readFileSync("admin-v11.html", "utf8");
+
+  const adminShell =
+    fs.readFileSync("admin-shell.js", "utf8");
+
+  assert.ok(
+    !adminHtml.includes(
+      "284 visites aujourd’hui"
+    ),
+    "V11.69 : aucune visite statique ne doit rester sur l’accueil."
+  );
+
+  assert.ok(
+    !adminHtml.includes(
+      "Courbe factice de fréquentation"
+    ),
+    "V11.69 : la courbe factice doit être retirée."
+  );
+
+  assert.ok(
+    !adminHtml.includes(
+      "+14,2 %"
+    ) &&
+    !adminHtml.includes(
+      "Pic · 341 visites"
+    ),
+    "V11.69 : les tendances factices doivent être retirées."
+  );
+
+  assert.ok(
+    !adminHtml.includes(
+      "<strong>62 %</strong>"
+    ) &&
+    !adminHtml.includes(
+      "<strong>18 %</strong>"
+    ) &&
+    !adminHtml.includes(
+      "<strong>12 %</strong>"
+    ) &&
+    !adminHtml.includes(
+      "<strong>8 %</strong>"
+    ),
+    "V11.69 : les répartitions acquisition statiques doivent disparaître."
+  );
+
+  assert.ok(
+    !adminHtml.includes(
+      "<strong>82 %</strong>"
+    ) &&
+    !adminHtml.includes(
+      "<strong>48 %</strong>"
+    ) &&
+    !adminHtml.includes(
+      "<strong>34 %</strong>"
+    ),
+    "V11.69 : les pourcentages territoriaux fictifs doivent disparaître."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      'data-admin-bind="quality-missing-image"'
+    ) &&
+    adminHtml.includes(
+      'data-admin-bind="quality-missing-coords"'
+    ) &&
+    adminHtml.includes(
+      'data-admin-bind="quality-missing-website"'
+    ),
+    "V11.69 : Pilotage doit réutiliser les compteurs qualité réels."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "Non testé depuis ce panneau"
+    ),
+    "V11.69 : le site public ne doit plus être déclaré opérationnel sans test."
+  );
+
+  assert.ok(
+    !adminHtml.includes(
+      "comparaison avec V10"
+    ),
+    "V11.69 : le placeholder V10 doit être retiré."
+  );
+
+  assert.ok(
+    !adminShell.includes(
+      "comportement V10"
+    ),
+    "V11.69 : les descriptions héritées V10 doivent être retirées."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      'admin-shell.js?v=v11-69-polish-1'
+    ),
+    "V11.69 : le shell doit avoir un cache-buster dédié."
+  );
+}
+
+
+// V11.69 — Final labels
+{
+  const adminHtml =
+    fs.readFileSync("admin-v11.html", "utf8");
+
+  assert.ok(
+    !adminHtml.includes(
+      "Visiteurs estimés"
+    ),
+    "V11.69 : visits-7d ne doit pas être présenté comme visiteurs uniques."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "Visites · 7 jours"
+    ) &&
+    adminHtml.includes(
+      "pages vues enregistrées"
+    ),
+    "V11.69 : le KPI 7 jours doit décrire la métrique réellement disponible."
+  );
+}

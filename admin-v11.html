@@ -205,8 +205,11 @@
         <section class="v11-telemetry">
           <div>
             <span class="v11-telemetry-label">VISITEURS</span>
-            <strong>284 visites aujourd’hui</strong>
-            <span>Direct / SEO · NFC · Réseaux / partenaires</span>
+            <strong>
+              <span data-admin-bind="visits-today">—</span>
+              visites aujourd’hui
+            </strong>
+            <span data-admin-bind="visits-status">Chargement du trafic</span>
           </div>
 
           <div>
@@ -1788,7 +1791,7 @@
           </div>
 
           <div id="v11-tool-placeholder" class="v11-tool-placeholder">
-            Le moteur existant sera reconnecté ici après comparaison avec V10.
+            Cet outil n’est pas disponible dans cet espace.
           </div>
 
           <div id="tab-watch" class="v11-legacy-slot" hidden></div>
@@ -1922,11 +1925,8 @@
             <p>Audience, acquisition, territoires et santé du système.</p>
           </div>
 
-          <div class="v11-period-switch" role="group" aria-label="Période d'analyse">
-            <button data-period="7">7 j</button>
-            <button class="is-active" data-period="30">30 j</button>
-            <button data-period="90">90 j</button>
-            <button data-period="365">1 an</button>
+          <div class="v11-chip neutral">
+            Données mesurées disponibles
           </div>
         </div>
 
@@ -1938,14 +1938,14 @@
           </article>
 
           <article>
-            <span>Visiteurs estimés</span>
+            <span>Visites · 7 jours</span>
             <strong data-admin-bind="visits-7d">—</strong>
-            <small>7 derniers jours</small>
+            <small>pages vues enregistrées</small>
           </article>
 
           <article>
             <span>Événements actifs</span>
-            <strong data-admin-bind="events-active">464</strong>
+            <strong data-admin-bind="events-active">—</strong>
             <small>agenda public</small>
           </article>
 
@@ -1958,96 +1958,94 @@
 
         <div class="v11-analysis-grid">
 
-          <article class="v11-panel v11-chart-panel">
+          <article class="v11-panel">
             <div class="v11-panel-head">
               <div>
                 <p class="v11-section-label">AUDIENCE</p>
-                <h3>Évolution des visites</h3>
+                <h3>Trafic mesuré</h3>
               </div>
 
-              <div class="v11-chart-metric">
-                <strong>216</strong>
-                <span>moy. / jour</span>
-              </div>
+              <span class="v11-chip neutral" data-admin-bind="visits-status">
+                Chargement
+              </span>
             </div>
 
-            <div class="v11-line-chart v11-line-chart-large" aria-label="Courbe factice de fréquentation">
-              <div class="v11-chart-grid"></div>
+            <div class="v11-health-list">
 
-              <svg viewBox="0 0 700 220" preserveAspectRatio="none" role="img">
-                <path
-                  class="v11-line-area"
-                  d="M0,184 C35,180 56,164 90,168 C130,175 152,145 188,150 C228,157 250,126 290,132 C330,140 348,109 390,114 C430,120 452,92 493,98 C535,105 557,75 598,81 C640,87 660,51 700,60 L700,220 L0,220 Z">
-                </path>
-
-                <path
-                  class="v11-line-path"
-                  d="M0,184 C35,180 56,164 90,168 C130,175 152,145 188,150 C228,157 250,126 290,132 C330,140 348,109 390,114 C430,120 452,92 493,98 C535,105 557,75 598,81 C640,87 660,51 700,60">
-                </path>
-              </svg>
-
-              <div class="v11-chart-axis">
-                <span>25 juil.</span>
-                <span>1 août</span>
-                <span>8 août</span>
-                <span>15 août</span>
-                <span>23 août</span>
-              </div>
-            </div>
-
-            <div class="v11-chart-summary">
-              <span><strong class="v11-trend-up">+14,2 %</strong> vs période précédente</span>
-              <span>Pic · 341 visites</span>
-            </div>
-          </article>
-
-          <article class="v11-panel v11-chart-panel">
-            <div class="v11-panel-head">
-              <div>
-                <p class="v11-section-label">ACQUISITION</p>
-                <h3>Origine du trafic</h3>
-              </div>
-            </div>
-
-            <div class="v11-donut-layout">
-              <div class="v11-donut">
-                <div class="v11-donut-center">
-                  <strong data-admin-bind="visits-total">—</strong>
-                  <span>pages vues</span>
+              <div class="v11-health-row">
+                <div>
+                  <strong>Aujourd’hui</strong>
+                  <span>Pages vues enregistrées</span>
                 </div>
+                <strong data-admin-bind="visits-today">—</strong>
               </div>
 
-              <div class="v11-donut-legend">
+              <div class="v11-health-row">
                 <div>
-                  <span class="v11-legend-dot direct"></span>
-                  <strong>62 %</strong>
-                  <span>Direct / SEO</span>
+                  <strong>7 derniers jours</strong>
+                  <span>Mesure disponible dans le contexte V11</span>
                 </div>
-
-                <div>
-                  <span class="v11-legend-dot social"></span>
-                  <strong>18 %</strong>
-                  <span>Réseaux</span>
-                </div>
-
-                <div>
-                  <span class="v11-legend-dot nfc"></span>
-                  <strong>12 %</strong>
-                  <span>NFC</span>
-                </div>
-
-                <div>
-                  <span class="v11-legend-dot partner"></span>
-                  <strong>8 %</strong>
-                  <span>Partenaires</span>
-                </div>
+                <strong data-admin-bind="visits-7d">—</strong>
               </div>
+
+              <div class="v11-health-row">
+                <div>
+                  <strong>30 derniers jours</strong>
+                  <span>Mesure disponible dans le contexte V11</span>
+                </div>
+                <strong data-admin-bind="visits-30d">—</strong>
+              </div>
+
+              <div class="v11-health-row">
+                <div>
+                  <strong>Total enregistré</strong>
+                  <span>Historique disponible</span>
+                </div>
+                <strong data-admin-bind="visits-total">—</strong>
+              </div>
+
             </div>
 
             <p class="v11-preview-note">
-              Les catégories réelles seront limitées aux sources réellement mesurables.
+              Aucune tendance, moyenne ou projection n’est affichée sans données
+              réellement calculées.
             </p>
           </article>
+
+          <article class="v11-panel">
+            <div class="v11-panel-head">
+              <div>
+                <p class="v11-section-label">ACQUISITION</p>
+                <h3>Sources mesurées</h3>
+              </div>
+            </div>
+
+            <div class="v11-health-list">
+
+              <div class="v11-health-row">
+                <div>
+                  <strong>Pages vues enregistrées</strong>
+                  <span>Volume réellement disponible</span>
+                </div>
+                <strong data-admin-bind="visits-total">—</strong>
+              </div>
+
+              <div class="v11-health-row">
+                <div>
+                  <strong>Origines du trafic</strong>
+                  <span>Voir le classement réel plus bas dans Pilotage</span>
+                </div>
+                <span class="v11-chip neutral">Mesuré</span>
+              </div>
+
+            </div>
+
+            <p class="v11-preview-note">
+              Aucun pourcentage Direct, SEO, Réseaux, NFC ou Partenaires
+              n’est affiché sans mesure réelle correspondante.
+            </p>
+          </article>
+
         </div>
 
         <div class="v11-pilotage-secondary-grid">
@@ -2059,7 +2057,6 @@
                 <h3>Couverture de l’agenda</h3>
               </div>
 
-              <button class="v11-text-button">Voir le détail</button>
             </div>
 
             <div class="v11-territory-list">
@@ -2069,10 +2066,7 @@
                   <strong>France</strong>
                   <span>Couverture principale</span>
                 </div>
-                <div class="v11-territory-meter">
-                  <span style="width:82%"></span>
-                </div>
-                <strong>82 %</strong>
+                <span class="v11-chip info">Principal</span>
               </div>
 
               <div class="v11-territory-row">
@@ -2080,10 +2074,7 @@
                   <strong>Belgique francophone</strong>
                   <span>En développement</span>
                 </div>
-                <div class="v11-territory-meter">
-                  <span style="width:48%"></span>
-                </div>
-                <strong>48 %</strong>
+                <span class="v11-chip neutral">En développement</span>
               </div>
 
               <div class="v11-territory-row">
@@ -2091,10 +2082,7 @@
                   <strong>Suisse romande</strong>
                   <span>En développement</span>
                 </div>
-                <div class="v11-territory-meter">
-                  <span style="width:34%"></span>
-                </div>
-                <strong>34 %</strong>
+                <span class="v11-chip neutral">En développement</span>
               </div>
 
               <div class="v11-territory-row">
@@ -2102,10 +2090,7 @@
                   <strong>Luxembourg</strong>
                   <span>Couverture ciblée</span>
                 </div>
-                <div class="v11-territory-meter">
-                  <span style="width:27%"></span>
-                </div>
-                <strong>27 %</strong>
+                <span class="v11-chip neutral">Ciblée</span>
               </div>
 
               <div class="v11-territory-row">
@@ -2113,10 +2098,7 @@
                   <strong>Monaco</strong>
                   <span>Couverture ciblée</span>
                 </div>
-                <div class="v11-territory-meter">
-                  <span style="width:18%"></span>
-                </div>
-                <strong>18 %</strong>
+                <span class="v11-chip neutral">Ciblée</span>
               </div>
 
             </div>
@@ -2126,7 +2108,7 @@
             <div class="v11-panel-head">
               <div>
                 <p class="v11-section-label">QUALITÉ</p>
-                <h3>État des données</h3>
+                <h3>Contrôles réels</h3>
               </div>
             </div>
 
@@ -2134,38 +2116,39 @@
 
               <div class="v11-health-row">
                 <div>
-                  <strong>Fiches complètes</strong>
-                  <span>Événements prêts à être exploités</span>
+                  <strong>Sans image</strong>
+                  <span>Fiches à enrichir visuellement</span>
                 </div>
-                <span class="v11-chip ok">96 %</span>
+                <strong data-admin-bind="quality-missing-image">—</strong>
               </div>
 
               <div class="v11-health-row">
                 <div>
-                  <strong>Images disponibles</strong>
-                  <span>Couverture visuelle</span>
+                  <strong>Sans coordonnées</strong>
+                  <span>Localisation à compléter</span>
                 </div>
-                <span class="v11-chip info">89 %</span>
+                <strong data-admin-bind="quality-missing-coords">—</strong>
               </div>
 
               <div class="v11-health-row">
                 <div>
-                  <strong>Doublons</strong>
+                  <strong>Sans site web</strong>
+                  <span>Source ou lien officiel manquant</span>
+                </div>
+                <strong data-admin-bind="quality-missing-website">—</strong>
+              </div>
+
+              <div class="v11-health-row">
+                <div>
+                  <strong>Mis en avant mais passés</strong>
                   <span>Éléments à contrôler</span>
                 </div>
-                <span class="v11-chip warning">57</span>
-              </div>
-
-              <div class="v11-health-row">
-                <div>
-                  <strong>Fiches incomplètes</strong>
-                  <span>À enrichir ou vérifier</span>
-                </div>
-                <span class="v11-chip warning">115</span>
+                <strong data-admin-bind="quality-featured-past">—</strong>
               </div>
 
             </div>
           </article>
+
         </div>
 
 
@@ -2210,18 +2193,18 @@
           <div class="v11-system-grid">
 
             <div>
-              <span class="v11-system-dot"></span>
+              <span class="v11-system-dot is-neutral"></span>
               <div>
                 <strong>Site public</strong>
-                <small>Opérationnel</small>
+                <small>Non testé depuis ce panneau</small>
               </div>
             </div>
 
             <div>
-              <span class="v11-system-dot"></span>
+              <span class="v11-system-dot is-neutral"></span>
               <div>
                 <strong>Supabase</strong>
-                <small>Connexion active</small>
+                <small data-admin-bind="supabase-status">Initialisation</small>
               </div>
             </div>
 
@@ -2272,7 +2255,7 @@
   <script defer src="admin-context.js?v=v11-context-28"></script>
   <script defer src="duplicate-detection.js?v=v11-18-1"></script>
   <script defer src="admin-v11-bridge.js?v=v11-bridge-40b"></script>
-  <script defer src="admin-shell.js?v=v11-68-partner-1"></script>
+  <script defer src="admin-shell.js?v=v11-69-polish-1"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
   <script defer src="admin-v11-exports.js?v=v11-exports-39-3"></script>
   <script defer src="admin-social-generator.js?v=v11-social-66-1"></script>
