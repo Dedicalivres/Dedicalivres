@@ -5299,3 +5299,338 @@ label.is-artist-author {
     justify-content: flex-start;
   }
 }
+
+/* =========================================================
+   V11.63 — AUTO-MATTE DANS LE DESIGN V11
+   Présentation uniquement.
+   Le moteur admin-watch.js reste intact.
+   ========================================================= */
+
+#tab-watch {
+  width: 100%;
+}
+
+#tab-watch .watch-shell {
+  display: grid;
+  gap: 18px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+#tab-watch .watch-card {
+  width: 100%;
+  margin: 0;
+  padding: 22px;
+  border: 1px solid rgba(79, 215, 232, .18);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(8, 24, 35, .96),
+      rgba(10, 18, 32, .96)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 18px 42px rgba(0,0,0,.12);
+}
+
+#tab-watch .watch-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+#tab-watch .watch-card-head h3 {
+  margin: 0 0 7px;
+  color: #f7fbff;
+  font-size: clamp(18px, 2vw, 22px);
+  line-height: 1.15;
+  letter-spacing: -.015em;
+}
+
+#tab-watch .watch-card-head p {
+  max-width: 760px;
+  margin: 0;
+  color: rgba(230, 238, 246, .72);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+#tab-watch .watch-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  max-width: 280px;
+  min-height: 32px;
+  padding: 7px 11px;
+  border: 1px solid rgba(73, 215, 156, .2);
+  border-radius: 999px;
+  background: rgba(73, 215, 156, .08);
+  color: rgba(190, 255, 227, .92);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+#tab-watch .watch-endpoint-box {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 13px 14px;
+  border: 1px solid rgba(79, 215, 232, .14);
+  border-radius: 14px;
+  background: rgba(255,255,255,.025);
+}
+
+#tab-watch .watch-endpoint-box > span {
+  color: rgba(230, 238, 246, .7);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+#tab-watch .watch-endpoint-box code {
+  min-width: 0;
+  color: rgba(238, 247, 255, .92);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+#tab-watch .watch-form-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.65fr)
+    minmax(220px, .75fr);
+  gap: 16px;
+  align-items: start;
+}
+
+#tab-watch .watch-url-field,
+#tab-watch .watch-side-controls label {
+  display: grid;
+  gap: 7px;
+}
+
+#tab-watch .watch-url-field > span,
+#tab-watch .watch-side-controls label > span {
+  color: rgba(239,245,250,.88);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+#tab-watch .watch-side-controls {
+  display: grid;
+  gap: 12px;
+}
+
+#tab-watch textarea,
+#tab-watch select {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px;
+  outline: none;
+  background: rgba(255,255,255,.055);
+  color: #f4f8fb;
+  font: inherit;
+  transition:
+    border-color .16s ease,
+    box-shadow .16s ease,
+    background .16s ease;
+}
+
+#tab-watch textarea {
+  min-height: 176px;
+  padding: 14px 15px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+#tab-watch select {
+  min-height: 43px;
+  padding: 0 38px 0 12px;
+  color-scheme: dark;
+}
+
+#tab-watch textarea::placeholder {
+  color: rgba(219, 228, 236, .33);
+}
+
+#tab-watch textarea:focus,
+#tab-watch select:focus {
+  border-color: rgba(79, 215, 232, .42);
+  background: rgba(255,255,255,.07);
+  box-shadow:
+    0 0 0 3px rgba(79, 215, 232, .08);
+}
+
+#tab-watch button,
+#tab-watch a.cyber-btn-secondary {
+  appearance: none;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,.055);
+  color: rgba(246, 250, 253, .94);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.2;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform .15s ease,
+    border-color .15s ease,
+    background .15s ease,
+    opacity .15s ease;
+}
+
+#tab-watch button:hover:not(:disabled),
+#tab-watch a.cyber-btn-secondary:hover {
+  transform: translateY(-1px);
+  border-color: rgba(79, 215, 232, .28);
+  background: rgba(79, 215, 232, .08);
+}
+
+#tab-watch .cyber-btn-primary {
+  border-color: rgba(79, 215, 232, .25);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(38, 156, 174, .24),
+      rgba(104, 67, 165, .22)
+    );
+}
+
+#tab-watch .cyber-btn-danger {
+  border-color: rgba(255, 111, 124, .18);
+  background: rgba(255, 111, 124, .07);
+}
+
+#tab-watch button:disabled {
+  opacity: .34;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#tab-watch .watch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+#tab-watch .watch-page-label {
+  margin: 13px 0 0;
+  color: rgba(230,238,246,.58);
+  font-size: 12px;
+}
+
+#tab-watch .watch-status {
+  margin: 9px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+  color: rgba(230,238,246,.72);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#tab-watch .watch-results,
+#tab-watch .watch-history,
+#tab-watch .event-watch-alerts {
+  display: grid;
+  gap: 10px;
+}
+
+#tab-watch .priority-empty {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed rgba(255,255,255,.08);
+  border-radius: 12px;
+  color: rgba(230,238,246,.52);
+  background: rgba(255,255,255,.015);
+}
+
+#tab-watch .event-watch-toolbar {
+  display: grid;
+  gap: 12px;
+}
+
+#tab-watch .event-watch-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+#tab-watch .event-watch-category {
+  min-height: 34px;
+  border-radius: 999px;
+  padding-inline: 11px;
+}
+
+#tab-watch .event-watch-category.is-active {
+  border-color: rgba(79,215,232,.3);
+  background: rgba(79,215,232,.1);
+  color: #dffcff;
+}
+
+#tab-watch .event-watch-state-field {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 260px);
+  align-items: center;
+  gap: 10px;
+}
+
+#tab-watch .event-watch-state-field > span {
+  color: rgba(230,238,246,.68);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  #tab-watch .watch-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #tab-watch .watch-card-head {
+    gap: 14px;
+  }
+
+  #tab-watch .watch-pill {
+    max-width: 190px;
+  }
+}
+
+@media (max-width: 640px) {
+  #tab-watch .watch-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  #tab-watch .watch-card-head {
+    flex-direction: column;
+  }
+
+  #tab-watch .watch-pill {
+    max-width: 100%;
+  }
+
+  #tab-watch .watch-endpoint-box {
+    grid-template-columns: 1fr;
+  }
+
+  #tab-watch .watch-actions > * {
+    flex: 1 1 145px;
+  }
+
+  #tab-watch .event-watch-state-field {
+    grid-template-columns: 1fr;
+  }
+}
