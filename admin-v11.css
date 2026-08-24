@@ -5815,3 +5815,130 @@ label.is-artist-author {
     max-height: none;
   }
 }
+
+
+/* =========================================================
+   V11.67 — MAINTENANCE / ETATS REELS
+   Diagnostic strictement lecture seule.
+   ========================================================= */
+
+.v11-maintenance-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.v11-maintenance-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.v11-maintenance-head h3 {
+  margin: 4px 0 6px;
+  font-size: 20px;
+}
+
+.v11-maintenance-head p:not(.v11-section-label) {
+  max-width: 620px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.v11-maintenance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.v11-maintenance-item {
+  min-width: 0;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255,255,255,.018);
+}
+
+.v11-maintenance-item > div {
+  min-width: 0;
+}
+
+.v11-maintenance-item strong,
+.v11-maintenance-item span {
+  display: block;
+}
+
+.v11-maintenance-item strong {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.v11-maintenance-item div > span {
+  color: var(--muted);
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+
+.v11-maintenance-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148,163,184,.5);
+  box-shadow: none;
+}
+
+.v11-maintenance-dot.ok {
+  background: #51d6a8;
+  box-shadow: 0 0 12px rgba(81,214,168,.28);
+}
+
+.v11-maintenance-dot.error {
+  background: #ff7380;
+  box-shadow: 0 0 12px rgba(255,115,128,.2);
+}
+
+.v11-maintenance-dot.neutral {
+  background: rgba(148,163,184,.5);
+  box-shadow: none;
+}
+
+.v11-maintenance-note {
+  padding: 14px 15px;
+  border: 1px solid rgba(255,196,102,.18);
+  border-radius: 12px;
+  background: rgba(255,196,102,.035);
+}
+
+.v11-maintenance-note strong {
+  font-size: 10px;
+}
+
+.v11-maintenance-note p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.v11-maintenance-updated {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+@media (max-width: 760px) {
+  .v11-maintenance-head {
+    display: grid;
+  }
+
+  .v11-maintenance-grid {
+    grid-template-columns: 1fr;
+  }
+}

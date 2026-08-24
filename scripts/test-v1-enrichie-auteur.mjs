@@ -2513,3 +2513,86 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.66 : le moteur de rendu PNG doit rester présent."
   );
 }
+
+
+// V11.67 — Maintenance truthful status
+{
+  const adminHtml =
+    fs.readFileSync("admin-v11.html", "utf8");
+
+  const adminShell =
+    fs.readFileSync("admin-shell.js", "utf8");
+
+  const adminCss =
+    fs.readFileSync("admin-v11.css", "utf8");
+
+  assert.ok(
+    adminHtml.includes(
+      'id="v11-maintenance-panel"'
+    ),
+    "V11.67 : le panneau Maintenance doit exister."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "Non instrumentées dans Admin V11"
+    ),
+    "V11.67 : les sauvegardes ne doivent pas être déclarées OK sans preuve."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "Aucun test réseau supplémentaire"
+    ),
+    "V11.67 : la portée lecture seule doit être explicite."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "function renderMaintenanceStatus()"
+    ),
+    "V11.67 : le diagnostic runtime doit exister."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "window.DEDICALIVRES_ADMIN_AUTHENTICATED === true"
+    ),
+    "V11.67 : l’état d’authentification doit provenir du runtime."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "window.V11_WATCH_WRITE_GUARD === true"
+    ),
+    "V11.67 : la garde Auto-Matte doit être contrôlée."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      'script[src*="admin-v11-exports.js"]'
+    ),
+    "V11.67 : le module Exports doit être vérifié par présence réelle."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "DEDICALIVRES_SOCIAL_GENERATOR_VERSION"
+    ),
+    "V11.67 : la version Social doit être lue depuis le runtime."
+  );
+
+  assert.ok(
+    adminCss.includes(
+      "V11.67 — MAINTENANCE / ETATS REELS"
+    ),
+    "V11.67 : les styles Maintenance doivent être présents."
+  );
+
+  assert.ok(
+    !adminHtml.includes(
+      "Sauvegardes opérationnelles"
+    ),
+    "V11.67 : aucun faux statut sauvegarde ne doit apparaître."
+  );
+}
