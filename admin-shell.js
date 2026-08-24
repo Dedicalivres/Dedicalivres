@@ -3900,8 +3900,146 @@ function renderEvents(events, status) {
   }
 
 
+  function renderV11AuthorReleaseGate(items) {
+    const root =
+      document.getElementById(
+        "v11-author-release-gate"
+      );
+
+    if (!root) return;
+
+    const authors =
+      (Array.isArray(items) ? items : [])
+        .filter(
+          (author) =>
+            author &&
+            !author.merged_into
+        );
+
+    const complete =
+      authors.filter(
+        (author) =>
+          getV11AuthorEditorialReadiness(
+            author
+          ).score === 100
+      );
+
+    const validated =
+      authors.filter(
+        (author) =>
+          author.validated === true
+      );
+
+    const readyInDatabase =
+      authors.filter(
+        (author) =>
+          author.publication_ready === true
+      );
+
+    const published =
+      authors.filter(
+        (author) =>
+          author.published === true
+      );
+
+    const eligible =
+      authors.filter((author) => {
+        const readiness =
+          getV11AuthorEditorialReadiness(
+            author
+          );
+
+        return (
+          readiness.score === 100 &&
+          author.validated === true &&
+          author.publication_ready === true &&
+          author.published !== true
+        );
+      });
+
+    const publicEnabled =
+      window.DEDICALIVRES_CONFIG
+        ?.authorPublicPublishingEnabled ===
+      true;
+
+    const values = {
+      "v11-author-release-active":
+        authors.length,
+      "v11-author-release-complete":
+        complete.length,
+      "v11-author-release-validated":
+        validated.length,
+      "v11-author-release-ready":
+        readyInDatabase.length,
+      "v11-author-release-eligible":
+        eligible.length,
+      "v11-author-release-published":
+        published.length
+    };
+
+    Object.entries(values)
+      .forEach(([id, value]) => {
+        const element =
+          document.getElementById(id);
+
+        if (element) {
+          element.textContent =
+            String(value);
+        }
+      });
+
+    const lock =
+      document.getElementById(
+        "v11-author-release-lock"
+      );
+
+    if (lock) {
+      lock.textContent =
+        publicEnabled
+          ? "Ouverture publique active"
+          : "Verrou global actif";
+
+      lock.className =
+        "v11-chip " +
+        (
+          publicEnabled
+            ? "ok"
+            : "warning"
+        );
+    }
+
+    const message =
+      document.getElementById(
+        "v11-author-release-message"
+      );
+
+    if (!message) return;
+
+    if (!publicEnabled) {
+      message.innerHTML =
+        "<strong>Publication publique désactivée.</strong> " +
+        eligible.length +
+        " fiche" +
+        (eligible.length > 1 ? "s" : "") +
+        " pourra" +
+        (eligible.length > 1 ? "ient" : "it") +
+        " être exposée" +
+        (eligible.length > 1 ? "s" : "") +
+        " après ouverture explicite du verrou global.";
+      return;
+    }
+
+    message.innerHTML =
+      "<strong>Ouverture globale active.</strong> " +
+      "Seules les fiches complètes, validées et prêtes en base " +
+      "doivent pouvoir être publiées.";
+  }
+
+
   function renderAuthors(items) {
     if (!authorsList) return;
+
+    renderV11AuthorReleaseGate(items);
 
     authorsList.replaceChildren();
 

@@ -2035,3 +2035,94 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.59 : chaque compteur du parcours doit être regroupé avec son libellé."
   );
 }
+
+
+// V11.60 — author public release gate
+{
+  const adminHtml =
+    fs.readFileSync(
+      "admin-v11.html",
+      "utf8"
+    );
+
+  const adminShell =
+    fs.readFileSync(
+      "admin-shell.js",
+      "utf8"
+    );
+
+  const config =
+    fs.readFileSync(
+      "config.js",
+      "utf8"
+    );
+
+  const authorJs =
+    fs.readFileSync(
+      "author.js",
+      "utf8"
+    );
+
+  assert.ok(
+    adminHtml.includes(
+      'id="v11-author-release-gate"'
+    ),
+    "V11.60 : le sas d’ouverture Auteur doit être présent."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      'id="v11-author-release-eligible"'
+    ),
+    "V11.60 : le nombre de fiches éligibles doit être visible."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "function renderV11AuthorReleaseGate(items)"
+    ),
+    "V11.60 : le calcul du sas Auteur doit exister."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "readiness.score === 100"
+    ),
+    "V11.60 : une fiche éligible doit être éditorialement complète."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "author.validated === true"
+    ),
+    "V11.60 : une fiche éligible doit être validée."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "author.publication_ready === true"
+    ),
+    "V11.60 : une fiche éligible doit être prête en base."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "author.published !== true"
+    ),
+    "V11.60 : le sas doit distinguer les fiches déjà publiées."
+  );
+
+  assert.ok(
+    config.includes(
+      "authorPublicPublishingEnabled: false"
+    ),
+    "V11.60 : le verrou public doit rester désactivé."
+  );
+
+  assert.ok(
+    authorJs.includes(
+      "config.authorPublicPublishingEnabled !== true"
+    ),
+    "V11.60 : author.js doit continuer à bloquer l’accès public."
+  );
+}

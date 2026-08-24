@@ -5094,3 +5094,96 @@ label.is-artist-author {
     justify-self: start;
   }
 }
+
+
+/* V11.60 — sas d’ouverture publique Auteur */
+
+.v11-author-release-gate {
+  margin: 0 0 22px;
+  padding: 22px;
+  border: 1px solid rgba(83, 215, 232, .2);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(83, 215, 232, .055),
+      rgba(122, 73, 184, .055)
+    );
+}
+
+.v11-author-release-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.v11-author-release-head h3 {
+  margin: 4px 0 6px;
+}
+
+.v11-author-release-head p:last-child {
+  margin: 0;
+  opacity: .72;
+}
+
+.v11-author-release-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.v11-author-release-grid article {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.025);
+}
+
+.v11-author-release-grid article.is-emphasis {
+  border-color: rgba(83, 215, 232, .3);
+  background: rgba(83, 215, 232, .07);
+}
+
+.v11-author-release-grid span {
+  display: block;
+  min-height: 30px;
+  font-size: 12px;
+  opacity: .68;
+}
+
+.v11-author-release-grid strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 25px;
+}
+
+.v11-author-release-message {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.16);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1050px) {
+  .v11-author-release-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .v11-author-release-head {
+    flex-direction: column;
+  }
+
+  .v11-author-release-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
