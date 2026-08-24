@@ -2342,3 +2342,47 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.63 : le routage local Auto-Matte doit rester disponible."
   );
 }
+
+// V11.64 — Auto-Matte truthful status
+{
+  const adminHtml =
+    fs.readFileSync(
+      "admin-v11.html",
+      "utf8"
+    );
+
+  assert.ok(
+    !adminHtml.includes(
+      "Dernière veille · 08:42"
+    ),
+    "V11.64 : l’heure fictive Auto-Matte doit disparaître."
+  );
+
+  assert.ok(
+    !adminHtml.includes(
+      "49 nouveaux candidats · 12 à vérifier"
+    ),
+    "V11.64 : les faux volumes Auto-Matte doivent disparaître."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "État à vérifier dans Outils · Auto-Matte"
+    ),
+    "V11.64 : l’accueil doit annoncer un état non vérifié."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "Aucune donnée de veille simulée"
+    ),
+    "V11.64 : la télémétrie ne doit plus simuler de veille."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "Worker testé depuis le module de veille"
+    ),
+    "V11.64 : la carte Outils doit expliquer la source du contrôle."
+  );
+}
