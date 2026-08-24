@@ -2828,3 +2828,76 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.69 : le KPI 7 jours doit décrire la métrique réellement disponible."
   );
 }
+
+
+// V11.70 — Final stabilization
+{
+  const adminHtml =
+    fs.readFileSync("admin-v11.html", "utf8");
+
+  assert.ok(
+    !adminHtml.includes(
+      "Système opérationnel"
+    ),
+    "V11.70 : le footer ne doit pas déclarer tout le système opérationnel sans diagnostic."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "État détaillé dans Maintenance"
+    ),
+    "V11.70 : le footer doit orienter vers le diagnostic réel."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "<title>Dédicalivres — Admin V11</title>"
+    ),
+    "V11.70 : le titre ne doit plus présenter V11 comme une Preview."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "admin-v11.css?v=v11-70-stable-2"
+    ),
+    "V11.70 : le cache-buster CSS final doit être présent."
+  );
+}
+
+
+// V11.70 — Neutral system dot
+{
+  const adminHtml =
+    fs.readFileSync("admin-v11.html", "utf8");
+
+  const adminCss =
+    fs.readFileSync("admin-v11.css", "utf8");
+
+  assert.ok(
+    adminCss.includes(
+      ".v11-system-dot.is-neutral"
+    ),
+    "V11.70 : le statut neutre doit avoir un style dédié."
+  );
+
+  assert.ok(
+    adminCss.includes(
+      "box-shadow: none"
+    ),
+    "V11.70 : le statut neutre ne doit pas avoir de halo vert."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      'title="Admin V11 — État détaillé dans Maintenance"'
+    ),
+    "V11.70 : la sidebar compacte doit expliquer son statut."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "admin-v11.css?v=v11-70-stable-2"
+    ),
+    "V11.70 : le cache CSS doit être renouvelé."
+  );
+}
