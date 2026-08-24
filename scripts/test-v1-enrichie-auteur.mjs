@@ -2266,3 +2266,79 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.62 : aucun bouton d’ouverture publique ne doit être ajouté."
   );
 }
+
+// V11.63 — Auto-Matte V11 presentation
+{
+  const adminHtml =
+    fs.readFileSync(
+      "admin-v11.html",
+      "utf8"
+    );
+
+  const adminCss =
+    fs.readFileSync(
+      "admin-v11.css",
+      "utf8"
+    );
+
+  const adminWatch =
+    fs.readFileSync(
+      "admin-watch.js",
+      "utf8"
+    );
+
+  const config =
+    fs.readFileSync(
+      "config.js",
+      "utf8"
+    );
+
+  assert.ok(
+    adminHtml.includes(
+      'id="tab-watch"'
+    ),
+    "V11.63 : le slot Auto-Matte doit rester présent."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      'src="admin-watch.js?v=v11-watch-frozen"'
+    ),
+    "V11.63 : le moteur de veille gelé doit rester chargé."
+  );
+
+  assert.ok(
+    adminCss.includes(
+      "V11.63 — AUTO-MATTE DANS LE DESIGN V11"
+    ),
+    "V11.63 : l’habillage Auto-Matte V11 doit exister."
+  );
+
+  assert.ok(
+    adminCss.includes(
+      "#tab-watch .watch-shell"
+    ),
+    "V11.63 : les styles doivent rester strictement scopés au module Veille."
+  );
+
+  assert.ok(
+    adminWatch.includes(
+      'const DEFAULT_WATCH_ENDPOINT = "https://dedicalivres-veille.dedicalivres.workers.dev/analyze"'
+    ),
+    "V11.63 : le Worker historique doit rester inchangé."
+  );
+
+  assert.ok(
+    adminWatch.includes(
+      'const DEFAULT_EVENT_WATCH_ENDPOINT = "http://127.0.0.1:5065/api/event-watch"'
+    ),
+    "V11.63 : Event Watch local doit rester inchangé."
+  );
+
+  assert.ok(
+    config.includes(
+      'localStorage.getItem("automatte_endpoint")'
+    ),
+    "V11.63 : le routage local Auto-Matte doit rester disponible."
+  );
+}
