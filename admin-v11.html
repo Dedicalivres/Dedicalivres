@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dédicalivres — Admin V11 Preview</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="admin-v11.css?v=v11-66-social-1">
+  <link rel="stylesheet" href="admin-v11.css?v=v11-67-maintenance-1">
 </head>
 
 <body>
@@ -1715,8 +1715,8 @@
               </p>
 
               <div class="v11-tool-meta">
-                <span>Lecture d’état</span>
-                <span>Aucun chemin local affiché</span>
+                <span>Diagnostic lecture seule</span>
+                <span>Session · modules · protections</span>
               </div>
             </div>
           </article>
@@ -1797,7 +1797,113 @@
           <div id="tab-moderation" class="v11-legacy-slot" hidden></div>
           <div id="tab-exports" class="v11-legacy-slot" hidden></div>
           <div id="tab-social" class="v11-legacy-slot" hidden></div>
-          <div id="v11-maintenance-panel" class="v11-legacy-slot" hidden></div>
+          <div id="v11-maintenance-panel" class="v11-legacy-slot" hidden>
+            <section class="v11-maintenance-shell">
+              <div class="v11-maintenance-head">
+                <div>
+                  <p class="v11-section-label">DIAGNOSTIC LOCAL</p>
+                  <h3>État réel de l’administration</h3>
+                  <p>
+                    Lecture seule des composants actuellement chargés.
+                    Aucun test réseau supplémentaire et aucune écriture ne sont exécutés ici.
+                  </p>
+                </div>
+
+                <button
+                  id="v11-maintenance-refresh"
+                  class="v11-button secondary"
+                  type="button"
+                >
+                  Actualiser l’état
+                </button>
+              </div>
+
+              <div class="v11-maintenance-grid">
+
+                <article class="v11-maintenance-item">
+                  <span class="v11-maintenance-dot" data-maintenance-dot="auth"></span>
+                  <div>
+                    <strong>Session administrateur</strong>
+                    <span data-maintenance-value="auth">À vérifier</span>
+                  </div>
+                </article>
+
+                <article class="v11-maintenance-item">
+                  <span class="v11-maintenance-dot" data-maintenance-dot="context"></span>
+                  <div>
+                    <strong>Contexte V11</strong>
+                    <span data-maintenance-value="context">À vérifier</span>
+                  </div>
+                </article>
+
+                <article class="v11-maintenance-item">
+                  <span class="v11-maintenance-dot" data-maintenance-dot="supabase"></span>
+                  <div>
+                    <strong>Supabase</strong>
+                    <span data-maintenance-value="supabase">À vérifier</span>
+                  </div>
+                </article>
+
+                <article class="v11-maintenance-item">
+                  <span class="v11-maintenance-dot" data-maintenance-dot="bridge"></span>
+                  <div>
+                    <strong>Bridge V11</strong>
+                    <span data-maintenance-value="bridge">À vérifier</span>
+                  </div>
+                </article>
+
+                <article class="v11-maintenance-item">
+                  <span class="v11-maintenance-dot" data-maintenance-dot="watch"></span>
+                  <div>
+                    <strong>Auto-Matte / Veille</strong>
+                    <span data-maintenance-value="watch">À vérifier</span>
+                  </div>
+                </article>
+
+                <article class="v11-maintenance-item">
+                  <span class="v11-maintenance-dot" data-maintenance-dot="exports"></span>
+                  <div>
+                    <strong>Exports</strong>
+                    <span data-maintenance-value="exports">À vérifier</span>
+                  </div>
+                </article>
+
+                <article class="v11-maintenance-item">
+                  <span class="v11-maintenance-dot" data-maintenance-dot="social"></span>
+                  <div>
+                    <strong>Social</strong>
+                    <span data-maintenance-value="social">À vérifier</span>
+                  </div>
+                </article>
+
+                <article class="v11-maintenance-item is-neutral">
+                  <span class="v11-maintenance-dot neutral"></span>
+                  <div>
+                    <strong>Sauvegardes</strong>
+                    <span>Non instrumentées dans Admin V11</span>
+                  </div>
+                </article>
+
+              </div>
+
+              <div class="v11-maintenance-note">
+                <strong>Portée du diagnostic</strong>
+                <p>
+                  Ce panneau confirme uniquement les composants observables dans
+                  la session courante. Il ne prétend pas contrôler l’hébergement,
+                  les sauvegardes externes, Cloudflare, GitHub ou l’état complet
+                  de Supabase.
+                </p>
+              </div>
+
+              <p
+                id="v11-maintenance-updated"
+                class="v11-maintenance-updated"
+              >
+                État non actualisé.
+              </p>
+            </section>
+          </div>
 
         </div>
 
@@ -2165,7 +2271,7 @@
   <script defer src="admin-context.js?v=v11-context-28"></script>
   <script defer src="duplicate-detection.js?v=v11-18-1"></script>
   <script defer src="admin-v11-bridge.js?v=v11-bridge-40b"></script>
-  <script defer src="admin-shell.js?v=v11-42d3"></script>
+  <script defer src="admin-shell.js?v=v11-67-maintenance-1"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
   <script defer src="admin-v11-exports.js?v=v11-exports-39-3"></script>
   <script defer src="admin-social-generator.js?v=v11-social-66-1"></script>

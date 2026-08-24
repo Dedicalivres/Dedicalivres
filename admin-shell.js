@@ -182,6 +182,174 @@
       "Cet espace regroupera les états système, sauvegardes et contrôles techniques."
   };
 
+  function renderMaintenanceStatus() {
+    const maintenancePanel =
+      document.getElementById("v11-maintenance-panel");
+
+    if (!maintenancePanel) return;
+
+    const state =
+      typeof context?.getState === "function"
+        ? context.getState()
+        : null;
+
+    const setStatus = (key, ok, text, neutral = false) => {
+      const value =
+        maintenancePanel.querySelector(
+          `[data-maintenance-value="${key}"]`
+        );
+
+      const dot =
+        maintenancePanel.querySelector(
+          `[data-maintenance-dot="${key}"]`
+        );
+
+      if (value) {
+        value.textContent = text;
+      }
+
+      if (dot) {
+        dot.classList.toggle("ok", Boolean(ok) && !neutral);
+        dot.classList.toggle(
+          "error",
+          ok === false && !neutral
+        );
+        dot.classList.toggle(
+          "neutral",
+          Boolean(neutral)
+        );
+      }
+    };
+
+    const authenticated =
+      window.DEDICALIVRES_ADMIN_AUTHENTICATED === true;
+
+    setStatus(
+      "auth",
+      authenticated,
+      authenticated
+        ? "Session authentifiée"
+        : "Session non authentifiée"
+    );
+
+    const contextAvailable =
+      Boolean(context) &&
+      typeof context.getState === "function";
+
+    const contextVersion =
+      state?.version
+        ? `V${state.version}`
+        : "version inconnue";
+
+    const contextState =
+      state?.status || "état inconnu";
+
+    setStatus(
+      "context",
+      contextAvailable,
+      contextAvailable
+        ? `${contextVersion} · ${contextState}`
+        : "Contexte indisponible"
+    );
+
+    const supabaseReady =
+      Boolean(
+        window.DEDICALIVRES_SUPABASE_CLIENT
+      ) &&
+      state?.status !== "error";
+
+    setStatus(
+      "supabase",
+      supabaseReady,
+      supabaseReady
+        ? "Client présent dans la session"
+        : "Client absent ou contexte en erreur"
+    );
+
+    const bridgeLoaded =
+      typeof window.V11_WATCH_WRITE_GUARD !== "undefined";
+
+    setStatus(
+      "bridge",
+      bridgeLoaded,
+      bridgeLoaded
+        ? "Bridge chargé"
+        : "Bridge non détecté"
+    );
+
+    const watchScript =
+      document.querySelector(
+        'script[src*="admin-watch.js"]'
+      );
+
+    const watchGuard =
+      window.V11_WATCH_WRITE_GUARD === true;
+
+    setStatus(
+      "watch",
+      Boolean(watchScript) && watchGuard,
+      watchScript
+        ? (
+            watchGuard
+              ? "Module chargé · garde d’écriture active"
+              : "Module chargé · garde non confirmée"
+          )
+        : "Module non chargé"
+    );
+
+    const exportsScript =
+      document.querySelector(
+        'script[src*="admin-v11-exports.js"]'
+      );
+
+    setStatus(
+      "exports",
+      Boolean(exportsScript),
+      exportsScript
+        ? "Module chargé"
+        : "Module non chargé"
+    );
+
+    const socialScript =
+      document.querySelector(
+        'script[src*="admin-social-generator.js"]'
+      );
+
+    const socialVersion =
+      window.DEDICALIVRES_SOCIAL_GENERATOR_VERSION;
+
+    setStatus(
+      "social",
+      Boolean(socialScript),
+      socialScript
+        ? (
+            socialVersion
+              ? `Module chargé · V${socialVersion}`
+              : "Module chargé · initialisation non confirmée"
+          )
+        : "Module non chargé"
+    );
+
+    const updated =
+      document.getElementById(
+        "v11-maintenance-updated"
+      );
+
+    if (updated) {
+      updated.textContent =
+        "Dernière lecture locale : " +
+        new Intl.DateTimeFormat(
+          "fr-FR",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+          }
+        ).format(new Date());
+    }
+  }
+
+
   function openToolWorkspace(name) {
     if (!toolWorkspace) return;
 
@@ -227,11 +395,22 @@
         "Module en préparation.";
     }
 
+    if (name === "maintenance") {
+      renderMaintenanceStatus();
+    }
+
     toolWorkspace.scrollIntoView({
       behavior: "smooth",
       block: "start"
     });
   }
+
+  document
+    .getElementById("v11-maintenance-refresh")
+    ?.addEventListener(
+      "click",
+      renderMaintenanceStatus
+    );
 
   toolCards.forEach((card) => {
     card.addEventListener("click", () => {
