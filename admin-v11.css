@@ -5634,3 +5634,9 @@ label.is-artist-author {
     grid-template-columns: 1fr;
   }
 }
+
+/* V11.64 — état Auto-Matte non vérifié */
+.v11-system-dot.is-neutral {
+  background: rgba(148, 163, 184, .58);
+  box-shadow: none;
+}
