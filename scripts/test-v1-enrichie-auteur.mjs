@@ -2446,3 +2446,70 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.65 : la régénération authentifiée doit rester intacte."
   );
 }
+
+
+// V11.66 — Social V11 integration
+{
+  const adminHtml =
+    fs.readFileSync("admin-v11.html", "utf8");
+
+  const adminCss =
+    fs.readFileSync("admin-v11.css", "utf8");
+
+  const socialJs =
+    fs.readFileSync("admin-social-generator.js", "utf8");
+
+  assert.ok(
+    adminHtml.includes('id="tab-social"'),
+    "V11.66 : le slot Social doit rester présent."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "admin-social-generator.js?v=v11-social-66-1"
+    ),
+    "V11.66 : le cache-buster Social doit être actualisé."
+  );
+
+  assert.ok(
+    socialJs.includes(
+      '.querySelectorAll(\'input[name="visual-format"]\')'
+    ),
+    "V11.66 : les changements de formats doivent actualiser le statut."
+  );
+
+  assert.ok(
+    socialJs.includes(
+      "updateVisualStatus();"
+    ),
+    "V11.66 : le statut visuel doit être recalculé."
+  );
+
+  assert.ok(
+    adminCss.includes(
+      "V11.66 — SOCIAL DANS LE DESIGN V11"
+    ),
+    "V11.66 : les styles Social V11 doivent exister."
+  );
+
+  assert.ok(
+    adminCss.includes(
+      "#tab-social .social-visual-preview-canvas canvas"
+    ),
+    "V11.66 : le canvas preview doit être contraint dans V11."
+  );
+
+  assert.ok(
+    socialJs.includes(
+      'const VERSION = "7.9.2-local-event-pack-unified-visuals"'
+    ),
+    "V11.66 : la version du moteur graphique doit rester inchangée."
+  );
+
+  assert.ok(
+    socialJs.includes(
+      "renderVisualByFormat(visualEvent, format)"
+    ),
+    "V11.66 : le moteur de rendu PNG doit rester présent."
+  );
+}

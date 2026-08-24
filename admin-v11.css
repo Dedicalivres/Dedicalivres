@@ -5646,3 +5646,172 @@ label.is-artist-author {
 .v11-legacy-slot[hidden] {
   display: none !important;
 }
+
+
+/* =========================================================
+   V11.66 — SOCIAL DANS LE DESIGN V11
+   Présentation uniquement.
+   Le rendu des PNG reste inchangé.
+   ========================================================= */
+
+#tab-social {
+  width: 100%;
+  min-width: 0;
+}
+
+#tab-social .social-generator-shell,
+#tab-social .social-card,
+#tab-social .social-generator-workbench,
+#tab-social .social-compose-panel,
+#tab-social .social-preview-panel,
+#tab-social .social-visual-generator-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#tab-social .social-card {
+  overflow: hidden;
+}
+
+#tab-social select,
+#tab-social input[type="search"],
+#tab-social input[type="date"],
+#tab-social textarea {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 10px;
+  background: rgba(255,255,255,.055);
+  color: var(--text);
+  font: inherit;
+  color-scheme: dark;
+  outline: none;
+}
+
+#tab-social select,
+#tab-social input[type="date"] {
+  min-height: 40px;
+  padding: 0 11px;
+}
+
+#tab-social input[type="search"] {
+  min-height: 43px;
+  padding: 0 13px;
+}
+
+#tab-social textarea {
+  padding: 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+#tab-social input::placeholder,
+#tab-social textarea::placeholder {
+  color: rgba(218,229,237,.32);
+}
+
+#tab-social select:focus,
+#tab-social input:focus,
+#tab-social textarea:focus {
+  border-color: rgba(81,215,232,.4);
+  box-shadow: 0 0 0 3px rgba(81,215,232,.07);
+}
+
+#tab-social button {
+  appearance: none;
+  min-height: 36px;
+  padding: 7px 11px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 9px;
+  background: rgba(255,255,255,.055);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#tab-social button:hover:not(:disabled) {
+  border-color: rgba(81,215,232,.28);
+  background: rgba(81,215,232,.075);
+}
+
+#tab-social button:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+}
+
+#tab-social .cyber-btn-primary {
+  border-color: rgba(81,215,232,.28);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(81,215,232,.13),
+      rgba(167,122,245,.13)
+    );
+}
+
+#tab-social .cyber-btn-danger {
+  border-color: rgba(255,115,128,.2);
+  background: rgba(255,115,128,.055);
+}
+
+#tab-social .social-visual-preview-grid {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#tab-social .social-visual-preview-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#tab-social .social-visual-preview-canvas {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.018);
+}
+
+#tab-social .social-visual-preview-canvas canvas {
+  display: block;
+  width: auto;
+  max-width: min(100%, 520px);
+  height: auto;
+  max-height: 72vh;
+  object-fit: contain;
+  box-shadow: 0 15px 40px rgba(0,0,0,.22);
+}
+
+#tab-social .social-visual-preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 11px 2px 4px;
+}
+
+#tab-social .social-visual-preview-meta span {
+  min-width: 0;
+  flex: 1 1 220px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  #tab-social .social-visual-preview-canvas {
+    padding: 8px;
+  }
+
+  #tab-social .social-visual-preview-canvas canvas {
+    max-width: 100%;
+    max-height: none;
+  }
+}
