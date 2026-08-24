@@ -171,15 +171,15 @@
 
   const toolDescriptions = {
     watch:
-      "Le module de veille existant sera remonté dans cet espace sans modifier son moteur.",
+      "Module de veille Auto-Matte.",
     exports:
-      "Les exports existants seront reconnectés ici après validation de leur comportement V10.",
+      "Exports et fichiers de diffusion.",
     social:
-      "Le générateur social existant sera remonté ici sans modifier sa logique de production.",
+      "Générateur Social Dédicalivres.",
     partners:
-      "Le configurateur partenaires conservera son moteur actuel et recevra une présentation V11.",
+      "Configurateur du widget partenaires.",
     maintenance:
-      "Cet espace regroupera les états système, sauvegardes et contrôles techniques."
+      "Diagnostic local de l’administration."
   };
 
   function renderMaintenanceStatus() {
@@ -393,7 +393,7 @@
 
       toolPlaceholder.textContent =
         toolDescriptions[name] ||
-        "Module en préparation.";
+        "Outil indisponible dans cet espace.";
     }
 
     if (name === "maintenance") {
