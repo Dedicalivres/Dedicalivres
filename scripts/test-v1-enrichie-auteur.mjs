@@ -1971,3 +1971,67 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "21A.1 : accueil alimenté par état complet"
   );
 }
+
+
+// V11.59 — author preview fidelity
+{
+  const authorJs = fs.readFileSync("author.js", "utf8");
+
+  assert.ok(
+    authorJs.includes(
+      "l’aperçu interne doit refléter la future page publique"
+    ),
+    "V11.59 : l’aperçu Admin doit expliciter sa fidélité à la future page publique."
+  );
+
+  assert.ok(
+    authorJs.includes(
+      "renderAuthorTravelMap(["
+    ),
+    "V11.59 : la carte du parcours doit être disponible dans l’aperçu."
+  );
+
+  const travelCalls =
+    authorJs.match(/renderAuthorTravelMap\(\[/g) || [];
+
+  assert.ok(
+    travelCalls.length >= 2,
+    "V11.59 : la carte doit être appelée en aperçu Admin et en mode public."
+  );
+
+  assert.ok(
+    authorJs.includes(
+      "un lieu d’événement n’est pas une localisation auteur"
+    ),
+    "V11.59 : la localisation auteur ne doit pas être déduite d’un événement."
+  );
+
+  assert.ok(
+    !authorJs.includes(
+      "location: row?.events?.region || row?.events?.city || null"
+    ),
+    "V11.59 : l’ancien fallback géographique doit avoir disparu."
+  );
+
+  assert.ok(
+    authorJs.includes("location: null,"),
+    "V11.59 : le fallback auteur doit conserver une localisation vide."
+  );
+
+  assert.ok(
+    authorJs.includes(
+      "config.authorPublicPublishingEnabled !== true"
+    ),
+    "V11.59 : le verrou de publication publique doit rester actif."
+  );
+}
+
+// V11.59 — compteurs parcours regroupés
+{
+  const authorJs = fs.readFileSync("author.js", "utf8");
+
+  assert.ok(
+    authorJs.includes('class="author-travel-stat"'),
+    "V11.59 : chaque compteur du parcours doit être regroupé avec son libellé."
+  );
+}
