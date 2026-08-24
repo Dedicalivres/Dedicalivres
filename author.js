@@ -110,6 +110,13 @@
         "Aucun événement passé indiqué."
       );
 
+      // V11.59 — l’aperçu interne doit refléter la future page publique.
+      // La carte reste noindex et réservée à la session admin.
+      renderAuthorTravelMap([
+        ...draft.upcomingEvents,
+        ...draft.pastEvents
+      ]);
+
       return;
     }
 
@@ -242,7 +249,8 @@
       website: row.author_profile_url || row.website || null,
       bio: null,
       avatar_url: row.author_portrait_url || null,
-      location: row?.events?.region || row?.events?.city || null,
+      // V11.59 — un lieu d’événement n’est pas une localisation auteur.
+      location: null,
       shop_url: row.book_or_publisher_url || null,
       profile_type: ["author", "artist_author", "hybrid"].includes(row.participant_type)
         ? row.participant_type
@@ -501,14 +509,20 @@
 
     if (travelStats) {
       travelStats.innerHTML = `
-        <strong>${cityKeys.size}</strong>
-        <span>ville${cityKeys.size > 1 ? "s" : ""}</span>
+        <div class="author-travel-stat">
+          <strong>${cityKeys.size}</strong>
+          <span>ville${cityKeys.size > 1 ? "s" : ""}</span>
+        </div>
 
-        <strong>${mappedEvents.length}</strong>
-        <span>événement${mappedEvents.length > 1 ? "s" : ""}</span>
+        <div class="author-travel-stat">
+          <strong>${mappedEvents.length}</strong>
+          <span>événement${mappedEvents.length > 1 ? "s" : ""}</span>
+        </div>
 
-        <strong>${upcomingCount}</strong>
-        <span>à venir</span>
+        <div class="author-travel-stat">
+          <strong>${upcomingCount}</strong>
+          <span>à venir</span>
+        </div>
       `;
     }
 

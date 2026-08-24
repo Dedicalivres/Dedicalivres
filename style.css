@@ -9110,3 +9110,18 @@ html.a11y-soir .author-presence-card.participant-publisher .author-presence-card
     font-size: .72rem;
   }
 }
+
+/* V11.59 — garder chaque compteur du parcours avec son libellé */
+.author-travel-stat{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  text-align:center;
+}
+
+.author-travel-stat strong,
+.author-travel-stat span{
+  display:block;
+}
