@@ -5640,3 +5640,9 @@ label.is-artist-author {
   background: rgba(148, 163, 184, .58);
   box-shadow: none;
 }
+
+/* V11.65 — respecter hidden dans les outils */
+.v11-tool-placeholder[hidden],
+.v11-legacy-slot[hidden] {
+  display: none !important;
+}
