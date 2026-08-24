@@ -364,6 +364,7 @@
       watch: "tab-watch",
       exports: "tab-exports",
       social: "tab-social",
+      partners: "v11-partner-widget-panel",
       maintenance: "v11-maintenance-panel"
     };
 
@@ -397,6 +398,13 @@
 
     if (name === "maintenance") {
       renderMaintenanceStatus();
+    }
+
+    if (
+      name === "partners" &&
+      typeof window.DEDICALIVRES_V11_PARTNER_WIDGET?.open === "function"
+    ) {
+      window.DEDICALIVRES_V11_PARTNER_WIDGET.open();
     }
 
     toolWorkspace.scrollIntoView({

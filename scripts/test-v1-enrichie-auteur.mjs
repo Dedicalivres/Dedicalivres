@@ -2596,3 +2596,107 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.67 : aucun faux statut sauvegarde ne doit apparaître."
   );
 }
+
+
+// V11.68 — Partner widget integration
+{
+  const adminHtml =
+    fs.readFileSync("admin-v11.html", "utf8");
+
+  const adminShell =
+    fs.readFileSync("admin-shell.js", "utf8");
+
+  const partnerWidget =
+    fs.readFileSync(
+      "admin-v11-partner-widget.js",
+      "utf8"
+    );
+
+  const publicWidget =
+    fs.readFileSync(
+      "widget.js",
+      "utf8"
+    );
+
+  const adminCss =
+    fs.readFileSync("admin-v11.css", "utf8");
+
+  assert.ok(
+    adminHtml.includes(
+      'id="v11-partner-widget-panel"'
+    ),
+    "V11.68 : le slot Widget partenaires doit exister."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      'partners: "v11-partner-widget-panel"'
+    ),
+    "V11.68 : le shell doit router le Widget partenaires."
+  );
+
+  assert.ok(
+    adminShell.includes(
+      "DEDICALIVRES_V11_PARTNER_WIDGET.open()"
+    ),
+    "V11.68 : le configurateur doit être initialisé à l’ouverture."
+  );
+
+  assert.ok(
+    partnerWidget.includes(
+      'const ENGINE_SRC = "widget.js?v=widget-4"'
+    ),
+    "V11.68 : l’adaptateur doit charger le moteur public existant."
+  );
+
+  assert.ok(
+    partnerWidget.includes(
+      "window.DedicalivresWidget.render"
+    ),
+    "V11.68 : le preview doit utiliser l’API publique réelle."
+  );
+
+  assert.ok(
+    partnerWidget.includes(
+      "https://dedicalivres.fr/widget.js"
+    ),
+    "V11.68 : le snippet partenaire doit pointer vers le widget public."
+  );
+
+  assert.ok(
+    partnerWidget.includes(
+      "https://dedicalivres.fr/agenda.html"
+    ),
+    "V11.68 : le lien direct doit utiliser agenda.html."
+  );
+
+  assert.ok(
+    !partnerWidget.includes(
+      ".insert("
+    ) &&
+    !partnerWidget.includes(
+      ".update("
+    ) &&
+    !partnerWidget.includes(
+      ".upsert("
+    ) &&
+    !partnerWidget.includes(
+      ".delete("
+    ),
+    "V11.68 : l’adaptateur Widget ne doit pas écrire dans Supabase."
+  );
+
+  assert.ok(
+    publicWidget.includes(
+      "window.DedicalivresWidget = { render: render, refresh: init }"
+    ),
+    "V11.68 : l’API publique Widget doit rester disponible."
+  );
+
+  assert.ok(
+    adminCss.includes(
+      "V11.68 — WIDGET PARTENAIRES"
+    ),
+    "V11.68 : les styles V11 Widget doivent exister."
+  );
+}
