@@ -135,6 +135,7 @@
       author &&
       author.published === true &&
       author.validated === true &&
+      author.publication_ready === true &&
       !author.merged_into;
 
     if (!isPubliclyAvailable) {

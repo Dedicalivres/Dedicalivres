@@ -5187,3 +5187,115 @@ label.is-artist-author {
       repeat(2, minmax(0, 1fr));
   }
 }
+
+/* =========================================================
+   V11.62 — DRY-RUN OUVERTURE PUBLIQUE AUTEUR
+   ========================================================= */
+
+.v11-author-release-dryrun {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  background: rgba(0,0,0,.13);
+}
+
+.v11-author-release-dryrun-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 14px;
+}
+
+.v11-author-release-dryrun-head h4 {
+  margin: 3px 0 5px;
+  font-size: 17px;
+}
+
+.v11-author-release-dryrun-head p:last-child {
+  margin: 0;
+  opacity: .68;
+  line-height: 1.5;
+}
+
+.v11-author-release-dryrun-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.v11-author-release-dryrun-list {
+  display: grid;
+  gap: 8px;
+}
+
+.v11-author-release-dryrun-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+}
+
+.v11-author-release-dryrun-row.has-warning {
+  border-color: rgba(255,174,66,.28);
+}
+
+.v11-author-release-dryrun-row strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.v11-author-release-dryrun-row span {
+  font-size: 12px;
+  opacity: .72;
+}
+
+.v11-author-release-dryrun-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.v11-author-release-dryrun-actions a {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 7px 9px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 9px;
+  background: rgba(255,255,255,.035);
+}
+
+.v11-author-release-dryrun-actions a:hover {
+  border-color: rgba(83,215,232,.32);
+}
+
+.v11-author-release-dryrun-empty {
+  padding: 13px 14px;
+  border-radius: 11px;
+  background: rgba(255,255,255,.025);
+  font-size: 13px;
+  opacity: .75;
+}
+
+@media (max-width: 720px) {
+  .v11-author-release-dryrun-head,
+  .v11-author-release-dryrun-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .v11-author-release-dryrun-chips,
+  .v11-author-release-dryrun-actions {
+    justify-content: flex-start;
+  }
+}
