@@ -5942,3 +5942,224 @@ label.is-artist-author {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   V11.68 — WIDGET PARTENAIRES
+   Adaptateur V11 du moteur public existant.
+   ========================================================= */
+
+.v11-partner-widget-shell {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.v11-partner-widget-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.v11-partner-widget-head h3 {
+  margin: 4px 0 6px;
+  font-size: 20px;
+}
+
+.v11-partner-widget-head p:not(.v11-section-label) {
+  max-width: 650px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.v11-partner-widget-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(280px, .8fr)
+    minmax(360px, 1.2fr);
+  gap: 14px;
+  min-width: 0;
+}
+
+.v11-partner-config,
+.v11-partner-preview {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255,255,255,.018);
+}
+
+.v11-partner-config {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.v11-partner-field label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.v11-partner-field select,
+.v11-partner-output textarea,
+.v11-partner-output input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  outline: none;
+  color-scheme: dark;
+}
+
+.v11-partner-field select,
+.v11-partner-output input {
+  min-height: 40px;
+  padding: 0 11px;
+}
+
+.v11-partner-output textarea {
+  min-height: 112px;
+  padding: 11px;
+  resize: vertical;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.v11-partner-field select:focus,
+.v11-partner-output textarea:focus,
+.v11-partner-output input:focus {
+  border-color: rgba(81,215,232,.4);
+  box-shadow: 0 0 0 3px rgba(81,215,232,.06);
+}
+
+.v11-partner-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  color: var(--soft);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.v11-partner-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--cyan);
+}
+
+.v11-partner-output {
+  display: grid;
+  gap: 7px;
+  padding-top: 6px;
+}
+
+.v11-partner-output-head,
+.v11-partner-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.v11-partner-output-head strong,
+.v11-partner-preview-head strong {
+  font-size: 10px;
+}
+
+.v11-partner-output-head button {
+  min-height: 31px;
+  padding: 5px 10px;
+  border: 1px solid rgba(81,215,232,.2);
+  border-radius: 8px;
+  background: rgba(81,215,232,.06);
+  color: var(--text);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.v11-partner-preview {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  overflow: hidden;
+}
+
+.v11-partner-preview-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.v11-partner-preview-head span:not(.v11-chip) {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.v11-partner-preview-zone {
+  min-width: 0;
+  padding: 18px;
+  border-radius: 12px;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(167,122,245,.07),
+      transparent 38%
+    ),
+    rgba(5,13,20,.5);
+  overflow: hidden;
+}
+
+#v11-wg-preview {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+.v11-partner-preview > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.v11-partner-preview code {
+  color: var(--cyan);
+}
+
+@media (max-width: 900px) {
+  .v11-partner-widget-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .v11-partner-widget-head {
+    display: grid;
+  }
+
+  .v11-partner-config,
+  .v11-partner-preview {
+    padding: 12px;
+  }
+
+  .v11-partner-preview-zone {
+    padding: 10px;
+  }
+}
