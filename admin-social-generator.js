@@ -362,6 +362,14 @@
     document.getElementById("visual-generate")?.addEventListener("click", generateVisuals);
     document.getElementById("visual-download-zip")?.addEventListener("click", downloadVisualZip);
     document.getElementById("visual-clear-preview")?.addEventListener("click", clearVisualPreview);
+
+    document
+      .querySelectorAll('input[name="visual-format"]')
+      .forEach((input) => {
+        input.addEventListener("change", () => {
+          updateVisualStatus();
+        });
+      });
   }
 
   function populateRegionFilter() {
