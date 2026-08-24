@@ -2126,3 +2126,61 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.60 : author.js doit continuer à bloquer l’accès public."
   );
 }
+
+
+// V11.61 — author magazine hero
+{
+  const authorHtml =
+    fs.readFileSync(
+      "author.html",
+      "utf8"
+    );
+
+  const styleCss =
+    fs.readFileSync(
+      "style.css",
+      "utf8"
+    );
+
+  assert.ok(
+    authorHtml.includes(
+      "style.css?v=author-magazine-2"
+    ),
+    "V11.61 : la fiche auteur doit charger la nouvelle version CSS."
+  );
+
+  assert.ok(
+    styleCss.includes(
+      "V11.61 — DESKTOP PORTRAIT ÉDITORIAL FINAL"
+    ),
+    "V11.61 : les styles magazine doivent être présents."
+  );
+
+  assert.ok(
+    styleCss.includes(
+      ".author-page .author-visual::after"
+    ),
+    "V11.61 : la transition photo/papier doit exister."
+  );
+
+  assert.ok(
+    styleCss.includes(
+      ".author-page .author-profile-content"
+    ),
+    "V11.61 : le panneau éditorial doit être stylé."
+  );
+
+  assert.ok(
+    styleCss.includes(
+      "@media (min-width: 760px)"
+    ),
+    "V11.61 : le rendu desktop doit rester limité aux écrans adaptés."
+  );
+
+  assert.ok(
+    styleCss.includes(
+      "@media (max-width: 900px)"
+    ),
+    "V11.61 : un repli tablette/mobile doit exister."
+  );
+}

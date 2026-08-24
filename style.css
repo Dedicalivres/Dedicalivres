@@ -9125,3 +9125,135 @@ html.a11y-soir .author-presence-card.participant-publisher .author-presence-card
 .author-travel-stat span{
   display:block;
 }
+
+/* =========================================================
+   V11.61 — DESKTOP PORTRAIT ÉDITORIAL FINAL
+   Photo entière en haut, contenu dessous.
+   Le mobile existant reste inchangé.
+========================================================= */
+
+@media (min-width: 760px) {
+
+  .author-page .author-profile {
+    overflow: hidden;
+  }
+
+  .author-page .author-profile-inner {
+    display: block;
+    min-height: 0;
+  }
+
+  /* Portrait complet : aucun crop */
+  .author-page .author-visual {
+    position: relative;
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+    background:
+      linear-gradient(
+        135deg,
+        rgba(58,28,113,.06),
+        rgba(255,107,53,.05)
+      );
+  }
+
+  .author-page .author-avatar {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    object-fit: contain;
+    object-position: center;
+  }
+
+  /* Plus aucun fondu latéral desktop */
+  .author-page .author-visual::after {
+    display: none;
+  }
+
+  /* Retour du contenu sous la photographie */
+  .author-page .author-profile-content {
+    position: relative;
+    z-index: 4;
+
+    width:
+      min(
+        940px,
+        calc(100% - 80px)
+      );
+
+    margin:
+      clamp(-72px, -5vw, -52px)
+      auto
+      0;
+
+    padding:
+      clamp(38px, 4vw, 58px)
+      clamp(42px, 6vw, 76px)
+      clamp(42px, 5vw, 64px);
+
+    border-radius:
+      34px 34px 0 0;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255,255,255,.94),
+        rgba(255,252,250,.985) 18%,
+        rgba(255,255,255,.995) 100%
+      );
+
+    box-shadow:
+      0 -18px 50px rgba(58,28,113,.08);
+
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .author-page .author-profile-content::before {
+    display: none;
+  }
+
+  .author-page .author-editorial-heading {
+    margin: 0 0 28px;
+  }
+
+  .author-page .author-title {
+    left: auto;
+    max-width: none;
+    font-size:
+      clamp(3.8rem, 7vw, 6.6rem);
+  }
+
+  .author-page .author-lead {
+    margin:
+      10px
+      0
+      30px;
+
+    padding:
+      22px 0 22px
+      clamp(42px, 5vw, 62px);
+
+    border-radius: 0;
+
+    background: transparent;
+
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .author-page .author-bio {
+    left: auto;
+    max-width: 760px;
+    font-size:
+      clamp(1.04rem, 1.35vw, 1.18rem);
+    line-height: 1.78;
+  }
+
+  .author-page .author-actions {
+    margin-top: 32px;
+  }
+}
