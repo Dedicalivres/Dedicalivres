@@ -2386,3 +2386,63 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
     "V11.64 : la carte Outils doit expliquer la source du contrôle."
   );
 }
+
+
+// V11.65 — Exports V11 integration
+{
+  const adminHtml =
+    fs.readFileSync("admin-v11.html", "utf8");
+
+  const adminCss =
+    fs.readFileSync("admin-v11.css", "utf8");
+
+  const exportsJs =
+    fs.readFileSync("admin-v11-exports.js", "utf8");
+
+  assert.ok(
+    adminHtml.includes('id="tab-exports"'),
+    "V11.65 : le slot Exports doit rester présent."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      'src="admin-v11-exports.js?v=v11-exports-39-3"'
+    ),
+    "V11.65 : le module Exports V11 doit rester chargé."
+  );
+
+  assert.ok(
+    adminHtml.includes(
+      "Lecture V11 validée"
+    ),
+    "V11.65 : la carte Exports doit refléter la validation."
+  );
+
+  assert.ok(
+    adminCss.includes(
+      ".v11-tool-placeholder[hidden]"
+    ),
+    "V11.65 : le placeholder caché doit réellement disparaître."
+  );
+
+  assert.ok(
+    adminCss.includes(
+      ".v11-legacy-slot[hidden]"
+    ),
+    "V11.65 : les slots inactifs doivent rester masqués."
+  );
+
+  assert.ok(
+    exportsJs.includes(
+      '"https://dedicalivres-daily-export.dedicalivres.workers.dev/exports"'
+    ),
+    "V11.65 : le endpoint Exports doit rester inchangé."
+  );
+
+  assert.ok(
+    exportsJs.includes(
+      'workerBase + "/admin-regenerate"'
+    ),
+    "V11.65 : la régénération authentifiée doit rester intacte."
+  );
+}
