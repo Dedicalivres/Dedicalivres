@@ -1,0 +1,42 @@
+{
+  "version": "0.1-draft",
+  "entry": {
+    "path": "/nfc/",
+    "query_key": "t",
+    "unknown_tag_fallback": "general"
+  },
+  "intents": {
+    "nearby": {
+      "label": "Découvrir autour de moi",
+      "site_target": "/index.html#agenda",
+      "activation": "nearby_used",
+      "strategy": "Le site possède déjà Me localiser avec rayon par défaut 25 km. Le sas peut demander la position après clic, conserver lat/lng uniquement en sessionStorage pour usage fonctionnel, sans envoyer la position précise aux analytics."
+    },
+    "favorites": {
+      "label": "Garder mes prochaines rencontres",
+      "site_target": "/index.html#agenda",
+      "activation": "favorite_added",
+      "existing_section": "/index.html#saved-events",
+      "strategy": "Pour un nouveau visiteur, rester sur #agenda et afficher un micro-coach pour ajouter un favori ; si des favoris existent déjà, #saved-events peut devenir la destination."
+    },
+    "discover": {
+      "label": "Simplement découvrir Dédicalivres",
+      "site_target": "/index.html",
+      "activation": "event_opened"
+    },
+    "organizer": {
+      "label": "Je propose un événement",
+      "site_target": "/soumettre.html",
+      "activation": "submission_started"
+    }
+  },
+  "notes": [
+    "Parcours author_presence à raccorder après validation de la route réelle.",
+    "Routes à revalider avant implémentation."
+  ],
+  "event_context": {
+    "event_page_pattern": "/event.html?id=<EVENT_ID>",
+    "author_presence_pattern": "/event.html?id=<EVENT_ID>#authors-presence-section",
+    "note": "Le formulaire de présence est créé sur la fiche événement validée et le hash #authors-presence-section déclenche le scroll vers ce bloc."
+  }
+}

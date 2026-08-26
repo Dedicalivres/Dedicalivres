@@ -1,0 +1,25 @@
+# Checklist
+
+- [ ] accès GitHub écriture rétabli
+- [ ] branche dédiée créée
+- [ ] V3 originale importée
+- [ ] V2 conservée en référence
+- [ ] assets base64 extraits/optimisés
+- [ ] reduced-motion réel
+- [ ] fallback no-JS
+- [ ] token `t` géré
+- [ ] contexte sessionStorage
+- [ ] Le Passage complet
+- [ ] contrat analytics figé
+- [ ] déduplication sessions
+- [ ] migration Supabase revue
+- [ ] RLS/RPC revue
+- [ ] favoris raccordés
+- [ ] proximité raccordée
+- [ ] arrivée site confirmée
+- [ ] activation mesurée
+- [ ] admin NFC Terrain
+- [ ] Safari iPhone PASS
+- [ ] preview validée
+- [ ] rollback documenté
+- [ ] PR seulement après validation
