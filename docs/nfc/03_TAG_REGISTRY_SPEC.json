@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dédicalivres NFC Tag Registry Entry",
+  "type": "object",
+  "required": [
+    "public_token",
+    "label",
+    "support_type",
+    "active"
+  ],
+  "properties": {
+    "public_token": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{8,24}$",
+      "examples": [
+        "EXAMPLE01"
+      ]
+    },
+    "label": {
+      "type": "string"
+    },
+    "support_type": {
+      "type": "string",
+      "enum": [
+        "plexi",
+        "card",
+        "flyer",
+        "badge",
+        "booklet",
+        "partner_display",
+        "other"
+      ]
+    },
+    "campaign_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "event_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "partner_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "context_location": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cta_variant": {
+      "type": "string",
+      "enum": [
+        "general",
+        "nearby",
+        "favorites",
+        "author",
+        "organizer",
+        "event"
+      ],
+      "default": "general"
+    },
+    "active": {
+      "type": "boolean"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "example": {
+    "public_token": "EXAMPLE01",
+    "label": "Présentoir plexi A4 — test",
+    "support_type": "plexi",
+    "campaign_key": "autumn-2026-test",
+    "event_id": null,
+    "partner_key": null,
+    "context_location": "Lieu de test",
+    "cta_variant": "nearby",
+    "active": true,
+    "notes": "Exemple uniquement"
+  }
+}
