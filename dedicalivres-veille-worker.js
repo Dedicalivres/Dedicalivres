@@ -646,9 +646,16 @@ function detectCity(text) {
   const value = String(text || "");
 
   const patterns = [
-    /\b20[0-9]{2}\s+(?:à|a)\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’ -]{2,42})/u,
+    // Signal le plus fiable : code postal suivi de la commune.
+    /\b((?!20[0-9]{2}\b)[0-9]{4,5})[ \t]+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’ -]{2,42})/u,
+
+    // Formulations explicites.
     /\b(?:ville de|commune de|lieu\s*:)\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’ -]{2,42})/u,
-    /\b([0-9]{4,5})\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’ -]{2,42})/u,
+
+    // Date suivie de "à Ville".
+    /\b20[0-9]{2}\s+(?:à|a)\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’ -]{2,42})/u,
+
+    // Ville explicitement suivie du pays.
     /\b([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’ -]{2,42})\s+[-–]\s+(?:France|Belgique|Suisse|Luxembourg|Monaco)\b/u
   ];
 
@@ -1058,8 +1065,10 @@ function httpError(status, message) {
 }
 
 function getAttr(tag, attr) {
-  const match = tag.match(new RegExp(`${attr}\\s*=\\s*["']([^"']*)["']`, "i"));
-  return match ? match[1] : "";
+  const match = tag.match(
+    new RegExp(`${attr}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, "i")
+  );
+  return match ? match[2] : "";
 }
 
 function htmlToText(html) {

@@ -270,3 +270,31 @@ assert(
 );
 
 console.log("TEST_MATRIX_OK");
+
+const postalLocationHtml = `
+<html>
+<head>
+  <title>Salon du Livre de test</title>
+  <meta property="og:description"
+        content="Salon du livre les 28 et 29 août 2026.">
+</head>
+<body>
+  <h1>Salon du Livre de test</h1>
+  <p>Complexe polyvalent</p>
+  <p><strong>17580 Le Bois-Plage-en-Ré</strong></p>
+  <p>Du 28 au 29 août 2026</p>
+</body>
+</html>
+`;
+
+const postalLocation = sandbox.extractCandidateFromHtml(postalLocationHtml, {
+  sourceUrl: "https://example.org/event-salon-test",
+  filters: {}
+});
+
+assert(
+  postalLocation.city === "Le Bois-Plage-en-Ré",
+  "le code postal doit être prioritaire sur le nom du lieu"
+);
+
+console.log("TEST_CITY_POSTAL_OK");
