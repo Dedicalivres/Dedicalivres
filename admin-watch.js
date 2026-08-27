@@ -14,6 +14,7 @@
   const WORKFLOW_KEY = "dedicalivres_admin_watch_workflow_v2";
   const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
   const WATCH_PAGE_SIZE = 15;
+  const DUPLICATE_CHECK_CONCURRENCY = 4;
 
   let initialized = false;
   let client = null;
@@ -22,6 +23,7 @@
   let watchOffset = 0;
   let eventWatchAlerts = [];
   let eventWatchCategory = "all";
+  const duplicateCheckCache = new Map();
 
   ready(() => waitForAdminAuthentication(initWhenReady));
   window.addEventListener("dedicalivres:admin-authenticated", () => waitForAdminAuthentication(initWhenReady));
@@ -300,11 +302,19 @@
       lastResults = sortWatchResultsByCompleteness(Array.isArray(payload.results) ? payload.results : []);
       lastPagination = normalizeWatchPagination(payload);
       renderResults(lastResults);
+
+      const duplicateCount = await precheckWatchDuplicates(lastResults);
+      if (duplicateCount) {
+        lastResults = sortWatchResultsByCompleteness(lastResults);
+        renderResults(lastResults);
+      }
+
       const productiveSaved = rememberProductiveSources(urls, lastResults);
       renderHistory();
       updatePagingControls();
       setStatus([
         `${lastResults.length} fiche(s) candidate(s) préparée(s), classée(s) par complétude${formatPaginationStatus()}.`,
+        duplicateCount ? `${duplicateCount} déjà présente(s) détectée(s) automatiquement.` : "",
         productiveSaved ? "Source à fort rendement mémorisée." : ""
       ].filter(Boolean).join(" "));
       if (copyAll) copyAll.disabled = !lastResults.length;
@@ -908,7 +918,7 @@
     }
 
     try {
-      const duplicate = await findExistingSubmission(item);
+      const duplicate = await findExistingSubmissionCached(item);
 
       if (duplicate) {
         setWatchWorkflowState(item, "duplicate");
@@ -925,6 +935,17 @@
 
       markHandled(item);
       setWatchWorkflowState(item, "submitted");
+
+      const duplicateKey = getWatchDuplicateKey(item);
+      if (duplicateKey) {
+        duplicateCheckCache.set(duplicateKey, Promise.resolve({
+          id: payload.id,
+          title: payload.title,
+          city: payload.city,
+          start_date: payload.start_date
+        }));
+      }
+
       lastResults = sortWatchResultsByCompleteness(lastResults);
       renderHistory();
       renderResults(lastResults);
@@ -995,6 +1016,74 @@
       const rowTitle = normalizeForCompare(row.title || "");
       return rowTitle === normalizedTitle || rowTitle.includes(normalizedTitle) || normalizedTitle.includes(rowTitle);
     }) || null;
+  }
+
+  function getWatchDuplicateKey(item) {
+    const title = normalizeForCompare(item?.title || "");
+    const startDate = normalizeIsoDate(item?.startDate || "");
+    const city = normalizeForCompare(item?.city || "");
+    const country = normalizeForCompare(item?.country || "");
+
+    if (!title || !startDate || !city) return "";
+
+    return [title, startDate, city, country].join("|");
+  }
+
+  async function findExistingSubmissionCached(item) {
+    const key = getWatchDuplicateKey(item);
+    if (!key) return null;
+
+    if (duplicateCheckCache.has(key)) {
+      return await duplicateCheckCache.get(key);
+    }
+
+    const pending = Promise.resolve().then(() => findExistingSubmission(item));
+    duplicateCheckCache.set(key, pending);
+
+    try {
+      return await pending;
+    } catch (error) {
+      duplicateCheckCache.delete(key);
+      throw error;
+    }
+  }
+
+  async function precheckWatchDuplicates(results) {
+    const candidates = (Array.isArray(results) ? results : []).filter((item) => {
+      const state = getWatchWorkflowState(item);
+
+      if (["handled", "duplicate", "submitted", "rejected"].includes(state)) {
+        return false;
+      }
+
+      return getSubmissionBlockingFields(item).length === 0;
+    });
+
+    let duplicateCount = 0;
+
+    for (let index = 0; index < candidates.length; index += DUPLICATE_CHECK_CONCURRENCY) {
+      const batch = candidates.slice(index, index + DUPLICATE_CHECK_CONCURRENCY);
+
+      const checked = await Promise.all(batch.map(async (item) => {
+        try {
+          return {
+            item,
+            duplicate: await findExistingSubmissionCached(item)
+          };
+        } catch (error) {
+          console.warn("Pré-vérification doublon veille impossible :", error);
+          return { item, duplicate: null };
+        }
+      }));
+
+      checked.forEach(({ item, duplicate }) => {
+        if (!duplicate) return;
+        setWatchWorkflowState(item, "duplicate");
+        duplicateCount += 1;
+      });
+    }
+
+    return duplicateCount;
   }
 
   function buildSubmissionPayload(item) {
