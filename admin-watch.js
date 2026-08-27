@@ -23,6 +23,7 @@
   let watchOffset = 0;
   let eventWatchAlerts = [];
   let eventWatchCategory = "all";
+  let watchQueueFilter = "all";
   const duplicateCheckCache = new Map();
 
   ready(() => waitForAdminAuthentication(initWhenReady));
@@ -211,6 +212,15 @@
             </div>
           </div>
 
+          <div class="watch-queue-toolbar" role="group" aria-label="Filtrer la file de veille">
+            <button class="watch-queue-filter is-active" data-watch-queue-filter="all" type="button" aria-pressed="true">Tous <span data-watch-filter-count="all">0</span></button>
+            <button class="watch-queue-filter" data-watch-queue-filter="ready" type="button" aria-pressed="false">Prêts <span data-watch-filter-count="ready">0</span></button>
+            <button class="watch-queue-filter" data-watch-queue-filter="review" type="button" aria-pressed="false">À vérifier <span data-watch-filter-count="review">0</span></button>
+            <button class="watch-queue-filter" data-watch-queue-filter="duplicate" type="button" aria-pressed="false">Déjà présents <span data-watch-filter-count="duplicate">0</span></button>
+            <button class="watch-queue-filter" data-watch-queue-filter="handled" type="button" aria-pressed="false">Traités <span data-watch-filter-count="handled">0</span></button>
+            <button class="watch-queue-filter" data-watch-queue-filter="rejected" type="button" aria-pressed="false">Écartés <span data-watch-filter-count="rejected">0</span></button>
+          </div>
+
           <div id="watch-results" class="watch-results">
             <p class="priority-empty">Aucune analyse lancée pour le moment.</p>
           </div>
@@ -260,6 +270,14 @@
     document.getElementById("watch-copy-all-btn")?.addEventListener("click", copyAllResults);
     document.getElementById("watch-health-btn")?.addEventListener("click", testWorkerHealth);
     document.getElementById("watch-clear-history-btn")?.addEventListener("click", clearHistory);
+
+    document.querySelectorAll("[data-watch-queue-filter]").forEach((button) => {
+      button.addEventListener("click", () => {
+        watchQueueFilter = String(button.dataset.watchQueueFilter || "all");
+        renderResults(lastResults);
+      });
+    });
+
     ["watch-urls", "watch-country", "watch-type", "watch-mode"].forEach((id) => {
       document.getElementById(id)?.addEventListener("change", () => {
         watchOffset = 0;
@@ -579,12 +597,34 @@
     const container = document.getElementById("watch-results");
     if (!container) return;
 
-    if (!results.length) {
+    const sourceResults = Array.isArray(results) ? results : [];
+    updateWatchQueueFilters(sourceResults);
+
+    if (!sourceResults.length) {
       container.innerHTML = `<p class="priority-empty">Aucun résultat à afficher.</p>`;
       return;
     }
 
-    container.innerHTML = results.map((result, index) => renderResultCard(result, index)).join("");
+    const visibleItems = sourceResults
+      .map((result, index) => ({
+        result,
+        index,
+        state: getWatchWorkflowState(result)
+      }))
+      .filter((item) => watchQueueFilter === "all" || item.state === watchQueueFilter);
+
+    if (!visibleItems.length) {
+      container.innerHTML = `
+        <p class="priority-empty">
+          Aucun élément dans la catégorie « ${escapeHtml(getWatchQueueFilterLabel(watchQueueFilter))} ».
+        </p>
+      `;
+      return;
+    }
+
+    container.innerHTML = visibleItems
+      .map(({ result, index }) => renderResultCard(result, index))
+      .join("");
 
     container.querySelectorAll("[data-watch-copy]").forEach((button) => {
       button.addEventListener("click", async () => {
@@ -617,6 +657,54 @@
         if (!item) return;
         createSubmissionFromWatch(item, button);
       });
+    });
+  }
+
+  function getWatchQueueFilterLabel(filter) {
+    return {
+      all: "Tous",
+      ready: "Prêts",
+      review: "À vérifier",
+      duplicate: "Déjà présents",
+      handled: "Traités",
+      rejected: "Écartés"
+    }[filter] || "Tous";
+  }
+
+  function getWatchQueueCounts(results) {
+    const counts = {
+      all: 0,
+      ready: 0,
+      review: 0,
+      duplicate: 0,
+      handled: 0,
+      rejected: 0
+    };
+
+    (Array.isArray(results) ? results : []).forEach((result) => {
+      const state = getWatchWorkflowState(result);
+      counts.all += 1;
+      if (Object.prototype.hasOwnProperty.call(counts, state)) {
+        counts[state] += 1;
+      }
+    });
+
+    return counts;
+  }
+
+  function updateWatchQueueFilters(results) {
+    const counts = getWatchQueueCounts(results);
+
+    document.querySelectorAll("[data-watch-filter-count]").forEach((node) => {
+      const key = String(node.dataset.watchFilterCount || "");
+      node.textContent = String(counts[key] || 0);
+    });
+
+    document.querySelectorAll("[data-watch-queue-filter]").forEach((button) => {
+      const filter = String(button.dataset.watchQueueFilter || "all");
+      const active = filter === watchQueueFilter;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
     });
   }
 
@@ -1183,6 +1271,8 @@
     lastResults = [];
     lastPagination = getEmptyPagination();
     watchOffset = 0;
+    watchQueueFilter = "all";
+    updateWatchQueueFilters([]);
     updatePagingControls();
     setStatus("En attente d’une URL. Le résultat reste à vérifier humainement.");
   }
@@ -1535,6 +1625,50 @@
 
       .watch-status[data-tone="warning"] {
         color: var(--cyber-orange);
+      }
+
+      .watch-queue-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin: 0 0 12px;
+      }
+
+      .watch-queue-filter {
+        min-height: 34px;
+        padding: 6px 11px;
+        border: 1px solid rgba(255,255,255,.09);
+        border-radius: 999px;
+        background: rgba(255,255,255,.025);
+        color: rgba(230,238,246,.72);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .watch-queue-filter:hover {
+        border-color: rgba(79,215,232,.24);
+        color: #eafcff;
+      }
+
+      .watch-queue-filter.is-active {
+        border-color: rgba(79,215,232,.35);
+        background: rgba(79,215,232,.11);
+        color: #dffcff;
+      }
+
+      .watch-queue-filter span {
+        display: inline-flex;
+        min-width: 20px;
+        min-height: 20px;
+        align-items: center;
+        justify-content: center;
+        margin-left: 4px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.07);
+        font-size: 11px;
       }
 
       .watch-results {
