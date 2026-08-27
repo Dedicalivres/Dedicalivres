@@ -659,11 +659,131 @@
     container.querySelectorAll("[data-watch-submit]").forEach((button) => {
       button.addEventListener("click", () => {
         const index = Number(button.dataset.watchSubmit);
+        openWatchSubmissionPreview(index);
+      });
+    });
+
+    container.querySelectorAll("[data-watch-editor-form]").forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        saveWatchCandidateEdits(Number(form.dataset.watchEditorForm), form);
+      });
+    });
+
+    container.querySelectorAll("[data-watch-edit-cancel]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const editor = button.closest("[data-watch-candidate-editor]");
+        const form = editor?.querySelector("form");
+        if (form) form.reset();
+        if (editor) editor.open = false;
+      });
+    });
+
+    container.querySelectorAll("[data-watch-preview-back]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = Number(button.dataset.watchPreviewBack);
+        const card = container.querySelector(`[data-watch-result-index="${index}"]`);
+        const preview = card?.querySelector("[data-watch-submission-preview]");
+        const editor = card?.querySelector("[data-watch-candidate-editor]");
+        if (preview) preview.hidden = true;
+        if (editor) {
+          editor.open = true;
+          editor.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
+    });
+
+    container.querySelectorAll("[data-watch-confirm-submit]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = Number(button.dataset.watchConfirmSubmit);
         const item = lastResults[index];
         if (!item) return;
         createSubmissionFromWatch(item, button);
       });
     });
+  }
+
+  function saveWatchCandidateEdits(index, form) {
+    const item = lastResults[index];
+    if (!item || !form) return;
+
+    const value = (name) => cleanText(form.elements.namedItem(name)?.value || "");
+    const updates = {
+      title: value("title"),
+      startDate: value("startDate"),
+      endDate: value("endDate"),
+      city: value("city"),
+      type: value("type"),
+      country: value("country"),
+      description: value("description"),
+      officialUrl: value("officialUrl"),
+      imageUrl: value("imageUrl")
+    };
+
+    ["venue", "address"].forEach((property) => {
+      const field = form.elements.namedItem(property);
+      if (field && Object.prototype.hasOwnProperty.call(item, property)) {
+        updates[property] = cleanText(field.value);
+      }
+    });
+
+    Object.assign(item, updates);
+    item.missingFields = recalculateWatchCandidateMissingFields(item);
+    item.adminText = buildWatchCandidateAdminText(item);
+    lastResults = sortWatchResultsByCompleteness(lastResults);
+    renderResults(lastResults);
+    setStatus(`Fiche mise à jour · état : ${getWatchWorkflowLabel(getWatchWorkflowState(item))}.`);
+  }
+
+  function buildWatchCandidateAdminText(item) {
+    const lines = [
+      ["Titre", cleanText(item?.title)],
+      ["Type", cleanText(item?.type)],
+      ["Date de début", normalizeIsoDate(item?.startDate)],
+      ["Date de fin", normalizeIsoDate(item?.endDate)],
+      ["Ville", cleanText(item?.city)],
+      ["Lieu", cleanText(item?.venue)],
+      ["Adresse", cleanText(item?.address)],
+      ["Pays", cleanText(item?.country)],
+      ["Description", cleanText(item?.description)],
+      ["Image", cleanText(item?.imageUrl)],
+      ["URL officielle", cleanText(item?.officialUrl)],
+      ["Source", cleanText(item?.sourceUrl)],
+      [
+        "À vérifier",
+        Array.isArray(item?.missingFields) && item.missingFields.length
+          ? item.missingFields.join(", ")
+          : "Relire avant saisie"
+      ]
+    ];
+
+    return lines
+      .filter(([, value]) => value)
+      .map(([label, value]) => `${label} : ${value}`)
+      .join("\n");
+  }
+
+  function recalculateWatchCandidateMissingFields(item) {
+    const essentialFields = new Set(["titre", "date", "date de debut", "ville"]);
+    const missing = (Array.isArray(item?.missingFields) ? item.missingFields : [])
+      .filter((field) => !essentialFields.has(normalizeForCompare(field)));
+
+    if (!cleanText(item?.title)) missing.push("titre");
+    if (!normalizeIsoDate(item?.startDate)) missing.push("date");
+    if (!cleanText(item?.city)) missing.push("ville");
+    return missing;
+  }
+
+  function openWatchSubmissionPreview(index) {
+    const item = lastResults[index];
+    if (!item || !["ready", "review"].includes(getWatchWorkflowState(item))) return;
+
+    const card = document.querySelector(`#watch-results [data-watch-result-index="${index}"]`);
+    const preview = card?.querySelector("[data-watch-submission-preview]");
+    if (!preview) return;
+
+    preview.hidden = false;
+    preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   function getWatchQueueFilterLabel(filter) {
@@ -946,6 +1066,7 @@
     const workflowState = getWatchWorkflowState(result);
     const workflowLabel = getWatchWorkflowLabel(workflowState);
     const isNonEvent = workflowState === "rejected";
+    const isActiveWorkflow = ["ready", "review"].includes(workflowState);
     const isClosedWorkflow = ["handled", "duplicate", "submitted", "rejected"].includes(workflowState);
     const statusClass = isNonEvent
       ? "low"
@@ -1011,6 +1132,9 @@
             `
         }
 
+        ${isActiveWorkflow ? renderWatchCandidateEditor(result, index) : ""}
+        ${isActiveWorkflow ? renderWatchSubmissionPreview(result, index) : ""}
+
         <div class="watch-result-actions">
           ${
             isClosedWorkflow
@@ -1028,6 +1152,100 @@
           }
         </div>
       </article>
+    `;
+  }
+
+  function renderWatchCandidateEditor(result, index) {
+    const optionalLocationFields = [
+      ["venue", "Lieu"],
+      ["address", "Adresse"]
+    ].filter(([property]) => Object.prototype.hasOwnProperty.call(result, property));
+
+    return `
+      <details class="watch-candidate-editor" data-watch-candidate-editor>
+        <summary>Modifier la fiche</summary>
+        <form data-watch-editor-form="${index}">
+          <div class="watch-editor-grid">
+            <label>
+              <span>Titre</span>
+              <input name="title" type="text" value="${escapeAttr(result.title || "")}" required>
+            </label>
+            <label>
+              <span>Date de début</span>
+              <input name="startDate" type="date" value="${escapeAttr(normalizeIsoDate(result.startDate))}" required>
+            </label>
+            <label>
+              <span>Date de fin</span>
+              <input name="endDate" type="date" value="${escapeAttr(normalizeIsoDate(result.endDate))}">
+            </label>
+            <label>
+              <span>Ville</span>
+              <input name="city" type="text" value="${escapeAttr(result.city || "")}" required>
+            </label>
+            ${optionalLocationFields.map(([property, label]) => `
+              <label>
+                <span>${label}</span>
+                <input name="${property}" type="text" value="${escapeAttr(result[property] || "")}">
+              </label>
+            `).join("")}
+            <label>
+              <span>Type</span>
+              <input name="type" type="text" value="${escapeAttr(result.type || "")}">
+            </label>
+            <label>
+              <span>Pays</span>
+              <input name="country" type="text" value="${escapeAttr(result.country || "")}">
+            </label>
+            <label class="watch-editor-wide">
+              <span>Description</span>
+              <textarea name="description" rows="5">${escapeHtml(result.description || "")}</textarea>
+            </label>
+            <label class="watch-editor-wide">
+              <span>URL officielle ou source utile</span>
+              <input name="officialUrl" type="url" value="${escapeAttr(result.officialUrl || result.sourceUrl || "")}">
+            </label>
+            <label class="watch-editor-wide">
+              <span>URL de l’image</span>
+              <input name="imageUrl" type="url" value="${escapeAttr(result.imageUrl || "")}">
+            </label>
+          </div>
+          <div class="watch-editor-actions">
+            <button class="cyber-btn-primary" type="submit">Enregistrer</button>
+            <button class="cyber-btn-secondary" data-watch-edit-cancel type="button">Annuler</button>
+          </div>
+        </form>
+      </details>
+    `;
+  }
+
+  function renderWatchSubmissionPreview(result, index) {
+    const blockingFields = getSubmissionBlockingFields(result);
+    const sourceUrl = result.officialUrl || result.sourceUrl || "";
+
+    return `
+      <section class="watch-submission-preview" data-watch-submission-preview hidden aria-label="Prévisualisation avant soumission">
+        <h5>Prévisualisation avant soumission</h5>
+        ${result.imageUrl ? `<img src="${escapeAttr(result.imageUrl)}" alt="Aperçu de ${escapeAttr(result.title || "la fiche")}">` : ""}
+        <dl class="watch-preview-grid">
+          <div><dt>Titre</dt><dd>${escapeHtml(result.title || "Non renseigné")}</dd></div>
+          <div><dt>Type</dt><dd>${escapeHtml(result.type || "Non renseigné")}</dd></div>
+          <div><dt>Date de début</dt><dd>${escapeHtml(formatDate(result.startDate) || "Non renseignée")}</dd></div>
+          <div><dt>Date de fin</dt><dd>${escapeHtml(formatDate(result.endDate) || "Non renseignée")}</dd></div>
+          <div><dt>Ville</dt><dd>${escapeHtml(result.city || "Non renseignée")}</dd></div>
+          <div><dt>Pays</dt><dd>${escapeHtml(result.country || "Non renseigné")}</dd></div>
+          <div class="watch-editor-wide"><dt>Description</dt><dd>${escapeHtml(result.description || "Non renseignée")}</dd></div>
+          <div class="watch-editor-wide"><dt>URL / source</dt><dd>${sourceUrl ? `<a href="${escapeAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceUrl)}</a>` : "Non renseignée"}</dd></div>
+        </dl>
+        <p class="watch-preview-blocking${blockingFields.length ? " has-missing" : ""}">
+          ${blockingFields.length
+            ? `Champs bloquants : ${escapeHtml(blockingFields.join(", "))}`
+            : "Aucun champ bloquant détecté."}
+        </p>
+        <div class="watch-editor-actions">
+          <button class="cyber-btn-secondary" data-watch-preview-back="${index}" type="button">Retour / Corriger</button>
+          <button class="cyber-btn-primary" data-watch-confirm-submit="${index}" type="button"${blockingFields.length ? " disabled" : ""}>Confirmer l’envoi</button>
+        </div>
+      </section>
     `;
   }
 
@@ -1622,6 +1840,7 @@
         font-weight: 900;
       }
 
+      .watch-card input,
       .watch-card textarea,
       .watch-card select {
         width: 100%;
@@ -1834,6 +2053,95 @@
         font-size: .9rem;
       }
 
+      .watch-candidate-editor,
+      .watch-submission-preview {
+        margin-top: 14px;
+        border: 1px solid rgba(25, 215, 255, .18);
+        border-radius: 16px;
+        padding: 14px;
+        background: rgba(255, 255, 255, .04);
+      }
+
+      .watch-candidate-editor summary {
+        cursor: pointer;
+        color: var(--cyber-cyan);
+        font-weight: 900;
+      }
+
+      .watch-candidate-editor form {
+        margin-top: 14px;
+      }
+
+      .watch-editor-grid,
+      .watch-preview-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .watch-editor-wide {
+        grid-column: 1 / -1;
+      }
+
+      .watch-editor-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .watch-submission-preview h5 {
+        margin: 0 0 12px;
+        color: var(--cyber-cyan);
+        font-size: 1rem;
+      }
+
+      .watch-submission-preview > img {
+        display: block;
+        width: min(100%, 360px);
+        max-height: 240px;
+        margin-bottom: 14px;
+        border-radius: 14px;
+        object-fit: cover;
+      }
+
+      .watch-preview-grid {
+        margin: 0;
+      }
+
+      .watch-preview-grid > div {
+        min-width: 0;
+        padding: 10px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .04);
+      }
+
+      .watch-preview-grid dt {
+        color: var(--cyber-muted);
+        font-size: .8rem;
+        font-weight: 900;
+      }
+
+      .watch-preview-grid dd {
+        margin: 4px 0 0;
+        color: var(--cyber-text);
+        overflow-wrap: anywhere;
+      }
+
+      .watch-preview-grid a {
+        color: var(--cyber-cyan);
+      }
+
+      .watch-preview-blocking {
+        margin-top: 12px;
+        color: var(--cyber-green);
+        font-weight: 900;
+      }
+
+      .watch-preview-blocking.has-missing {
+        color: var(--cyber-orange);
+      }
+
       .watch-result-actions {
         flex-wrap: wrap;
         margin-top: 14px;
@@ -2016,9 +2324,15 @@
       @media (max-width: 900px) {
         .watch-form-grid,
         .watch-result-main,
-        .event-watch-values {
+        .event-watch-values,
+        .watch-editor-grid,
+        .watch-preview-grid {
           grid-template-columns: 1fr;
           display: grid;
+        }
+
+        .watch-editor-wide {
+          grid-column: auto;
         }
 
         .event-watch-toolbar {
