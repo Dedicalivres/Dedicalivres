@@ -214,8 +214,12 @@
 
           <div class="watch-queue-toolbar" role="group" aria-label="Filtrer la file de veille">
             <button class="watch-queue-filter is-active" data-watch-queue-filter="all" type="button" aria-pressed="true">Tous <span data-watch-filter-count="all">0</span></button>
+            <span class="watch-queue-label">Actifs</span>
+            <button class="watch-queue-filter" data-watch-queue-filter="active" type="button" aria-pressed="false">À traiter : <span data-watch-filter-count="active">0</span></button>
             <button class="watch-queue-filter" data-watch-queue-filter="ready" type="button" aria-pressed="false">Prêts <span data-watch-filter-count="ready">0</span></button>
             <button class="watch-queue-filter" data-watch-queue-filter="review" type="button" aria-pressed="false">À vérifier <span data-watch-filter-count="review">0</span></button>
+            <button id="watch-next-active-btn" class="cyber-btn-secondary" type="button" disabled>Suivant à traiter</button>
+            <span class="watch-queue-label">Terminés / sans action</span>
             <button class="watch-queue-filter" data-watch-queue-filter="duplicate" type="button" aria-pressed="false">Déjà présents <span data-watch-filter-count="duplicate">0</span></button>
             <button class="watch-queue-filter" data-watch-queue-filter="handled" type="button" aria-pressed="false">Traités <span data-watch-filter-count="handled">0</span></button>
             <button class="watch-queue-filter" data-watch-queue-filter="rejected" type="button" aria-pressed="false">Écartés <span data-watch-filter-count="rejected">0</span></button>
@@ -270,6 +274,7 @@
     document.getElementById("watch-copy-all-btn")?.addEventListener("click", copyAllResults);
     document.getElementById("watch-health-btn")?.addEventListener("click", testWorkerHealth);
     document.getElementById("watch-clear-history-btn")?.addEventListener("click", clearHistory);
+    document.getElementById("watch-next-active-btn")?.addEventListener("click", goToNextActiveResult);
 
     document.querySelectorAll("[data-watch-queue-filter]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -319,6 +324,7 @@
 
       lastResults = sortWatchResultsByCompleteness(Array.isArray(payload.results) ? payload.results : []);
       lastPagination = normalizeWatchPagination(payload);
+      watchQueueFilter = "active";
       renderResults(lastResults);
 
       const duplicateCount = await precheckWatchDuplicates(lastResults);
@@ -611,7 +617,7 @@
         index,
         state: getWatchWorkflowState(result)
       }))
-      .filter((item) => watchQueueFilter === "all" || item.state === watchQueueFilter);
+      .filter((item) => matchesWatchQueueFilter(item.state));
 
     if (!visibleItems.length) {
       container.innerHTML = `
@@ -663,6 +669,7 @@
   function getWatchQueueFilterLabel(filter) {
     return {
       all: "Tous",
+      active: "À traiter",
       ready: "Prêts",
       review: "À vérifier",
       duplicate: "Déjà présents",
@@ -674,6 +681,7 @@
   function getWatchQueueCounts(results) {
     const counts = {
       all: 0,
+      active: 0,
       ready: 0,
       review: 0,
       duplicate: 0,
@@ -689,7 +697,15 @@
       }
     });
 
+    counts.active = counts.ready + counts.review;
+
     return counts;
+  }
+
+  function matchesWatchQueueFilter(state) {
+    if (watchQueueFilter === "all") return true;
+    if (watchQueueFilter === "active") return ["ready", "review"].includes(state);
+    return state === watchQueueFilter;
   }
 
   function updateWatchQueueFilters(results) {
@@ -705,6 +721,29 @@
       const active = filter === watchQueueFilter;
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+
+    const nextActive = document.getElementById("watch-next-active-btn");
+    if (nextActive) nextActive.disabled = counts.active === 0;
+  }
+
+  function goToNextActiveResult() {
+    const hasActiveResult = lastResults.some((result) =>
+      ["ready", "review"].includes(getWatchWorkflowState(result))
+    );
+    if (!hasActiveResult) return;
+
+    if (watchQueueFilter !== "active") {
+      watchQueueFilter = "active";
+      renderResults(lastResults);
+    }
+
+    window.requestAnimationFrame(() => {
+      const activeCards = [...document.querySelectorAll("#watch-results [data-watch-result-index]")];
+      if (!activeCards.length) return;
+
+      const nextCard = activeCards.find((card) => card.getBoundingClientRect().top > 1) || activeCards[0];
+      nextCard.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
 
@@ -918,7 +957,7 @@
       : rawDescription;
 
     return `
-      <article class="watch-result ${statusClass}${isNonEvent ? " is-non-event" : ""}">
+      <article class="watch-result ${statusClass}${isNonEvent ? " is-non-event" : ""}" data-watch-result-index="${index}">
         <div class="watch-result-main">
           <div class="watch-result-image ${result.imageUrl ? "" : "is-empty"}">
             ${result.imageUrl ? `<img src="${escapeAttr(result.imageUrl)}" alt="">` : "Image non détectée"}
@@ -1271,7 +1310,7 @@
     lastResults = [];
     lastPagination = getEmptyPagination();
     watchOffset = 0;
-    watchQueueFilter = "all";
+    watchQueueFilter = "active";
     updateWatchQueueFilters([]);
     updatePagingControls();
     setStatus("En attente d’une URL. Le résultat reste à vérifier humainement.");
@@ -1630,8 +1669,17 @@
       .watch-queue-toolbar {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 7px;
         margin: 0 0 12px;
+      }
+
+      .watch-queue-label {
+        color: var(--cyber-muted);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: .04em;
+        text-transform: uppercase;
       }
 
       .watch-queue-filter {
