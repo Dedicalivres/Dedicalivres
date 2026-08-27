@@ -15,7 +15,7 @@
  * - ALLOWED_ADMIN_ORIGINS=https://dedicalivres.fr,https://www.dedicalivres.fr
  */
 
-const WORKER_VERSION = "2026-06-18-admin-watch-5-pagination-total";
+const WORKER_VERSION = "2026-08-27-admin-watch-6-event-gate";
 const MAX_URLS_PER_REQUEST = 20;
 const MAX_RESULTS_PER_REQUEST = 40;
 const MAX_OPALE_LIST_DETAILS = 15;
@@ -284,7 +284,7 @@ function extractCandidateFromHtml(html, options = {}) {
     address: location.address,
     officialUrl,
     imageUrl,
-    description: limitText(description, 520),
+    description: isPlaceholderText(description) ? "" : limitText(description, 520),
     organizer: cleanText(extractOrganizer(event, combinedText)),
     authors: detectAuthors(combinedText),
     sourceUrl,
@@ -297,7 +297,22 @@ function extractCandidateFromHtml(html, options = {}) {
   candidate.missingFields = getMissingFields(candidate);
   candidate.filterWarnings = getFilterWarnings(candidate, options.filters || {});
   candidate.confidence = calculateConfidence(candidate, Boolean(event));
-  candidate.status = getStatus(candidate);
+
+  if (!event && !isLikelyHtmlEvent(candidate, {
+    title,
+    description,
+    sourceUrl
+  })) {
+    candidate.status = "Non événement";
+    candidate.confidence = Math.min(candidate.confidence, 18);
+    candidate.filterWarnings = [
+      ...candidate.filterWarnings,
+      "signaux événementiels insuffisants"
+    ];
+  } else {
+    candidate.status = getStatus(candidate);
+  }
+
   candidate.adminText = buildAdminText(candidate);
 
   return candidate;
@@ -628,16 +643,32 @@ function detectTerritory(text) {
 }
 
 function detectCity(text) {
+  const value = String(text || "");
+
   const patterns = [
-    /\b(?:à|a|ville de|commune de|lieu\s*:)\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ' -]{2,42})/u,
-    /\b([0-9]{4,5})\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ' -]{2,42})/u,
-    /\b([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ' -]{2,42})\s+[-–]\s+(?:France|Belgique|Suisse|Luxembourg|Monaco)\b/u
+    // Signal le plus fiable : code postal suivi de la commune.
+    /\b((?!20[0-9]{2}\b)[0-9]{4,5})[ \t]+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’ -]{2,42})/u,
+
+    // Formulations explicites.
+    /\b(?:ville de|commune de|lieu\s*:)\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’ -]{2,42})/u,
+
+    // Date suivie de "à Ville".
+    /\b20[0-9]{2}\s+(?:à|a)\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’ -]{2,42})/u,
+
+    // Ville explicitement suivie du pays.
+    /\b([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’ -]{2,42})\s+[-–]\s+(?:France|Belgique|Suisse|Luxembourg|Monaco)\b/u
   ];
 
   for (const pattern of patterns) {
-    const match = String(text).match(pattern);
-    const value = match?.[2] || match?.[1];
-    if (value) return value.replace(/\s+(le|la|les|du|de)$/i, "").trim();
+    const match = value.match(pattern);
+    const city = cleanText(match?.[2] || match?.[1]);
+
+    if (city) {
+      return city
+        .replace(/^(?:à|a)\s+/i, "")
+        .replace(/\s+(?:le|la|les|du|de)$/i, "")
+        .trim();
+    }
   }
 
   return "";
@@ -682,6 +713,74 @@ function normalizeDateValue(value) {
 function detectTime(text) {
   const match = String(text || "").match(/\b([0-2]?[0-9])\s*(?:h|:)\s*([0-5][0-9])?\b/i);
   return match ? `${match[1].padStart(2, "0")}h${match[2] || "00"}` : "";
+}
+
+function isPlaceholderText(value) {
+  const text = normalizeForSearch(value);
+  if (!text) return false;
+
+  return (
+    text.includes("lorem ipsum") ||
+    text.includes("dolor sit amet") ||
+    text.includes("texte de demonstration") ||
+    text.includes("texte de démo")
+  );
+}
+
+function isLikelyHtmlEvent(candidate, context = {}) {
+  if (!candidate?.startDate) return false;
+
+  const focusedText = normalizeForSearch([
+    context.title,
+    context.description,
+    context.sourceUrl
+  ].filter(Boolean).join(" "));
+
+  const strongEventTerms = [
+    "salon du livre",
+    "festival",
+    "dedicace",
+    "dédicace",
+    "seance de dedicace",
+    "séance de dédicace",
+    "rencontre avec",
+    "rencontre litteraire",
+    "rencontre littéraire",
+    "signature",
+    "foire du livre",
+    "fete du livre",
+    "fête du livre"
+  ];
+
+  const hasStrongEventTerm = strongEventTerms.some((term) =>
+    focusedText.includes(normalizeForSearch(term))
+  );
+
+  if (!hasStrongEventTerm) return false;
+
+  const genericTitle = normalizeForSearch(candidate.title);
+  const genericPageTitles = [
+    "actualites",
+    "actualité",
+    "actualités",
+    "agenda",
+    "evenements",
+    "événements",
+    "accueil",
+    "news"
+  ];
+
+  const looksGeneric =
+    genericPageTitles.some((term) =>
+      genericTitle === normalizeForSearch(term) ||
+      genericTitle.startsWith(`${normalizeForSearch(term)} -`) ||
+      genericTitle.startsWith(`${normalizeForSearch(term)} |`)
+    );
+
+  if (looksGeneric) return false;
+  if (isPlaceholderText(context.description)) return false;
+
+  return true;
 }
 
 function detectType(text) {
@@ -966,8 +1065,10 @@ function httpError(status, message) {
 }
 
 function getAttr(tag, attr) {
-  const match = tag.match(new RegExp(`${attr}\\s*=\\s*["']([^"']*)["']`, "i"));
-  return match ? match[1] : "";
+  const match = tag.match(
+    new RegExp(`${attr}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, "i")
+  );
+  return match ? match[2] : "";
 }
 
 function htmlToText(html) {

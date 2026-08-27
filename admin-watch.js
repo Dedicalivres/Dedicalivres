@@ -644,12 +644,20 @@
   }
 
   function normalizeWatchPagination(payload) {
-    const total = Number(payload?.total);
+    const rawTotal = payload?.total;
+    const total = rawTotal === null || rawTotal === undefined || rawTotal === ""
+      ? NaN
+      : Number(rawTotal);
     const offset = Number(payload?.offset);
     const limit = Number(payload?.limit);
-    const hasKnownTotal = Number.isFinite(total) && total >= 0;
     const normalizedOffset = Number.isFinite(offset) && offset >= 0 ? Math.floor(offset) : watchOffset;
     const normalizedLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : WATCH_PAGE_SIZE;
+    const receivedCount = Array.isArray(payload?.results) ? payload.results.length : 0;
+    const minimumObservedTotal = normalizedOffset + receivedCount;
+    const hasKnownTotal =
+      Number.isFinite(total) &&
+      total >= 0 &&
+      total >= minimumObservedTotal;
 
     return {
       total: hasKnownTotal ? Math.floor(total) : null,
