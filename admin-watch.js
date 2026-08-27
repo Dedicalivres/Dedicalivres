@@ -15,6 +15,8 @@
   const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
   const WATCH_PAGE_SIZE = 15;
   const DUPLICATE_CHECK_CONCURRENCY = 4;
+  const WATCH_SUSPICIOUS_IMAGE_PATTERN = /(logo|favicon|placeholder|default|avatar|icon|no-image|noimage)/i;
+  const WATCH_NON_IMAGE_EXTENSION_PATTERN = /\.(html?|php|json|xml|txt|pdf)(?:$|[?#])/i;
 
   let initialized = false;
   let client = null;
@@ -25,6 +27,7 @@
   let eventWatchCategory = "all";
   let watchQueueFilter = "all";
   const duplicateCheckCache = new Map();
+  const duplicateSignalCache = new Map();
 
   ready(() => waitForAdminAuthentication(initWhenReady));
   window.addEventListener("dedicalivres:admin-authenticated", () => waitForAdminAuthentication(initWhenReady));
@@ -328,10 +331,8 @@
       renderResults(lastResults);
 
       const duplicateCount = await precheckWatchDuplicates(lastResults);
-      if (duplicateCount) {
-        lastResults = sortWatchResultsByCompleteness(lastResults);
-        renderResults(lastResults);
-      }
+      lastResults = sortWatchResultsByCompleteness(lastResults);
+      renderResults(lastResults);
 
       const productiveSaved = rememberProductiveSources(urls, lastResults);
       renderHistory();
@@ -706,6 +707,7 @@
   function saveWatchCandidateEdits(index, form) {
     const item = lastResults[index];
     if (!item || !form) return;
+    const previousDuplicateKey = getWatchDuplicateKey(item);
 
     const value = (name) => cleanText(form.elements.namedItem(name)?.value || "");
     const updates = {
@@ -730,6 +732,9 @@
     Object.assign(item, updates);
     item.missingFields = recalculateWatchCandidateMissingFields(item);
     item.adminText = buildWatchCandidateAdminText(item);
+    if (getWatchDuplicateKey(item) !== previousDuplicateKey) {
+      item.watchDuplicateSignal = getLocalWatchDuplicateSignal(item, lastResults);
+    }
     lastResults = sortWatchResultsByCompleteness(lastResults);
     renderResults(lastResults);
     setStatus(`Fiche mise à jour · état : ${getWatchWorkflowLabel(getWatchWorkflowState(item))}.`);
@@ -772,6 +777,148 @@
     if (!normalizeIsoDate(item?.startDate)) missing.push("date");
     if (!cleanText(item?.city)) missing.push("ville");
     return missing;
+  }
+
+  function getWatchImageQuality(item) {
+    const imageUrl = normalizeUrlValue(item?.imageUrl);
+    if (!imageUrl) {
+      return { state: "image-absente", label: "Sans image" };
+    }
+
+    if (
+      WATCH_SUSPICIOUS_IMAGE_PATTERN.test(imageUrl) ||
+      WATCH_NON_IMAGE_EXTENSION_PATTERN.test(imageUrl)
+    ) {
+      return { state: "image-douteuse", label: "Image douteuse" };
+    }
+
+    return { state: "image-ok", label: "Image OK" };
+  }
+
+  function getWatchCandidateQualityScore(item) {
+    let points = 0;
+    const hasLocationProperty = ["venue", "address"].some((property) =>
+      Object.prototype.hasOwnProperty.call(item || {}, property)
+    );
+    const maximum = hasLocationProperty ? 100 : 97;
+    const descriptionLength = cleanText(item?.description).length;
+    const imageQuality = getWatchImageQuality(item);
+
+    if (cleanText(item?.title)) points += 20;
+    if (normalizeIsoDate(item?.startDate)) points += 20;
+    if (cleanText(item?.city)) points += 15;
+    if (cleanText(item?.type)) points += 7;
+    if (cleanText(item?.country)) points += 7;
+    if (descriptionLength >= 80) points += 10;
+    else if (descriptionLength >= 20) points += 6;
+    else if (descriptionLength > 0) points += 3;
+    if (imageQuality.state === "image-ok") points += 8;
+    else if (imageQuality.state === "image-douteuse") points += 2;
+    if (normalizeUrlValue(item?.officialUrl || item?.sourceUrl)) points += 7;
+    if (normalizeIsoDate(item?.endDate)) points += 3;
+    if (hasLocationProperty && cleanText(item?.venue || item?.address)) points += 3;
+
+    return Math.min(100, Math.round((points / maximum) * 100));
+  }
+
+  function getWatchCandidateQualityLevel(score) {
+    if (score >= 80) return { state: "solide", label: "solide" };
+    if (score >= 55) return { state: "a-completer", label: "à compléter" };
+    return { state: "faible", label: "faible" };
+  }
+
+  function createWatchDuplicateSignal(state, key, match = null) {
+    return {
+      state,
+      key,
+      label: state === "existing"
+        ? "Déjà présent"
+        : state === "probable"
+          ? "Doublon probable"
+          : "Nouveau",
+      score: Number(match?.score || 0),
+      reasons: Array.isArray(match?.reasons) ? match.reasons : []
+    };
+  }
+
+  function recordWatchDuplicateSignal(item, state, match = null) {
+    const key = getWatchDuplicateKey(item);
+    const signal = createWatchDuplicateSignal(state, key, match);
+    item.watchDuplicateSignal = signal;
+    if (key) duplicateSignalCache.set(key, signal);
+    return signal;
+  }
+
+  function getWatchDuplicateSignal(item, results = lastResults) {
+    const key = getWatchDuplicateKey(item);
+    if (getWatchWorkflowState(item) === "duplicate") {
+      return createWatchDuplicateSignal("existing", key);
+    }
+
+    if (item?.watchDuplicateSignal?.key === key) {
+      return item.watchDuplicateSignal;
+    }
+
+    if (key && duplicateSignalCache.has(key)) {
+      const signal = duplicateSignalCache.get(key);
+      item.watchDuplicateSignal = signal;
+      return signal;
+    }
+
+    return getLocalWatchDuplicateSignal(item, results);
+  }
+
+  function getLocalWatchDuplicateSignal(item, results) {
+    const key = getWatchDuplicateKey(item);
+    const title = normalizeForCompare(item?.title || "");
+    const city = normalizeForCompare(item?.city || "");
+    const startDate = normalizeIsoDate(item?.startDate || "");
+    const website = normalizeWatchWebsite(item?.officialUrl);
+
+    const similarItem = (Array.isArray(results) ? results : []).find((candidate) => {
+      if (!candidate || candidate === item) return false;
+
+      const candidateWebsite = normalizeWatchWebsite(candidate.officialUrl);
+      const sameWebsite = website && candidateWebsite && website === candidateWebsite;
+      const sameCity = city && city === normalizeForCompare(candidate.city || "");
+      const candidateDate = normalizeIsoDate(candidate.startDate || "");
+      const dateGap = getWatchDateGap(startDate, candidateDate);
+      const similarTitle = areWatchTitlesSimilar(title, normalizeForCompare(candidate.title || ""));
+
+      return sameWebsite || (sameCity && similarTitle && dateGap !== null && dateGap <= 3);
+    });
+
+    return similarItem
+      ? createWatchDuplicateSignal("probable", key, {
+        reasons: ["candidat similaire dans la file"]
+      })
+      : createWatchDuplicateSignal("new", key);
+  }
+
+  function normalizeWatchWebsite(value) {
+    const url = normalizeUrlValue(value);
+    if (!url) return "";
+
+    try {
+      const parsed = new URL(url);
+      return `${parsed.hostname.replace(/^www\./, "").toLowerCase()}${parsed.pathname.replace(/\/+$/, "")}`;
+    } catch {
+      return "";
+    }
+  }
+
+  function areWatchTitlesSimilar(left, right) {
+    if (!left || !right) return false;
+    if (left === right) return true;
+    return Math.min(left.length, right.length) >= 8 && (left.includes(right) || right.includes(left));
+  }
+
+  function getWatchDateGap(left, right) {
+    if (!left || !right) return null;
+    const leftTime = new Date(`${left}T00:00:00Z`).getTime();
+    const rightTime = new Date(`${right}T00:00:00Z`).getTime();
+    if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) return null;
+    return Math.round(Math.abs(leftTime - rightTime) / 86400000);
   }
 
   function openWatchSubmissionPreview(index) {
@@ -1068,6 +1215,10 @@
     const isNonEvent = workflowState === "rejected";
     const isActiveWorkflow = ["ready", "review"].includes(workflowState);
     const isClosedWorkflow = ["handled", "duplicate", "submitted", "rejected"].includes(workflowState);
+    const imageQuality = getWatchImageQuality(result);
+    const candidateQualityScore = getWatchCandidateQualityScore(result);
+    const candidateQualityLevel = getWatchCandidateQualityLevel(candidateQualityScore);
+    const duplicateSignal = getWatchDuplicateSignal(result);
     const statusClass = isNonEvent
       ? "low"
       : (score >= 82 ? "good" : score >= 58 ? "medium" : "low");
@@ -1088,6 +1239,9 @@
             <div class="watch-result-topline">
               <span>${escapeHtml(workflowLabel)}</span>
               <span>${escapeHtml(result.type || "Type inconnu")}</span>
+              ${isActiveWorkflow ? `<span class="watch-quality-badge is-${candidateQualityLevel.state}">Qualité ${candidateQualityScore}% · ${candidateQualityLevel.label}</span>` : ""}
+              ${isActiveWorkflow ? `<span class="watch-image-badge is-${imageQuality.state}">${imageQuality.label}</span>` : ""}
+              ${isActiveWorkflow ? `<span class="watch-duplicate-badge is-${duplicateSignal.state}">${duplicateSignal.label}</span>` : ""}
               ${alreadyHandled && workflowState !== "handled" ? "<span>Déjà traité</span>" : ""}
             </div>
             <h4>${escapeHtml(result.title || "Titre non détecté")}</h4>
@@ -1221,11 +1375,20 @@
   function renderWatchSubmissionPreview(result, index) {
     const blockingFields = getSubmissionBlockingFields(result);
     const sourceUrl = result.officialUrl || result.sourceUrl || "";
+    const imageQuality = getWatchImageQuality(result);
+    const candidateQualityScore = getWatchCandidateQualityScore(result);
+    const candidateQualityLevel = getWatchCandidateQualityLevel(candidateQualityScore);
+    const duplicateSignal = getWatchDuplicateSignal(result);
 
     return `
       <section class="watch-submission-preview" data-watch-submission-preview hidden aria-label="Prévisualisation avant soumission">
         <h5>Prévisualisation avant soumission</h5>
         ${result.imageUrl ? `<img src="${escapeAttr(result.imageUrl)}" alt="Aperçu de ${escapeAttr(result.title || "la fiche")}">` : ""}
+        <div class="watch-preview-signals" aria-label="Indicateurs qualité">
+          <span class="watch-quality-badge is-${candidateQualityLevel.state}">Qualité ${candidateQualityScore}% · ${candidateQualityLevel.label}</span>
+          <span class="watch-image-badge is-${imageQuality.state}">${imageQuality.label}</span>
+          <span class="watch-duplicate-badge is-${duplicateSignal.state}">${duplicateSignal.label}</span>
+        </div>
         <dl class="watch-preview-grid">
           <div><dt>Titre</dt><dd>${escapeHtml(result.title || "Non renseigné")}</dd></div>
           <div><dt>Type</dt><dd>${escapeHtml(result.type || "Non renseigné")}</dd></div>
@@ -1241,9 +1404,12 @@
             ? `Champs bloquants : ${escapeHtml(blockingFields.join(", "))}`
             : "Aucun champ bloquant détecté."}
         </p>
+        <p class="watch-preview-duplicate-warning" data-watch-duplicate-warning${duplicateSignal.state === "probable" ? "" : " hidden"}>
+          Doublon probable : vérifie les éléments similaires avant de confirmer l’envoi.
+        </p>
         <div class="watch-editor-actions">
           <button class="cyber-btn-secondary" data-watch-preview-back="${index}" type="button">Retour / Corriger</button>
-          <button class="cyber-btn-primary" data-watch-confirm-submit="${index}" type="button"${blockingFields.length ? " disabled" : ""}>Confirmer l’envoi</button>
+          <button class="cyber-btn-primary" data-watch-confirm-submit="${index}" data-watch-duplicate-reviewed="${duplicateSignal.state === "probable"}" type="button"${blockingFields.length ? " disabled" : ""}>Confirmer l’envoi</button>
         </div>
       </section>
     `;
@@ -1273,6 +1439,20 @@
         return;
       }
 
+      const duplicateSignal = getWatchDuplicateSignal(item);
+      if (duplicateSignal.state === "probable" && button?.dataset.watchDuplicateReviewed !== "true") {
+        const warning = button?.closest("[data-watch-submission-preview]")
+          ?.querySelector("[data-watch-duplicate-warning]");
+        if (warning) warning.hidden = false;
+        if (button) {
+          button.disabled = false;
+          button.dataset.watchDuplicateReviewed = "true";
+          button.textContent = "Confirmer malgré le doublon probable";
+        }
+        setStatus("Doublon probable détecté : vérifie l’avertissement avant de confirmer.", "warning");
+        return;
+      }
+
       const payload = buildSubmissionPayload(item);
       const { error } = await client.from("events").insert([payload]);
 
@@ -1283,6 +1463,7 @@
 
       const duplicateKey = getWatchDuplicateKey(item);
       if (duplicateKey) {
+        recordWatchDuplicateSignal(item, "existing");
         duplicateCheckCache.set(duplicateKey, Promise.resolve({
           id: payload.id,
           title: payload.title,
@@ -1340,8 +1521,20 @@
         end_date: normalizeIsoDate(item.endDate),
         website: normalizeUrlValue(item.officialUrl || item.sourceUrl)
       });
+      const strongestMatch = matches[0] || null;
 
-      return matches[0]?.event || null;
+      if (strongestMatch?.level === "certain") {
+        recordWatchDuplicateSignal(item, "existing", strongestMatch);
+        return strongestMatch.event || null;
+      }
+
+      if (["probable", "possible"].includes(strongestMatch?.level)) {
+        recordWatchDuplicateSignal(item, "probable", strongestMatch);
+        return null;
+      }
+
+      recordWatchDuplicateSignal(item, "new", strongestMatch);
+      return null;
     }
 
     const { data, error } = await client
@@ -1357,10 +1550,13 @@
     }
 
     const normalizedTitle = normalizeForCompare(title);
-    return (data || []).find((row) => {
+    const duplicate = (data || []).find((row) => {
       const rowTitle = normalizeForCompare(row.title || "");
       return rowTitle === normalizedTitle || rowTitle.includes(normalizedTitle) || normalizedTitle.includes(rowTitle);
     }) || null;
+
+    recordWatchDuplicateSignal(item, duplicate ? "existing" : "new");
+    return duplicate;
   }
 
   function getWatchDuplicateKey(item) {
@@ -1368,10 +1564,11 @@
     const startDate = normalizeIsoDate(item?.startDate || "");
     const city = normalizeForCompare(item?.city || "");
     const country = normalizeForCompare(item?.country || "");
+    const website = normalizeWatchWebsite(item?.officialUrl);
 
     if (!title || !startDate || !city) return "";
 
-    return [title, startDate, city, country].join("|");
+    return [title, startDate, city, country, website].join("|");
   }
 
   async function findExistingSubmissionCached(item) {
@@ -1379,7 +1576,11 @@
     if (!key) return null;
 
     if (duplicateCheckCache.has(key)) {
-      return await duplicateCheckCache.get(key);
+      const duplicate = await duplicateCheckCache.get(key);
+      if (duplicateSignalCache.has(key)) {
+        item.watchDuplicateSignal = duplicateSignalCache.get(key);
+      }
+      return duplicate;
     }
 
     const pending = Promise.resolve().then(() => findExistingSubmission(item));
@@ -1389,6 +1590,7 @@
       return await pending;
     } catch (error) {
       duplicateCheckCache.delete(key);
+      duplicateSignalCache.delete(key);
       throw error;
     }
   }
@@ -2012,6 +2214,59 @@
         background: rgba(25, 215, 255, .10);
       }
 
+      .watch-quality-badge,
+      .watch-image-badge,
+      .watch-duplicate-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: .78rem;
+        font-weight: 900;
+      }
+
+      .watch-result-topline .watch-quality-badge.is-solide,
+      .watch-result-topline .watch-image-badge.is-image-ok,
+      .watch-preview-signals .is-solide,
+      .watch-preview-signals .is-image-ok {
+        color: var(--cyber-green);
+        background: rgba(25, 255, 156, .12);
+      }
+
+      .watch-result-topline .watch-quality-badge.is-a-completer,
+      .watch-result-topline .watch-image-badge.is-image-douteuse,
+      .watch-result-topline .watch-duplicate-badge.is-probable,
+      .watch-preview-signals .is-a-completer,
+      .watch-preview-signals .is-image-douteuse,
+      .watch-preview-signals .is-probable {
+        color: var(--cyber-orange);
+        background: rgba(255, 158, 68, .12);
+      }
+
+      .watch-result-topline .watch-quality-badge.is-faible,
+      .watch-preview-signals .is-faible {
+        color: var(--cyber-red);
+        background: rgba(255, 82, 118, .12);
+      }
+
+      .watch-result-topline .watch-image-badge.is-image-absente,
+      .watch-preview-signals .is-image-absente {
+        color: var(--cyber-muted);
+        background: rgba(255, 255, 255, .06);
+      }
+
+      .watch-result-topline .watch-duplicate-badge.is-new,
+      .watch-preview-signals .is-new {
+        color: var(--cyber-cyan);
+        background: rgba(25, 215, 255, .10);
+      }
+
+      .watch-result-topline .watch-duplicate-badge.is-existing,
+      .watch-preview-signals .is-existing {
+        color: var(--cyber-red);
+        background: rgba(255, 82, 118, .12);
+      }
+
       .watch-score {
         display: grid;
         place-items: center;
@@ -2105,6 +2360,13 @@
         object-fit: cover;
       }
 
+      .watch-preview-signals {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
       .watch-preview-grid {
         margin: 0;
       }
@@ -2140,6 +2402,16 @@
 
       .watch-preview-blocking.has-missing {
         color: var(--cyber-orange);
+      }
+
+      .watch-preview-duplicate-warning {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 158, 68, .25);
+        border-radius: 12px;
+        color: var(--cyber-orange);
+        background: rgba(255, 158, 68, .10);
+        font-weight: 900;
       }
 
       .watch-result-actions {
