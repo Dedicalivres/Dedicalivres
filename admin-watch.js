@@ -11,6 +11,7 @@
   const EVENT_WATCH_TIMEOUT_MS = 3000;
   const HISTORY_KEY = "dedicalivres_admin_watch_history_v1";
   const PRODUCTIVE_SOURCES_KEY = "dedicalivres_admin_watch_productive_sources_v1";
+  const WORKFLOW_KEY = "dedicalivres_admin_watch_workflow_v2";
   const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
   const WATCH_PAGE_SIZE = 15;
 
@@ -591,7 +592,10 @@
         const item = lastResults[index];
         if (!item) return;
         markHandled(item);
+        setWatchWorkflowState(item, "handled");
+        lastResults = sortWatchResultsByCompleteness(lastResults);
         renderHistory();
+        renderResults(lastResults);
         setStatus("Source marquée comme traitée sur cet appareil.");
       });
     });
@@ -609,6 +613,11 @@
   function sortWatchResultsByCompleteness(results) {
     return [...results].map((result, index) => ({ result, index }))
       .sort((a, b) => {
+        const workflowDiff =
+          getWatchWorkflowPriority(a.result) -
+          getWatchWorkflowPriority(b.result);
+        if (workflowDiff) return workflowDiff;
+
         const scoreDiff = getResultCompletenessScore(b.result) - getResultCompletenessScore(a.result);
         if (scoreDiff) return scoreDiff;
 
@@ -708,13 +717,99 @@
     }
   }
 
+  function getWatchCandidateKey(item) {
+    const source = String(item?.sourceUrl || item?.officialUrl || "").trim();
+    if (source) return `url:${source}`;
+
+    return [
+      "event",
+      normalizeForCompare(item?.title || ""),
+      normalizeIsoDate(item?.startDate || ""),
+      normalizeForCompare(item?.city || "")
+    ].join(":");
+  }
+
+  function readWatchWorkflow() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(WORKFLOW_KEY) || "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeWatchWorkflow(workflow) {
+    localStorage.setItem(WORKFLOW_KEY, JSON.stringify(workflow || {}));
+  }
+
+  function setWatchWorkflowState(item, state) {
+    const key = getWatchCandidateKey(item);
+    if (!key) return;
+
+    const workflow = readWatchWorkflow();
+    workflow[key] = {
+      state,
+      updatedAt: new Date().toISOString()
+    };
+    writeWatchWorkflow(workflow);
+  }
+
+  function getStoredWatchWorkflowState(item) {
+    const entry = readWatchWorkflow()[getWatchCandidateKey(item)];
+    return String(entry?.state || "");
+  }
+
+  function getWatchWorkflowState(result) {
+    const stored = getStoredWatchWorkflowState(result);
+
+    if (["handled", "duplicate", "submitted"].includes(stored)) {
+      return stored;
+    }
+
+    const history = readHistory();
+    const alreadyHandled = history.some((item) =>
+      String(item?.sourceUrl || "") === String(result?.sourceUrl || "")
+    );
+    if (alreadyHandled) return "handled";
+
+    const status = normalizeForCompare(result?.status || "");
+    if (status === "non evenement") return "rejected";
+    if (isCompleteWatchResult(result)) return "ready";
+    return "review";
+  }
+
+  function getWatchWorkflowLabel(state) {
+    return {
+      ready: "Prêt",
+      review: "À vérifier",
+      handled: "Déjà traité",
+      duplicate: "Déjà présent",
+      submitted: "Soumis",
+      rejected: "Écarté"
+    }[state] || "À vérifier";
+  }
+
+  function getWatchWorkflowPriority(result) {
+    return {
+      ready: 0,
+      review: 1,
+      duplicate: 2,
+      submitted: 3,
+      handled: 4,
+      rejected: 5
+    }[getWatchWorkflowState(result)] ?? 9;
+  }
+
   function renderResultCard(result, index) {
     const score = Number(result.confidence || 0);
     const missing = Array.isArray(result.missingFields) ? result.missingFields : [];
     const warnings = Array.isArray(result.filterWarnings) ? result.filterWarnings : [];
     const history = readHistory();
     const alreadyHandled = history.some((item) => item.sourceUrl === result.sourceUrl);
-    const isNonEvent = String(result.status || "").trim().toLowerCase() === "non événement";
+    const workflowState = getWatchWorkflowState(result);
+    const workflowLabel = getWatchWorkflowLabel(workflowState);
+    const isNonEvent = workflowState === "rejected";
+    const isClosedWorkflow = ["handled", "duplicate", "submitted", "rejected"].includes(workflowState);
     const statusClass = isNonEvent
       ? "low"
       : (score >= 82 ? "good" : score >= 58 ? "medium" : "low");
@@ -733,9 +828,9 @@
 
           <div class="watch-result-body">
             <div class="watch-result-topline">
-              <span>${escapeHtml(result.status || "À vérifier")}</span>
+              <span>${escapeHtml(workflowLabel)}</span>
               <span>${escapeHtml(result.type || "Type inconnu")}</span>
-              ${alreadyHandled ? "<span>Déjà traité</span>" : ""}
+              ${alreadyHandled && workflowState !== "handled" ? "<span>Déjà traité</span>" : ""}
             </div>
             <h4>${escapeHtml(result.title || "Titre non détecté")}</h4>
             <p class="watch-meta">
@@ -757,15 +852,23 @@
         </div>
 
         ${
-          isNonEvent
+          isClosedWorkflow
             ? `
               <div class="watch-copy-block">
-                <strong>Élément écarté</strong>
+                <strong>${escapeHtml(
+                  workflowState === "duplicate"
+                    ? "Événement déjà présent"
+                    : workflowState === "submitted"
+                      ? "Soumission créée"
+                      : workflowState === "handled"
+                        ? "Élément déjà traité"
+                        : "Élément écarté"
+                )}</strong>
               </div>
             `
             : `
               <details class="watch-copy-block">
-                <summary>Fiche prête à copier</summary>
+                <summary>${workflowState === "ready" ? "Fiche prête à copier" : "Fiche à vérifier"}</summary>
                 <textarea readonly rows="13">${escapeHtml(result.adminText || "")}</textarea>
               </details>
             `
@@ -773,7 +876,7 @@
 
         <div class="watch-result-actions">
           ${
-            isNonEvent
+            isClosedWorkflow
               ? ""
               : `
                 <button class="cyber-btn-primary" data-watch-submit="${index}" type="button">Envoyer en soumission</button>
@@ -781,7 +884,11 @@
               `
           }
           <a class="cyber-btn-secondary" href="${escapeAttr(result.sourceUrl || result.officialUrl || "#")}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>
-          <button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>
+          ${
+            isClosedWorkflow
+              ? ""
+              : `<button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>`
+          }
         </div>
       </article>
     `;
@@ -804,8 +911,10 @@
       const duplicate = await findExistingSubmission(item);
 
       if (duplicate) {
+        setWatchWorkflowState(item, "duplicate");
+        lastResults = sortWatchResultsByCompleteness(lastResults);
+        renderResults(lastResults);
         setStatus("Soumission déjà présente ou événement similaire détecté en base.", "warning");
-        if (button) button.textContent = "Déjà présent";
         return;
       }
 
@@ -815,7 +924,10 @@
       if (error) throw error;
 
       markHandled(item);
+      setWatchWorkflowState(item, "submitted");
+      lastResults = sortWatchResultsByCompleteness(lastResults);
       renderHistory();
+      renderResults(lastResults);
       setStatus("Soumission créée : elle apparaît maintenant dans la modération des événements.");
 
       if (button) {
@@ -1115,8 +1227,11 @@
   function clearHistory() {
     writeHistory([]);
     writeProductiveSources([]);
+    writeWatchWorkflow({});
+    lastResults = sortWatchResultsByCompleteness(lastResults);
     renderHistory();
-    setStatus("Historique local et URL à fort rendement vidés.");
+    renderResults(lastResults);
+    setStatus("Historique local, workflow et URL à fort rendement vidés.");
   }
 
   function readHistory() {
