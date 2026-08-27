@@ -82,19 +82,40 @@
     true
   );
 
+  function lockWatchSubmitButton(button) {
+    if (!button || button.dataset.v11Locked === "true") {
+      return;
+    }
+
+    button.dataset.v11Locked = "true";
+    button.disabled = true;
+    button.textContent =
+      "Soumission verrouillée V11";
+    button.title =
+      "Écriture events désactivée pendant le raccordement V11.";
+  }
+
+  document
+    .querySelectorAll("[data-watch-submit]")
+    .forEach(lockWatchSubmitButton);
+
   const watchGuardObserver =
-    new MutationObserver(function () {
-      document
-        .querySelectorAll(
-          "[data-watch-submit]"
-        )
-        .forEach(function (button) {
-          button.disabled = true;
-          button.textContent =
-            "Soumission verrouillée V11";
-          button.title =
-            "Écriture events désactivée pendant le raccordement V11.";
+    new MutationObserver(function (mutations) {
+      mutations.forEach(function (mutation) {
+        mutation.addedNodes.forEach(function (node) {
+          if (!(node instanceof Element)) {
+            return;
+          }
+
+          if (node.matches?.("[data-watch-submit]")) {
+            lockWatchSubmitButton(node);
+          }
+
+          node
+            .querySelectorAll?.("[data-watch-submit]")
+            .forEach(lockWatchSubmitButton);
         });
+      });
     });
 
   watchGuardObserver.observe(
