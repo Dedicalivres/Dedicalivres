@@ -714,10 +714,18 @@
     const warnings = Array.isArray(result.filterWarnings) ? result.filterWarnings : [];
     const history = readHistory();
     const alreadyHandled = history.some((item) => item.sourceUrl === result.sourceUrl);
-    const statusClass = score >= 82 ? "good" : score >= 58 ? "medium" : "low";
+    const isNonEvent = String(result.status || "").trim().toLowerCase() === "non événement";
+    const statusClass = isNonEvent
+      ? "low"
+      : (score >= 82 ? "good" : score >= 58 ? "medium" : "low");
+    const rawDescription = String(result.description || result.evidence || "").trim();
+    const hasPlaceholderDescription = /\blorem\s+ipsum\b/i.test(rawDescription);
+    const visibleDescription = hasPlaceholderDescription
+      ? ""
+      : rawDescription;
 
     return `
-      <article class="watch-result ${statusClass}">
+      <article class="watch-result ${statusClass}${isNonEvent ? " is-non-event" : ""}">
         <div class="watch-result-main">
           <div class="watch-result-image ${result.imageUrl ? "" : "is-empty"}">
             ${result.imageUrl ? `<img src="${escapeAttr(result.imageUrl)}" alt="">` : "Image non détectée"}
@@ -733,7 +741,11 @@
             <p class="watch-meta">
               ${escapeHtml(buildMeta(result) || "Date ou lieu à vérifier")}
             </p>
-            <p>${escapeHtml(result.description || result.evidence || "Description non détectée.")}</p>
+            ${
+              visibleDescription
+                ? `<p>${escapeHtml(visibleDescription)}</p>`
+                : (isNonEvent ? "" : "<p>Description non détectée.</p>")
+            }
           </div>
 
           <strong class="watch-score">${score}%</strong>
@@ -744,14 +756,30 @@
           ${warnings.map((warning) => `<span>${escapeHtml(warning)}</span>`).join("")}
         </div>
 
-        <details class="watch-copy-block">
-          <summary>Fiche prête à copier</summary>
-          <textarea readonly rows="13">${escapeHtml(result.adminText || "")}</textarea>
-        </details>
+        ${
+          isNonEvent
+            ? `
+              <div class="watch-copy-block">
+                <strong>Élément écarté</strong>
+              </div>
+            `
+            : `
+              <details class="watch-copy-block">
+                <summary>Fiche prête à copier</summary>
+                <textarea readonly rows="13">${escapeHtml(result.adminText || "")}</textarea>
+              </details>
+            `
+        }
 
         <div class="watch-result-actions">
-          <button class="cyber-btn-primary" data-watch-submit="${index}" type="button">Envoyer en soumission</button>
-          <button class="cyber-btn-primary" data-watch-copy="${index}" type="button">Copier la fiche</button>
+          ${
+            isNonEvent
+              ? ""
+              : `
+                <button class="cyber-btn-primary" data-watch-submit="${index}" type="button">Envoyer en soumission</button>
+                <button class="cyber-btn-primary" data-watch-copy="${index}" type="button">Copier la fiche</button>
+              `
+          }
           <a class="cyber-btn-secondary" href="${escapeAttr(result.sourceUrl || result.officialUrl || "#")}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>
           <button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>
         </div>
