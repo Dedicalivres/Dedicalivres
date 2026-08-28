@@ -27,6 +27,8 @@
   let eventWatchAlerts = [];
   let eventWatchCategory = "all";
   let eventWatchQueueFilter = "review";
+  let eventWatchAvailability = "unchecked";
+  let lastWatchAnalysisAt = "";
   let watchQueueFilter = "all";
   const duplicateCheckCache = new Map();
   const duplicateSignalCache = new Map();
@@ -69,6 +71,7 @@
     injectInterface(tab, config);
     bindControls();
     renderHistory();
+    updateWatchOperationsDashboard();
     loadEventWatchAlerts();
   }
 
@@ -91,7 +94,52 @@
 
     tab.innerHTML = `
       <section class="watch-shell" data-watch-version="${VERSION}">
-        <article class="watch-card event-watch-admin-card">
+        <article class="watch-card watch-operations-dashboard" aria-labelledby="watch-operations-title">
+          <div class="watch-card-head">
+            <div>
+              <h3 id="watch-operations-title">Pilotage Veille</h3>
+              <p>Vue locale des actions en attente, des sources et de l’état Event Watch.</p>
+            </div>
+            <div class="watch-operations-nav" aria-label="Navigation rapide Veille">
+              <button class="cyber-btn-secondary" data-watch-dashboard-target="watch-candidates-section" type="button">Voir les candidats</button>
+              <button class="cyber-btn-secondary" data-watch-dashboard-target="watch-event-watch-section" type="button">Voir Event Watch</button>
+              <button class="cyber-btn-secondary" data-watch-dashboard-target="watch-sources-section" type="button">Voir les sources</button>
+            </div>
+          </div>
+
+          <div class="watch-operations-grid" aria-live="polite">
+            <div class="watch-operation-card">
+              <span>À traiter</span>
+              <strong id="watch-operations-candidates-count">0</strong>
+              <small>Candidats prêts ou à vérifier</small>
+            </div>
+            <div class="watch-operation-card">
+              <span>Event Watch</span>
+              <strong id="watch-operations-event-count">0</strong>
+              <small>Local : <span id="watch-operations-event-status" data-state="unchecked">Non vérifié / en attente</span></small>
+            </div>
+            <div class="watch-operation-card">
+              <span>Sources productives</span>
+              <strong id="watch-operations-sources-count">0</strong>
+              <small>Sources connues sur cet appareil</small>
+            </div>
+            <div class="watch-operation-card">
+              <span>Qualité des sources</span>
+              <strong id="watch-operations-source-quality">Aucune source qualifiée</strong>
+              <small>Selon le rendement existant</small>
+            </div>
+          </div>
+
+          <div class="watch-operations-footer">
+            <p><strong>Dernière activité :</strong> <span id="watch-operations-last-activity">Aucune activité enregistrée</span></p>
+            <div class="watch-operations-top-sources">
+              <strong>Meilleures sources</strong>
+              <div id="watch-operations-top-sources"><span>Aucune source productive</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article id="watch-event-watch-section" class="watch-card event-watch-admin-card">
           <div class="watch-card-head">
             <div>
               <h3>Événements à vérifier</h3>
@@ -212,7 +260,7 @@
           </p>
         </article>
 
-        <article class="watch-card">
+        <article id="watch-candidates-section" class="watch-card">
           <div class="watch-card-head">
             <div>
               <h3>Résultats de veille</h3>
@@ -238,7 +286,7 @@
           </div>
         </article>
 
-        <article class="watch-card watch-history-card">
+        <article id="watch-sources-section" class="watch-card watch-history-card">
           <div class="watch-card-head">
             <div>
               <h3>Sources mémorisées sur cet appareil</h3>
@@ -253,6 +301,9 @@
   }
 
   function bindControls() {
+    document.querySelectorAll("[data-watch-dashboard-target]").forEach((button) => {
+      button.addEventListener("click", () => scrollToWatchOperationsSection(button.dataset.watchDashboardTarget));
+    });
     document.getElementById("event-watch-refresh")?.addEventListener("click", loadEventWatchAlerts);
     document.getElementById("event-watch-reset-workflow")?.addEventListener("click", resetEventWatchWorkflow);
     document.querySelectorAll("[data-event-watch-filter]").forEach((button) => {
@@ -311,6 +362,97 @@
     });
   }
 
+  function scrollToWatchOperationsSection(targetId) {
+    const target = document.getElementById(String(targetId || ""));
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function updateWatchOperationsDashboard() {
+    const dashboard = document.querySelector(".watch-operations-dashboard");
+    if (!dashboard) return;
+
+    const activeCandidateCount = (Array.isArray(lastResults) ? lastResults : [])
+      .filter((item) => ["ready", "review"].includes(getWatchWorkflowState(item)))
+      .length;
+    const eventReviewCount = getEventWatchWorkflowCounts(eventWatchAlerts).review;
+    const productiveSources = sortProductiveSources(readProductiveSources());
+    const qualifiedCounts = productiveSources.reduce((counts, item) => {
+      const level = getProductiveSourceYieldLevel(getProductiveSourceYieldScore(item)).state;
+      if (level === "excellent") counts.excellent += 1;
+      if (level === "good") counts.good += 1;
+      return counts;
+    }, { excellent: 0, good: 0 });
+
+    setWatchOperationsText("watch-operations-candidates-count", activeCandidateCount);
+    setWatchOperationsText("watch-operations-event-count", eventReviewCount);
+    setWatchOperationsText("watch-operations-sources-count", productiveSources.length);
+    setWatchOperationsText(
+      "watch-operations-source-quality",
+      qualifiedCounts.excellent || qualifiedCounts.good
+        ? `${qualifiedCounts.excellent} excellente${qualifiedCounts.excellent === 1 ? "" : "s"} · ${qualifiedCounts.good} bonne${qualifiedCounts.good === 1 ? "" : "s"}`
+        : "Aucune source qualifiée"
+    );
+    setWatchOperationsText(
+      "watch-operations-last-activity",
+      getWatchOperationsLatestActivity(productiveSources)
+    );
+
+    const eventStatus = document.getElementById("watch-operations-event-status");
+    if (eventStatus) {
+      eventStatus.textContent = getEventWatchAvailabilityLabel();
+      eventStatus.dataset.state = eventWatchAvailability;
+    }
+
+    const topSources = document.getElementById("watch-operations-top-sources");
+    if (topSources) {
+      const items = productiveSources.slice(0, 3);
+      topSources.innerHTML = items.length
+        ? items.map(renderWatchOperationsSource).join("")
+        : "<span>Aucune source productive</span>";
+    }
+  }
+
+  function setWatchOperationsText(id, value) {
+    const node = document.getElementById(id);
+    if (node) node.textContent = String(value);
+  }
+
+  function getEventWatchAvailabilityLabel() {
+    if (eventWatchAvailability === "available") return "Disponible";
+    if (eventWatchAvailability === "unavailable") return "Indisponible";
+    return "Non vérifié / en attente";
+  }
+
+  function getWatchOperationsLatestActivity(productiveSources) {
+    const timestamps = [
+      lastWatchAnalysisAt,
+      ...(Array.isArray(productiveSources) ? productiveSources : []).map((item) => item?.lastSeenAt),
+      ...(Array.isArray(eventWatchAlerts) ? eventWatchAlerts : []).map((alert) => alert?.detected_at)
+    ]
+      .filter(Boolean)
+      .map((value) => new Date(value))
+      .filter((date) => !Number.isNaN(date.getTime()))
+      .sort((left, right) => right.getTime() - left.getTime());
+
+    return timestamps.length
+      ? formatDetectedAt(timestamps[0].toISOString())
+      : "Aucune activité enregistrée";
+  }
+
+  function renderWatchOperationsSource(item) {
+    const score = getProductiveSourceYieldScore(item);
+    const level = getProductiveSourceYieldLevel(score);
+    const lastAnalysis = item?.lastSeenAt ? formatDetectedAt(item.lastSeenAt) : "—";
+    return `
+      <div class="watch-operations-source">
+        <span>${escapeHtml(item?.title || getUrlDisplayName(item?.sourceUrl) || "Source productive")}</span>
+        <span class="watch-source-yield-badge is-${level.state}">${level.label}</span>
+        <small>${escapeHtml(lastAnalysis)}</small>
+      </div>
+    `;
+  }
+
   async function analyzeUrls() {
     const urls = document.getElementById("watch-urls")?.value.trim() || "";
     if (!urls) {
@@ -341,6 +483,7 @@
         }
       });
 
+      lastWatchAnalysisAt = new Date().toISOString();
       lastResults = sortWatchResultsByCompleteness(Array.isArray(payload.results) ? payload.results : []);
       lastPagination = normalizeWatchPagination(payload);
       watchQueueFilter = "active";
@@ -424,6 +567,8 @@
     const container = document.getElementById("event-watch-alerts");
     if (!container) return;
 
+    eventWatchAvailability = "pending";
+    updateWatchOperationsDashboard();
     setEventWatchStatus("Connexion à Auto-Matte local…");
 
     try {
@@ -437,6 +582,7 @@
       }
 
       eventWatchAlerts = Array.isArray(payload.changes) ? payload.changes : [];
+      eventWatchAvailability = "available";
       renderEventWatchAlerts();
       const counts = getEventWatchWorkflowCounts(eventWatchAlerts);
       setEventWatchStatus(
@@ -448,6 +594,7 @@
       );
     } catch (error) {
       eventWatchAlerts = [];
+      eventWatchAvailability = "unavailable";
       updateEventWatchQueueControls([]);
       container.innerHTML = `
         <div class="event-watch-unavailable" role="status">
@@ -642,6 +789,7 @@
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
+    updateWatchOperationsDashboard();
   }
 
   function getEventWatchAlertPriority(alert) {
@@ -756,6 +904,7 @@
 
     const sourceResults = Array.isArray(results) ? results : [];
     updateWatchQueueFilters(sourceResults);
+    updateWatchOperationsDashboard();
 
     if (!sourceResults.length) {
       container.innerHTML = `<p class="priority-empty">Aucun résultat à afficher.</p>`;
@@ -1306,6 +1455,7 @@
       updatedAt: new Date().toISOString()
     };
     writeWatchWorkflow(workflow);
+    updateWatchOperationsDashboard();
   }
 
   function getStoredWatchWorkflowState(item) {
@@ -1882,6 +2032,7 @@
     watchOffset = 0;
     watchQueueFilter = "active";
     updateWatchQueueFilters([]);
+    updateWatchOperationsDashboard();
     updatePagingControls();
     setStatus("En attente d’une URL. Le résultat reste à vérifier humainement.");
   }
@@ -1950,6 +2101,7 @@
       .slice(0, 40);
 
     writeProductiveSources(merged);
+    updateWatchOperationsDashboard();
     return nextItems.length;
   }
 
@@ -2223,6 +2375,7 @@
     lastResults = sortWatchResultsByCompleteness(lastResults);
     renderHistory();
     renderResults(lastResults);
+    updateWatchOperationsDashboard();
     setStatus("Historique local, workflow et URL à fort rendement vidés.");
   }
 
@@ -2773,6 +2926,120 @@
         margin-top: 14px;
       }
 
+      .watch-operations-dashboard {
+        display: grid;
+        gap: 16px;
+      }
+
+      .watch-operations-nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .watch-operations-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .watch-operation-card {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+        padding: 14px;
+        border: 1px solid rgba(25, 215, 255, .16);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, .04);
+      }
+
+      .watch-operation-card > span,
+      .watch-operation-card small {
+        color: var(--cyber-muted);
+      }
+
+      .watch-operation-card > strong {
+        color: var(--cyber-cyan);
+        font-size: clamp(1.15rem, 2vw, 1.8rem);
+        overflow-wrap: anywhere;
+      }
+
+      #watch-operations-source-quality {
+        font-size: 1rem;
+      }
+
+      #watch-operations-event-status[data-state="available"] {
+        color: var(--cyber-green);
+      }
+
+      #watch-operations-event-status[data-state="unavailable"] {
+        color: var(--cyber-orange);
+      }
+
+      .watch-operations-footer {
+        display: grid;
+        grid-template-columns: minmax(180px, .7fr) minmax(0, 1.3fr);
+        align-items: start;
+        gap: 14px;
+      }
+
+      .watch-operations-footer > p {
+        margin: 0;
+        color: var(--cyber-muted);
+      }
+
+      .watch-operations-footer > p strong,
+      .watch-operations-top-sources > strong {
+        color: var(--cyber-text);
+      }
+
+      .watch-operations-top-sources,
+      #watch-operations-top-sources {
+        display: grid;
+        gap: 7px;
+      }
+
+      .watch-operations-source {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 9px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .04);
+      }
+
+      .watch-operations-source > span:first-child {
+        overflow-wrap: anywhere;
+      }
+
+      .watch-operations-source small,
+      #watch-operations-top-sources > span {
+        color: var(--cyber-muted);
+      }
+
+      .watch-operations-source .watch-source-yield-badge.is-excellent,
+      .watch-operations-source .watch-source-yield-badge.is-good {
+        color: var(--cyber-green);
+        background: rgba(25, 255, 156, .12);
+      }
+
+      .watch-operations-source .watch-source-yield-badge.is-medium {
+        color: var(--cyber-orange);
+        background: rgba(255, 158, 68, .12);
+      }
+
+      .watch-operations-source .watch-source-yield-badge.is-low {
+        color: var(--cyber-red);
+        background: rgba(255, 82, 118, .12);
+      }
+
+      .watch-operations-source .watch-source-yield-badge.is-unknown {
+        color: var(--cyber-muted);
+        background: rgba(255, 255, 255, .06);
+      }
+
       .event-watch-toolbar {
         display: flex;
         justify-content: space-between;
@@ -3109,6 +3376,14 @@
       }
 
       @media (max-width: 900px) {
+        .watch-operations-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .watch-operations-footer {
+          grid-template-columns: 1fr;
+        }
+
         .watch-form-grid,
         .watch-result-main,
         .event-watch-values,
@@ -3150,6 +3425,17 @@
 
         .watch-score {
           border-radius: 16px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .watch-operations-grid,
+        .watch-operations-source {
+          grid-template-columns: 1fr;
+        }
+
+        .watch-operations-nav {
+          justify-content: flex-start;
         }
       }
     `;
