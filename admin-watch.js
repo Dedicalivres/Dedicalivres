@@ -17,6 +17,9 @@
   const WATCH_SERVER_CANDIDATES_LIMIT = 500;
   const WATCH_SERVER_SOURCES_LIMIT = 200;
   const WATCH_SERVER_ALERTS_LIMIT = 300;
+  const WATCH_SERVER_CANDIDATE_COLUMNS = "id,identity_key,origin_url,canonical_origin_url,title,start_date,city,source_id,workflow_status,duplicate_event_id,submitted_event_id,status_updated_at,status_updated_by,updated_at,version,last_seen_at";
+  const WATCH_CANDIDATE_WORKFLOW_STATES = ["ready", "review", "duplicate", "submitted", "handled", "rejected"];
+  const WATCH_CANDIDATE_CLOSED_STATES = ["duplicate", "submitted", "handled", "rejected"];
   const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
   const WATCH_PAGE_SIZE = 15;
   const DUPLICATE_CHECK_CONCURRENCY = 4;
@@ -35,6 +38,7 @@
   let lastWatchAnalysisAt = "";
   let watchQueueFilter = "all";
   let watchPersistenceSnapshot = createEmptyWatchPersistenceSnapshot();
+  let lastWatchPersistenceNotice = "";
   const duplicateCheckCache = new Map();
   const duplicateSignalCache = new Map();
 
@@ -537,7 +541,7 @@
   function readServerWatchCandidates() {
     return readServerWatchRows(
       "admin_watch_candidates",
-      "identity_key,origin_url,canonical_origin_url,title,start_date,city,source_id,workflow_status,duplicate_event_id,submitted_event_id,status_updated_at,version,last_seen_at",
+      WATCH_SERVER_CANDIDATE_COLUMNS,
       "last_seen_at",
       WATCH_SERVER_CANDIDATES_LIMIT
     );
@@ -635,6 +639,180 @@
     return watchPersistenceSnapshot.candidates.find((candidate) =>
       getWatchCandidatePersistenceKeys(candidate).some((key) => localKeys.has(key))
     ) || null;
+  }
+
+  function adoptServerWatchCandidate(row) {
+    if (!row || !isUuid(row.id)) return null;
+    const candidates = [...watchPersistenceSnapshot.candidates];
+    const index = candidates.findIndex((candidate) =>
+      candidate?.id === row.id || (
+        row.identity_key && candidate?.identity_key === row.identity_key
+      )
+    );
+    if (index >= 0) candidates[index] = { ...candidates[index], ...row };
+    else candidates.unshift(row);
+    watchPersistenceSnapshot = { ...watchPersistenceSnapshot, candidates };
+    return row;
+  }
+
+  function setWatchPersistenceAvailabilityAfterWrite(status) {
+    if (status === "success") {
+      if (["local", "unavailable"].includes(watchPersistenceSnapshot.availability)) {
+        watchPersistenceSnapshot.availability = "mixed";
+      }
+    } else if (watchPersistenceSnapshot.availability === "server") {
+      watchPersistenceSnapshot.availability = "mixed";
+    } else if (watchPersistenceSnapshot.availability === "local" && status === "unavailable") {
+      watchPersistenceSnapshot.availability = "unavailable";
+    }
+    updateWatchPersistenceIndicator();
+  }
+
+  function showWatchPersistenceNotice(message, tone = "warning") {
+    if (!message || message === lastWatchPersistenceNotice) return;
+    lastWatchPersistenceNotice = message;
+    setStatus(message, tone);
+  }
+
+  function refreshWatchCandidateWorkflowView() {
+    lastResults = sortWatchResultsByCompleteness(lastResults);
+    renderHistory();
+    renderResults(lastResults);
+    updateWatchOperationsDashboard();
+  }
+
+  async function readLatestServerWatchCandidate(serverCandidate) {
+    if (!client || typeof client.from !== "function" || !isUuid(serverCandidate?.id)) {
+      return { status: "missing", row: null, error: null };
+    }
+
+    try {
+      const query = client
+        .from("admin_watch_candidates")
+        .select(WATCH_SERVER_CANDIDATE_COLUMNS)
+        .eq("id", serverCandidate.id)
+        .limit(1);
+      const response = await awaitWatchPersistenceQuery(query);
+      if (response?.error) {
+        return { status: "unavailable", row: null, error: response.error };
+      }
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      return rows[0]
+        ? { status: "success", row: rows[0], error: null }
+        : { status: "missing", row: null, error: null };
+    } catch (error) {
+      return { status: "unavailable", row: null, error };
+    }
+  }
+
+  async function updateServerWatchCandidateOptimistically(serverCandidate, expectedVersion, nextWorkflowStatus, linkedIds = {}) {
+    if (!client || typeof client.from !== "function") {
+      return { status: "unavailable", row: null, error: new Error("Client Supabase indisponible") };
+    }
+    if (
+      !isUuid(serverCandidate?.id) ||
+      !Number.isInteger(Number(expectedVersion)) ||
+      Number(expectedVersion) < 1
+    ) {
+      return { status: "missing", row: null, error: null };
+    }
+    if (!WATCH_CANDIDATE_WORKFLOW_STATES.includes(nextWorkflowStatus)) {
+      return { status: "unavailable", row: null, error: new Error("État candidat invalide") };
+    }
+
+    const payload = { workflow_status: nextWorkflowStatus };
+    if (nextWorkflowStatus === "duplicate" && isUuid(linkedIds.duplicateEventId)) {
+      payload.duplicate_event_id = linkedIds.duplicateEventId;
+    }
+    if (nextWorkflowStatus === "submitted" && isUuid(linkedIds.submittedEventId)) {
+      payload.submitted_event_id = linkedIds.submittedEventId;
+    }
+
+    try {
+      const query = client
+        .from("admin_watch_candidates")
+        .update(payload)
+        .eq("id", serverCandidate.id)
+        .eq("version", Number(expectedVersion))
+        .select(WATCH_SERVER_CANDIDATE_COLUMNS);
+      const response = await awaitWatchPersistenceQuery(query);
+      if (response?.error) {
+        return { status: "unavailable", row: null, error: response.error };
+      }
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      if (rows.length === 1) {
+        return { status: "success", row: rows[0], error: null };
+      }
+
+      const latest = await readLatestServerWatchCandidate(serverCandidate);
+      if (latest.status === "success") {
+        return { status: "conflict", row: latest.row, error: null };
+      }
+      return latest;
+    } catch (error) {
+      return { status: "unavailable", row: null, error };
+    }
+  }
+
+  async function persistCandidateWorkflowDecision(item, nextWorkflowStatus) {
+    if (!item || !WATCH_CANDIDATE_WORKFLOW_STATES.includes(nextWorkflowStatus)) {
+      return { status: "unavailable", row: null, error: new Error("Décision candidat invalide") };
+    }
+
+    const serverCandidate = findServerWatchCandidate(item);
+    const serverState = String(serverCandidate?.workflow_status || "");
+    if (
+      WATCH_CANDIDATE_CLOSED_STATES.includes(serverState) &&
+      ["ready", "review"].includes(nextWorkflowStatus)
+    ) {
+      adoptServerWatchCandidate(serverCandidate);
+      writeLocalWatchWorkflowState(item, serverState, serverCandidate.status_updated_at);
+      setWatchPersistenceAvailabilityAfterWrite("conflict");
+      await Promise.resolve();
+      showWatchPersistenceNotice("Cette décision a été modifiée dans une autre session.");
+      refreshWatchCandidateWorkflowView();
+      return { status: "conflict", row: serverCandidate, error: null };
+    }
+
+    writeLocalWatchWorkflowState(item, nextWorkflowStatus);
+
+    if (!serverCandidate || !isUuid(serverCandidate.id)) {
+      setWatchPersistenceAvailabilityAfterWrite("missing");
+      await Promise.resolve();
+      showWatchPersistenceNotice("Décision enregistrée localement.");
+      return { status: "missing", row: null, error: null };
+    }
+
+    const result = await updateServerWatchCandidateOptimistically(
+      serverCandidate,
+      serverCandidate.version,
+      nextWorkflowStatus,
+      {
+        duplicateEventId: item.duplicateEventId || item.duplicate_event_id,
+        submittedEventId: item.submittedEventId || item.submitted_event_id
+      }
+    );
+
+    if (result.status === "success") {
+      adoptServerWatchCandidate(result.row);
+      writeLocalWatchWorkflowState(item, result.row.workflow_status, result.row.status_updated_at);
+      lastWatchPersistenceNotice = "";
+      setWatchPersistenceAvailabilityAfterWrite("success");
+      return result;
+    }
+
+    if (result.status === "conflict" && result.row) {
+      adoptServerWatchCandidate(result.row);
+      writeLocalWatchWorkflowState(item, result.row.workflow_status, result.row.status_updated_at);
+      setWatchPersistenceAvailabilityAfterWrite("conflict");
+      showWatchPersistenceNotice("Cette décision a été modifiée dans une autre session.");
+      refreshWatchCandidateWorkflowView();
+      return result;
+    }
+
+    setWatchPersistenceAvailabilityAfterWrite(result.status);
+    showWatchPersistenceNotice("Décision enregistrée localement.");
+    return result;
   }
 
   function getEventWatchPersistenceKeys(alert) {
@@ -1219,6 +1397,18 @@
       });
     });
 
+    container.querySelectorAll("[data-watch-rejected]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = Number(button.dataset.watchRejected);
+        const item = lastResults[index];
+        if (!item) return;
+        setWatchWorkflowState(item, "rejected");
+        lastResults = sortWatchResultsByCompleteness(lastResults);
+        renderResults(lastResults);
+        setStatus("Candidat écarté.");
+      });
+    });
+
     container.querySelectorAll("[data-watch-submit]").forEach((button) => {
       button.addEventListener("click", () => {
         const index = Number(button.dataset.watchSubmit);
@@ -1270,6 +1460,7 @@
     const item = lastResults[index];
     if (!item || !form) return;
     const previousDuplicateKey = getWatchDuplicateKey(item);
+    const previousInferredWorkflowState = inferWatchCandidateWorkflowState(item);
 
     const value = (name) => cleanText(form.elements.namedItem(name)?.value || "");
     const updates = {
@@ -1296,6 +1487,10 @@
     item.adminText = buildWatchCandidateAdminText(item);
     if (getWatchDuplicateKey(item) !== previousDuplicateKey) {
       item.watchDuplicateSignal = getLocalWatchDuplicateSignal(item, lastResults);
+    }
+    const nextInferredWorkflowState = inferWatchCandidateWorkflowState(item);
+    if (nextInferredWorkflowState !== previousInferredWorkflowState) {
+      setWatchWorkflowState(item, nextInferredWorkflowState);
     }
     lastResults = sortWatchResultsByCompleteness(lastResults);
     renderResults(lastResults);
@@ -1708,17 +1903,27 @@
     localStorage.setItem(WORKFLOW_KEY, JSON.stringify(workflow || {}));
   }
 
-  function setWatchWorkflowState(item, state) {
+  function writeLocalWatchWorkflowState(item, state, updatedAt = "") {
     const key = getWatchCandidateKey(item);
-    if (!key) return;
+    if (!key || !WATCH_CANDIDATE_WORKFLOW_STATES.includes(state)) return false;
 
     const workflow = readWatchWorkflow();
     workflow[key] = {
       state,
-      updatedAt: new Date().toISOString()
+      updatedAt: updatedAt || new Date().toISOString()
     };
     writeWatchWorkflow(workflow);
+    return true;
+  }
+
+  function setWatchWorkflowState(item, state) {
+    const decision = persistCandidateWorkflowDecision(item, state).catch((error) => {
+      setWatchPersistenceAvailabilityAfterWrite("unavailable");
+      showWatchPersistenceNotice("Décision enregistrée localement.");
+      return { status: "unavailable", row: null, error };
+    });
     updateWatchOperationsDashboard();
+    return decision;
   }
 
   function getStoredWatchWorkflowState(item) {
@@ -1734,6 +1939,7 @@
       return stored;
     }
     if (stored === "rejected") return stored;
+    if (["ready", "review"].includes(stored)) return stored;
 
     const history = readHistory();
     const alreadyHandled = history.some((item) =>
@@ -1741,10 +1947,13 @@
     );
     if (alreadyHandled) return "handled";
 
+    return inferWatchCandidateWorkflowState(result);
+  }
+
+  function inferWatchCandidateWorkflowState(result) {
     const status = normalizeForCompare(result?.status || "");
     if (status === "non evenement") return "rejected";
-    if (isCompleteWatchResult(result)) return "ready";
-    return "review";
+    return isCompleteWatchResult(result) ? "ready" : "review";
   }
 
   function getLocalWatchWorkflowEntry(result) {
@@ -1896,7 +2105,10 @@
           ${
             isClosedWorkflow
               ? ""
-              : `<button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>`
+              : `
+                <button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>
+                <button class="cyber-btn-secondary" data-watch-rejected="${index}" type="button">Écarter</button>
+              `
           }
         </div>
       </article>
@@ -2026,6 +2238,7 @@
       const duplicate = await findExistingSubmissionCached(item);
 
       if (duplicate) {
+        if (isUuid(duplicate.id)) item.duplicateEventId = duplicate.id;
         setWatchWorkflowState(item, "duplicate");
         lastResults = sortWatchResultsByCompleteness(lastResults);
         renderResults(lastResults);
@@ -2053,6 +2266,7 @@
       if (error) throw error;
 
       markHandled(item);
+      item.submittedEventId = payload.id;
       setWatchWorkflowState(item, "submitted");
 
       const duplicateKey = getWatchDuplicateKey(item);
@@ -2219,6 +2433,7 @@
 
       checked.forEach(({ item, duplicate }) => {
         if (!duplicate) return;
+        if (isUuid(duplicate.id)) item.duplicateEventId = duplicate.id;
         setWatchWorkflowState(item, "duplicate");
         duplicateCount += 1;
       });
