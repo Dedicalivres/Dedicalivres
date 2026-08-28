@@ -18,6 +18,7 @@
   const WATCH_SERVER_SOURCES_LIMIT = 200;
   const WATCH_SERVER_ALERTS_LIMIT = 300;
   const WATCH_SERVER_CANDIDATE_COLUMNS = "id,identity_key,origin_url,canonical_origin_url,title,start_date,city,source_id,workflow_status,duplicate_event_id,submitted_event_id,status_updated_at,status_updated_by,updated_at,version,last_seen_at";
+  const WATCH_SERVER_SOURCE_COLUMNS = "id,canonical_url,url_hash,source_url,title,observed_count,complete_count,review_count,rejected_count,duplicate_certain_count,duplicate_probable_count,with_image_count,without_image_count,analyses_count,metrics_since,first_seen_at,last_seen_at,is_active,updated_at,version";
   const WATCH_CANDIDATE_WORKFLOW_STATES = ["ready", "review", "duplicate", "submitted", "handled", "rejected"];
   const WATCH_CANDIDATE_CLOSED_STATES = ["duplicate", "submitted", "handled", "rejected"];
   const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
@@ -550,7 +551,7 @@
   function readServerWatchSources() {
     return readServerWatchRows(
       "admin_watch_sources",
-      "canonical_url,url_hash,source_url,title,observed_count,complete_count,review_count,rejected_count,duplicate_certain_count,duplicate_probable_count,with_image_count,without_image_count,analyses_count,first_seen_at,last_seen_at,is_active,version",
+      WATCH_SERVER_SOURCE_COLUMNS,
       "last_seen_at",
       WATCH_SERVER_SOURCES_LIMIT
     );
@@ -851,6 +852,199 @@
     if (serverClosed) return { state: serverState, updatedAt: serverEntry?.updatedAt || "" };
     if (localClosed) return { state: localState, updatedAt: localEntry?.updatedAt || "" };
     return { state: serverState, updatedAt: serverEntry?.updatedAt || "" };
+  }
+
+  function findServerWatchSource(item) {
+    const localKeys = new Set(getWatchSourcePersistenceKeys(item));
+    if (!localKeys.size) return null;
+    return watchPersistenceSnapshot.sources.find((source) =>
+      getWatchSourcePersistenceKeys(source).some((key) => localKeys.has(key))
+    ) || null;
+  }
+
+  function adoptServerWatchSource(row) {
+    if (!row || !isUuid(row.id)) return null;
+    const sources = [...watchPersistenceSnapshot.sources];
+    const rowKeys = new Set(getWatchSourcePersistenceKeys(row));
+    const index = sources.findIndex((source) =>
+      source?.id === row.id || getWatchSourcePersistenceKeys(source).some((key) => rowKeys.has(key))
+    );
+    if (index >= 0) sources[index] = { ...sources[index], ...row };
+    else sources.unshift(row);
+    watchPersistenceSnapshot = { ...watchPersistenceSnapshot, sources };
+    return row;
+  }
+
+  function buildWatchSourceMetricsDelta(metrics, observedAt = new Date().toISOString()) {
+    const hasDetailedMetrics = Boolean(metrics);
+    return {
+      analysesCount: 1,
+      observedCount: hasDetailedMetrics ? Number(metrics.observedCount) : null,
+      completeCount: hasDetailedMetrics ? Number(metrics.completeCount) : null,
+      reviewCount: hasDetailedMetrics ? Number(metrics.reviewCount) : null,
+      rejectedCount: hasDetailedMetrics ? Number(metrics.rejectedCount) : null,
+      certainDuplicateCount: hasDetailedMetrics ? Number(metrics.certainDuplicateCount) : null,
+      probableDuplicateCount: hasDetailedMetrics ? Number(metrics.probableDuplicateCount) : null,
+      withImageCount: hasDetailedMetrics ? Number(metrics.withImageCount) : null,
+      withoutImageCount: hasDetailedMetrics ? Number(metrics.withoutImageCount) : null,
+      hasDetailedMetrics,
+      metricsSince: hasDetailedMetrics ? observedAt : "",
+      firstSeenAt: observedAt,
+      lastSeenAt: observedAt
+    };
+  }
+
+  function getWatchSourceTimestamp(value) {
+    if (!value) return null;
+    const time = new Date(value).getTime();
+    return Number.isFinite(time) ? time : null;
+  }
+
+  function applySourceMetricsDelta(serverSource, delta) {
+    const source = serverSource || {};
+    const metricsDelta = delta || {};
+    const currentAnalyses = Number(source.analyses_count);
+    const analysesDelta = Number(metricsDelta.analysesCount);
+    const payload = {
+      analyses_count: (Number.isFinite(currentAnalyses) ? currentAnalyses : 0) +
+        (Number.isFinite(analysesDelta) && analysesDelta >= 0 ? analysesDelta : 0)
+    };
+
+    const currentFirstSeen = getWatchSourceTimestamp(source.first_seen_at);
+    const nextFirstSeen = getWatchSourceTimestamp(metricsDelta.firstSeenAt);
+    if (currentFirstSeen !== null || nextFirstSeen !== null) {
+      payload.first_seen_at = currentFirstSeen !== null && (nextFirstSeen === null || currentFirstSeen <= nextFirstSeen)
+        ? source.first_seen_at
+        : metricsDelta.firstSeenAt;
+    }
+
+    const currentLastSeen = getWatchSourceTimestamp(source.last_seen_at);
+    const nextLastSeen = getWatchSourceTimestamp(metricsDelta.lastSeenAt);
+    if (currentLastSeen !== null || nextLastSeen !== null) {
+      payload.last_seen_at = nextLastSeen !== null && (currentLastSeen === null || nextLastSeen > currentLastSeen)
+        ? metricsDelta.lastSeenAt
+        : source.last_seen_at;
+    }
+
+    if (!metricsDelta.hasDetailedMetrics) return payload;
+
+    const metricFields = [
+      ["observed_count", "observedCount"],
+      ["complete_count", "completeCount"],
+      ["review_count", "reviewCount"],
+      ["rejected_count", "rejectedCount"],
+      ["duplicate_certain_count", "certainDuplicateCount"],
+      ["duplicate_probable_count", "probableDuplicateCount"],
+      ["with_image_count", "withImageCount"],
+      ["without_image_count", "withoutImageCount"]
+    ];
+    let startsNewMetricsCoverage = false;
+
+    metricFields.forEach(([serverKey, deltaKey]) => {
+      const increment = Number(metricsDelta[deltaKey]);
+      if (!Number.isFinite(increment) || increment < 0) return;
+      const currentValue = normalizeServerWatchSourceMetric(source[serverKey]);
+      if (currentValue === null) startsNewMetricsCoverage = true;
+      payload[serverKey] = (currentValue === null ? 0 : currentValue) + increment;
+    });
+
+    if (startsNewMetricsCoverage && metricsDelta.metricsSince) {
+      const currentMetricsSince = getWatchSourceTimestamp(source.metrics_since);
+      const nextMetricsSince = getWatchSourceTimestamp(metricsDelta.metricsSince);
+      payload.metrics_since = nextMetricsSince !== null &&
+        (currentMetricsSince === null || nextMetricsSince > currentMetricsSince)
+        ? metricsDelta.metricsSince
+        : source.metrics_since;
+    }
+    return payload;
+  }
+
+  async function executeServerWatchSourceUpdate(serverSource, expectedVersion, delta) {
+    const payload = applySourceMetricsDelta(serverSource, delta);
+    try {
+      const query = client
+        .from("admin_watch_sources")
+        .update(payload)
+        .eq("id", serverSource.id)
+        .eq("version", Number(expectedVersion))
+        .select(WATCH_SERVER_SOURCE_COLUMNS);
+      const response = await awaitWatchPersistenceQuery(query);
+      if (response?.error) {
+        return { status: "unavailable", row: null, error: response.error };
+      }
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      if (rows.length === 1) return { status: "success", row: rows[0], error: null };
+      if (rows.length === 0) return { status: "conflict", row: null, error: null };
+      return { status: "unavailable", row: null, error: new Error("Réponse source ambiguë") };
+    } catch (error) {
+      return { status: "unavailable", row: null, error };
+    }
+  }
+
+  async function readLatestServerWatchSource(serverSource) {
+    try {
+      const query = client
+        .from("admin_watch_sources")
+        .select(WATCH_SERVER_SOURCE_COLUMNS)
+        .eq("id", serverSource.id)
+        .limit(1);
+      const response = await awaitWatchPersistenceQuery(query);
+      if (response?.error) {
+        return { status: "unavailable", row: null, error: response.error };
+      }
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      return rows[0]
+        ? { status: "success", row: rows[0], error: null }
+        : { status: "missing", row: null, error: null };
+    } catch (error) {
+      return { status: "unavailable", row: null, error };
+    }
+  }
+
+  async function updateServerWatchSourceOptimistically(serverSource, expectedVersion, delta) {
+    if (!client || typeof client.from !== "function") {
+      return { status: "unavailable", row: null, error: new Error("Client Supabase indisponible") };
+    }
+    if (!isUuid(serverSource?.id) || !Number.isInteger(Number(expectedVersion)) || Number(expectedVersion) < 1) {
+      return { status: "missing", row: null, error: null };
+    }
+
+    const firstAttempt = await executeServerWatchSourceUpdate(serverSource, expectedVersion, delta);
+    if (firstAttempt.status !== "conflict") return firstAttempt;
+
+    const latest = await readLatestServerWatchSource(serverSource);
+    if (latest.status !== "success") return latest;
+
+    const secondAttempt = await executeServerWatchSourceUpdate(latest.row, latest.row.version, delta);
+    if (secondAttempt.status === "conflict") {
+      return { status: "conflict", row: latest.row, error: null };
+    }
+    return secondAttempt;
+  }
+
+  async function persistWatchSourceMetrics(source, delta) {
+    const serverSource = findServerWatchSource(source);
+    if (!serverSource || !isUuid(serverSource.id)) {
+      setWatchPersistenceAvailabilityAfterWrite("missing");
+      await Promise.resolve();
+      showWatchPersistenceNotice("Statistiques de source conservées localement.");
+      return { status: "missing", row: null, error: null };
+    }
+
+    const result = await updateServerWatchSourceOptimistically(serverSource, serverSource.version, delta);
+    if (result.status === "success") {
+      adoptServerWatchSource(result.row);
+      lastWatchPersistenceNotice = "";
+      setWatchPersistenceAvailabilityAfterWrite("success");
+      renderHistory();
+      updateWatchOperationsDashboard();
+      return result;
+    }
+
+    if (result.status === "conflict" && result.row) adoptServerWatchSource(result.row);
+    setWatchPersistenceAvailabilityAfterWrite(result.status);
+    showWatchPersistenceNotice("Statistiques de source conservées localement.");
+    return result;
   }
 
   function getWatchOperationsLatestActivity(productiveSources) {
@@ -2566,6 +2760,7 @@
     if (!urls.length) return 0;
 
     const stored = readLocalProductiveSources();
+    const persistenceActions = [];
     const now = new Date().toISOString();
     const country = document.getElementById("watch-country")?.value || "Tous";
     const type = document.getElementById("watch-type")?.value || "Tous";
@@ -2586,7 +2781,7 @@
         ? Number(previous.analysesCount)
         : (previous ? 1 : 0);
 
-      return {
+      const nextItem = {
         ...(previous || {}),
         sourceUrl,
         title: getUrlDisplayName(sourceUrl),
@@ -2601,6 +2796,11 @@
         firstSeenAt: previous?.firstSeenAt || previous?.lastSeenAt || now,
         lastSeenAt: now
       };
+      persistenceActions.push({
+        source: nextItem,
+        delta: buildWatchSourceMetricsDelta(metrics, now)
+      });
+      return nextItem;
     }).filter(Boolean);
 
     const merged = [...nextItems, ...stored]
@@ -2611,6 +2811,13 @@
 
     writeProductiveSources(merged);
     updateWatchOperationsDashboard();
+    persistenceActions.forEach(({ source, delta }) => {
+      persistWatchSourceMetrics(source, delta).catch((error) => {
+        setWatchPersistenceAvailabilityAfterWrite("unavailable");
+        showWatchPersistenceNotice("Statistiques de source conservées localement.");
+        console.warn("Persistance des statistiques de source impossible :", error);
+      });
+    });
     return nextItems.length;
   }
 
@@ -2674,6 +2881,7 @@
   }
 
   function getProductiveSourceMetric(item, rateKey, countKey) {
+    if (item?.metricsHistoryComplete === false) return null;
     if (item?.[rateKey] !== null && item?.[rateKey] !== undefined && Number.isFinite(Number(item[rateKey]))) {
       return Number(item[rateKey]);
     }
@@ -2924,7 +3132,12 @@
 
   function mapServerWatchSource(row) {
     const sourceUrl = normalizeUrlValue(row?.source_url || row?.canonical_url);
+    const metricsSince = row?.metrics_since || "";
+    const firstSeenAt = row?.first_seen_at || "";
+    const metricsSinceTime = getWatchSourceTimestamp(metricsSince);
+    const firstSeenTime = getWatchSourceTimestamp(firstSeenAt);
     const source = {
+      id: cleanText(row?.id),
       sourceUrl,
       canonicalUrl: normalizeWatchPersistenceUrl(row?.canonical_url || sourceUrl),
       urlHash: cleanText(row?.url_hash),
@@ -2938,7 +3151,9 @@
       withImageCount: normalizeServerWatchSourceMetric(row?.with_image_count),
       withoutImageCount: normalizeServerWatchSourceMetric(row?.without_image_count),
       analysesCount: normalizeServerWatchSourceMetric(row?.analyses_count),
-      firstSeenAt: row?.first_seen_at || "",
+      metricsSince,
+      metricsHistoryComplete: metricsSinceTime === null || firstSeenTime === null || metricsSinceTime <= firstSeenTime,
+      firstSeenAt,
       lastSeenAt: row?.last_seen_at || "",
       version: normalizeServerWatchSourceMetric(row?.version),
       isActive: row?.is_active !== false,
