@@ -13,6 +13,10 @@
   const PRODUCTIVE_SOURCES_KEY = "dedicalivres_admin_watch_productive_sources_v1";
   const WORKFLOW_KEY = "dedicalivres_admin_watch_workflow_v2";
   const EVENT_WATCH_WORKFLOW_KEY = "dedicalivres_admin_event_watch_workflow_v1";
+  const WATCH_SERVER_READ_TIMEOUT_MS = 3500;
+  const WATCH_SERVER_CANDIDATES_LIMIT = 500;
+  const WATCH_SERVER_SOURCES_LIMIT = 200;
+  const WATCH_SERVER_ALERTS_LIMIT = 300;
   const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
   const WATCH_PAGE_SIZE = 15;
   const DUPLICATE_CHECK_CONCURRENCY = 4;
@@ -30,6 +34,7 @@
   let eventWatchAvailability = "unchecked";
   let lastWatchAnalysisAt = "";
   let watchQueueFilter = "all";
+  let watchPersistenceSnapshot = createEmptyWatchPersistenceSnapshot();
   const duplicateCheckCache = new Map();
   const duplicateSignalCache = new Map();
 
@@ -72,6 +77,13 @@
     bindControls();
     renderHistory();
     updateWatchOperationsDashboard();
+    loadWatchPersistenceSnapshot().catch((error) => {
+      watchPersistenceSnapshot = createEmptyWatchPersistenceSnapshot("unavailable");
+      watchPersistenceSnapshot.errors = [classifyWatchPersistenceError(error)];
+      updateWatchPersistenceIndicator();
+      updateWatchOperationsDashboard();
+      console.warn("Lecture de persistance Veille impossible :", error);
+    });
     loadEventWatchAlerts();
   }
 
@@ -98,7 +110,10 @@
           <div class="watch-card-head">
             <div>
               <h3 id="watch-operations-title">Pilotage Veille</h3>
-              <p>Vue locale des actions en attente, des sources et de l’état Event Watch.</p>
+              <p>
+                Vue locale des actions en attente, enrichie par la persistance serveur lorsqu’elle est disponible.
+                <span id="watch-persistence-status" class="watch-pill" data-state="local">Persistance : Locale</span>
+              </p>
             </div>
             <div class="watch-operations-nav" aria-label="Navigation rapide Veille">
               <button class="cyber-btn-secondary" data-watch-dashboard-target="watch-candidates-section" type="button">Voir les candidats</button>
@@ -289,8 +304,8 @@
         <article id="watch-sources-section" class="watch-card watch-history-card">
           <div class="watch-card-head">
             <div>
-              <h3>Sources mémorisées sur cet appareil</h3>
-              <p>Les URL qui donnent plus de 10 fiches complètes sont conservées ici avec l’historique de traitement.</p>
+              <h3>Sources mémorisées</h3>
+              <p>Les sources locales restent disponibles et peuvent être enrichies par les métriques persistées du serveur.</p>
             </div>
             <button id="watch-clear-history-btn" class="cyber-btn-danger" type="button">Vider</button>
           </div>
@@ -424,11 +439,249 @@
     return "Non vérifié / en attente";
   }
 
+  function createEmptyWatchPersistenceSnapshot(availability = "local") {
+    return {
+      availability,
+      candidates: [],
+      sources: [],
+      eventAlerts: [],
+      errors: [],
+      loadedAt: ""
+    };
+  }
+
+  function getWatchPersistenceLabel(availability) {
+    return {
+      server: "Serveur",
+      mixed: "Mixte",
+      unavailable: "Serveur indisponible",
+      local: "Locale"
+    }[availability] || "Locale";
+  }
+
+  function updateWatchPersistenceIndicator() {
+    const indicator = document.getElementById("watch-persistence-status");
+    if (!indicator) return;
+    indicator.textContent = `Persistance : ${getWatchPersistenceLabel(watchPersistenceSnapshot.availability)}`;
+    indicator.dataset.state = watchPersistenceSnapshot.availability;
+  }
+
+  function classifyWatchPersistenceError(error) {
+    const code = String(error?.code || "").toUpperCase();
+    const message = String(error?.message || error || "").toLowerCase();
+    if (["42P01", "PGRST205"].includes(code) || /relation .* does not exist|schema cache|table .* not found/.test(message)) {
+      return "table-missing";
+    }
+    if (["42501", "PGRST301"].includes(code) || /row-level security|permission denied|not authorized/.test(message)) {
+      return "forbidden";
+    }
+    if (error?.name === "AbortError" || code === "WATCH_TIMEOUT" || /timeout|timed out|aborted/.test(message)) {
+      return "timeout";
+    }
+    return "unavailable";
+  }
+
+  async function awaitWatchPersistenceQuery(query) {
+    const controller = new AbortController();
+    let timer = null;
+    const request = typeof query?.abortSignal === "function"
+      ? query.abortSignal(controller.signal)
+      : query;
+    const timeout = new Promise((resolve, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        const error = new Error("Lecture de persistance Veille expirée");
+        error.code = "WATCH_TIMEOUT";
+        reject(error);
+      }, WATCH_SERVER_READ_TIMEOUT_MS);
+    });
+
+    try {
+      return await Promise.race([Promise.resolve(request), timeout]);
+    } finally {
+      if (timer !== null) clearTimeout(timer);
+    }
+  }
+
+  async function readServerWatchRows(table, columns, orderColumn, limit) {
+    if (!client || typeof client.from !== "function") {
+      return { state: "not-configured", rows: [], error: null };
+    }
+
+    try {
+      let query = client.from(table).select(columns);
+      if (orderColumn) query = query.order(orderColumn, { ascending: false });
+      if (Number.isFinite(limit) && limit > 0) query = query.limit(limit);
+      const response = await awaitWatchPersistenceQuery(query);
+      if (response?.error) {
+        return {
+          state: classifyWatchPersistenceError(response.error),
+          rows: [],
+          error: response.error
+        };
+      }
+      return {
+        state: "available",
+        rows: Array.isArray(response?.data) ? response.data : [],
+        error: null
+      };
+    } catch (error) {
+      return {
+        state: classifyWatchPersistenceError(error),
+        rows: [],
+        error
+      };
+    }
+  }
+
+  function readServerWatchCandidates() {
+    return readServerWatchRows(
+      "admin_watch_candidates",
+      "identity_key,origin_url,canonical_origin_url,title,start_date,city,source_id,workflow_status,duplicate_event_id,submitted_event_id,status_updated_at,version,last_seen_at",
+      "last_seen_at",
+      WATCH_SERVER_CANDIDATES_LIMIT
+    );
+  }
+
+  function readServerWatchSources() {
+    return readServerWatchRows(
+      "admin_watch_sources",
+      "canonical_url,url_hash,source_url,title,observed_count,complete_count,review_count,rejected_count,duplicate_certain_count,duplicate_probable_count,with_image_count,without_image_count,analyses_count,first_seen_at,last_seen_at,is_active,version",
+      "last_seen_at",
+      WATCH_SERVER_SOURCES_LIMIT
+    );
+  }
+
+  function readServerEventWatchAlerts() {
+    return readServerWatchRows(
+      "admin_event_watch_alerts",
+      "identity_key,engine_alert_id,event_id,field,event_title,event_date,event_city,source_url,detected_at,workflow_status,status_updated_at,version",
+      "detected_at",
+      WATCH_SERVER_ALERTS_LIMIT
+    );
+  }
+
+  async function loadWatchPersistenceSnapshot() {
+    const reads = await Promise.all([
+      readServerWatchCandidates(),
+      readServerWatchSources(),
+      readServerEventWatchAlerts()
+    ]);
+    const availableCount = reads.filter((result) => result.state === "available").length;
+    const allNotConfigured = reads.every((result) => result.state === "not-configured");
+    const availability = availableCount === reads.length
+      ? "server"
+      : availableCount > 0
+        ? "mixed"
+        : allNotConfigured
+          ? "local"
+          : "unavailable";
+
+    watchPersistenceSnapshot = {
+      availability,
+      candidates: reads[0].rows,
+      sources: reads[1].rows,
+      eventAlerts: reads[2].rows,
+      errors: reads
+        .filter((result) => !["available", "not-configured"].includes(result.state))
+        .map((result) => result.state),
+      loadedAt: new Date().toISOString()
+    };
+
+    updateWatchPersistenceIndicator();
+    renderHistory();
+    if (lastResults.length) renderResults(lastResults);
+    if (eventWatchAlerts.length) renderEventWatchAlerts();
+    updateWatchOperationsDashboard();
+    return watchPersistenceSnapshot;
+  }
+
+  function normalizeWatchPersistenceUrl(value) {
+    const raw = normalizeUrlValue(value);
+    if (!raw) return "";
+    try {
+      const parsed = new URL(raw);
+      parsed.hash = "";
+      parsed.hostname = parsed.hostname.toLowerCase();
+      if ((parsed.protocol === "https:" && parsed.port === "443") || (parsed.protocol === "http:" && parsed.port === "80")) {
+        parsed.port = "";
+      }
+      return parsed.toString().replace(/\/$/, "");
+    } catch {
+      return "";
+    }
+  }
+
+  function getWatchCandidatePersistenceKeys(item) {
+    const keys = [];
+    const identityKey = cleanText(item?.identity_key || item?.identityKey);
+    if (identityKey) keys.push(`identity:${identityKey}`);
+
+    const canonicalUrl = normalizeWatchPersistenceUrl(
+      item?.canonical_origin_url || item?.canonicalOriginUrl || item?.origin_url || item?.sourceUrl || item?.officialUrl
+    );
+    const title = normalizeForCompare(item?.title || "");
+    const startDate = normalizeIsoDate(item?.start_date || item?.startDate || "");
+    const city = normalizeForCompare(item?.city || "");
+    if (canonicalUrl && title && startDate && city) {
+      keys.push(`fallback:${canonicalUrl}|${title}|${startDate}|${city}`);
+    }
+    return keys;
+  }
+
+  function findServerWatchCandidate(item) {
+    const localKeys = new Set(getWatchCandidatePersistenceKeys(item));
+    if (!localKeys.size) return null;
+    return watchPersistenceSnapshot.candidates.find((candidate) =>
+      getWatchCandidatePersistenceKeys(candidate).some((key) => localKeys.has(key))
+    ) || null;
+  }
+
+  function getEventWatchPersistenceKeys(alert) {
+    const keys = [];
+    const identityKey = cleanText(alert?.identity_key || alert?.identityKey);
+    const engineAlertId = cleanText(alert?.engine_alert_id || alert?.engineAlertId || alert?.id);
+    if (identityKey) keys.push(`identity:${identityKey}`);
+    if (engineAlertId) keys.push(`engine:${engineAlertId}`);
+    return keys;
+  }
+
+  function findServerEventWatchAlert(alert) {
+    const localKeys = new Set(getEventWatchPersistenceKeys(alert));
+    if (!localKeys.size) return null;
+    return watchPersistenceSnapshot.eventAlerts.find((serverAlert) =>
+      getEventWatchPersistenceKeys(serverAlert).some((key) => localKeys.has(key))
+    ) || null;
+  }
+
+  function resolveWatchPersistenceWorkflow(localEntry, serverEntry, allowedStates, closedStates) {
+    const localState = allowedStates.includes(localEntry?.state) ? localEntry.state : "";
+    const serverState = allowedStates.includes(serverEntry?.state) ? serverEntry.state : "";
+    if (!serverState) return { state: localState || allowedStates[0], updatedAt: localEntry?.updatedAt || "" };
+    if (!localState) return { state: serverState, updatedAt: serverEntry?.updatedAt || "" };
+
+    const localClosed = closedStates.includes(localState);
+    const serverClosed = closedStates.includes(serverState);
+    if (localClosed && serverClosed) {
+      const localTime = new Date(localEntry?.updatedAt || 0).getTime();
+      const serverTime = new Date(serverEntry?.updatedAt || 0).getTime();
+      if (Number.isFinite(localTime) && Number.isFinite(serverTime) && localTime > serverTime) {
+        return { state: localState, updatedAt: localEntry?.updatedAt || "" };
+      }
+      return { state: serverState, updatedAt: serverEntry?.updatedAt || "" };
+    }
+    if (serverClosed) return { state: serverState, updatedAt: serverEntry?.updatedAt || "" };
+    if (localClosed) return { state: localState, updatedAt: localEntry?.updatedAt || "" };
+    return { state: serverState, updatedAt: serverEntry?.updatedAt || "" };
+  }
+
   function getWatchOperationsLatestActivity(productiveSources) {
     const timestamps = [
       lastWatchAnalysisAt,
       ...(Array.isArray(productiveSources) ? productiveSources : []).map((item) => item?.lastSeenAt),
-      ...(Array.isArray(eventWatchAlerts) ? eventWatchAlerts : []).map((alert) => alert?.detected_at)
+      ...(Array.isArray(eventWatchAlerts) ? eventWatchAlerts : []).map((alert) => alert?.detected_at),
+      ...watchPersistenceSnapshot.candidates.map((item) => item?.status_updated_at),
+      ...watchPersistenceSnapshot.eventAlerts.map((alert) => alert?.status_updated_at || alert?.detected_at)
     ]
       .filter(Boolean)
       .map((value) => new Date(value))
@@ -723,11 +976,21 @@
   }
 
   function getEventWatchWorkflowEntry(alert) {
-    const entry = readEventWatchWorkflow()[getEventWatchAlertKey(alert)];
-    const state = ["review", "confirmed", "ignored", "handled"].includes(entry?.state)
-      ? entry.state
+    const allowedStates = ["review", "confirmed", "ignored", "handled"];
+    const localEntry = readEventWatchWorkflow()[getEventWatchAlertKey(alert)];
+    const localState = allowedStates.includes(localEntry?.state)
+      ? localEntry.state
       : "review";
-    return { state, updatedAt: entry?.updatedAt || "" };
+    const serverAlert = findServerEventWatchAlert(alert);
+    return resolveWatchPersistenceWorkflow(
+      { state: localState, updatedAt: localEntry?.updatedAt || "" },
+      {
+        state: serverAlert?.workflow_status || "",
+        updatedAt: serverAlert?.status_updated_at || ""
+      },
+      allowedStates,
+      ["confirmed", "ignored", "handled"]
+    );
   }
 
   function getEventWatchWorkflowState(alert) {
@@ -1463,12 +1726,14 @@
     return String(entry?.state || "");
   }
 
-  function getWatchWorkflowState(result) {
-    const stored = getStoredWatchWorkflowState(result);
+  function getLocalWatchWorkflowState(result) {
+    const storedEntry = readWatchWorkflow()[getWatchCandidateKey(result)];
+    const stored = String(storedEntry?.state || "");
 
     if (["handled", "duplicate", "submitted"].includes(stored)) {
       return stored;
     }
+    if (stored === "rejected") return stored;
 
     const history = readHistory();
     const alreadyHandled = history.some((item) =>
@@ -1480,6 +1745,35 @@
     if (status === "non evenement") return "rejected";
     if (isCompleteWatchResult(result)) return "ready";
     return "review";
+  }
+
+  function getLocalWatchWorkflowEntry(result) {
+    const state = getLocalWatchWorkflowState(result);
+    const storedEntry = readWatchWorkflow()[getWatchCandidateKey(result)];
+    if (String(storedEntry?.state || "") === state) {
+      return { state, updatedAt: storedEntry?.updatedAt || "" };
+    }
+    if (state === "handled") {
+      const historyEntry = readHistory().find((item) =>
+        String(item?.sourceUrl || "") === String(result?.sourceUrl || "")
+      );
+      return { state, updatedAt: historyEntry?.handledAt || "" };
+    }
+    return { state, updatedAt: "" };
+  }
+
+  function getWatchWorkflowState(result) {
+    const localEntry = getLocalWatchWorkflowEntry(result);
+    const serverCandidate = findServerWatchCandidate(result);
+    return resolveWatchPersistenceWorkflow(
+      localEntry,
+      {
+        state: serverCandidate?.workflow_status || "",
+        updatedAt: serverCandidate?.status_updated_at || ""
+      },
+      ["ready", "review", "duplicate", "submitted", "handled", "rejected"],
+      ["duplicate", "submitted", "handled", "rejected"]
+    ).state;
   }
 
   function getWatchWorkflowLabel(state) {
@@ -2056,7 +2350,7 @@
     const urls = normalizeWatchUrlInput(rawUrls);
     if (!urls.length) return 0;
 
-    const stored = readProductiveSources();
+    const stored = readLocalProductiveSources();
     const now = new Date().toISOString();
     const country = document.getElementById("watch-country")?.value || "Tous";
     const type = document.getElementById("watch-type")?.value || "Tous";
@@ -2172,7 +2466,9 @@
     const total = item?.observedCount !== null && item?.observedCount !== undefined && Number.isFinite(Number(item.observedCount))
       ? Number(item.observedCount)
       : Number(item?.totalCount);
-    const count = Number(item?.[countKey]);
+    const rawCount = item?.[countKey];
+    if (rawCount === null || rawCount === undefined || rawCount === "") return null;
+    const count = Number(rawCount);
     return calculateProductiveSourceRate(count, total);
   }
 
@@ -2342,7 +2638,7 @@
     const productiveSources = sortProductiveSources(readProductiveSources());
 
     if (!history.length && !productiveSources.length) {
-      container.innerHTML = `<p class="priority-empty">Aucune source marquée comme traitée ou productive sur cet appareil.</p>`;
+      container.innerHTML = `<p class="priority-empty">Aucune source marquée comme traitée ou productive.</p>`;
       return;
     }
 
@@ -2393,12 +2689,82 @@
   }
 
   function readProductiveSources() {
+    return mergeServerWatchSources(readLocalProductiveSources(), watchPersistenceSnapshot.sources);
+  }
+
+  function readLocalProductiveSources() {
     try {
       const parsed = JSON.parse(localStorage.getItem(PRODUCTIVE_SOURCES_KEY) || "[]");
       return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
+  }
+
+  function normalizeServerWatchSourceMetric(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function mapServerWatchSource(row) {
+    const sourceUrl = normalizeUrlValue(row?.source_url || row?.canonical_url);
+    const source = {
+      sourceUrl,
+      canonicalUrl: normalizeWatchPersistenceUrl(row?.canonical_url || sourceUrl),
+      urlHash: cleanText(row?.url_hash),
+      title: cleanText(row?.title) || getUrlDisplayName(sourceUrl),
+      observedCount: normalizeServerWatchSourceMetric(row?.observed_count),
+      completeCount: normalizeServerWatchSourceMetric(row?.complete_count),
+      reviewCount: normalizeServerWatchSourceMetric(row?.review_count),
+      rejectedCount: normalizeServerWatchSourceMetric(row?.rejected_count),
+      certainDuplicateCount: normalizeServerWatchSourceMetric(row?.duplicate_certain_count),
+      probableDuplicateCount: normalizeServerWatchSourceMetric(row?.duplicate_probable_count),
+      withImageCount: normalizeServerWatchSourceMetric(row?.with_image_count),
+      withoutImageCount: normalizeServerWatchSourceMetric(row?.without_image_count),
+      analysesCount: normalizeServerWatchSourceMetric(row?.analyses_count),
+      firstSeenAt: row?.first_seen_at || "",
+      lastSeenAt: row?.last_seen_at || "",
+      version: normalizeServerWatchSourceMetric(row?.version),
+      isActive: row?.is_active !== false,
+      serverPersisted: true
+    };
+    source.completenessRate = calculateProductiveSourceRate(source.completeCount, source.observedCount);
+    source.imageRate = calculateProductiveSourceRate(source.withImageCount, source.observedCount);
+    source.duplicateRate = source.certainDuplicateCount === null || source.probableDuplicateCount === null
+      ? null
+      : calculateProductiveSourceRate(
+        source.certainDuplicateCount + source.probableDuplicateCount,
+        source.observedCount
+      );
+    return source;
+  }
+
+  function getWatchSourcePersistenceKeys(item) {
+    const keys = [];
+    const urlHash = cleanText(item?.urlHash || item?.url_hash);
+    const canonicalUrl = normalizeWatchPersistenceUrl(
+      item?.canonicalUrl || item?.canonical_url || item?.sourceUrl || item?.source_url
+    );
+    if (urlHash) keys.push(`hash:${urlHash}`);
+    if (canonicalUrl) keys.push(`url:${canonicalUrl}`);
+    return keys;
+  }
+
+  function mergeServerWatchSources(localSources, serverRows) {
+    const remainingLocal = [...(Array.isArray(localSources) ? localSources : [])];
+    const mergedServer = (Array.isArray(serverRows) ? serverRows : [])
+      .filter((row) => row?.is_active !== false)
+      .map(mapServerWatchSource)
+      .map((serverSource) => {
+        const serverKeys = new Set(getWatchSourcePersistenceKeys(serverSource));
+        const localIndex = remainingLocal.findIndex((localSource) =>
+          getWatchSourcePersistenceKeys(localSource).some((key) => serverKeys.has(key))
+        );
+        const localSource = localIndex >= 0 ? remainingLocal.splice(localIndex, 1)[0] : null;
+        return { ...(localSource || {}), ...serverSource };
+      });
+    return [...mergedServer, ...remainingLocal];
   }
 
   function writeProductiveSources(sources) {
