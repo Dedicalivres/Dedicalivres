@@ -339,18 +339,19 @@ assert.equal(duplicateDetector.analyzePresencePair(presenceFixtures[0], presence
 const adminWatchSource = fs.readFileSync(path.join(root, "admin-watch.js"), "utf8");
 assert.match(adminWatchSource, /Événements à vérifier/);
 assert.match(adminWatchSource, /Annulations[\s\S]*Reports[\s\S]*Dates \/ lieux[\s\S]*Inscriptions[\s\S]*Programmation[\s\S]*Nouvelles affiches/);
-assert.match(adminWatchSource, /id="event-watch-review-state"/);
+assert.match(adminWatchSource, /id="event-watch-review-count"/);
+assert.match(adminWatchSource, /data-event-watch-filter="review"/);
 assert.match(adminWatchSource, /http:\/\/127\.0\.0\.1:5065\/api\/event-watch/);
-assert.match(adminWatchSource, /\/api\/event-watch\/review/);
-assert.match(adminWatchSource, /confirm: "EVENT_WATCH_REVIEW"/);
+assert.doesNotMatch(adminWatchSource, /\/api\/event-watch\/review/);
+assert.match(adminWatchSource, /dedicalivres_admin_event_watch_workflow_v1/);
 assert.match(adminWatchSource, /targetAddressSpace: "loopback"/);
 assert.match(adminWatchSource, /Event Watch indisponible/);
-assert.match(adminWatchSource, />Voir la fiche</);
+assert.match(adminWatchSource, />Ouvrir l’événement</);
 const eventWatchReviewSource = adminWatchSource.slice(
-  adminWatchSource.indexOf("async function reviewEventWatchAlert"),
-  adminWatchSource.indexOf("async function fetchEventWatch")
+  adminWatchSource.indexOf("function setEventWatchWorkflowState"),
+  adminWatchSource.indexOf("function resetEventWatchWorkflow")
 );
-assert.doesNotMatch(eventWatchReviewSource, /supabase|\.from\(/i);
+assert.doesNotMatch(eventWatchReviewSource, /supabase|\.from\(|fetchEventWatch|callWatchWorker/i);
 
 const headersSource = fs.readFileSync(path.join(root, "_headers"), "utf8");
 assert.match(headersSource, /connect-src[^\n]*http:\/\/127\.0\.0\.1:5065/);

@@ -12,6 +12,7 @@
   const HISTORY_KEY = "dedicalivres_admin_watch_history_v1";
   const PRODUCTIVE_SOURCES_KEY = "dedicalivres_admin_watch_productive_sources_v1";
   const WORKFLOW_KEY = "dedicalivres_admin_watch_workflow_v2";
+  const EVENT_WATCH_WORKFLOW_KEY = "dedicalivres_admin_event_watch_workflow_v1";
   const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
   const WATCH_PAGE_SIZE = 15;
   const DUPLICATE_CHECK_CONCURRENCY = 4;
@@ -25,6 +26,7 @@
   let watchOffset = 0;
   let eventWatchAlerts = [];
   let eventWatchCategory = "all";
+  let eventWatchQueueFilter = "review";
   let watchQueueFilter = "all";
   const duplicateCheckCache = new Map();
   const duplicateSignalCache = new Map();
@@ -112,15 +114,18 @@
               <button class="event-watch-category" data-event-watch-category="poster" type="button" aria-pressed="false">Nouvelles affiches</button>
             </div>
 
-            <label class="event-watch-state-field">
-              <span>État de revue</span>
-              <select id="event-watch-review-state">
-                <option value="pending">À vérifier</option>
-                <option value="verified">Vérifiées</option>
-                <option value="ignored">Ignorées</option>
-                <option value="all">Toutes</option>
-              </select>
-            </label>
+            <button id="event-watch-reset-workflow" class="cyber-btn-secondary" type="button">Réinitialiser les états</button>
+          </div>
+
+          <div class="event-watch-review-toolbar">
+            <p id="event-watch-review-count" aria-live="polite">0 changement à vérifier</p>
+            <div class="event-watch-review-filters" role="group" aria-label="Filtrer la file Event Watch">
+              <button class="event-watch-review-filter is-active" data-event-watch-filter="review" type="button" aria-pressed="true">À vérifier <span data-event-watch-filter-count="review">0</span></button>
+              <button class="event-watch-review-filter" data-event-watch-filter="confirmed" type="button" aria-pressed="false">Confirmées <span data-event-watch-filter-count="confirmed">0</span></button>
+              <button class="event-watch-review-filter" data-event-watch-filter="handled" type="button" aria-pressed="false">Traitées <span data-event-watch-filter-count="handled">0</span></button>
+              <button class="event-watch-review-filter" data-event-watch-filter="ignored" type="button" aria-pressed="false">Écartées <span data-event-watch-filter-count="ignored">0</span></button>
+              <button class="event-watch-review-filter" data-event-watch-filter="all" type="button" aria-pressed="false">Toutes <span data-event-watch-filter-count="all">0</span></button>
+            </div>
           </div>
 
           <p id="event-watch-status" class="watch-status" aria-live="polite">Connexion à Auto-Matte local…</p>
@@ -249,7 +254,13 @@
 
   function bindControls() {
     document.getElementById("event-watch-refresh")?.addEventListener("click", loadEventWatchAlerts);
-    document.getElementById("event-watch-review-state")?.addEventListener("change", loadEventWatchAlerts);
+    document.getElementById("event-watch-reset-workflow")?.addEventListener("click", resetEventWatchWorkflow);
+    document.querySelectorAll("[data-event-watch-filter]").forEach((button) => {
+      button.addEventListener("click", () => {
+        eventWatchQueueFilter = button.dataset.eventWatchFilter || "review";
+        renderEventWatchAlerts();
+      });
+    });
     document.querySelectorAll("[data-event-watch-category]").forEach((button) => {
       button.addEventListener("click", () => {
         eventWatchCategory = button.dataset.eventWatchCategory || "all";
@@ -411,7 +422,6 @@
 
   async function loadEventWatchAlerts() {
     const container = document.getElementById("event-watch-alerts");
-    const reviewState = document.getElementById("event-watch-review-state")?.value || "pending";
     if (!container) return;
 
     setEventWatchStatus("Connexion à Auto-Matte local…");
@@ -419,7 +429,7 @@
     try {
       const endpoint = getEventWatchAdminEndpoint();
       const url = new URL(endpoint);
-      url.searchParams.set("review_state", reviewState);
+      url.searchParams.set("review_state", "all");
       const response = await fetchEventWatch(url.toString());
       const payload = await response.json();
       if (!response.ok || payload?.ok === false) {
@@ -428,15 +438,17 @@
 
       eventWatchAlerts = Array.isArray(payload.changes) ? payload.changes : [];
       renderEventWatchAlerts();
-      const counts = payload.review_counts || {};
+      const counts = getEventWatchWorkflowCounts(eventWatchAlerts);
       setEventWatchStatus(
         `${eventWatchAlerts.length} alerte(s) chargée(s) · ` +
-        `${Number(counts.pending || 0)} à vérifier · ` +
-        `${Number(counts.verified || 0)} vérifiée(s) · ` +
-        `${Number(counts.ignored || 0)} ignorée(s).`
+        `${counts.review} à vérifier · ` +
+        `${counts.confirmed} confirmée(s) · ` +
+        `${counts.handled} traitée(s) · ` +
+        `${counts.ignored} écartée(s).`
       );
     } catch (error) {
       eventWatchAlerts = [];
+      updateEventWatchQueueControls([]);
       container.innerHTML = `
         <div class="event-watch-unavailable" role="status">
           <strong>Event Watch indisponible</strong>
@@ -451,34 +463,54 @@
     const container = document.getElementById("event-watch-alerts");
     if (!container) return;
 
-    const alerts = eventWatchAlerts.filter(matchesEventWatchCategory);
+    updateEventWatchQueueControls(eventWatchAlerts);
+    const alerts = [...eventWatchAlerts]
+      .sort(compareEventWatchAlerts)
+      .filter(matchesEventWatchCategory)
+      .filter((alert) => eventWatchQueueFilter === "all" || getEventWatchWorkflowState(alert) === eventWatchQueueFilter);
+
     if (!alerts.length) {
-      container.innerHTML = `<p class="priority-empty">Aucune alerte dans cette catégorie.</p>`;
+      container.innerHTML = `<p class="priority-empty">Aucune alerte dans cette vue.</p>`;
       return;
     }
 
     container.innerHTML = alerts.map((alert) => {
+      const alertKey = getEventWatchAlertKey(alert);
+      const workflowEntry = getEventWatchWorkflowEntry(alert);
+      const workflowState = workflowEntry.state;
+      const priority = getEventWatchAlertPriority(alert);
       const remoteId = cleanText(alert.dedicalivres_event_id);
       const eventHref = isUuid(remoteId) ? `event.html?id=${encodeURIComponent(remoteId)}` : "";
-      const reviewState = alert.review_state || "pending";
-      const pendingActions = reviewState === "pending" ? `
-        <button class="cyber-btn-primary" data-event-watch-review="verified" data-event-watch-id="${escapeAttr(alert.id || "")}" type="button">Marquer comme vérifié</button>
-        <button class="cyber-btn-secondary" data-event-watch-review="ignored" data-event-watch-id="${escapeAttr(alert.id || "")}" type="button">Ignorer</button>
-      ` : `<span class="event-watch-reviewed">${reviewState === "verified" ? "Vérifiée" : "Ignorée"}${alert.reviewed_at ? ` · ${escapeHtml(formatDetectedAt(alert.reviewed_at))}` : ""}</span>`;
+      const sourceUrl = getEventWatchSourceUrl(alert);
+      const proof = formatEventWatchValue(alert.proof);
+      const detectedAt = alert.detected_at ? formatDetectedAt(alert.detected_at) : "—";
+      const localActions = workflowState === "review" ? `
+        <button class="cyber-btn-primary" data-event-watch-local-state="confirmed" data-event-watch-key="${escapeAttr(alertKey)}" type="button">Confirmer le changement</button>
+        <button class="cyber-btn-secondary" data-event-watch-local-state="ignored" data-event-watch-key="${escapeAttr(alertKey)}" type="button">Écarter</button>
+        <button class="cyber-btn-secondary" data-event-watch-local-state="handled" data-event-watch-key="${escapeAttr(alertKey)}" type="button">Marquer traité</button>
+      ` : `
+        <span class="event-watch-reviewed">
+          ${getEventWatchWorkflowLabel(workflowState)}${workflowEntry.updatedAt ? ` · ${escapeHtml(formatDetectedAt(workflowEntry.updatedAt))}` : ""}
+        </span>
+      `;
 
       return `
-        <article class="event-watch-alert event-watch-alert-${escapeAttr(reviewState)}">
+        <article class="event-watch-alert event-watch-alert-${escapeAttr(workflowState)} event-watch-priority-${priority.state}">
           <div class="event-watch-alert-head">
             <div>
-              <span class="watch-pill">${escapeHtml(alert.field_label || "Changement")}</span>
-              <h4>${escapeHtml(alert.event_title || "Événement")}</h4>
+              <div class="event-watch-alert-badges">
+                <span class="watch-pill">${escapeHtml(alert.field_label || alert.field || "—")}</span>
+                <span class="event-watch-priority is-${priority.state}">${priority.label}</span>
+                <span class="event-watch-workflow-state">${getEventWatchWorkflowLabel(workflowState)}</span>
+              </div>
+              <h4>${escapeHtml(alert.event_title || "—")}</h4>
               <p class="watch-meta">${escapeHtml([
                 alert.event_date ? formatDate(alert.event_date) : "",
                 alert.event_city,
-                `Détecté le ${formatDetectedAt(alert.detected_at)}`
-              ].filter(Boolean).join(" · "))}</p>
+                `Détecté le ${detectedAt}`
+              ].filter(Boolean).join(" · ") || "—")}</p>
             </div>
-            <strong class="event-watch-confidence">${Math.round(Number(alert.confidence || 0) * 100)}%</strong>
+            <strong class="event-watch-confidence">${formatEventWatchConfidence(alert.confidence)}</strong>
           </div>
 
           <div class="event-watch-values">
@@ -486,28 +518,158 @@
             <div><small>NOUVELLE VALEUR</small><span>${escapeHtml(formatEventWatchValue(alert.new_value))}</span></div>
           </div>
 
+          <p class="event-watch-proof"><strong>Preuve :</strong> ${escapeHtml(proof)}</p>
           <p class="event-watch-source">
-            Source : <a href="${escapeAttr(alert.source || alert.proof?.url || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(alert.source || alert.proof?.url || "Non renseignée")}</a>
+            Source : ${sourceUrl
+              ? `<a href="${escapeAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceUrl)}</a>`
+              : "—"}
             ${alert.status_label ? ` · ${escapeHtml(alert.status_label)}` : ""}
           </p>
 
           <div class="watch-result-actions">
             ${eventHref
-              ? `<a class="cyber-btn-secondary" href="${escapeAttr(eventHref)}" target="_blank" rel="noopener noreferrer">Voir la fiche</a>`
-              : `<span class="event-watch-unmatched">Fiche Dédicalivres non associée</span>`}
-            ${pendingActions}
+              ? `<a class="cyber-btn-secondary" href="${escapeAttr(eventHref)}" target="_blank" rel="noopener noreferrer">Ouvrir l’événement</a>`
+              : ""}
+            ${sourceUrl
+              ? `<a class="cyber-btn-secondary" href="${escapeAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer">Voir la source</a>`
+              : ""}
+            ${localActions}
           </div>
         </article>
       `;
     }).join("");
 
-    container.querySelectorAll("[data-event-watch-review]").forEach((button) => {
-      button.addEventListener("click", () => reviewEventWatchAlert(
-        button.dataset.eventWatchId,
-        button.dataset.eventWatchReview,
-        button
-      ));
+    container.querySelectorAll("[data-event-watch-local-state]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const alert = eventWatchAlerts.find((item) => getEventWatchAlertKey(item) === button.dataset.eventWatchKey);
+        if (!alert) return;
+        setEventWatchWorkflowState(alert, button.dataset.eventWatchLocalState);
+      });
     });
+  }
+
+  function getEventWatchAlertKey(alert) {
+    const id = cleanText(alert?.id);
+    if (id) return `id:${id}`;
+
+    const parts = [
+      alert?.dedicalivres_event_id,
+      alert?.event_title,
+      alert?.field,
+      alert?.source || alert?.proof?.url,
+      alert?.detected_at || alert?.event_date
+    ].map((value) => normalizeForCompare(formatEventWatchValue(value)));
+    return `fallback:${parts.join("|")}`;
+  }
+
+  function readEventWatchWorkflow() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(EVENT_WATCH_WORKFLOW_KEY) || "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeEventWatchWorkflow(workflow) {
+    localStorage.setItem(EVENT_WATCH_WORKFLOW_KEY, JSON.stringify(workflow || {}));
+  }
+
+  function getEventWatchWorkflowEntry(alert) {
+    const entry = readEventWatchWorkflow()[getEventWatchAlertKey(alert)];
+    const state = ["review", "confirmed", "ignored", "handled"].includes(entry?.state)
+      ? entry.state
+      : "review";
+    return { state, updatedAt: entry?.updatedAt || "" };
+  }
+
+  function getEventWatchWorkflowState(alert) {
+    return getEventWatchWorkflowEntry(alert).state;
+  }
+
+  function getEventWatchWorkflowLabel(state) {
+    return {
+      review: "À vérifier",
+      confirmed: "Confirmé",
+      ignored: "Écarté",
+      handled: "Traité"
+    }[state] || "À vérifier";
+  }
+
+  function setEventWatchWorkflowState(alert, state) {
+    if (!alert || !["confirmed", "ignored", "handled"].includes(state)) return;
+    const workflow = readEventWatchWorkflow();
+    workflow[getEventWatchAlertKey(alert)] = {
+      state,
+      updatedAt: new Date().toISOString()
+    };
+    writeEventWatchWorkflow(workflow);
+    renderEventWatchAlerts();
+    setEventWatchStatus(`État local : ${getEventWatchWorkflowLabel(state)}. Aucun événement n’a été modifié.`);
+  }
+
+  function resetEventWatchWorkflow() {
+    localStorage.removeItem(EVENT_WATCH_WORKFLOW_KEY);
+    eventWatchQueueFilter = "review";
+    renderEventWatchAlerts();
+    setEventWatchStatus("États locaux Event Watch réinitialisés. Les alertes du moteur sont inchangées.");
+  }
+
+  function getEventWatchWorkflowCounts(alerts) {
+    const counts = { all: 0, review: 0, confirmed: 0, handled: 0, ignored: 0 };
+    (Array.isArray(alerts) ? alerts : []).forEach((alert) => {
+      const state = getEventWatchWorkflowState(alert);
+      counts.all += 1;
+      counts[state] += 1;
+    });
+    return counts;
+  }
+
+  function updateEventWatchQueueControls(alerts) {
+    const counts = getEventWatchWorkflowCounts(alerts);
+    const reviewCount = document.getElementById("event-watch-review-count");
+    if (reviewCount) {
+      reviewCount.textContent = `${counts.review} changement${counts.review > 1 ? "s" : ""} à vérifier`;
+    }
+
+    document.querySelectorAll("[data-event-watch-filter-count]").forEach((node) => {
+      const key = node.dataset.eventWatchFilterCount || "";
+      node.textContent = String(counts[key] || 0);
+    });
+
+    document.querySelectorAll("[data-event-watch-filter]").forEach((button) => {
+      const active = button.dataset.eventWatchFilter === eventWatchQueueFilter;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  function getEventWatchAlertPriority(alert) {
+    const field = String(alert?.field || "").toLowerCase();
+    if (["cancelled", "postponed", "date", "time", "location", "address"].includes(field)) {
+      return { state: "critical", label: "Critique", rank: 0 };
+    }
+    if (["registration", "applications", "program", "speakers", "participants"].includes(field)) {
+      return { state: "important", label: "Important", rank: 1 };
+    }
+    return { state: "normal", label: "Normal", rank: 2 };
+  }
+
+  function compareEventWatchAlerts(left, right) {
+    const workflowRank = { review: 0, confirmed: 1, handled: 2, ignored: 3 };
+    const stateDifference = workflowRank[getEventWatchWorkflowState(left)] - workflowRank[getEventWatchWorkflowState(right)];
+    if (stateDifference) return stateDifference;
+
+    const priorityDifference = getEventWatchAlertPriority(left).rank - getEventWatchAlertPriority(right).rank;
+    if (priorityDifference) return priorityDifference;
+
+    const dateDifference = new Date(right?.detected_at || 0).getTime() - new Date(left?.detected_at || 0).getTime();
+    if (dateDifference) return dateDifference;
+    return String(left?.event_title || "").localeCompare(String(right?.event_title || ""), "fr");
+  }
+
+  function getEventWatchSourceUrl(alert) {
+    return normalizeUrlValue(alert?.source || alert?.proof?.url);
   }
 
   function matchesEventWatchCategory(alert) {
@@ -519,30 +681,6 @@
     if (eventWatchCategory === "program") return ["program", "speakers"].includes(field);
     if (eventWatchCategory === "poster") return field === "poster";
     return true;
-  }
-
-  async function reviewEventWatchAlert(id, action, button) {
-    const label = action === "verified" ? "marquer cette alerte comme vérifiée" : "ignorer cette alerte";
-    if (!id || !window.confirm(`Confirmer : ${label} ?`)) return;
-    if (button) button.disabled = true;
-
-    try {
-      const endpoint = getEventWatchAdminEndpoint().replace(/\/api\/event-watch\/?$/, "/api/event-watch/review");
-      const response = await fetchEventWatch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action, confirm: "EVENT_WATCH_REVIEW" })
-      });
-      const payload = await response.json();
-      if (!response.ok || payload?.ok === false) {
-        throw new Error(payload?.error || `HTTP ${response.status}`);
-      }
-      setEventWatchStatus(action === "verified" ? "Alerte marquée comme vérifiée." : "Alerte ignorée.");
-      await loadEventWatchAlerts();
-    } catch (error) {
-      setEventWatchStatus(`Action impossible · ${error.message || "Event Watch indisponible"}`, "warning");
-      if (button) button.disabled = false;
-    }
   }
 
   async function fetchEventWatch(url, options = {}) {
@@ -588,9 +726,16 @@
   function formatEventWatchValue(value) {
     if (value === true) return "Oui";
     if (value === false) return "Non";
-    if (value === null || value === undefined || value === "") return "Non renseignée";
+    if (value === null || value === undefined || value === "") return "—";
     if (typeof value === "object") return JSON.stringify(value);
     return String(value);
+  }
+
+  function formatEventWatchConfidence(value) {
+    if (value === null || value === undefined || value === "") return "—";
+    const confidence = Number(value);
+    if (!Number.isFinite(confidence)) return "—";
+    return `${Math.round(confidence <= 1 ? confidence * 100 : confidence)}%`;
   }
 
   function formatDetectedAt(value) {
@@ -2642,7 +2787,8 @@
         gap: 8px;
       }
 
-      .event-watch-category {
+      .event-watch-category,
+      .event-watch-review-filter {
         border: 1px solid rgba(25, 215, 255, .22);
         border-radius: 999px;
         padding: 8px 12px;
@@ -2653,14 +2799,44 @@
         font-weight: 900;
       }
 
-      .event-watch-category.is-active {
+      .event-watch-category.is-active,
+      .event-watch-review-filter.is-active {
         color: #06120f;
         border-color: var(--cyber-cyan);
         background: var(--cyber-cyan);
       }
 
-      .event-watch-state-field {
-        min-width: 180px;
+      .event-watch-review-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .event-watch-review-toolbar > p {
+        margin: 0;
+        color: var(--cyber-cyan);
+        font-weight: 900;
+      }
+
+      .event-watch-review-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .event-watch-review-filter span {
+        display: inline-flex;
+        min-width: 20px;
+        min-height: 20px;
+        align-items: center;
+        justify-content: center;
+        margin-left: 4px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .10);
+        font-size: .72rem;
       }
 
       .event-watch-alerts {
@@ -2677,13 +2853,50 @@
         background: rgba(4, 14, 24, .76);
       }
 
-      .event-watch-alert-verified {
+      .event-watch-alert-confirmed {
         border-left-color: var(--cyber-green);
       }
 
       .event-watch-alert-ignored {
         border-left-color: var(--cyber-muted);
         opacity: .82;
+      }
+
+      .event-watch-alert-handled {
+        border-left-color: var(--cyber-cyan);
+        opacity: .82;
+      }
+
+      .event-watch-alert-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .event-watch-priority,
+      .event-watch-workflow-state {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: .78rem;
+        font-weight: 900;
+      }
+
+      .event-watch-priority.is-critical {
+        color: var(--cyber-red);
+        background: rgba(255, 82, 118, .12);
+      }
+
+      .event-watch-priority.is-important {
+        color: var(--cyber-orange);
+        background: rgba(255, 158, 68, .12);
+      }
+
+      .event-watch-priority.is-normal,
+      .event-watch-workflow-state {
+        color: var(--cyber-cyan);
+        background: rgba(25, 215, 255, .10);
       }
 
       .event-watch-alert-head,
@@ -2729,6 +2942,11 @@
       }
 
       .event-watch-source {
+        overflow-wrap: anywhere;
+        font-size: .92rem;
+      }
+
+      .event-watch-proof {
         overflow-wrap: anywhere;
         font-size: .92rem;
       }
@@ -2905,6 +3123,11 @@
         }
 
         .event-watch-toolbar {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .event-watch-review-toolbar {
           align-items: stretch;
           flex-direction: column;
         }
