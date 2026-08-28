@@ -1270,7 +1270,21 @@
 
         <div class="author-request-actions">
           <button type="button" class="cyber-btn-secondary" data-action="save">Enregistrer</button>
-          <button type="button" class="cyber-btn-primary" data-action="validate">Valider</button>
+          ${
+            row.validated === true && row.rejected !== true
+              ? `<button
+                   type="button"
+                   class="cyber-btn-primary"
+                   disabled
+                   aria-disabled="true"
+                   title="Cette présence est déjà validée"
+                 >Déjà validée</button>`
+              : `<button
+                   type="button"
+                   class="cyber-btn-primary"
+                   data-action="validate"
+                 >Valider</button>`
+          }
           <button type="button" class="cyber-btn-danger" data-action="reject">Refuser</button>
           <button type="button" class="cyber-btn-secondary" data-action="hide">Masquer</button>
         </div>
