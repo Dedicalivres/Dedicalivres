@@ -278,6 +278,11 @@
     document.getElementById("watch-health-btn")?.addEventListener("click", testWorkerHealth);
     document.getElementById("watch-clear-history-btn")?.addEventListener("click", clearHistory);
     document.getElementById("watch-next-active-btn")?.addEventListener("click", goToNextActiveResult);
+    document.getElementById("watch-history")?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-watch-rerun-source]");
+      if (!button) return;
+      rerunProductiveSource(button.dataset.watchRerunSource || "");
+    });
 
     document.querySelectorAll("[data-watch-queue-filter]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -1752,9 +1757,6 @@
   }
 
   function rememberProductiveSources(rawUrls, results) {
-    const completeCount = countCompleteResults(results);
-    if (completeCount <= PRODUCTIVE_COMPLETE_THRESHOLD) return 0;
-
     const urls = normalizeWatchUrlInput(rawUrls);
     if (!urls.length) return 0;
 
@@ -1762,17 +1764,39 @@
     const now = new Date().toISOString();
     const country = document.getElementById("watch-country")?.value || "Tous";
     const type = document.getElementById("watch-type")?.value || "Tous";
+    const storedByUrl = new Map(stored.map((item) => [item?.sourceUrl, item]));
 
-    const nextItems = urls.map((sourceUrl) => ({
-      sourceUrl,
-      title: getUrlDisplayName(sourceUrl),
-      completeCount,
-      totalCount: lastPagination.hasKnownTotal ? lastPagination.total : (Array.isArray(results) ? results.length : 0),
-      offset: watchOffset,
-      country,
-      type,
-      lastSeenAt: now
-    }));
+    const nextItems = urls.map((sourceUrl) => {
+      const previous = storedByUrl.get(sourceUrl) || null;
+      const sourceResults = getResultsForProductiveSource(sourceUrl, urls, results);
+      const metrics = sourceResults ? buildProductiveSourceMetrics(sourceResults) : null;
+
+      if (!previous && (!metrics || metrics.completeCount <= PRODUCTIVE_COMPLETE_THRESHOLD)) {
+        return null;
+      }
+
+      const previousAnalysesCount = previous?.analysesCount !== null &&
+        previous?.analysesCount !== undefined &&
+        Number.isFinite(Number(previous.analysesCount))
+        ? Number(previous.analysesCount)
+        : (previous ? 1 : 0);
+
+      return {
+        ...(previous || {}),
+        sourceUrl,
+        title: getUrlDisplayName(sourceUrl),
+        ...(metrics || {}),
+        totalCount: metrics
+          ? (urls.length === 1 && lastPagination.hasKnownTotal ? lastPagination.total : metrics.observedCount)
+          : previous?.totalCount,
+        offset: watchOffset,
+        country,
+        type,
+        analysesCount: previousAnalysesCount + 1,
+        firstSeenAt: previous?.firstSeenAt || previous?.lastSeenAt || now,
+        lastSeenAt: now
+      };
+    }).filter(Boolean);
 
     const merged = [...nextItems, ...stored]
       .filter((item, index, array) => {
@@ -1782,6 +1806,140 @@
 
     writeProductiveSources(merged);
     return nextItems.length;
+  }
+
+  function getResultsForProductiveSource(sourceUrl, urls, results) {
+    const sourceResults = Array.isArray(results) ? results : [];
+    if (urls.length === 1) return sourceResults;
+
+    const matches = sourceResults.filter((item) => {
+      const itemSource = normalizeWatchUrlInput(item?.sourceUrl || "")[0] || "";
+      return itemSource === sourceUrl;
+    });
+
+    return matches.length ? matches : null;
+  }
+
+  function buildProductiveSourceMetrics(results) {
+    const sourceResults = Array.isArray(results) ? results : [];
+    const observedCount = sourceResults.length;
+    const metrics = {
+      observedCount,
+      completeCount: 0,
+      reviewCount: 0,
+      rejectedCount: 0,
+      certainDuplicateCount: 0,
+      probableDuplicateCount: 0,
+      withImageCount: 0,
+      withoutImageCount: 0,
+      completenessRate: null,
+      imageRate: null,
+      duplicateRate: null
+    };
+
+    sourceResults.forEach((item) => {
+      const workflowState = getWatchWorkflowState(item);
+      const imageState = getWatchImageQuality(item).state;
+      const duplicateState = getWatchDuplicateSignal(item, sourceResults).state;
+
+      if (isCompleteWatchResult(item)) metrics.completeCount += 1;
+      if (workflowState === "review") metrics.reviewCount += 1;
+      if (workflowState === "rejected") metrics.rejectedCount += 1;
+      if (workflowState === "duplicate") metrics.certainDuplicateCount += 1;
+      if (duplicateState === "probable") metrics.probableDuplicateCount += 1;
+      if (imageState === "image-absente") metrics.withoutImageCount += 1;
+      else metrics.withImageCount += 1;
+    });
+
+    metrics.completenessRate = calculateProductiveSourceRate(metrics.completeCount, observedCount);
+    metrics.imageRate = calculateProductiveSourceRate(metrics.withImageCount, observedCount);
+    metrics.duplicateRate = calculateProductiveSourceRate(
+      metrics.certainDuplicateCount + metrics.probableDuplicateCount,
+      observedCount
+    );
+    return metrics;
+  }
+
+  function calculateProductiveSourceRate(count, total) {
+    if (!Number.isFinite(Number(count)) || !Number.isFinite(Number(total)) || Number(total) <= 0) {
+      return null;
+    }
+    return Math.round((Number(count) / Number(total)) * 100);
+  }
+
+  function getProductiveSourceMetric(item, rateKey, countKey) {
+    if (item?.[rateKey] !== null && item?.[rateKey] !== undefined && Number.isFinite(Number(item[rateKey]))) {
+      return Number(item[rateKey]);
+    }
+
+    const total = item?.observedCount !== null && item?.observedCount !== undefined && Number.isFinite(Number(item.observedCount))
+      ? Number(item.observedCount)
+      : Number(item?.totalCount);
+    const count = Number(item?.[countKey]);
+    return calculateProductiveSourceRate(count, total);
+  }
+
+  function getProductiveSourceYieldScore(item) {
+    const completionRate = getProductiveSourceMetric(item, "completenessRate", "completeCount");
+    const imageRate = getProductiveSourceMetric(item, "imageRate", "withImageCount");
+    const duplicateRate = getProductiveSourceMetric(item, "duplicateRate", "certainDuplicateCount");
+    if ([completionRate, imageRate, duplicateRate].some((value) => value === null)) return null;
+
+    const weightedScore =
+      completionRate * 0.5 +
+      imageRate * 0.25 +
+      (100 - duplicateRate) * 0.25;
+    const observedCount = item?.observedCount !== null && item?.observedCount !== undefined && Number.isFinite(Number(item.observedCount))
+      ? Number(item.observedCount)
+      : Number(item?.totalCount);
+    const sampleFactor = Number.isFinite(observedCount) && observedCount < 5
+      ? 0.75
+      : Number.isFinite(observedCount) && observedCount < 10
+        ? 0.9
+        : 1;
+
+    return Math.max(0, Math.min(100, Math.round(weightedScore * sampleFactor)));
+  }
+
+  function getProductiveSourceYieldLevel(score) {
+    if (score === null) return { state: "unknown", label: "À qualifier" };
+    if (score >= 85) return { state: "excellent", label: "Excellent" };
+    if (score >= 70) return { state: "good", label: "Bon" };
+    if (score >= 50) return { state: "medium", label: "Moyen" };
+    return { state: "low", label: "Faible" };
+  }
+
+  function sortProductiveSources(sources) {
+    return [...(Array.isArray(sources) ? sources : [])].sort((left, right) => {
+      const leftScore = getProductiveSourceYieldScore(left);
+      const rightScore = getProductiveSourceYieldScore(right);
+      if (leftScore !== rightScore) {
+        if (leftScore === null) return 1;
+        if (rightScore === null) return -1;
+        return rightScore - leftScore;
+      }
+
+      const dateDifference = new Date(right?.lastSeenAt || 0).getTime() - new Date(left?.lastSeenAt || 0).getTime();
+      if (dateDifference) return dateDifference;
+      return String(left?.title || left?.sourceUrl || "").localeCompare(
+        String(right?.title || right?.sourceUrl || ""),
+        "fr"
+      );
+    });
+  }
+
+  function rerunProductiveSource(sourceUrl) {
+    const normalizedSource = normalizeWatchUrlInput(sourceUrl)[0] || "";
+    const urls = document.getElementById("watch-urls");
+    if (!normalizedSource || !urls) return;
+
+    urls.value = normalizedSource;
+    watchOffset = 0;
+    lastPagination = getEmptyPagination();
+    watchQueueFilter = "active";
+    renderResults(lastResults);
+    updatePagingControls();
+    analyzeUrls();
   }
 
   function countCompleteResults(results) {
@@ -1823,12 +1981,68 @@
     }
   }
 
+  function formatProductiveSourceValue(value) {
+    return value !== null && value !== undefined && Number.isFinite(Number(value))
+      ? String(Number(value))
+      : "—";
+  }
+
+  function formatProductiveSourceRate(value) {
+    return value === null ? "—" : `${value}%`;
+  }
+
+  function renderProductiveSourceCard(item) {
+    const score = getProductiveSourceYieldScore(item);
+    const level = getProductiveSourceYieldLevel(score);
+    const completionRate = getProductiveSourceMetric(item, "completenessRate", "completeCount");
+    const imageRate = getProductiveSourceMetric(item, "imageRate", "withImageCount");
+    const duplicateRate = getProductiveSourceMetric(item, "duplicateRate", "certainDuplicateCount");
+    const observedCount = item?.observedCount ?? item?.totalCount;
+    const lastAnalysis = item?.lastSeenAt ? formatDetectedAt(item.lastSeenAt) : "—";
+    const lastOffset = item?.offset !== null && item?.offset !== undefined && Number.isFinite(Number(item.offset))
+      ? Number(item.offset)
+      : null;
+
+    return `
+      <article class="watch-history-item watch-history-item-productive watch-source-card">
+        <div class="watch-source-card-head">
+          <div>
+            <a href="${escapeAttr(item.sourceUrl || "#")}" target="_blank" rel="noopener noreferrer">
+              <strong>${escapeHtml(item.title || item.sourceUrl || "Source productive")}</strong>
+            </a>
+            <small>Dernière analyse : ${escapeHtml(lastAnalysis)}</small>
+          </div>
+          <span class="watch-source-yield-badge is-${level.state}">${level.label}</span>
+        </div>
+        <div class="watch-source-metrics">
+          <span><strong>${formatProductiveSourceValue(item.completeCount)} / ${formatProductiveSourceValue(observedCount)}</strong> complètes</span>
+          <span><strong>${formatProductiveSourceRate(completionRate)}</strong> complétude</span>
+          <span><strong>${formatProductiveSourceRate(imageRate)}</strong> images</span>
+          <span><strong>${formatProductiveSourceRate(duplicateRate)}</strong> doublons</span>
+          <span>Rendement <strong>${score === null ? "—" : `${score}%`}</strong></span>
+        </div>
+        <p class="watch-source-details">
+          À vérifier ${formatProductiveSourceValue(item.reviewCount)} ·
+          Écartées ${formatProductiveSourceValue(item.rejectedCount)} ·
+          Doublons certains ${formatProductiveSourceValue(item.certainDuplicateCount)} ·
+          probables ${formatProductiveSourceValue(item.probableDuplicateCount)} ·
+          Avec image ${formatProductiveSourceValue(item.withImageCount)} ·
+          Sans image ${formatProductiveSourceValue(item.withoutImageCount)}
+        </p>
+        <div class="watch-source-card-footer">
+          <span>Analyses ${formatProductiveSourceValue(item.analysesCount)}${lastOffset === null ? "" : ` · dernier lot depuis ${lastOffset + 1}`}</span>
+          <button class="cyber-btn-secondary" data-watch-rerun-source="${escapeAttr(item.sourceUrl || "")}" type="button">Relancer</button>
+        </div>
+      </article>
+    `;
+  }
+
   function renderHistory() {
     const container = document.getElementById("watch-history");
     if (!container) return;
 
     const history = readHistory();
-    const productiveSources = readProductiveSources();
+    const productiveSources = sortProductiveSources(readProductiveSources());
 
     if (!history.length && !productiveSources.length) {
       container.innerHTML = `<p class="priority-empty">Aucune source marquée comme traitée ou productive sur cet appareil.</p>`;
@@ -1838,12 +2052,7 @@
     const productiveHtml = productiveSources.length ? `
       <section class="watch-history-group">
         <h4>URL à fort rendement</h4>
-        ${productiveSources.slice(0, 12).map((item) => `
-          <a class="watch-history-item watch-history-item-productive" href="${escapeAttr(item.sourceUrl || "#")}" target="_blank" rel="noopener noreferrer">
-            <strong>${escapeHtml(item.title || item.sourceUrl || "Source productive")}</strong>
-            <span>${escapeHtml(`${item.completeCount || 0} fiches complètes sur ${item.totalCount || 0}${item.offset ? ` · lot depuis ${Number(item.offset) + 1}` : ""} · ${[item.country, item.type].filter(Boolean).join(" · ")}`)}</span>
-          </a>
-        `).join("")}
+        ${productiveSources.slice(0, 12).map(renderProductiveSourceCard).join("")}
       </section>
     ` : "";
 
@@ -2593,6 +2802,94 @@
         color: var(--cyber-muted);
       }
 
+      .watch-source-card {
+        gap: 12px;
+      }
+
+      .watch-source-card-head,
+      .watch-source-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .watch-source-card-head > div {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .watch-source-card-head a {
+        color: var(--cyber-text);
+        overflow-wrap: anywhere;
+        text-decoration: none;
+      }
+
+      .watch-source-card-head small {
+        color: var(--cyber-muted);
+      }
+
+      .watch-source-yield-badge {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: .78rem;
+        font-weight: 900;
+      }
+
+      .watch-history-item .watch-source-yield-badge.is-excellent,
+      .watch-history-item .watch-source-yield-badge.is-good {
+        color: var(--cyber-green);
+        background: rgba(25, 255, 156, .12);
+      }
+
+      .watch-history-item .watch-source-yield-badge.is-medium {
+        color: var(--cyber-orange);
+        background: rgba(255, 158, 68, .12);
+      }
+
+      .watch-history-item .watch-source-yield-badge.is-low {
+        color: var(--cyber-red);
+        background: rgba(255, 82, 118, .12);
+      }
+
+      .watch-history-item .watch-source-yield-badge.is-unknown {
+        color: var(--cyber-muted);
+        background: rgba(255, 255, 255, .06);
+      }
+
+      .watch-source-metrics {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .watch-source-metrics span {
+        display: grid;
+        gap: 2px;
+        padding: 8px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .04);
+        font-size: .78rem;
+      }
+
+      .watch-source-metrics strong {
+        color: var(--cyber-text);
+        font-size: .9rem;
+      }
+
+      .watch-source-details {
+        margin: 0;
+        font-size: .78rem;
+      }
+
+      .watch-source-card-footer > span {
+        font-size: .82rem;
+      }
+
       @media (max-width: 900px) {
         .watch-form-grid,
         .watch-result-main,
@@ -2610,6 +2907,16 @@
         .event-watch-toolbar {
           align-items: stretch;
           flex-direction: column;
+        }
+
+        .watch-source-card-head,
+        .watch-source-card-footer {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .watch-source-metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .watch-result-image,
