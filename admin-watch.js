@@ -951,10 +951,11 @@
     if (startsNewMetricsCoverage && metricsDelta.metricsSince) {
       const currentMetricsSince = getWatchSourceTimestamp(source.metrics_since);
       const nextMetricsSince = getWatchSourceTimestamp(metricsDelta.metricsSince);
-      payload.metrics_since = nextMetricsSince !== null &&
-        (currentMetricsSince === null || nextMetricsSince > currentMetricsSince)
-        ? metricsDelta.metricsSince
-        : source.metrics_since;
+      if (currentMetricsSince !== null) {
+        payload.metrics_since = source.metrics_since;
+      } else if (nextMetricsSince !== null) {
+        payload.metrics_since = metricsDelta.metricsSince;
+      }
     }
     return payload;
   }
