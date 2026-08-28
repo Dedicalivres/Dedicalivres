@@ -19,6 +19,7 @@
   const WATCH_SERVER_ALERTS_LIMIT = 300;
   const WATCH_SERVER_CANDIDATE_COLUMNS = "id,identity_key,origin_url,canonical_origin_url,title,start_date,city,source_id,workflow_status,duplicate_event_id,submitted_event_id,status_updated_at,status_updated_by,updated_at,version,last_seen_at";
   const WATCH_SERVER_SOURCE_COLUMNS = "id,canonical_url,url_hash,source_url,title,observed_count,complete_count,review_count,rejected_count,duplicate_certain_count,duplicate_probable_count,with_image_count,without_image_count,analyses_count,metrics_since,first_seen_at,last_seen_at,is_active,updated_at,version";
+  const WATCH_CONTROLLED_IMPORT_CONCURRENCY = 3;
   const WATCH_CANDIDATE_WORKFLOW_STATES = ["ready", "review", "duplicate", "submitted", "handled", "rejected"];
   const WATCH_CANDIDATE_CLOSED_STATES = ["duplicate", "submitted", "handled", "rejected"];
   const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
@@ -40,6 +41,7 @@
   let watchQueueFilter = "all";
   let watchPersistenceSnapshot = createEmptyWatchPersistenceSnapshot();
   let lastWatchPersistenceNotice = "";
+  let pendingWatchImportPlan = null;
   const duplicateCheckCache = new Map();
   const duplicateSignalCache = new Map();
 
@@ -155,6 +157,17 @@
             <div class="watch-operations-top-sources">
               <strong>Meilleures sources</strong>
               <div id="watch-operations-top-sources"><span>Aucune source productive</span></div>
+            </div>
+          </div>
+
+          <div class="watch-controlled-import">
+            <button id="watch-import-local-btn" class="cyber-btn-secondary" type="button">Importer les données locales</button>
+            <div id="watch-import-preview" class="watch-import-preview" hidden aria-live="polite">
+              <p id="watch-import-summary">Préparation de l’import…</p>
+              <div class="watch-editor-actions">
+                <button id="watch-import-cancel-btn" class="cyber-btn-secondary" type="button">Annuler</button>
+                <button id="watch-import-confirm-btn" class="cyber-btn-primary" type="button">Confirmer l’import</button>
+              </div>
             </div>
           </div>
         </article>
@@ -360,6 +373,9 @@
     document.getElementById("watch-health-btn")?.addEventListener("click", testWorkerHealth);
     document.getElementById("watch-clear-history-btn")?.addEventListener("click", clearHistory);
     document.getElementById("watch-next-active-btn")?.addEventListener("click", goToNextActiveResult);
+    document.getElementById("watch-import-local-btn")?.addEventListener("click", previewControlledWatchImport);
+    document.getElementById("watch-import-cancel-btn")?.addEventListener("click", cancelControlledWatchImport);
+    document.getElementById("watch-import-confirm-btn")?.addEventListener("click", confirmControlledWatchImport);
     document.getElementById("watch-history")?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-watch-rerun-source]");
       if (!button) return;
@@ -1077,6 +1093,451 @@
         <small>${escapeHtml(lastAnalysis)}</small>
       </div>
     `;
+  }
+
+  function createControlledWatchImportCounts() {
+    return { created: 0, existing: 0, skipped: 0, failed: 0 };
+  }
+
+  function normalizeControlledImportTimestamp(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+  }
+
+  function normalizeControlledImportMetric(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
+    return Number.isInteger(number) && number >= 0 ? number : null;
+  }
+
+  function getControlledImportField(item, serverKey, localKey, fallbackKey = "") {
+    if (Object.hasOwn(item || {}, serverKey)) return item[serverKey];
+    if (Object.hasOwn(item || {}, localKey)) return item[localKey];
+    return fallbackKey && Object.hasOwn(item || {}, fallbackKey) ? item[fallbackKey] : undefined;
+  }
+
+  async function createWatchPersistenceHash(namespace, value) {
+    if (!globalThis.crypto?.subtle || typeof TextEncoder !== "function") {
+      throw new Error("Calcul d’identité indisponible");
+    }
+    const bytes = new TextEncoder().encode(String(value || ""));
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+    const hex = [...new Uint8Array(digest)]
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+    return `${namespace}:${hex}`;
+  }
+
+  function getControlledImportCandidateWorkflow(item) {
+    const explicit = cleanText(item?.workflow_status || item?.workflowStatus);
+    const stored = getStoredWatchWorkflowState(item);
+    const closedStates = ["duplicate", "submitted", "handled", "rejected"];
+    if (closedStates.includes(explicit)) return explicit;
+    if (closedStates.includes(stored)) return stored;
+    if (explicit && !WATCH_CANDIDATE_WORKFLOW_STATES.includes(explicit)) return "review";
+    if (stored && !WATCH_CANDIDATE_WORKFLOW_STATES.includes(stored)) return "review";
+
+    const handledInHistory = readHistory().some((entry) =>
+      String(entry?.sourceUrl || "") === String(item?.sourceUrl || item?.origin_url || "")
+    );
+    if (handledInHistory) return "handled";
+    if (WATCH_CANDIDATE_WORKFLOW_STATES.includes(explicit)) return explicit;
+    if (WATCH_CANDIDATE_WORKFLOW_STATES.includes(stored)) return stored;
+
+    const inferred = inferWatchCandidateWorkflowState(item);
+    return WATCH_CANDIDATE_WORKFLOW_STATES.includes(inferred) ? inferred : "review";
+  }
+
+  async function buildControlledImportCandidate(item) {
+    const originUrl = cleanText(item?.origin_url || item?.sourceUrl || item?.officialUrl);
+    const canonicalUrl = normalizeWatchPersistenceUrl(
+      item?.canonical_origin_url || item?.canonicalOriginUrl || originUrl
+    );
+    const title = cleanText(item?.title);
+    const startDate = normalizeIsoDate(item?.start_date || item?.startDate || item?.date || "");
+    const city = cleanText(item?.city);
+    if (!canonicalUrl || !title || !/^20[0-9]{2}-[0-9]{2}-[0-9]{2}$/.test(startDate) || !city) {
+      return null;
+    }
+
+    const identitySeed = [
+      canonicalUrl,
+      normalizeForCompare(title),
+      startDate,
+      normalizeForCompare(city)
+    ].join("|");
+    const identityKey = cleanText(item?.identity_key || item?.identityKey) ||
+      await createWatchPersistenceHash("legacy-watch-v2", identitySeed);
+    const payload = {
+      identity_key: identityKey,
+      origin_url: originUrl || canonicalUrl,
+      canonical_origin_url: canonicalUrl,
+      title,
+      start_date: startDate,
+      city,
+      workflow_status: getControlledImportCandidateWorkflow(item)
+    };
+
+    const duplicateEventId = item?.duplicate_event_id || item?.duplicateEventId;
+    const submittedEventId = item?.submitted_event_id || item?.submittedEventId;
+    if (isUuid(duplicateEventId)) payload.duplicate_event_id = duplicateEventId;
+    if (isUuid(submittedEventId)) payload.submitted_event_id = submittedEventId;
+
+    const lastSeenAt = normalizeControlledImportTimestamp(
+      item?.last_seen_at || item?.lastSeenAt || item?.handledAt
+    );
+    if (lastSeenAt) payload.last_seen_at = lastSeenAt;
+    return { item, payload };
+  }
+
+  async function buildControlledImportSource(item) {
+    const sourceUrl = cleanText(item?.source_url || item?.sourceUrl || item?.canonical_url || item?.canonicalUrl);
+    const canonicalUrl = normalizeWatchPersistenceUrl(
+      item?.canonical_url || item?.canonicalUrl || sourceUrl
+    );
+    const analysesCount = normalizeControlledImportMetric(
+      getControlledImportField(item, "analyses_count", "analysesCount")
+    );
+    if (!sourceUrl || !canonicalUrl || analysesCount === null) return null;
+
+    const urlHash = cleanText(item?.url_hash || item?.urlHash) ||
+      await createWatchPersistenceHash("source:v1", canonicalUrl);
+    const payload = {
+      canonical_url: canonicalUrl,
+      url_hash: urlHash,
+      source_url: sourceUrl,
+      title: cleanText(item?.title) || getUrlDisplayName(sourceUrl),
+      analyses_count: analysesCount,
+      observed_count: normalizeControlledImportMetric(
+        getControlledImportField(item, "observed_count", "observedCount", "totalCount")
+      ),
+      complete_count: normalizeControlledImportMetric(
+        getControlledImportField(item, "complete_count", "completeCount")
+      ),
+      review_count: normalizeControlledImportMetric(
+        getControlledImportField(item, "review_count", "reviewCount")
+      ),
+      rejected_count: normalizeControlledImportMetric(
+        getControlledImportField(item, "rejected_count", "rejectedCount")
+      ),
+      duplicate_certain_count: normalizeControlledImportMetric(
+        getControlledImportField(item, "duplicate_certain_count", "certainDuplicateCount")
+      ),
+      duplicate_probable_count: normalizeControlledImportMetric(
+        getControlledImportField(item, "duplicate_probable_count", "probableDuplicateCount")
+      ),
+      with_image_count: normalizeControlledImportMetric(
+        getControlledImportField(item, "with_image_count", "withImageCount")
+      ),
+      without_image_count: normalizeControlledImportMetric(
+        getControlledImportField(item, "without_image_count", "withoutImageCount")
+      ),
+    };
+
+    const firstSeenAt = normalizeControlledImportTimestamp(item?.first_seen_at || item?.firstSeenAt);
+    const lastSeenAt = normalizeControlledImportTimestamp(item?.last_seen_at || item?.lastSeenAt);
+    const hasKnownMetrics = [
+      payload.observed_count,
+      payload.complete_count,
+      payload.review_count,
+      payload.rejected_count,
+      payload.duplicate_certain_count,
+      payload.duplicate_probable_count,
+      payload.with_image_count,
+      payload.without_image_count
+    ].some((value) => value !== null);
+    const metricsSince = normalizeControlledImportTimestamp(item?.metrics_since || item?.metricsSince) ||
+      (hasKnownMetrics ? firstSeenAt : "");
+    payload.metrics_since = metricsSince || null;
+    if (firstSeenAt) payload.first_seen_at = firstSeenAt;
+    if (lastSeenAt) payload.last_seen_at = lastSeenAt;
+    return { item, payload };
+  }
+
+  function collectControlledImportCandidates() {
+    const historyCandidates = readHistory().map((item) => ({
+      ...item,
+      startDate: item?.startDate || item?.date || "",
+      workflowStatus: "handled"
+    }));
+    return [...(Array.isArray(lastResults) ? lastResults : []), ...historyCandidates];
+  }
+
+  async function buildControlledWatchImportPlan() {
+    const plan = {
+      candidates: { create: [], existing: [], skipped: 0 },
+      sources: { create: [], existing: [], skipped: 0 }
+    };
+    const candidateIdentities = new Set();
+    const sourceIdentities = new Set();
+
+    for (const item of collectControlledImportCandidates()) {
+      try {
+        const entry = await buildControlledImportCandidate(item);
+        if (!entry || candidateIdentities.has(entry.payload.identity_key)) {
+          plan.candidates.skipped += 1;
+          continue;
+        }
+        candidateIdentities.add(entry.payload.identity_key);
+        const existing = findServerWatchCandidate(entry.payload);
+        if (existing) plan.candidates.existing.push(existing);
+        else plan.candidates.create.push(entry);
+      } catch {
+        plan.candidates.skipped += 1;
+      }
+    }
+
+    for (const item of readLocalProductiveSources()) {
+      try {
+        const entry = await buildControlledImportSource(item);
+        if (!entry || sourceIdentities.has(entry.payload.url_hash)) {
+          plan.sources.skipped += 1;
+          continue;
+        }
+        sourceIdentities.add(entry.payload.url_hash);
+        const existing = findServerWatchSource(entry.payload);
+        if (existing) plan.sources.existing.push(existing);
+        else plan.sources.create.push(entry);
+      } catch {
+        plan.sources.skipped += 1;
+      }
+    }
+    return plan;
+  }
+
+  function renderControlledWatchImportPreview(plan, finalResult = null) {
+    const panel = document.getElementById("watch-import-preview");
+    const summary = document.getElementById("watch-import-summary");
+    const confirmButton = document.getElementById("watch-import-confirm-btn");
+    const cancelButton = document.getElementById("watch-import-cancel-btn");
+    if (!panel || !summary) return;
+
+    panel.hidden = false;
+    if (finalResult) {
+      const confirmedCount = finalResult.candidates.created + finalResult.candidates.existing +
+        finalResult.sources.created + finalResult.sources.existing;
+      const failedCount = finalResult.candidates.failed + finalResult.sources.failed;
+      summary.textContent = [
+        failedCount && !confirmedCount ? "Import serveur indisponible." : "Import terminé.",
+        `Candidats : ${finalResult.candidates.created} créés, ${finalResult.candidates.existing} déjà présents, ${finalResult.candidates.skipped} ignorés, ${finalResult.candidates.failed} échecs.`,
+        `Sources : ${finalResult.sources.created} créées, ${finalResult.sources.existing} déjà présentes, ${finalResult.sources.skipped} ignorées, ${finalResult.sources.failed} échecs.`
+      ].join(" ");
+      if (confirmButton) confirmButton.hidden = true;
+      if (cancelButton) cancelButton.textContent = "Fermer";
+      return;
+    }
+
+    const existingCount = plan.candidates.existing.length + plan.sources.existing.length;
+    const skippedCount = plan.candidates.skipped + plan.sources.skipped;
+    summary.textContent = [
+      `Import local vers serveur. Candidats : ${plan.candidates.create.length} à créer, ${plan.candidates.existing.length} déjà présents, ${plan.candidates.skipped} ignorés.`,
+      `Sources : ${plan.sources.create.length} à créer, ${plan.sources.existing.length} déjà présentes, ${plan.sources.skipped} ignorées.`,
+      `Total : ${existingCount} déjà présentes, ${skippedCount} ignorées ou incomplètes.`
+    ].join(" ");
+    if (confirmButton) {
+      confirmButton.hidden = false;
+      confirmButton.disabled = false;
+    }
+    if (cancelButton) cancelButton.textContent = "Annuler";
+  }
+
+  async function previewControlledWatchImport() {
+    const button = document.getElementById("watch-import-local-btn");
+    if (button) button.disabled = true;
+    try {
+      pendingWatchImportPlan = await buildControlledWatchImportPlan();
+      renderControlledWatchImportPreview(pendingWatchImportPlan);
+    } catch (error) {
+      pendingWatchImportPlan = null;
+      showWatchPersistenceNotice("Préparation de l’import local impossible.");
+      console.warn("Prévisualisation de l’import Veille impossible :", error);
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  function cancelControlledWatchImport() {
+    pendingWatchImportPlan = null;
+    const panel = document.getElementById("watch-import-preview");
+    const confirmButton = document.getElementById("watch-import-confirm-btn");
+    const cancelButton = document.getElementById("watch-import-cancel-btn");
+    if (panel) panel.hidden = true;
+    if (confirmButton) {
+      confirmButton.hidden = false;
+      confirmButton.disabled = false;
+    }
+    if (cancelButton) cancelButton.textContent = "Annuler";
+  }
+
+  function isControlledImportUniqueError(error) {
+    return String(error?.code || "") === "23505" || /duplicate key|unique constraint/i.test(String(error?.message || ""));
+  }
+
+  async function readControlledImportCandidate(identityKey) {
+    try {
+      const query = client
+        .from("admin_watch_candidates")
+        .select(WATCH_SERVER_CANDIDATE_COLUMNS)
+        .eq("identity_key", identityKey)
+        .limit(1);
+      const response = await awaitWatchPersistenceQuery(query);
+      if (response?.error) return { status: "failed", row: null, error: response.error };
+      const row = Array.isArray(response?.data) ? response.data[0] : null;
+      return row ? { status: "existing", row, error: null } : { status: "failed", row: null, error: null };
+    } catch (error) {
+      return { status: "failed", row: null, error };
+    }
+  }
+
+  async function readControlledImportSource(urlHash) {
+    try {
+      const query = client
+        .from("admin_watch_sources")
+        .select(WATCH_SERVER_SOURCE_COLUMNS)
+        .eq("url_hash", urlHash)
+        .limit(1);
+      const response = await awaitWatchPersistenceQuery(query);
+      if (response?.error) return { status: "failed", row: null, error: response.error };
+      const row = Array.isArray(response?.data) ? response.data[0] : null;
+      return row ? { status: "existing", row, error: null } : { status: "failed", row: null, error: null };
+    } catch (error) {
+      return { status: "failed", row: null, error };
+    }
+  }
+
+  async function insertControlledImportCandidate(entry) {
+    try {
+      const response = await awaitWatchPersistenceQuery(
+        client
+          .from("admin_watch_candidates")
+          .insert([entry.payload])
+          .select(WATCH_SERVER_CANDIDATE_COLUMNS)
+      );
+      if (response?.error) {
+        if (!isControlledImportUniqueError(response.error)) {
+          return { status: "failed", row: null, error: response.error };
+        }
+        const existing = await readControlledImportCandidate(entry.payload.identity_key);
+        if (existing.status === "existing") adoptServerWatchCandidate(existing.row);
+        return existing;
+      }
+      const row = Array.isArray(response?.data) ? response.data[0] : null;
+      if (!row) return { status: "failed", row: null, error: null };
+      adoptServerWatchCandidate(row);
+      return { status: "created", row, error: null };
+    } catch (error) {
+      return { status: "failed", row: null, error };
+    }
+  }
+
+  async function insertControlledImportSource(entry) {
+    try {
+      const response = await awaitWatchPersistenceQuery(
+        client
+          .from("admin_watch_sources")
+          .insert([entry.payload])
+          .select(WATCH_SERVER_SOURCE_COLUMNS)
+      );
+      if (response?.error) {
+        if (!isControlledImportUniqueError(response.error)) {
+          return { status: "failed", row: null, error: response.error };
+        }
+        const existing = await readControlledImportSource(entry.payload.url_hash);
+        if (existing.status === "existing") adoptServerWatchSource(existing.row);
+        return existing;
+      }
+      const row = Array.isArray(response?.data) ? response.data[0] : null;
+      if (!row) return { status: "failed", row: null, error: null };
+      adoptServerWatchSource(row);
+      return { status: "created", row, error: null };
+    } catch (error) {
+      return { status: "failed", row: null, error };
+    }
+  }
+
+  async function runControlledImportPool(items, worker) {
+    const results = new Array(items.length);
+    let nextIndex = 0;
+    const runNext = async () => {
+      while (nextIndex < items.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        results[index] = await worker(items[index]);
+      }
+    };
+    const workerCount = Math.min(WATCH_CONTROLLED_IMPORT_CONCURRENCY, items.length);
+    await Promise.all(Array.from({ length: workerCount }, () => runNext()));
+    return results;
+  }
+
+  async function executeControlledWatchImport(plan) {
+    const result = {
+      candidates: createControlledWatchImportCounts(),
+      sources: createControlledWatchImportCounts()
+    };
+    result.candidates.existing = plan?.candidates?.existing?.length || 0;
+    result.candidates.skipped = plan?.candidates?.skipped || 0;
+    result.sources.existing = plan?.sources?.existing?.length || 0;
+    result.sources.skipped = plan?.sources?.skipped || 0;
+    const candidateEntries = plan?.candidates?.create || [];
+    const sourceEntries = plan?.sources?.create || [];
+
+    if (!client || typeof client.from !== "function") {
+      result.candidates.failed = candidateEntries.length;
+      result.sources.failed = sourceEntries.length;
+      setWatchPersistenceAvailabilityAfterWrite("unavailable");
+      return result;
+    }
+
+    const candidateResults = await runControlledImportPool(candidateEntries, insertControlledImportCandidate);
+    const sourceResults = await runControlledImportPool(sourceEntries, insertControlledImportSource);
+    candidateResults.forEach((item) => {
+      if (item?.status === "created") result.candidates.created += 1;
+      else if (item?.status === "existing") result.candidates.existing += 1;
+      else result.candidates.failed += 1;
+    });
+    sourceResults.forEach((item) => {
+      if (item?.status === "created") result.sources.created += 1;
+      else if (item?.status === "existing") result.sources.existing += 1;
+      else result.sources.failed += 1;
+    });
+
+    const confirmedCount = result.candidates.created + result.candidates.existing +
+      result.sources.created + result.sources.existing;
+    const failedCount = result.candidates.failed + result.sources.failed;
+    if (confirmedCount) setWatchPersistenceAvailabilityAfterWrite("success");
+    if (failedCount) setWatchPersistenceAvailabilityAfterWrite("unavailable");
+    renderHistory();
+    if (lastResults.length) renderResults(lastResults);
+    updateWatchOperationsDashboard();
+    return result;
+  }
+
+  async function confirmControlledWatchImport() {
+    if (!pendingWatchImportPlan) return null;
+    const plan = pendingWatchImportPlan;
+    pendingWatchImportPlan = null;
+    const confirmButton = document.getElementById("watch-import-confirm-btn");
+    if (confirmButton) {
+      confirmButton.disabled = true;
+      confirmButton.textContent = "Import…";
+    }
+    const result = await executeControlledWatchImport(plan);
+    renderControlledWatchImportPreview(plan, result);
+    if (confirmButton) confirmButton.textContent = "Confirmer l’import";
+    const failed = result.candidates.failed + result.sources.failed;
+    const confirmed = result.candidates.created + result.candidates.existing +
+      result.sources.created + result.sources.existing;
+    setStatus(
+      failed && !confirmed
+        ? "Import serveur indisponible. Les données locales sont conservées."
+        : failed
+          ? "Import local partiel : certaines lignes n’ont pas pu être confirmées côté serveur."
+          : "Import local terminé.",
+      failed ? "warning" : ""
+    );
+    return result;
   }
 
   async function analyzeUrls() {
