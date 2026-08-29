@@ -43,8 +43,10 @@
   let lastWatchAnalysisAt = "";
   let watchQueueFilter = "all";
   let watchPersistenceSnapshot = createEmptyWatchPersistenceSnapshot();
+  let watchPersistenceLoadPromise = null;
   let lastWatchPersistenceNotice = "";
   let pendingWatchImportPlan = null;
+  let pendingWatchImportSnapshot = null;
   const duplicateCheckCache = new Map();
   const duplicateSignalCache = new Map();
 
@@ -87,13 +89,7 @@
     bindControls();
     renderHistory();
     updateWatchOperationsDashboard();
-    loadWatchPersistenceSnapshot().catch((error) => {
-      watchPersistenceSnapshot = createEmptyWatchPersistenceSnapshot("unavailable");
-      watchPersistenceSnapshot.errors = [classifyWatchPersistenceError(error)];
-      updateWatchPersistenceIndicator();
-      updateWatchOperationsDashboard();
-      console.warn("Lecture de persistance Veille impossible :", error);
-    });
+    startWatchPersistenceLoad();
     loadEventWatchAlerts();
   }
 
@@ -618,6 +614,19 @@
     if (eventWatchAlerts.length) renderEventWatchAlerts();
     updateWatchOperationsDashboard();
     return watchPersistenceSnapshot;
+  }
+
+  function startWatchPersistenceLoad() {
+    if (watchPersistenceLoadPromise) return watchPersistenceLoadPromise;
+    watchPersistenceLoadPromise = loadWatchPersistenceSnapshot().catch((error) => {
+      watchPersistenceSnapshot = createEmptyWatchPersistenceSnapshot("unavailable");
+      watchPersistenceSnapshot.errors = [classifyWatchPersistenceError(error)];
+      updateWatchPersistenceIndicator();
+      updateWatchOperationsDashboard();
+      console.warn("Lecture de persistance Veille impossible :", error);
+      return watchPersistenceSnapshot;
+    });
+    return watchPersistenceLoadPromise;
   }
 
   function normalizeWatchPersistenceUrl(value) {
@@ -1652,23 +1661,61 @@
     if (cancelButton) cancelButton.textContent = "Annuler";
   }
 
+  function clearPendingControlledWatchImport() {
+    pendingWatchImportPlan = null;
+    pendingWatchImportSnapshot = null;
+  }
+
+  function renderControlledWatchImportUnavailable(message = "Précontrôle serveur indisponible. L’import n’a pas été préparé et les données locales sont conservées.") {
+    const panel = document.getElementById("watch-import-preview");
+    const summary = document.getElementById("watch-import-summary");
+    const confirmButton = document.getElementById("watch-import-confirm-btn");
+    const cancelButton = document.getElementById("watch-import-cancel-btn");
+    if (panel) panel.hidden = false;
+    if (summary) summary.textContent = message;
+    if (confirmButton) {
+      confirmButton.hidden = false;
+      confirmButton.disabled = true;
+    }
+    if (cancelButton) cancelButton.textContent = "Fermer";
+  }
+
   async function previewControlledWatchImport() {
     const button = document.getElementById("watch-import-local-btn");
+    const confirmButton = document.getElementById("watch-import-confirm-btn");
+    clearPendingControlledWatchImport();
     if (button) button.disabled = true;
+    if (confirmButton) confirmButton.disabled = true;
     try {
-      pendingWatchImportPlan = await buildControlledWatchImportPlan();
+      if (watchPersistenceLoadPromise) await watchPersistenceLoadPromise;
+      if (watchPersistenceSnapshot.availability !== "server") {
+        renderControlledWatchImportUnavailable();
+        showWatchPersistenceNotice("Précontrôle serveur indisponible. Import local non préparé.");
+        return null;
+      }
+      const previewSnapshot = watchPersistenceSnapshot;
+      const plan = await buildControlledWatchImportPlan();
+      if (watchPersistenceSnapshot !== previewSnapshot || watchPersistenceSnapshot.availability !== "server") {
+        renderControlledWatchImportUnavailable("Le précontrôle serveur a changé. Relance la prévisualisation avant de confirmer l’import.");
+        return null;
+      }
+      pendingWatchImportPlan = plan;
+      pendingWatchImportSnapshot = previewSnapshot;
       renderControlledWatchImportPreview(pendingWatchImportPlan);
+      return pendingWatchImportPlan;
     } catch (error) {
-      pendingWatchImportPlan = null;
+      clearPendingControlledWatchImport();
+      renderControlledWatchImportUnavailable();
       showWatchPersistenceNotice("Préparation de l’import local impossible.");
       console.warn("Prévisualisation de l’import Veille impossible :", error);
+      return null;
     } finally {
       if (button) button.disabled = false;
     }
   }
 
   function cancelControlledWatchImport() {
-    pendingWatchImportPlan = null;
+    clearPendingControlledWatchImport();
     const panel = document.getElementById("watch-import-preview");
     const confirmButton = document.getElementById("watch-import-confirm-btn");
     const cancelButton = document.getElementById("watch-import-cancel-btn");
@@ -1825,9 +1872,14 @@
   }
 
   async function confirmControlledWatchImport() {
-    if (!pendingWatchImportPlan) return null;
+    if (!pendingWatchImportPlan || !pendingWatchImportSnapshot) return null;
+    if (watchPersistenceSnapshot !== pendingWatchImportSnapshot || watchPersistenceSnapshot.availability !== "server") {
+      clearPendingControlledWatchImport();
+      renderControlledWatchImportUnavailable("Ce précontrôle serveur n’est plus à jour. Relance la prévisualisation avant de confirmer l’import.");
+      return null;
+    }
     const plan = pendingWatchImportPlan;
-    pendingWatchImportPlan = null;
+    clearPendingControlledWatchImport();
     const confirmButton = document.getElementById("watch-import-confirm-btn");
     if (confirmButton) {
       confirmButton.disabled = true;
