@@ -15,7 +15,7 @@
  * - ALLOWED_ADMIN_ORIGINS=https://dedicalivres.fr,https://www.dedicalivres.fr
  */
 
-const WORKER_VERSION = "2026-08-27-admin-watch-6-event-gate";
+const WORKER_VERSION = "2026-08-29-admin-watch-7-event-date-priority";
 const MAX_URLS_PER_REQUEST = 20;
 const MAX_RESULTS_PER_REQUEST = 40;
 const MAX_OPALE_LIST_DETAILS = 15;
@@ -250,13 +250,13 @@ function extractCandidateFromHtml(html, options = {}) {
   const events = extractJsonLdEvents(html);
   const event = events[0] || null;
   const visibleText = htmlToText(html);
-  const dateRange = detectDateRange([
-    stringifyEvent(event),
-    meta["og:title"],
-    meta["og:description"],
-    titleTag,
-    visibleText.slice(0, 6000)
-  ].filter(Boolean).join("\n"));
+  const eventVisibleText = htmlToText(removeEditorialDateElements(html));
+  const dateRange = resolveEventDateRange({
+    event,
+    titleText: [event?.name, meta["og:title"], meta["twitter:title"], titleTag].filter(Boolean).join("\n"),
+    descriptionText: [event?.description, meta["og:description"], meta.description].filter(Boolean).join("\n"),
+    visibleText: eventVisibleText.slice(0, 6000)
+  });
   const combinedText = [
     stringifyEvent(event),
     meta["og:title"],
@@ -674,25 +674,65 @@ function detectCity(text) {
   return "";
 }
 
-function detectDateRange(text) {
+function removeEditorialDateElements(html) {
+  return String(html || "").replace(
+    /<([a-z][a-z0-9]*)\b[^>]*(?:class|itemprop|property|name)\s*=\s*(["'])[^"']*(?:news[_-]?date|published(?=\s|["'])|publication[_-]?date|date[_-]?publication|datepublished|datemodified|post[_-]?date|entry[_-]?date)[^"']*\2[^>]*>[\s\S]*?<\/\1\s*>/gi,
+    " "
+  );
+}
+
+function detectContextYear(text) {
+  return String(text || "").match(/\b(20[0-9]{2})\b/)?.[1] || "";
+}
+
+function resolveEventDateRange({ event, titleText, descriptionText, visibleText }) {
+  const structuredStartDate = normalizeDateValue(event?.startDate);
+  if (structuredStartDate) {
+    return {
+      startDate: structuredStartDate,
+      endDate: normalizeDateValue(event?.endDate)
+    };
+  }
+
+  const cleanVisibleText = String(visibleText || "")
+    .split("\n")
+    .filter((line) => !/^\s*(?:publi(?:é|e|cation)|mis(?:e)? à jour|actualis(?:é|ée)|modifi(?:é|ée))\b/i.test(line))
+    .join("\n");
+  const contextYear = detectContextYear([
+    titleText,
+    descriptionText,
+    cleanVisibleText
+  ].filter(Boolean).join("\n"));
+
+  for (const signal of [titleText, descriptionText, cleanVisibleText]) {
+    const dateRange = detectDateRange(signal, contextYear);
+    if (dateRange.startDate) return dateRange;
+  }
+
+  return { startDate: "", endDate: "" };
+}
+
+function detectDateRange(text, contextYear = "") {
   const value = String(text || "");
   const isoRange = value.match(/\b(20[0-9]{2}-[01][0-9]-[0-3][0-9])(?:\s*(?:au|to|->|→|-|–)\s*(20[0-9]{2}-[01][0-9]-[0-3][0-9]))?/i);
   if (isoRange) return { startDate: isoRange[1], endDate: isoRange[2] || "" };
 
   const months = "janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre";
-  const frenchCrossMonthRange = value.match(new RegExp(`\\bdu\\s+([0-3]?[0-9])\\s+(${months})\\s+au\\s+([0-3]?[0-9])\\s+(${months})\\s+(20[0-9]{2})`, "i"));
-  if (frenchCrossMonthRange) {
+  const frenchCrossMonthRange = value.match(new RegExp(`\\bdu\\s+([0-3]?[0-9])\\s+(${months})\\s+au\\s+([0-3]?[0-9])\\s+(${months})(?:\\s+(20[0-9]{2}))?\\b`, "i"));
+  const crossMonthYear = frenchCrossMonthRange?.[5] || contextYear;
+  if (frenchCrossMonthRange && crossMonthYear) {
     return {
-      startDate: makeIsoDate(frenchCrossMonthRange[5], frenchCrossMonthRange[2], frenchCrossMonthRange[1]),
-      endDate: makeIsoDate(frenchCrossMonthRange[5], frenchCrossMonthRange[4], frenchCrossMonthRange[3])
+      startDate: makeIsoDate(crossMonthYear, frenchCrossMonthRange[2], frenchCrossMonthRange[1]),
+      endDate: makeIsoDate(crossMonthYear, frenchCrossMonthRange[4], frenchCrossMonthRange[3])
     };
   }
 
-  const frenchRange = value.match(/\b(?:du\s*)?([0-3]?[0-9])(?:\s*(?:au|et|-|–)\s*([0-3]?[0-9]))?\s+(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\s+(20[0-9]{2})/i);
-  if (frenchRange) {
+  const frenchRange = value.match(new RegExp(`\\b(?:du\\s*)?([0-3]?[0-9])(?:\\s*(?:au|et|&|-|–)\\s*([0-3]?[0-9]))?\\s+(${months})(?:\\s+(20[0-9]{2}))?\\b`, "i"));
+  const frenchYear = frenchRange?.[4] || contextYear;
+  if (frenchRange && frenchYear) {
     return {
-      startDate: makeIsoDate(frenchRange[4], frenchRange[3], frenchRange[1]),
-      endDate: frenchRange[2] ? makeIsoDate(frenchRange[4], frenchRange[3], frenchRange[2]) : ""
+      startDate: makeIsoDate(frenchYear, frenchRange[3], frenchRange[1]),
+      endDate: frenchRange[2] ? makeIsoDate(frenchYear, frenchRange[3], frenchRange[2]) : ""
     };
   }
 
