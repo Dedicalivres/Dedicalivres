@@ -1471,13 +1471,13 @@
     if (closedStates.includes(stored)) return stored;
     if (explicit && !WATCH_CANDIDATE_WORKFLOW_STATES.includes(explicit)) return "review";
     if (stored && !WATCH_CANDIDATE_WORKFLOW_STATES.includes(stored)) return "review";
+    if (WATCH_CANDIDATE_WORKFLOW_STATES.includes(explicit)) return explicit;
+    if (WATCH_CANDIDATE_WORKFLOW_STATES.includes(stored)) return stored;
 
     const handledInHistory = readHistory().some((entry) =>
       String(entry?.sourceUrl || "") === String(item?.sourceUrl || item?.origin_url || "")
     );
     if (handledInHistory) return "handled";
-    if (WATCH_CANDIDATE_WORKFLOW_STATES.includes(explicit)) return explicit;
-    if (WATCH_CANDIDATE_WORKFLOW_STATES.includes(stored)) return stored;
 
     const inferred = inferWatchCandidateWorkflowState(item);
     return WATCH_CANDIDATE_WORKFLOW_STATES.includes(inferred) ? inferred : "review";
