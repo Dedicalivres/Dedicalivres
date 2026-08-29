@@ -348,6 +348,25 @@ const publicationOnlyHtml = `
 </html>
 `;
 
+const navigationNoiseHtml = `
+<html>
+<head>
+  <title>Actualités de la médiathèque</title>
+  <meta property="og:title" content="Actualités de la médiathèque">
+  <meta property="og:description" content="Informations pratiques et nouveautés">
+</head>
+<body>
+  <nav>Agenda · Festival du livre · Rencontres · Dédicaces</nav>
+  <main>
+    <h1>Actualités de la médiathèque</h1>
+    <p>Article publié le 20 novembre 2026.</p>
+    <p>Consultez les nouveaux horaires et services disponibles.</p>
+  </main>
+  <footer>Retrouvez aussi notre festival du livre annuel.</footer>
+</body>
+</html>
+`;
+
 const lirolac = sandbox.extractCandidateFromHtml(lirolacHtml, {
   sourceUrl: "https://example.org/actualites/lirolac-les-26-et-27-septembre",
   filters: {}
@@ -360,10 +379,19 @@ const publicationOnly = sandbox.extractCandidateFromHtml(publicationOnlyHtml, {
   sourceUrl: "https://example.org/actualites/",
   filters: {}
 });
+const navigationNoise = sandbox.extractCandidateFromHtml(navigationNoiseHtml, {
+  sourceUrl: "https://example.org/actualites/services-mediatheque",
+  filters: {}
+});
 
 assert(
   lirolac.startDate === "2026-09-26" && lirolac.endDate === "2026-09-27",
   "la plage 26 & 27 septembre doit gagner sur la date éditoriale du 24 août"
+);
+
+assert(
+  lirolac.status !== "Non événement",
+  "le signal Festival du livre du corps LirÔlac doit être visible par l’event-likeness"
 );
 
 assert(
@@ -376,6 +404,11 @@ assert(
   publicationOnly.startDate === "" &&
   publicationOnly.confidence <= 18,
   "une page générique avec une seule date de publication ne doit pas devenir un événement"
+);
+
+assert(
+  navigationNoise.status === "Non événement",
+  "un mot événementiel présent seulement dans la navigation ou le footer ne doit pas valider une page générique"
 );
 
 console.log("TEST_EVENT_DATE_PRECEDENCE_OK");
