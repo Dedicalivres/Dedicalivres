@@ -172,6 +172,10 @@ const unavailableClient = createReadOnlyClient(() => ({
 api.setClient(unavailableClient);
 const unavailableSnapshot = await api.loadWatchPersistenceSnapshot();
 assert.equal(unavailableSnapshot.availability, "unavailable", "Le réseau indisponible doit activer le fallback");
+assert.deepEqual(
+  { ...unavailableSnapshot.componentAvailability },
+  { candidates: "unavailable", sources: "unavailable", eventAlerts: "unavailable" }
+);
 assert.equal(api.readProductiveSources()[0].observedCount, 3, "Les métriques locales doivent rester lisibles");
 assert.equal(api.getLastResults(), sessionResults, "Le snapshot serveur ne doit pas remplacer lastResults");
 
@@ -183,6 +187,10 @@ const missingClient = createReadOnlyClient(() => ({
 api.setClient(missingClient);
 const missingSnapshot = await api.loadWatchPersistenceSnapshot();
 assert.equal(missingSnapshot.availability, "unavailable", "Les tables absentes doivent conserver le mode local");
+assert.deepEqual(
+  { ...missingSnapshot.componentAvailability },
+  { candidates: "table-missing", sources: "table-missing", eventAlerts: "table-missing" }
+);
 assert.deepEqual([...missingSnapshot.errors], ["table-missing", "table-missing", "table-missing"]);
 
 const candidate = {
@@ -282,6 +290,10 @@ for (const id of [
 }
 const emptySnapshot = await api.loadWatchPersistenceSnapshot();
 assert.equal(emptySnapshot.availability, "server", "Un snapshot serveur vide mais lisible reste disponible");
+assert.deepEqual(
+  { ...emptySnapshot.componentAvailability },
+  { candidates: "available", sources: "available", eventAlerts: "available" }
+);
 assert.equal(elements.get("watch-operations-candidates-count").textContent, "0");
 assert.equal(elements.get("watch-persistence-status").textContent, "Persistance : Serveur");
 assert.equal(emptyClient.calls.length, 3);
