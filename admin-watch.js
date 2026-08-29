@@ -460,8 +460,18 @@
   }
 
   function createEmptyWatchPersistenceSnapshot(availability = "local") {
+    const componentState = availability === "server"
+      ? "available"
+      : availability === "unavailable"
+        ? "unavailable"
+        : "not-configured";
     return {
       availability,
+      componentAvailability: {
+        candidates: componentState,
+        sources: componentState,
+        eventAlerts: componentState
+      },
       candidates: [],
       sources: [],
       eventAlerts: [],
@@ -599,6 +609,11 @@
 
     watchPersistenceSnapshot = {
       availability,
+      componentAvailability: {
+        candidates: reads[0].state,
+        sources: reads[1].state,
+        eventAlerts: reads[2].state
+      },
       candidates: reads[0].rows,
       sources: reads[1].rows,
       eventAlerts: reads[2].rows,
@@ -1586,7 +1601,7 @@
   async function buildControlledWatchImportPlan() {
     const plan = {
       candidates: { create: [], existing: [], skipped: 0 },
-      sources: { create: [], existing: [], skipped: 0 }
+      sources: { create: [], existing: [], skipped: 0, blocked: 0 }
     };
     const candidateIdentities = new Set();
     const sourceIdentities = new Set();
@@ -1615,6 +1630,10 @@
           continue;
         }
         sourceIdentities.add(entry.payload.url_hash);
+        if (!isWatchPersistenceComponentAvailable(watchPersistenceSnapshot, "sources")) {
+          plan.sources.blocked += 1;
+          continue;
+        }
         const existing = findServerWatchSource(entry.payload);
         if (existing) plan.sources.existing.push(existing);
         else plan.sources.create.push(entry);
@@ -1666,6 +1685,16 @@
     pendingWatchImportSnapshot = null;
   }
 
+  function isWatchPersistenceComponentAvailable(snapshot, component) {
+    return snapshot?.componentAvailability?.[component] === "available";
+  }
+
+  function canUseControlledWatchImportPlan(snapshot, plan) {
+    if (!isWatchPersistenceComponentAvailable(snapshot, "candidates")) return false;
+    if (plan?.sources?.blocked) return false;
+    return !plan?.sources?.create?.length || isWatchPersistenceComponentAvailable(snapshot, "sources");
+  }
+
   function renderControlledWatchImportUnavailable(message = "Précontrôle serveur indisponible. L’import n’a pas été préparé et les données locales sont conservées.") {
     const panel = document.getElementById("watch-import-preview");
     const summary = document.getElementById("watch-import-summary");
@@ -1688,15 +1717,20 @@
     if (confirmButton) confirmButton.disabled = true;
     try {
       if (watchPersistenceLoadPromise) await watchPersistenceLoadPromise;
-      if (watchPersistenceSnapshot.availability !== "server") {
-        renderControlledWatchImportUnavailable();
-        showWatchPersistenceNotice("Précontrôle serveur indisponible. Import local non préparé.");
+      if (!isWatchPersistenceComponentAvailable(watchPersistenceSnapshot, "candidates")) {
+        renderControlledWatchImportUnavailable("Précontrôle serveur des candidats indisponible. L’import n’a pas été préparé et les données locales sont conservées.");
+        showWatchPersistenceNotice("Précontrôle serveur des candidats indisponible. Import local non préparé.");
         return null;
       }
       const previewSnapshot = watchPersistenceSnapshot;
       const plan = await buildControlledWatchImportPlan();
-      if (watchPersistenceSnapshot !== previewSnapshot || watchPersistenceSnapshot.availability !== "server") {
+      if (watchPersistenceSnapshot !== previewSnapshot || !isWatchPersistenceComponentAvailable(watchPersistenceSnapshot, "candidates")) {
         renderControlledWatchImportUnavailable("Le précontrôle serveur a changé. Relance la prévisualisation avant de confirmer l’import.");
+        return null;
+      }
+      if (!canUseControlledWatchImportPlan(previewSnapshot, plan)) {
+        renderControlledWatchImportUnavailable("Précontrôle serveur des sources indisponible. Aucune source ne sera proposée à l’import.");
+        showWatchPersistenceNotice("Précontrôle serveur des sources indisponible. Import local non préparé.");
         return null;
       }
       pendingWatchImportPlan = plan;
@@ -1873,7 +1907,7 @@
 
   async function confirmControlledWatchImport() {
     if (!pendingWatchImportPlan || !pendingWatchImportSnapshot) return null;
-    if (watchPersistenceSnapshot !== pendingWatchImportSnapshot || watchPersistenceSnapshot.availability !== "server") {
+    if (watchPersistenceSnapshot !== pendingWatchImportSnapshot || !canUseControlledWatchImportPlan(watchPersistenceSnapshot, pendingWatchImportPlan)) {
       clearPendingControlledWatchImport();
       renderControlledWatchImportUnavailable("Ce précontrôle serveur n’est plus à jour. Relance la prévisualisation avant de confirmer l’import.");
       return null;

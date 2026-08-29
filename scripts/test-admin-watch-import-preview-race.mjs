@@ -10,8 +10,8 @@ for (const fragment of [
   "let pendingWatchImportSnapshot = null;",
   "function startWatchPersistenceLoad()",
   "if (watchPersistenceLoadPromise) await watchPersistenceLoadPromise;",
-  'watchPersistenceSnapshot.availability !== "server"',
-  "Précontrôle serveur indisponible",
+  'isWatchPersistenceComponentAvailable(watchPersistenceSnapshot, "candidates")',
+  "Précontrôle serveur des candidats indisponible",
   "watchPersistenceSnapshot !== pendingWatchImportSnapshot"
 ]) {
   assert.ok(source.includes(fragment), `Protection de preview manquante : ${fragment}`);
@@ -256,7 +256,7 @@ await failingLoad;
 assert.equal(failedPlan, null, "Une existence serveur inconnue ne doit produire aucun plan");
 assert.equal(api.getPendingPlan(), null);
 assert.equal(elements.get("watch-import-confirm-btn").disabled, true, "La confirmation doit être impossible en erreur serveur");
-assert.match(elements.get("watch-import-summary").textContent, /Précontrôle serveur indisponible/);
+assert.match(elements.get("watch-import-summary").textContent, /Précontrôle serveur des candidats indisponible/);
 assert.equal(failureClient.calls.length, 3, "L’erreur serveur ne doit pas provoquer de nouvelle tentative depuis la preview");
 assert.equal(await api.confirmControlledWatchImport(), null);
 assert.deepEqual(new Map(storage), localBeforeFailure, "Le fallback local doit rester strictement intact");

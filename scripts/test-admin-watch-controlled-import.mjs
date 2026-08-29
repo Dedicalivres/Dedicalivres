@@ -78,7 +78,8 @@ const instrumented = source.replace(/\}\)\(\);\s*$/, `
   globalThis.__WATCH_CONTROLLED_IMPORT_TEST_API__ = {
     setClient(value) { client = value; },
     setSnapshot(value) {
-      watchPersistenceSnapshot = { ...createEmptyWatchPersistenceSnapshot(), ...(value || {}) };
+      const base = createEmptyWatchPersistenceSnapshot(value?.availability || "local");
+      watchPersistenceSnapshot = { ...base, ...(value || {}) };
     },
     getSnapshot() { return watchPersistenceSnapshot; },
     setLastResults(value) { lastResults = value; },
