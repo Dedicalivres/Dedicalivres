@@ -298,3 +298,84 @@ assert(
 );
 
 console.log("TEST_CITY_POSTAL_OK");
+
+// ============================================================
+// DATE ÉVÉNEMENT VS DATE ÉDITORIALE
+// ============================================================
+
+const lirolacHtml = `
+<html>
+<head>
+  <title>Mairie de Talloires - Montmin - LirÔlac les 26 &amp; 27 septembre</title>
+  <meta property='og:title' content='LirÔlac les 26 &amp; 27 septembre'>
+  <meta property='og:description' content='La liste des auteurs 2026'>
+</head>
+<body>
+  <h2>LirÔlac les 26 &amp; 27 septembre</h2>
+  <span class='news_date'>24 Août 2026</span>
+  <p><strong>Rendez-vous samedi 26 et dimanche 27 septembre dans la baie de Talloires.</strong></p>
+  <p>Festival du livre à 74290 Talloires-Montmin.</p>
+</body>
+</html>
+`;
+
+const publicationBeforeEventHtml = `
+<html>
+<head>
+  <title>Rencontre littéraire avec Alice Martin le 18 octobre 2026</title>
+  <meta property="article:published_time" content="2026-09-05T09:00:00+02:00">
+  <meta property="og:title" content="Rencontre littéraire avec Alice Martin le 18 octobre 2026">
+</head>
+<body>
+  <time class="entry-date published" datetime="2026-09-05">Publié le 5 septembre 2026</time>
+  <h1>Rencontre littéraire avec Alice Martin</h1>
+  <p>La rencontre aura lieu le 18 octobre 2026 à Lyon.</p>
+</body>
+</html>
+`;
+
+const publicationOnlyHtml = `
+<html>
+<head>
+  <title>Actualités de la médiathèque</title>
+  <meta property="article:published_time" content="2026-08-24T09:00:00+02:00">
+</head>
+<body>
+  <h1>Actualités</h1>
+  <span class="news_date">24 août 2026</span>
+  <p>Retrouvez les dernières informations de la médiathèque.</p>
+</body>
+</html>
+`;
+
+const lirolac = sandbox.extractCandidateFromHtml(lirolacHtml, {
+  sourceUrl: "https://example.org/actualites/lirolac-les-26-et-27-septembre",
+  filters: {}
+});
+const publicationBeforeEvent = sandbox.extractCandidateFromHtml(publicationBeforeEventHtml, {
+  sourceUrl: "https://example.org/actualites/rencontre-alice-martin",
+  filters: {}
+});
+const publicationOnly = sandbox.extractCandidateFromHtml(publicationOnlyHtml, {
+  sourceUrl: "https://example.org/actualites/",
+  filters: {}
+});
+
+assert(
+  lirolac.startDate === "2026-09-26" && lirolac.endDate === "2026-09-27",
+  "la plage 26 & 27 septembre doit gagner sur la date éditoriale du 24 août"
+);
+
+assert(
+  publicationBeforeEvent.startDate === "2026-10-18",
+  "une date événementielle explicite doit gagner sur une date de publication antérieure"
+);
+
+assert(
+  publicationOnly.status === "Non événement" &&
+  publicationOnly.startDate === "" &&
+  publicationOnly.confidence <= 18,
+  "une page générique avec une seule date de publication ne doit pas devenir un événement"
+);
+
+console.log("TEST_EVENT_DATE_PRECEDENCE_OK");
