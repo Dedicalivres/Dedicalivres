@@ -19,9 +19,12 @@
   const WATCH_SERVER_ALERTS_LIMIT = 300;
   const WATCH_SERVER_CANDIDATE_COLUMNS = "id,identity_key,origin_url,canonical_origin_url,title,start_date,city,source_id,workflow_status,duplicate_event_id,submitted_event_id,status_updated_at,status_updated_by,updated_at,version,last_seen_at";
   const WATCH_SERVER_SOURCE_COLUMNS = "id,canonical_url,url_hash,source_url,title,observed_count,complete_count,review_count,rejected_count,duplicate_certain_count,duplicate_probable_count,with_image_count,without_image_count,analyses_count,metrics_since,first_seen_at,last_seen_at,is_active,updated_at,version";
+  const WATCH_SERVER_EVENT_ALERT_COLUMNS = "id,identity_key,engine_origin,engine_alert_id,event_id,field,field_label,event_title,event_date,event_city,old_value,new_value,source_url,proof,detected_at,confidence,status_label,workflow_status,status_updated_at,status_updated_by,updated_at,version";
   const WATCH_CONTROLLED_IMPORT_CONCURRENCY = 3;
   const WATCH_CANDIDATE_WORKFLOW_STATES = ["ready", "review", "duplicate", "submitted", "handled", "rejected"];
   const WATCH_CANDIDATE_CLOSED_STATES = ["duplicate", "submitted", "handled", "rejected"];
+  const EVENT_WATCH_WORKFLOW_STATES = ["review", "confirmed", "ignored", "handled"];
+  const EVENT_WATCH_CLOSED_STATES = ["ignored", "handled"];
   const PRODUCTIVE_COMPLETE_THRESHOLD = 10;
   const WATCH_PAGE_SIZE = 15;
   const DUPLICATE_CHECK_CONCURRENCY = 4;
@@ -576,7 +579,7 @@
   function readServerEventWatchAlerts() {
     return readServerWatchRows(
       "admin_event_watch_alerts",
-      "identity_key,engine_alert_id,event_id,field,event_title,event_date,event_city,source_url,detected_at,workflow_status,status_updated_at,version",
+      WATCH_SERVER_EVENT_ALERT_COLUMNS,
       "detected_at",
       WATCH_SERVER_ALERTS_LIMIT
     );
@@ -847,6 +850,314 @@
     return watchPersistenceSnapshot.eventAlerts.find((serverAlert) =>
       getEventWatchPersistenceKeys(serverAlert).some((key) => localKeys.has(key))
     ) || null;
+  }
+
+  function adoptServerEventWatchAlert(row) {
+    if (!row || !isUuid(row.id)) return null;
+    const eventAlerts = [...watchPersistenceSnapshot.eventAlerts];
+    const rowKeys = new Set(getEventWatchPersistenceKeys(row));
+    const index = eventAlerts.findIndex((alert) =>
+      alert?.id === row.id || getEventWatchPersistenceKeys(alert).some((key) => rowKeys.has(key))
+    );
+    if (index >= 0) eventAlerts[index] = { ...eventAlerts[index], ...row };
+    else eventAlerts.unshift(row);
+    watchPersistenceSnapshot = { ...watchPersistenceSnapshot, eventAlerts };
+    return row;
+  }
+
+  function normalizeEventWatchTimestamp(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+  }
+
+  function compactEventWatchText(value, maximumLength = 500) {
+    return cleanText(value)
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, maximumLength);
+  }
+
+  function compactEventWatchJson(value, depth = 0) {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "string") return compactEventWatchText(value, 2000) || null;
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+    if (typeof value === "boolean") return value;
+    if (depth >= 3) return compactEventWatchText(formatEventWatchValue(value), 500) || null;
+    if (Array.isArray(value)) {
+      return value.slice(0, 20).map((item) => compactEventWatchJson(item, depth + 1));
+    }
+    if (typeof value === "object") {
+      const compact = {};
+      Object.keys(value).sort().slice(0, 30).forEach((key) => {
+        compact[compactEventWatchText(key, 100)] = compactEventWatchJson(value[key], depth + 1);
+      });
+      return JSON.stringify(compact).length <= 6000 ? compact : null;
+    }
+    return compactEventWatchText(value, 500) || null;
+  }
+
+  function stableEventWatchJson(value) {
+    const compact = compactEventWatchJson(value);
+    if (!compact || typeof compact !== "object" || Array.isArray(compact)) {
+      return JSON.stringify(compact);
+    }
+    const sorted = {};
+    Object.keys(compact).sort().forEach((key) => {
+      const child = compact[key];
+      sorted[key] = child && typeof child === "object" && !Array.isArray(child)
+        ? JSON.parse(stableEventWatchJson(child))
+        : child;
+    });
+    return JSON.stringify(sorted);
+  }
+
+  function normalizeEventWatchConfidence(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const confidence = Number(value);
+    if (!Number.isFinite(confidence) || confidence < 0) return null;
+    if (confidence <= 1) return confidence;
+    return confidence <= 100 ? confidence / 100 : null;
+  }
+
+  async function buildServerEventWatchAlertPayload(alert, nextWorkflowStatus) {
+    if (!alert) return null;
+    const engineAlertId = compactEventWatchText(alert.engine_alert_id || alert.engineAlertId || alert.id, 500);
+    const eventId = alert.dedicalivres_event_id || alert.event_id;
+    const field = compactEventWatchText(alert.field, 200);
+    const detectedAt = normalizeEventWatchTimestamp(alert.detected_at);
+    if (!field || !detectedAt) return null;
+
+    const sourceUrl = normalizeWatchPersistenceUrl(
+      alert.source || alert?.proof?.url || alert.source_url
+    );
+    const normalizedEventId = isUuid(eventId) ? eventId : null;
+    const identitySeed = engineAlertId
+      ? ["automatte-local", "engine", engineAlertId].join("|")
+      : [
+          normalizedEventId || "",
+          normalizeForCompare(field),
+          stableEventWatchJson(alert.old_value),
+          stableEventWatchJson(alert.new_value),
+          sourceUrl,
+          detectedAt
+        ].join("|");
+    const identityKey = compactEventWatchText(alert.identity_key || alert.identityKey, 500) ||
+      await createWatchPersistenceHash("event-watch:v1", identitySeed);
+    const eventDate = normalizeIsoDate(alert.event_date || "");
+    const payload = {
+      identity_key: identityKey,
+      engine_origin: "automatte-local",
+      engine_alert_id: engineAlertId || null,
+      event_id: normalizedEventId,
+      field,
+      field_label: compactEventWatchText(alert.field_label, 300) || null,
+      event_title: compactEventWatchText(alert.event_title, 500) || null,
+      event_date: /^20[0-9]{2}-[0-9]{2}-[0-9]{2}$/.test(eventDate) ? eventDate : null,
+      event_city: compactEventWatchText(alert.event_city, 300) || null,
+      old_value: compactEventWatchJson(alert.old_value),
+      new_value: compactEventWatchJson(alert.new_value),
+      source_url: sourceUrl || null,
+      proof: compactEventWatchJson(alert.proof),
+      detected_at: detectedAt,
+      confidence: normalizeEventWatchConfidence(alert.confidence),
+      status_label: compactEventWatchText(alert.status_label, 300) || null,
+      workflow_status: EVENT_WATCH_WORKFLOW_STATES.includes(nextWorkflowStatus)
+        ? nextWorkflowStatus
+        : "review"
+    };
+    return payload;
+  }
+
+  function isEventWatchUniqueViolation(error) {
+    return String(error?.code || "") === "23505";
+  }
+
+  async function readLatestServerEventWatchAlert(reference) {
+    if (!client || typeof client.from !== "function") {
+      return { status: "unavailable", row: null, error: new Error("Client Supabase indisponible") };
+    }
+
+    try {
+      let query = client.from("admin_event_watch_alerts").select(WATCH_SERVER_EVENT_ALERT_COLUMNS);
+      const engineAlertId = cleanText(reference?.engine_alert_id || reference?.engineAlertId);
+      const identityKey = cleanText(reference?.identity_key || reference?.identityKey);
+      if (isUuid(reference?.id)) {
+        query = query.eq("id", reference.id);
+      } else if (engineAlertId) {
+        query = query.eq("engine_origin", "automatte-local").eq("engine_alert_id", engineAlertId);
+      } else if (identityKey) {
+        query = query.eq("identity_key", identityKey);
+      } else {
+        return { status: "missing", row: null, error: null };
+      }
+      const response = await awaitWatchPersistenceQuery(query.limit(1));
+      if (response?.error) return { status: "unavailable", row: null, error: response.error };
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      return rows[0]
+        ? { status: "success", row: rows[0], error: null }
+        : { status: "missing", row: null, error: null };
+    } catch (error) {
+      return { status: "unavailable", row: null, error };
+    }
+  }
+
+  async function executeServerEventWatchUpdate(serverAlert, expectedVersion, nextWorkflowStatus) {
+    try {
+      const query = client
+        .from("admin_event_watch_alerts")
+        .update({ workflow_status: nextWorkflowStatus })
+        .eq("id", serverAlert.id)
+        .eq("version", Number(expectedVersion))
+        .select(WATCH_SERVER_EVENT_ALERT_COLUMNS);
+      const response = await awaitWatchPersistenceQuery(query);
+      if (response?.error) return { status: "unavailable", row: null, error: response.error };
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      if (rows.length === 1) return { status: "success", row: rows[0], error: null };
+      if (rows.length === 0) return { status: "conflict", row: null, error: null };
+      return { status: "unavailable", row: null, error: new Error("Réponse Event Watch ambiguë") };
+    } catch (error) {
+      return { status: "unavailable", row: null, error };
+    }
+  }
+
+  async function updateServerEventWatchAlertOptimistically(serverAlert, expectedVersion, nextWorkflowStatus) {
+    if (!client || typeof client.from !== "function") {
+      return { status: "unavailable", row: null, error: new Error("Client Supabase indisponible") };
+    }
+    if (
+      !isUuid(serverAlert?.id) ||
+      !Number.isInteger(Number(expectedVersion)) ||
+      Number(expectedVersion) < 1 ||
+      !EVENT_WATCH_WORKFLOW_STATES.includes(nextWorkflowStatus)
+    ) {
+      return { status: "missing", row: null, error: null };
+    }
+
+    const serverState = String(serverAlert.workflow_status || "");
+    if (EVENT_WATCH_CLOSED_STATES.includes(serverState)) {
+      return serverState === nextWorkflowStatus
+        ? { status: "success", row: serverAlert, error: null }
+        : { status: "conflict", row: serverAlert, error: null };
+    }
+
+    const firstAttempt = await executeServerEventWatchUpdate(serverAlert, expectedVersion, nextWorkflowStatus);
+    if (firstAttempt.status !== "conflict") return firstAttempt;
+
+    const latest = await readLatestServerEventWatchAlert(serverAlert);
+    if (latest.status !== "success") return latest;
+    const latestState = String(latest.row.workflow_status || "");
+    if (latestState === nextWorkflowStatus) return latest;
+    if (EVENT_WATCH_CLOSED_STATES.includes(latestState)) {
+      return { status: "conflict", row: latest.row, error: null };
+    }
+
+    const secondAttempt = await executeServerEventWatchUpdate(
+      latest.row,
+      latest.row.version,
+      nextWorkflowStatus
+    );
+    return secondAttempt.status === "conflict"
+      ? { status: "conflict", row: latest.row, error: null }
+      : secondAttempt;
+  }
+
+  async function insertServerEventWatchAlert(payload) {
+    if (!client || typeof client.from !== "function") {
+      return { status: "unavailable", row: null, error: new Error("Client Supabase indisponible") };
+    }
+    try {
+      const query = client
+        .from("admin_event_watch_alerts")
+        .insert([payload])
+        .select(WATCH_SERVER_EVENT_ALERT_COLUMNS);
+      const response = await awaitWatchPersistenceQuery(query);
+      if (response?.error && isEventWatchUniqueViolation(response.error)) {
+        const latest = await readLatestServerEventWatchAlert(payload);
+        if (latest.status !== "success") return latest;
+        if (latest.row.workflow_status === payload.workflow_status) return latest;
+        return updateServerEventWatchAlertOptimistically(
+          latest.row,
+          latest.row.version,
+          payload.workflow_status
+        );
+      }
+      if (response?.error) return { status: "unavailable", row: null, error: response.error };
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      return rows.length === 1
+        ? { status: "success", row: rows[0], error: null }
+        : { status: "unavailable", row: null, error: new Error("Réponse INSERT Event Watch ambiguë") };
+    } catch (error) {
+      return { status: "unavailable", row: null, error };
+    }
+  }
+
+  function refreshEventWatchWorkflowView() {
+    renderEventWatchAlerts();
+    updateWatchOperationsDashboard();
+  }
+
+  function showEventWatchPersistenceNotice(message, tone = "warning") {
+    showWatchPersistenceNotice(message, tone);
+    setEventWatchStatus(message, tone);
+  }
+
+  async function persistEventWatchDecision(alert, nextWorkflowStatus) {
+    if (!alert || !["confirmed", "ignored", "handled"].includes(nextWorkflowStatus)) {
+      return { status: "unavailable", row: null, error: new Error("Décision Event Watch invalide") };
+    }
+
+    const serverAlert = findServerEventWatchAlert(alert);
+    const serverState = String(serverAlert?.workflow_status || "");
+    if (EVENT_WATCH_CLOSED_STATES.includes(serverState) && serverState !== nextWorkflowStatus) {
+      adoptServerEventWatchAlert(serverAlert);
+      writeLocalEventWatchWorkflowState(alert, serverState, serverAlert.status_updated_at);
+      setWatchPersistenceAvailabilityAfterWrite("conflict");
+      showEventWatchPersistenceNotice("Cette décision Event Watch a été modifiée dans une autre session.");
+      refreshEventWatchWorkflowView();
+      return { status: "conflict", row: serverAlert, error: null };
+    }
+
+    let result;
+    if (serverAlert && isUuid(serverAlert.id)) {
+      result = await updateServerEventWatchAlertOptimistically(
+        serverAlert,
+        serverAlert.version,
+        nextWorkflowStatus
+      );
+    } else {
+      const payload = await buildServerEventWatchAlertPayload(alert, nextWorkflowStatus);
+      if (!payload) {
+        result = { status: "missing", row: null, error: new Error("Alerte Event Watch incomplète") };
+      } else {
+        alert.identityKey = payload.identity_key;
+        result = await insertServerEventWatchAlert(payload);
+      }
+    }
+
+    if (result.status === "success" && result.row) {
+      adoptServerEventWatchAlert(result.row);
+      writeLocalEventWatchWorkflowState(alert, result.row.workflow_status, result.row.status_updated_at);
+      lastWatchPersistenceNotice = "";
+      setWatchPersistenceAvailabilityAfterWrite("success");
+      setEventWatchStatus(`Décision Event Watch synchronisée : ${getEventWatchWorkflowLabel(result.row.workflow_status)}.`);
+      refreshEventWatchWorkflowView();
+      return result;
+    }
+
+    if (result.status === "conflict" && result.row) {
+      adoptServerEventWatchAlert(result.row);
+      writeLocalEventWatchWorkflowState(alert, result.row.workflow_status, result.row.status_updated_at);
+      setWatchPersistenceAvailabilityAfterWrite("conflict");
+      showEventWatchPersistenceNotice("Cette décision Event Watch a été modifiée dans une autre session.");
+      refreshEventWatchWorkflowView();
+      return result;
+    }
+
+    setWatchPersistenceAvailabilityAfterWrite(result.status);
+    showEventWatchPersistenceNotice("Décision Event Watch enregistrée localement.");
+    return result;
   }
 
   function resolveWatchPersistenceWorkflow(localEntry, serverEntry, allowedStates, closedStates) {
@@ -1809,6 +2120,17 @@
     localStorage.setItem(EVENT_WATCH_WORKFLOW_KEY, JSON.stringify(workflow || {}));
   }
 
+  function writeLocalEventWatchWorkflowState(alert, state, updatedAt = "") {
+    if (!alert || !EVENT_WATCH_WORKFLOW_STATES.includes(state)) return false;
+    const workflow = readEventWatchWorkflow();
+    workflow[getEventWatchAlertKey(alert)] = {
+      state,
+      updatedAt: updatedAt || new Date().toISOString()
+    };
+    writeEventWatchWorkflow(workflow);
+    return true;
+  }
+
   function getEventWatchWorkflowEntry(alert) {
     const allowedStates = ["review", "confirmed", "ignored", "handled"];
     const localEntry = readEventWatchWorkflow()[getEventWatchAlertKey(alert)];
@@ -1850,6 +2172,12 @@
     writeEventWatchWorkflow(workflow);
     renderEventWatchAlerts();
     setEventWatchStatus(`État local : ${getEventWatchWorkflowLabel(state)}. Aucun événement n’a été modifié.`);
+    return persistEventWatchDecision(alert, state).catch((error) => {
+      setWatchPersistenceAvailabilityAfterWrite("unavailable");
+      showEventWatchPersistenceNotice("Décision Event Watch enregistrée localement.");
+      console.warn("Persistance de la décision Event Watch impossible :", error);
+      return { status: "unavailable", row: null, error };
+    });
   }
 
   function resetEventWatchWorkflow() {
