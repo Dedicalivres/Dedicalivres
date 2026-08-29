@@ -940,8 +940,7 @@
           normalizeForCompare(field),
           stableEventWatchJson(alert.old_value),
           stableEventWatchJson(alert.new_value),
-          sourceUrl,
-          detectedAt
+          sourceUrl
         ].join("|");
     const identityKey = compactEventWatchText(alert.identity_key || alert.identityKey, 500) ||
       await createWatchPersistenceHash("event-watch:v1", identitySeed);
