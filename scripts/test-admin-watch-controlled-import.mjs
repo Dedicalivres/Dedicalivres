@@ -313,21 +313,83 @@ assert.equal(
   "Un url_hash local existant doit être réutilisé"
 );
 
-// R/S/T. UUID liés filtrés, workflow invalide sûr et état fermé conservé.
+// R/S/T. UUID liés filtrés et priorité workflow sûre.
 assert.ok(!Object.hasOwn(firstCandidateIdentity.payload, "duplicate_event_id"));
 assert.equal(firstCandidateIdentity.payload.submitted_event_id, candidateToCreate.submittedEventId);
+
+// Un état courant explicite reste prioritaire sur l'ancien historique par URL.
+localStorage.setItem(WORKFLOW_KEY, "{}");
+localStorage.setItem(HISTORY_KEY, JSON.stringify([{ sourceUrl: candidateToCreate.sourceUrl }]));
+const explicitReadyWithHistory = await api.buildControlledImportCandidate(candidateToCreate);
+assert.equal(explicitReadyWithHistory.payload.workflow_status, "ready");
+
+// Sans workflow précis, l'historique legacy conserve son rôle de fallback handled.
+const legacyCandidate = {
+  sourceUrl: "https://events.example/legacy-history",
+  title: "Salon legacy",
+  startDate: "2026-10-12",
+  city: "Paris"
+};
+localStorage.setItem(HISTORY_KEY, JSON.stringify([{ sourceUrl: legacyCandidate.sourceUrl }]));
+const legacyHandled = await api.buildControlledImportCandidate(legacyCandidate);
+assert.equal(legacyHandled.payload.workflow_status, "handled");
+
+// Un état workflow local actif est lui aussi plus précis que l'historique legacy.
+const storedReviewCandidate = {
+  ...legacyCandidate,
+  sourceUrl: "https://events.example/stored-review"
+};
+localStorage.setItem(WORKFLOW_KEY, JSON.stringify({
+  [`url:${storedReviewCandidate.sourceUrl}`]: { state: "review" }
+}));
+localStorage.setItem(HISTORY_KEY, JSON.stringify([{ sourceUrl: storedReviewCandidate.sourceUrl }]));
+const storedReview = await api.buildControlledImportCandidate(storedReviewCandidate);
+assert.equal(storedReview.payload.workflow_status, "review");
+
 const invalidWorkflow = await api.buildControlledImportCandidate({
   ...candidateToCreate,
   sourceUrl: "https://events.example/invalid-workflow",
   workflowStatus: "inconnu"
 });
 assert.equal(invalidWorkflow.payload.workflow_status, "review");
-const closedWorkflow = await api.buildControlledImportCandidate({
-  ...candidateToCreate,
-  sourceUrl: "https://events.example/closed",
-  workflowStatus: "rejected"
-});
-assert.equal(closedWorkflow.payload.workflow_status, "rejected");
+
+// Tous les états fermés explicites restent fermés.
+for (const state of ["handled", "rejected", "duplicate", "submitted"]) {
+  const closedWorkflow = await api.buildControlledImportCandidate({
+    ...candidateToCreate,
+    sourceUrl: `https://events.example/closed-explicit-${state}`,
+    workflowStatus: state
+  });
+  assert.equal(closedWorkflow.payload.workflow_status, state);
+}
+
+// Un état fermé réellement stocké ne peut pas être rouvert par un ready courant.
+for (const state of ["handled", "rejected", "duplicate", "submitted"]) {
+  const storedClosedCandidate = {
+    ...candidateToCreate,
+    sourceUrl: `https://events.example/closed-stored-${state}`,
+    workflowStatus: "ready"
+  };
+  localStorage.setItem(WORKFLOW_KEY, JSON.stringify({
+    [`url:${storedClosedCandidate.sourceUrl}`]: { state }
+  }));
+  localStorage.setItem(HISTORY_KEY, "[]");
+  const storedClosed = await api.buildControlledImportCandidate(storedClosedCandidate);
+  assert.equal(storedClosed.payload.workflow_status, state);
+}
+
+// Un état stocké invalide reste ramené vers review.
+const invalidStoredCandidate = {
+  ...legacyCandidate,
+  sourceUrl: "https://events.example/invalid-stored"
+};
+localStorage.setItem(WORKFLOW_KEY, JSON.stringify({
+  [`url:${invalidStoredCandidate.sourceUrl}`]: { state: "inconnu" }
+}));
+const invalidStored = await api.buildControlledImportCandidate(invalidStoredCandidate);
+assert.equal(invalidStored.payload.workflow_status, "review");
+localStorage.setItem(WORKFLOW_KEY, "{}");
+localStorage.setItem(HISTORY_KEY, "[]");
 
 // U. Une métrique explicitement NULL reste NULL, même si un total legacy existe.
 const nullMetricSource = await api.buildControlledImportSource({
