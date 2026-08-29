@@ -15,7 +15,7 @@
  * - ALLOWED_ADMIN_ORIGINS=https://dedicalivres.fr,https://www.dedicalivres.fr
  */
 
-const WORKER_VERSION = "2026-08-29-admin-watch-7-event-date-priority";
+const WORKER_VERSION = "2026-08-29-admin-watch-8-event-likeness-visible-text";
 const MAX_URLS_PER_REQUEST = 20;
 const MAX_RESULTS_PER_REQUEST = 40;
 const MAX_OPALE_LIST_DETAILS = 15;
@@ -251,6 +251,9 @@ function extractCandidateFromHtml(html, options = {}) {
   const event = events[0] || null;
   const visibleText = htmlToText(html);
   const eventVisibleText = htmlToText(removeEditorialDateElements(html));
+  const eventLikenessText = htmlToText(
+    removeNonContentElements(removeEditorialDateElements(html))
+  ).slice(0, 3000);
   const dateRange = resolveEventDateRange({
     event,
     titleText: [event?.name, meta["og:title"], meta["twitter:title"], titleTag].filter(Boolean).join("\n"),
@@ -301,7 +304,8 @@ function extractCandidateFromHtml(html, options = {}) {
   if (!event && !isLikelyHtmlEvent(candidate, {
     title,
     description,
-    sourceUrl
+    sourceUrl,
+    eventText: eventLikenessText
   })) {
     candidate.status = "Non événement";
     candidate.confidence = Math.min(candidate.confidence, 18);
@@ -681,6 +685,13 @@ function removeEditorialDateElements(html) {
   );
 }
 
+function removeNonContentElements(html) {
+  return String(html || "").replace(
+    /<(nav|header|footer|aside)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
+    " "
+  );
+}
+
 function detectContextYear(text) {
   return String(text || "").match(/\b(20[0-9]{2})\b/)?.[1] || "";
 }
@@ -773,7 +784,8 @@ function isLikelyHtmlEvent(candidate, context = {}) {
   const focusedText = normalizeForSearch([
     context.title,
     context.description,
-    context.sourceUrl
+    context.sourceUrl,
+    context.eventText
   ].filter(Boolean).join(" "));
 
   const strongEventTerms = [
