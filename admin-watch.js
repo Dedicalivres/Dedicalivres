@@ -348,7 +348,7 @@
       button.addEventListener("click", () => switchWatchWorkspaceView(button.dataset.watchSummaryView));
     });
     document.querySelector("[data-watch-finished-navigation]")?.addEventListener("click", () => {
-      watchQueueFilter = "handled";
+      watchQueueFilter = "finished";
       switchWatchWorkspaceView("candidates");
       renderResults(lastResults);
     });
@@ -2065,6 +2065,13 @@
     return result;
   }
 
+  function setWatchWorkerStatus(state, label) {
+    const workerStatus = document.getElementById("watch-worker-status");
+    if (!workerStatus) return;
+    workerStatus.textContent = label;
+    workerStatus.dataset.state = state;
+  }
+
   async function analyzeUrls() {
     const urls = document.getElementById("watch-urls")?.value.trim() || "";
     if (!urls) {
@@ -2087,16 +2094,23 @@
     setStatus("Analyse en cours via le Worker sécurisé...");
 
     try {
-      const payload = await callWatchWorker({
-        urls,
-        filters: {
-          country: document.getElementById("watch-country")?.value || "Tous",
-          type: document.getElementById("watch-type")?.value || "Tous",
-          mode: document.getElementById("watch-mode")?.value || "prepare",
-          offset: watchOffset,
-          limit: WATCH_PAGE_SIZE
-        }
-      });
+      let payload;
+      try {
+        payload = await callWatchWorker({
+          urls,
+          filters: {
+            country: document.getElementById("watch-country")?.value || "Tous",
+            type: document.getElementById("watch-type")?.value || "Tous",
+            mode: document.getElementById("watch-mode")?.value || "prepare",
+            offset: watchOffset,
+            limit: WATCH_PAGE_SIZE
+          }
+        });
+        setWatchWorkerStatus("available", "Worker : opérationnel");
+      } catch (error) {
+        setWatchWorkerStatus("unavailable", "Worker : indisponible");
+        throw error;
+      }
 
       lastWatchAnalysisAt = new Date().toISOString();
       lastResults = sortWatchResultsByCompleteness(Array.isArray(payload.results) ? payload.results : []);
@@ -2142,27 +2156,17 @@
   async function testWorkerHealth() {
     const endpoint = getWatchEndpoint(window.DEDICALIVRES_CONFIG || {});
     const healthUrl = endpoint.replace(/\/analyze\/?$/, "/health");
-    const workerStatus = document.getElementById("watch-worker-status");
-    if (workerStatus) {
-      workerStatus.textContent = "Worker : vérification…";
-      workerStatus.dataset.state = "pending";
-    }
+    setWatchWorkerStatus("pending", "Worker : vérification…");
     setStatus("Test de connexion au Worker...");
 
     try {
       const response = await fetch(`${healthUrl}?t=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) throw new Error(`Worker indisponible : HTTP ${response.status}`);
       const payload = await response.json();
-      if (workerStatus) {
-        workerStatus.textContent = "Worker : opérationnel";
-        workerStatus.dataset.state = "available";
-      }
+      setWatchWorkerStatus("available", "Worker : opérationnel");
       setStatus(`Worker disponible · ${payload.version || "version non précisée"}`);
     } catch (error) {
-      if (workerStatus) {
-        workerStatus.textContent = "Worker : indisponible";
-        workerStatus.dataset.state = "unavailable";
-      }
+      setWatchWorkerStatus("unavailable", "Worker : indisponible");
       setStatus(error.message || "Worker indisponible.", "error");
     }
   }
@@ -2947,6 +2951,7 @@
       duplicate: "Déjà présents",
       handled: "Traités",
       rejected: "Écartés",
+      finished: "Historique / Terminés",
       "current-analysis": "Dernière analyse"
     }[filter] || "Tous";
   }
@@ -2983,6 +2988,7 @@
     if (watchQueueFilter === "all") return true;
     if (watchQueueFilter === "current-analysis") return Number.isInteger(result?._watchWorkerIndex);
     if (watchQueueFilter === "active") return ["ready", "review"].includes(state);
+    if (watchQueueFilter === "finished") return WATCH_CANDIDATE_CLOSED_STATES.includes(state);
     return state === watchQueueFilter;
   }
 
@@ -3362,7 +3368,7 @@
           <a class="cyber-btn-secondary" href="${escapeAttr(result.sourceUrl || result.officialUrl || "#")}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>
           ${canMarkHandled || canReject ? `
             <details class="watch-card-actions-menu">
-              <summary>Actions</summary>
+              <summary aria-label="Afficher les actions secondaires">Actions</summary>
               <div>
                 ${canMarkHandled ? `<button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>` : ""}
                 ${canReject ? `<button class="cyber-btn-secondary" data-watch-rejected="${index}" type="button">Écarter</button>` : ""}
@@ -3413,11 +3419,13 @@
 
   function renderWatchCandidateEditor(result, index) {
     const optionalLocationFields = [
-      ["venue", "Lieu"],
-      ["address", "Adresse"]
+      ["venue", "Lieu", "Lieu de l’événement"],
+      ["address", "Adresse", "Adresse"]
     ].filter(([property]) => Object.prototype.hasOwnProperty.call(result, property));
     const startDateValue = normalizeIsoDate(result?.startDate);
     const endDateValue = normalizeIsoDate(result?.endDate);
+    const hasEndDate = Boolean(endDateValue);
+    const countryMissing = !cleanText(result?.country);
     const editorInstance = `${index}-${++watchEditorRenderSequence}`;
     const endDateFieldName = `watchEndDate_${editorInstance}`;
 
@@ -3434,31 +3442,37 @@
               <span>Date de début</span>
               <input name="startDate" type="date" value="${escapeAttr(startDateValue)}" autocomplete="off" required>
             </label>
-            <label>
-              <span>Date de fin</span>
-              <input id="${endDateFieldName}" name="${endDateFieldName}" data-watch-field="endDate" data-watch-user-edited="false" type="date" value="${escapeAttr(endDateValue)}" autocomplete="off">
-            </label>
+            <div class="watch-editor-field watch-end-date-field" data-watch-end-date-field>
+              <span class="watch-editor-label">Date de fin</span>
+              <p class="watch-end-date-empty" data-watch-end-date-empty${hasEndDate ? " hidden" : ""}>Aucune date de fin</p>
+              <input id="${endDateFieldName}" name="${endDateFieldName}" data-watch-field="endDate" data-watch-user-edited="false" type="date" value="${escapeAttr(endDateValue)}" autocomplete="off" aria-label="Date de fin"${hasEndDate ? "" : " hidden"}>
+              <div class="watch-end-date-actions">
+                <button class="cyber-btn-secondary" data-watch-end-date-add type="button"${hasEndDate ? " hidden" : ""}>Ajouter une date de fin</button>
+                <button class="cyber-btn-secondary" data-watch-end-date-remove type="button"${hasEndDate ? "" : " hidden"}>Supprimer la date de fin</button>
+              </div>
+            </div>
             <label>
               <span>Ville</span>
               <input name="city" type="text" value="${escapeAttr(result.city || "")}" required>
             </label>
-            ${optionalLocationFields.map(([property, label]) => `
+            ${optionalLocationFields.map(([property, label, placeholder]) => `
               <label>
                 <span>${label}</span>
-                <input name="${property}" type="text" value="${escapeAttr(result[property] || "")}">
+                <input name="${property}" type="text" value="${escapeAttr(result[property] || "")}" placeholder="${placeholder}">
               </label>
             `).join("")}
             <label>
               <span>Type</span>
-              <input name="type" type="text" value="${escapeAttr(result.type || "")}">
+              <input name="type" type="text" value="${escapeAttr(result.type || "")}" placeholder="Type d’événement">
             </label>
-            <label>
+            <label class="${countryMissing ? "watch-editor-missing" : ""}">
               <span>Pays</span>
-              <input name="country" type="text" value="${escapeAttr(result.country || "")}">
+              <input name="country" type="text" value="${escapeAttr(result.country || "")}" placeholder="Ex. France"${countryMissing ? ' aria-describedby="watch-country-help-' + editorInstance + '"' : ""}>
+              ${countryMissing ? `<small id="watch-country-help-${editorInstance}" class="watch-editor-help">Champ requis pour préparer la soumission</small>` : ""}
             </label>
             <label class="watch-editor-wide">
               <span>Description</span>
-              <textarea name="description" rows="5">${escapeHtml(result.description || "")}</textarea>
+              <textarea name="description" rows="5" placeholder="Description de l’événement">${escapeHtml(result.description || "")}</textarea>
             </label>
             <label class="watch-editor-wide">
               <span>URL officielle ou source utile</span>
@@ -3484,16 +3498,50 @@
     const endDateInput = container.querySelector('[data-watch-field="endDate"]');
     if (startDateInput) startDateInput.value = normalizeIsoDate(result?.startDate);
     if (endDateInput) {
-      endDateInput.value = normalizeIsoDate(result?.endDate);
+      const endDateValue = normalizeIsoDate(result?.endDate);
+      const emptyState = container.querySelector("[data-watch-end-date-empty]");
+      const addButton = container.querySelector("[data-watch-end-date-add]");
+      const removeButton = container.querySelector("[data-watch-end-date-remove]");
+      endDateInput.value = endDateValue;
       endDateInput.dataset.watchUserEdited = "false";
+      endDateInput.hidden = !endDateValue;
+      if (emptyState) emptyState.hidden = Boolean(endDateValue);
+      if (addButton) addButton.hidden = Boolean(endDateValue);
+      if (removeButton) removeButton.hidden = !endDateValue;
     }
   }
 
   function bindWatchCandidateEditorDateSync(container, queueResults) {
     container.querySelectorAll("[data-watch-candidate-editor]").forEach((editor) => {
       const endDateInput = editor.querySelector('[data-watch-field="endDate"]');
+      const emptyState = editor.querySelector("[data-watch-end-date-empty]");
+      const addButton = editor.querySelector("[data-watch-end-date-add]");
+      const removeButton = editor.querySelector("[data-watch-end-date-remove]");
       endDateInput?.addEventListener("input", () => {
         endDateInput.dataset.watchUserEdited = "true";
+        if (!normalizeIsoDate(endDateInput.value)) {
+          endDateInput.hidden = true;
+          if (emptyState) emptyState.hidden = false;
+          if (addButton) addButton.hidden = false;
+          if (removeButton) removeButton.hidden = true;
+        }
+      });
+      addButton?.addEventListener("click", () => {
+        endDateInput.hidden = false;
+        if (emptyState) emptyState.hidden = true;
+        addButton.hidden = true;
+        endDateInput.focus();
+      });
+      removeButton?.addEventListener("click", () => {
+        endDateInput.value = "";
+        endDateInput.dataset.watchUserEdited = "true";
+        endDateInput.hidden = true;
+        if (emptyState) emptyState.hidden = false;
+        if (addButton) {
+          addButton.hidden = false;
+          addButton.focus();
+        }
+        removeButton.hidden = true;
       });
       editor.addEventListener("toggle", () => {
         if (!editor.open) return;

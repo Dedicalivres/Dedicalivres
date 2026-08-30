@@ -6472,16 +6472,29 @@ label.is-artist-author {
 }
 
 #tab-watch .watch-card-actions-menu > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   min-height: 38px;
   padding: 9px 12px;
-  border: 1px solid rgba(255, 255, 255, .1);
+  border: 1px solid rgba(79, 215, 232, .16);
   border-radius: 10px;
-  background: rgba(255, 255, 255, .045);
-  color: rgba(246, 250, 253, .9);
+  background: rgba(79, 215, 232, .045);
+  color: rgba(230, 248, 250, .86);
   font-size: 12px;
   font-weight: 750;
   cursor: pointer;
   list-style: none;
+}
+
+#tab-watch .watch-card-actions-menu > summary::after {
+  color: rgba(79, 215, 232, .72);
+  content: "⌄";
+  transition: transform .15s ease;
+}
+
+#tab-watch .watch-card-actions-menu[open] > summary::after {
+  transform: rotate(180deg);
 }
 
 #tab-watch .watch-card-actions-menu > summary::-webkit-details-marker {
@@ -6493,6 +6506,54 @@ label.is-artist-author {
   flex-wrap: wrap;
   gap: 7px;
   margin-top: 7px;
+}
+
+#tab-watch .watch-editor-field {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  color: var(--cyber-text);
+  font-weight: 900;
+}
+
+#tab-watch .watch-editor-label {
+  display: block;
+}
+
+#tab-watch .watch-end-date-empty {
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px dashed rgba(255, 255, 255, .12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .025);
+  color: rgba(230, 238, 246, .62);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+#tab-watch .watch-end-date-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+#tab-watch .watch-editor-missing {
+  padding: 10px;
+  border: 1px solid rgba(242, 181, 107, .28);
+  border-radius: 12px;
+  background: rgba(242, 181, 107, .055);
+}
+
+#tab-watch .watch-editor-help {
+  color: #f2c17f;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+#tab-watch .watch-candidate-editor input::placeholder,
+#tab-watch .watch-candidate-editor textarea::placeholder {
+  color: rgba(219, 228, 236, .38);
 }
 
 #tab-watch .watch-result-closed {
@@ -6596,6 +6657,11 @@ label.is-artist-author {
   #tab-watch .watch-score {
     display: none;
   }
+
+  #tab-watch .watch-card-actions-menu > summary,
+  #tab-watch .watch-end-date-actions > button {
+    min-height: 44px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -6631,6 +6697,10 @@ label.is-artist-author {
   #tab-watch .watch-result-actions > details {
     flex: 1 1 130px;
     min-height: 44px;
+  }
+
+  #tab-watch .watch-end-date-actions > button {
+    width: 100%;
   }
 }
 

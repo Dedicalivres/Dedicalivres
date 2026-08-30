@@ -20,6 +20,7 @@ const api = new Function(`
   }
   function escapeHtml(value) { return String(value ?? ""); }
   function escapeAttr(value) { return escapeHtml(value); }
+  function cleanText(value) { return String(value ?? "").trim(); }
   ${renderEditorSource}
   ${syncDatesSource}
   return { renderWatchCandidateEditor, syncWatchCandidateEditorDates };
@@ -41,13 +42,14 @@ for (const absentEndDate of [undefined, null, ""]) {
   const before = structuredClone(candidate);
   const html = api.renderWatchCandidateEditor(candidate, 0);
   assert.match(html, /<input name="startDate" type="date" value="2026-09-20"/);
-  assert.match(html, /<input id="watchEndDate_0-[0-9]+" name="watchEndDate_0-[0-9]+" data-watch-field="endDate" data-watch-user-edited="false" type="date" value="" autocomplete="off">/);
+  assert.ok(html.includes("Aucune date de fin"));
+  assert.match(html, /<input id="watchEndDate_0-[0-9]+" name="watchEndDate_0-[0-9]+" data-watch-field="endDate" data-watch-user-edited="false" type="date" value="" autocomplete="off" aria-label="Date de fin" hidden>/);
   assert.deepEqual(candidate, before, "Le rendu ne doit pas modifier le candidat");
 }
 
 const datedCandidate = { ...baseCandidate, endDate: "2026-09-21" };
 const datedHtml = api.renderWatchCandidateEditor(datedCandidate, 1);
-assert.match(datedHtml, /<input id="watchEndDate_1-[0-9]+" name="watchEndDate_1-[0-9]+" data-watch-field="endDate" data-watch-user-edited="false" type="date" value="2026-09-21" autocomplete="off">/);
+assert.match(datedHtml, /<input id="watchEndDate_1-[0-9]+" name="watchEndDate_1-[0-9]+" data-watch-field="endDate" data-watch-user-edited="false" type="date" value="2026-09-21" autocomplete="off" aria-label="Date de fin">/);
 
 const inputs = {
   startDate: { value: "2026-08-30" },
