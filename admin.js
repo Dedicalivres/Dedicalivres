@@ -115,6 +115,7 @@ let originalEditLocationSignature = "";
 const ADMIN_MODULE_VERSION = "10.26-local-instagram-pack-duplicate-detection-v1";
 const ADMIN_ACTION_LOG_KEY = "dedicalivres_admin_action_log_v1";
 const ADMIN_INVENTORY_DEPARTMENT_CACHE_KEY = "dedicalivres_admin_inventory_departments_v1";
+const ADMIN_SIDEBAR_STATE_KEY = "dedicalivres_admin_sidebar_v2";
 const adminModerationCounters = {
   events: 0,
   testimonials: 0,
@@ -368,6 +369,7 @@ async function init() {
   lockDashboard();
   bindEvents();
   bindTabs();
+  bindAdminSidebar();
 
   adminBooting = true;
 
@@ -706,38 +708,98 @@ function clearAdminSensitiveState() {
 
 /* TABS */
 
+function activateAdminTab(tab) {
+  if (!tab?.dataset?.tab) return false;
+  const target = tab.dataset.tab;
+  const panel = document.getElementById(`tab-${target}`);
+  if (!panel) return false;
+
+  document.querySelectorAll(".admin-tab").forEach((item) => {
+    const isActive = item === tab;
+    item.classList.toggle("active", isActive);
+    if (isActive) item.setAttribute("aria-current", "page");
+    else item.removeAttribute("aria-current");
+  });
+
+  document.querySelectorAll(".admin-tab-panel").forEach((item) => {
+    item.classList.toggle("active", item === panel);
+  });
+
+  if (target === "overview") {
+    setTimeout(() => {
+      map?.invalidateSize();
+    }, 250);
+  }
+
+  if (target === "exports") {
+    loadAdminExportsDashboard();
+    loadAdminEventsInventory();
+  }
+
+  return true;
+}
+
 function bindTabs() {
   document.addEventListener("click", (event) => {
     const tab = event.target.closest(".admin-tab");
 
     if (!tab) return;
+    activateAdminTab(tab);
+  });
+}
 
-    const target = tab.dataset.tab;
+function readAdminSidebarState() {
+  try {
+    const value = localStorage.getItem(ADMIN_SIDEBAR_STATE_KEY);
+    return ["expanded", "collapsed"].includes(value) ? value : "";
+  } catch {
+    return "";
+  }
+}
 
-    document.querySelectorAll(".admin-tab").forEach((item) => {
-      item.classList.remove("active");
-    });
+function getAdminSidebarDefaultCollapsed() {
+  const storedState = readAdminSidebarState();
+  if (storedState) return storedState === "collapsed";
+  return window.matchMedia("(min-width: 681px) and (max-width: 1180px)").matches;
+}
 
-    document.querySelectorAll(".admin-tab-panel").forEach((panel) => {
-      panel.classList.remove("active");
-    });
+function applyAdminSidebarState(collapsed, { persist = false } = {}) {
+  const sidebar = document.querySelector(".admin-tabs");
+  const toggle = document.getElementById("admin-sidebar-toggle");
+  if (!dashboard || !sidebar || !toggle) return;
 
-    tab.classList.add("active");
+  dashboard.classList.toggle("admin-sidebar-collapsed", collapsed);
+  dashboard.classList.toggle("admin-sidebar-expanded", !collapsed);
+  sidebar.dataset.collapsed = String(collapsed);
+  toggle.setAttribute("aria-expanded", String(!collapsed));
+  toggle.setAttribute("aria-label", collapsed ? "Déployer la navigation" : "Replier la navigation");
+  toggle.title = collapsed ? "Déployer la navigation" : "Replier la navigation";
+  const icon = toggle.querySelector("[aria-hidden]");
+  if (icon) icon.textContent = collapsed ? "»" : "«";
 
-    document
-      .getElementById(`tab-${target}`)
-      ?.classList.add("active");
-
-    if (target === "overview") {
-      setTimeout(() => {
-        map?.invalidateSize();
-      }, 250);
+  if (persist) {
+    try {
+      localStorage.setItem(ADMIN_SIDEBAR_STATE_KEY, collapsed ? "collapsed" : "expanded");
+    } catch {
+      // Le repli reste utilisable si le stockage navigateur est indisponible.
     }
+  }
+}
 
-    if (target === "exports") {
-      loadAdminExportsDashboard();
-      loadAdminEventsInventory();
-    }
+function bindAdminSidebar() {
+  const toggle = document.getElementById("admin-sidebar-toggle");
+  if (!toggle) return;
+
+  applyAdminSidebarState(getAdminSidebarDefaultCollapsed());
+  toggle.addEventListener("click", () => {
+    applyAdminSidebarState(!dashboard?.classList.contains("admin-sidebar-collapsed"), {
+      persist: true
+    });
+  });
+
+  const tabletBreakpoint = window.matchMedia("(min-width: 681px) and (max-width: 1180px)");
+  tabletBreakpoint.addEventListener?.("change", (event) => {
+    if (!readAdminSidebarState()) applyAdminSidebarState(event.matches);
   });
 }
 
