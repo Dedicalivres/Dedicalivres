@@ -848,7 +848,8 @@
   }
 
   function refreshWatchCandidateWorkflowView() {
-    lastResults = sortWatchResultsByCompleteness(lastResults);
+    const sortedResults = sortWatchResultsByCompleteness(lastResults);
+    lastResults.splice(0, lastResults.length, ...sortedResults);
     renderHistory();
     renderResults(lastResults);
     updateWatchOperationsDashboard();
@@ -971,6 +972,7 @@
       writeLocalWatchWorkflowState(item, result.row.workflow_status, result.row.status_updated_at);
       lastWatchPersistenceNotice = "";
       setWatchPersistenceAvailabilityAfterWrite("success");
+      refreshWatchCandidateWorkflowView();
       return result;
     }
 
