@@ -35,12 +35,18 @@ const searchInput = document.getElementById("search-input");
 const filterStatus = document.getElementById("filter-status");
 const filterArchive = document.getElementById("filter-archive");
 const filterType = document.getElementById("filter-type");
+const filterCity = document.getElementById("filter-city");
+const filterDate = document.getElementById("filter-date");
+const filterCountry = document.getElementById("filter-country");
+const filterQuality = document.getElementById("filter-quality");
+const resetEventFiltersBtn = document.getElementById("reset-event-filters");
 
 const statsEvents = document.getElementById("stats-events");
 const statsPending = document.getElementById("stats-pending");
 const statsNewsletter = document.getElementById("stats-newsletter");
 const statsFeatured = document.getElementById("stats-featured");
 const statsVisits = document.getElementById("stats-visits");
+const statsQualityIssues = document.getElementById("stats-quality-issues");
 
 const priorityCities = document.getElementById("priority-cities");
 const priorityDevices = document.getElementById("priority-devices");
@@ -92,6 +98,12 @@ const qualityControlCount = document.getElementById("quality-control-count");
 const qualityControlGrid = document.getElementById("quality-control-grid");
 const qualityControlList = document.getElementById("quality-control-list");
 const qualityFocusSelect = document.getElementById("quality-focus-select");
+const adminBaseStateGrid = document.getElementById("admin-base-state-grid");
+const adminBaseStateSummary = document.getElementById("admin-base-state-summary");
+const moderationCommandGrid = document.getElementById("moderation-command-grid");
+const moderationCommandSummary = document.getElementById("moderation-command-summary");
+const moderationEventsList = document.getElementById("moderation-events-list");
+const moderationEventsCount = document.getElementById("moderation-events-count");
 const controlStatsCount = document.getElementById("control-stats-count");
 const controlStatsGrid = document.getElementById("control-stats-grid");
 const controlRegionList = document.getElementById("control-region-list");
@@ -412,6 +424,11 @@ function bindEvents() {
   filterStatus?.addEventListener("change", renderEvents);
   filterArchive?.addEventListener("change", handleArchiveFilterChange);
   filterType?.addEventListener("change", renderEvents);
+  filterCity?.addEventListener("change", renderEvents);
+  filterDate?.addEventListener("change", renderEvents);
+  filterCountry?.addEventListener("change", renderEvents);
+  filterQuality?.addEventListener("change", renderEvents);
+  resetEventFiltersBtn?.addEventListener("click", resetAdminEventFilters);
   qualityFocusSelect?.addEventListener("change", renderQualityControlCenter);
 
   closeEditModalBtn?.addEventListener("click", closeEditModal);
@@ -847,8 +864,11 @@ function refreshAdminViews() {
   safeAdminStepSync("statistiques", updateStats);
   safeAdminStepSync("mission du jour", renderAdminMissionControl);
   safeAdminStepSync("actions prioritaires", renderPriorityActionPanel);
+  safeAdminStepSync("état de la base", renderAdminBaseState);
   safeAdminStepSync("historique admin", renderAdminActionHistory);
   safeAdminStepSync("centre modération", renderModerationCommandCenter);
+  safeAdminStepSync("file de modération", renderModerationEventQueue);
+  safeAdminStepSync("filtres événements", renderAdminEventFilterOptions);
   safeAdminStepSync("liste événements", renderEvents);
   safeAdminStepSync("premium", renderPremiumDashboard);
   safeAdminStepSync("réseaux", renderSocialUpcoming);
@@ -1009,6 +1029,7 @@ function updateStats() {
   if (statsPending) statsPending.textContent = pending.length;
   updateAdminModerationCounter("events", pending.length);
   if (statsFeatured) statsFeatured.textContent = String((allEvents || []).filter((event) => !!event.featured).length);
+  if (statsQualityIssues) statsQualityIssues.textContent = String(getQualityCorrectionEntries().length);
 if (eventsCount) {
     eventsCount.textContent = `${getFilteredEvents().length} éléments`;
   }
@@ -1129,39 +1150,32 @@ function renderMissionTile(label, value, action, tone) {
 }
 
 function renderModerationCommandCenter() {
-  const moderationTab = document.getElementById("tab-moderation");
-  if (!moderationTab) return;
+  if (!moderationCommandGrid) return;
 
-  let panel = document.getElementById("admin-moderation-command-center");
-
-  if (!panel) {
-    panel = document.createElement("section");
-    panel.id = "admin-moderation-command-center";
-    panel.className = "admin-panel admin-moderation-command-center";
-    moderationTab.prepend(panel);
-  }
-
-  const pendingEvents = adminModerationCounters.events || 0;
+  const pending = allEvents.filter((event) => isPendingEvent(event));
+  const pendingEvents = pending.length;
   const pendingTestimonials = adminModerationCounters.testimonials || 0;
   const pendingAuthorRequests = adminModerationCounters.authorRequests || 0;
   const total = pendingEvents + pendingTestimonials + pendingAuthorRequests;
   const hasError = adminModerationErrors.size > 0;
+  const oldPending = pending.filter((event) => getAdminEventAgeDays(event) >= 7);
+  const lowQuality = pending.filter((event) => getEventQuality(event).score < 55);
+  const missingImage = pending.filter((event) => !event.image_url);
 
-  panel.innerHTML = `
-    <div class="section-head">
-      <h3>FILE DE MODÉRATION</h3>
-      <span>${hasError ? "Un compteur est indisponible" : `${total} élément${total > 1 ? "s" : ""} à traiter`}</span>
-    </div>
+  if (moderationCommandSummary) {
+    moderationCommandSummary.textContent = hasError
+      ? `${total} élément${total > 1 ? "s" : ""} · un compteur annexe est indisponible`
+      : `${total} élément${total > 1 ? "s" : ""} attendent une décision humaine`;
+  }
 
-    <div class="moderation-command-grid">
-      ${renderModerationCommandCard("Événements", pendingEvents, "pending-events", pendingEvents ? "warning" : "ok", "Nouvelles propositions")}
-      ${renderModerationCommandCard("Demandes auteurs", pendingAuthorRequests, "author-requests", pendingAuthorRequests ? "warning" : "ok", "Présence déclarée")}
-      ${renderModerationCommandCard("Témoignages", pendingTestimonials, "testimonials", pendingTestimonials ? "warning" : "ok", "Souvenirs à publier")}
-      ${renderModerationCommandCard("Total", hasError ? "!" : total, "all", hasError ? "danger" : total ? "warning" : "ok", hasError ? "À vérifier" : "Vue globale")}
-    </div>
-  `;
+  moderationCommandGrid.innerHTML = [
+    renderModerationCommandCard("En attente", pendingEvents, "pending-events", pendingEvents ? "warning" : "ok", "Événements"),
+    renderModerationCommandCard("Anciennes", oldPending.length, "moderation-old", oldPending.length ? "danger" : "ok", "7 jours ou plus"),
+    renderModerationCommandCard("Qualité faible", lowQuality.length, "moderation-quality", lowQuality.length ? "danger" : "ok", "Contrôle renforcé"),
+    renderModerationCommandCard("Sans image", missingImage.length, "moderation-image", missingImage.length ? "purple" : "ok", "Visuel à vérifier")
+  ].join("");
 
-  panel.querySelectorAll("[data-moderation-action]").forEach((button) => {
+  moderationCommandGrid.querySelectorAll("[data-moderation-action]").forEach((button) => {
     button.addEventListener("click", () => {
       handleModerationCommand(button.dataset.moderationAction || "all");
     });
@@ -1180,7 +1194,26 @@ function renderModerationCommandCard(label, value, action, tone, detail) {
 
 function handleModerationCommand(action) {
   if (action === "pending-events") {
-    applyPriorityAction("pending");
+    switchAdminTab("moderation");
+    scrollToAdminPanel("moderation-events-list");
+    return;
+  }
+
+  if (action === "moderation-old") {
+    switchAdminTab("moderation");
+    document.querySelector('[data-moderation-event][data-is-old="true"]')?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  if (action === "moderation-quality") {
+    switchAdminTab("moderation");
+    document.querySelector('[data-moderation-event][data-quality-low="true"]')?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  if (action === "moderation-image") {
+    switchAdminTab("moderation");
+    document.querySelector('[data-moderation-event][data-missing-image="true"]')?.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
 
@@ -1197,6 +1230,110 @@ function handleModerationCommand(action) {
   }
 
   switchAdminTab("moderation");
+}
+
+function renderModerationEventQueue() {
+  if (!moderationEventsList) return;
+
+  const pending = allEvents
+    .filter((event) => isPendingEvent(event))
+    .sort((a, b) => {
+      const ageDifference = getAdminEventAgeDays(b) - getAdminEventAgeDays(a);
+      if (ageDifference) return ageDifference;
+      return getEventQuality(a).score - getEventQuality(b).score;
+    });
+
+  if (moderationEventsCount) {
+    moderationEventsCount.textContent = `${pending.length} soumission${pending.length > 1 ? "s" : ""}`;
+  }
+
+  if (!pending.length) {
+    moderationEventsList.innerHTML = `
+      <div class="cockpit-empty-state">Aucun événement en attente. Les demandes auteurs et témoignages restent disponibles plus bas.</div>
+    `;
+    return;
+  }
+
+  moderationEventsList.innerHTML = pending.map(renderModerationEventCard).join("");
+  bindEventActions(moderationEventsList);
+}
+
+function renderModerationEventCard(event) {
+  const quality = getEventQuality(event);
+  const sourceUrl = getAdminExternalUrl(event.website);
+  const imageUrl = getAdminExternalUrl(event.image_url);
+  const isOld = getAdminEventAgeDays(event) >= 7;
+
+  return `
+    <article class="moderation-event-card is-${escapeHtml(quality.level)}" data-moderation-event data-event-id="${escapeHtml(event.id)}" data-is-old="${isOld}" data-quality-low="${quality.score < 55}" data-missing-image="${!event.image_url}">
+      <div class="moderation-event-visual">
+        ${imageUrl
+          ? `<img src="${escapeHtml(imageUrl)}" alt="Affiche de ${escapeHtml(event.title || "l’événement")}" loading="lazy" decoding="async" />`
+          : `<span>PAS D’IMAGE</span>`}
+      </div>
+
+      <div class="moderation-event-main">
+        <div class="moderation-event-heading">
+          <div>
+            <span class="moderation-event-kicker">${escapeHtml(event.type || "Type à préciser")}</span>
+            <h4>${escapeHtml(event.title || "Titre manquant")}</h4>
+          </div>
+          <div class="event-badges">
+            <span class="badge pending">EN ATTENTE</span>
+            ${isOld ? `<span class="badge rejected">ANCIENNE</span>` : ""}
+            ${isWatchOriginEvent(event) ? `<span class="badge watch-origin">VEILLE</span>` : ""}
+          </div>
+        </div>
+
+        <p class="moderation-event-identity">
+          <strong>${escapeHtml(formatDate(event.start_date))}</strong>
+          <span>${escapeHtml([event.city, event.region, getAdminCountryName(event.country_code || "FR")].filter(Boolean).join(" · ") || "Lieu à préciser")}</span>
+        </p>
+        <p class="moderation-event-description">${escapeHtml(String(event.description || "Description absente").trim().slice(0, 260))}</p>
+        <div class="moderation-event-source">
+          <span>Source : ${escapeHtml(sourceUrl ? getAdminSourceLabel(sourceUrl) : "non renseignée")}</span>
+          ${sourceUrl ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>` : ""}
+        </div>
+        ${renderEventChecklist(event)}
+        ${renderEventQuality(event)}
+      </div>
+
+      <div class="moderation-event-actions" aria-label="Décision pour ${escapeHtml(event.title || "cet événement")}">
+        <button class="event-action validate" data-action="validate" data-id="${escapeHtml(event.id)}" type="button">✔ <span>Valider</span></button>
+        <button class="event-action reject" data-action="reject" data-id="${escapeHtml(event.id)}" type="button">✖ <span>Rejeter</span></button>
+        <button class="event-action edit" data-action="edit" data-id="${escapeHtml(event.id)}" type="button">✎ <span>Modifier</span></button>
+        ${sourceUrl ? `<a class="event-action view" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">↗ <span>Source</span></a>` : ""}
+        <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer">◉ <span>Voir</span></a>
+      </div>
+    </article>
+  `;
+}
+
+function getAdminEventAgeDays(event) {
+  const createdAt = new Date(event?.created_at || "");
+  if (Number.isNaN(createdAt.getTime())) return 0;
+  return Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / 86400000));
+}
+
+function isWatchOriginEvent(event) {
+  return normalize([event?.description, event?.website].filter(Boolean).join(" ")).includes("veille dedicalivres");
+}
+
+function getAdminExternalUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function getAdminSourceLabel(value) {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return "Source externe";
+  }
 }
 
 function switchAdminTab(target) {
@@ -1244,8 +1381,8 @@ function renderPriorityActionPanel() {
 
   panel.innerHTML = `
     <div class="admin-action-priority-head">
-      <strong>À traiter maintenant</strong>
-      <small>Raccourcis éditoriaux sans charger d’images</small>
+      <strong>À FAIRE AUJOURD’HUI</strong>
+      <small>Décisions et corrections prioritaires sur les données déjà chargées</small>
     </div>
 
     <div class="admin-action-priority-grid">
@@ -1291,6 +1428,11 @@ function applyPriorityAction(action) {
     filterType.value = "";
   }
 
+  if (filterCity) filterCity.value = "";
+  if (filterDate) filterDate.value = "";
+  if (filterCountry) filterCountry.value = "";
+  if (filterQuality) filterQuality.value = "";
+
   if (searchInput) {
     searchInput.value = "";
   }
@@ -1312,6 +1454,14 @@ function applyPriorityAction(action) {
     renderCustomAdminEventList(
       allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event) && !hasEventCoords(event)),
       "Événements validés sans coordonnées"
+    );
+    return;
+  }
+
+  if (action === "missing-image") {
+    renderCustomAdminEventList(
+      allEvents.filter((event) => event.validated && !event.rejected && !isPastEvent(event) && !event.image_url),
+      "Événements validés sans image"
     );
     return;
   }
@@ -1410,6 +1560,36 @@ function getControlBuckets() {
   };
 }
 
+function renderAdminBaseState() {
+  if (!adminBaseStateGrid) return;
+
+  const buckets = getControlBuckets();
+  const active = allEvents.filter((event) => !event.rejected && isCurrentAdminEvent(event));
+  const validated = allEvents.filter((event) => event.validated && !event.rejected);
+  const averageQuality = active.length
+    ? Math.round(active.reduce((sum, event) => sum + getEventQuality(event).score, 0) / active.length)
+    : 100;
+  const imageCoverage = active.length
+    ? Math.round((active.filter((event) => event.image_url).length / active.length) * 100)
+    : 100;
+  const gpsCoverage = active.length
+    ? Math.round((active.filter((event) => hasEventCoords(event)).length / active.length) * 100)
+    : 100;
+
+  if (adminBaseStateSummary) {
+    adminBaseStateSummary.textContent = `${allEvents.length} événement${allEvents.length > 1 ? "s" : ""} dans le périmètre chargé`;
+  }
+
+  adminBaseStateGrid.innerHTML = [
+    renderControlMetric("Validés", validated.length, "ok", "dans la base chargée"),
+    renderControlMetric("En attente", buckets.pending.length, buckets.pending.length ? "warning" : "ok", "décision humaine"),
+    renderControlMetric("Rejetés", buckets.rejected.length, buckets.rejected.length ? "danger" : "neutral", "conservés en historique"),
+    renderControlMetric("Mis en avant", buckets.featured.length, buckets.featured.length ? "purple" : "neutral", "sélection éditoriale"),
+    renderControlMetric("Qualité moyenne", `${averageQuality}%`, averageQuality >= 80 ? "ok" : averageQuality >= 55 ? "warning" : "danger", "événements actifs"),
+    renderControlMetric("Couverture", `${imageCoverage}% image`, imageCoverage >= 80 ? "ok" : "warning", `${gpsCoverage}% GPS`)
+  ].join("");
+}
+
 function renderControlMetric(label, value, tone, detail = "") {
   return `
     <article class="cockpit-status-cell is-${escapeHtml(tone || "neutral")}">
@@ -1423,68 +1603,108 @@ function renderControlMetric(label, value, tone, detail = "") {
 function renderQualityControlCenter() {
   if (!qualityControlGrid || !qualityControlList) return;
 
-  const buckets = getControlBuckets();
   const focus = qualityFocusSelect?.value || "all";
-  const qualityReady = buckets.upcoming.length - buckets.qualityLow.length;
+  const analyzedEvents = allEvents.filter((event) => !event.rejected && isCurrentAdminEvent(event));
+  const corrections = getQualityCorrectionEntries();
+  const rows = getQualityCorrectionEntries(focus);
+  const correctCount = analyzedEvents.filter((event) => getEventQualityIssues(event).length === 0).length;
+  const missingImage = analyzedEvents.filter((event) => !event.image_url).length;
+  const missingCoords = analyzedEvents.filter((event) => !hasEventCoords(event)).length;
+  const missingSource = analyzedEvents.filter((event) => !event.website).length;
+  const weakDescription = analyzedEvents.filter((event) => String(event.description || "").trim().length < 120).length;
+  const problematicDates = analyzedEvents.filter((event) => hasAdminEventDateProblem(event)).length;
+  const averageScore = analyzedEvents.length
+    ? Math.round(analyzedEvents.reduce((sum, event) => sum + getEventQuality(event).score, 0) / analyzedEvents.length)
+    : 100;
 
   if (qualityControlCount) {
-    qualityControlCount.textContent =
-      `${buckets.pending.length} à modérer · ${buckets.qualityLow.length} qualité faible`;
+    qualityControlCount.textContent = `${corrections.length} à corriger · score moyen ${averageScore}%`;
   }
 
   qualityControlGrid.innerHTML = [
-    renderControlMetric("En attente", buckets.pending.length, buckets.pending.length ? "warning" : "ok", "à valider"),
-    renderControlMetric("Sans image", buckets.missingImage.length, buckets.missingImage.length ? "purple" : "ok", "validés à compléter"),
-    renderControlMetric("Sans GPS", buckets.missingCoords.length, buckets.missingCoords.length ? "danger" : "ok", "carte et SEO local"),
-    renderControlMetric("Qualité faible", buckets.qualityLow.length, buckets.qualityLow.length ? "danger" : "ok", `${qualityReady} fiches solides`),
-    renderControlMetric("Sous 14 jours", buckets.soon.length, buckets.soon.length ? "info" : "neutral", "priorité publication"),
-    renderControlMetric("Mis en avant passés", buckets.featuredPast.length, buckets.featuredPast.length ? "warning" : "ok", "à nettoyer")
+    renderControlMetric("Qualité correcte", correctCount, "ok", "aucune correction détectée"),
+    renderControlMetric("Image manquante", missingImage, missingImage ? "purple" : "ok", "impact visuel"),
+    renderControlMetric("GPS manquant", missingCoords, missingCoords ? "danger" : "ok", "carte et SEO local"),
+    renderControlMetric("Source manquante", missingSource, missingSource ? "warning" : "ok", "site officiel"),
+    renderControlMetric("Description faible", weakDescription, weakDescription ? "warning" : "ok", "moins de 120 caractères"),
+    renderControlMetric("Dates problématiques", problematicDates, problematicDates ? "danger" : "ok", "absentes ou incohérentes")
   ].join("");
 
-  if (focus === "all") {
-    const rows = [
-      ["pending", "Événements en attente", buckets.pending.length, "Modération prioritaire", "warning"],
-      ["missing-image", "Validés sans image", buckets.missingImage.length, "Impact visuel et réseaux", "purple"],
-      ["missing-coords", "Validés sans coordonnées", buckets.missingCoords.length, "Carte et pages régionales", "danger"],
-      ["quality-low", "Qualité faible", buckets.qualityLow.length, "Titre, image, description, lien", "danger"],
-      ["soon", "À venir sous 14 jours", buckets.soon.length, "Communication rapide", "info"],
-      ["featured-past", "Mis en avant passés", buckets.featuredPast.length, "Nettoyage premium", "warning"]
-    ];
-
-    qualityControlList.innerHTML = rows.map(([action, label, count, detail, tone]) => `
-      <button class="cockpit-focus-row is-${escapeHtml(tone)}" type="button" data-quality-action="${escapeHtml(action)}">
-        <b>${escapeHtml(count)}</b>
-        <span>${escapeHtml(label)}</span>
-        <small>${escapeHtml(detail)}</small>
-      </button>
-    `).join("");
+  if (!rows.length) {
+    qualityControlList.innerHTML = `
+      <div class="quality-queue-head"><strong>À CORRIGER EN PRIORITÉ</strong><span>0 résultat</span></div>
+      <div class="cockpit-empty-state">Aucune correction dans cette vue.</div>
+    `;
   } else {
-    const rows = getQualityFocusRows(focus);
-
-    if (!rows.length) {
-      qualityControlList.innerHTML = `
-        <div class="cockpit-empty-state">
-          Aucun élément dans cette vue.
-        </div>
-      `;
-    } else {
-      qualityControlList.innerHTML = `
-        <div class="cockpit-focus-toolbar">
-          <strong>${rows.length} élément${rows.length > 1 ? "s" : ""}</strong>
-          <button class="cyber-btn-secondary" type="button" data-quality-action="${escapeHtml(focus)}">
-            Ouvrir dans événements
-          </button>
-        </div>
-        ${rows.slice(0, 24).map(renderQualityPreviewRow).join("")}
-      `;
-    }
+    qualityControlList.innerHTML = `
+      <div class="quality-queue-head">
+        <strong>À CORRIGER EN PRIORITÉ</strong>
+        <span>${rows.length} événement${rows.length > 1 ? "s" : ""}</span>
+      </div>
+      ${rows.slice(0, 40).map(renderQualityPreviewRow).join("")}
+    `;
   }
 
-  qualityControlList.querySelectorAll("[data-quality-action]").forEach((button) => {
+  qualityControlList.querySelectorAll("[data-quality-event]").forEach((button) => {
     button.addEventListener("click", () => {
-      applyQualityFocusAction(button.dataset.qualityAction || "all");
+      openAdminEventFromControl(button.dataset.qualityEvent || "");
     });
   });
+}
+
+function getQualityCorrectionEntries(focus = "all") {
+  let events = allEvents.filter((event) => !event.rejected && isCurrentAdminEvent(event));
+
+  if (!["all", "critical", "important", "improvement"].includes(focus)) {
+    events = getQualityFocusRows(focus);
+  }
+
+  return events
+    .map((event) => buildQualityCorrectionEntry(event, focus))
+    .filter((entry) => entry.issues.length > 0)
+    .filter((entry) => ["all", "critical", "important", "improvement"].includes(focus) ? focus === "all" || entry.severity === focus : true)
+    .sort((a, b) => getQualitySeverityRank(a.severity) - getQualitySeverityRank(b.severity) || a.quality.score - b.quality.score);
+}
+
+function buildQualityCorrectionEntry(event, focus = "all") {
+  const issues = getEventQualityIssues(event);
+  if (!issues.length && focus !== "all") {
+    issues.push({ severity: "improvement", label: getQualityFocusLabel(focus) });
+  }
+  const severity = issues.reduce((highest, issue) => {
+    return getQualitySeverityRank(issue.severity) < getQualitySeverityRank(highest) ? issue.severity : highest;
+  }, "improvement");
+
+  return { event, issues, severity, quality: getEventQuality(event) };
+}
+
+function getEventQualityIssues(event) {
+  const issues = [];
+  const add = (severity, label) => issues.push({ severity, label });
+  const title = String(event?.title || "").trim();
+  const description = String(event?.description || "").trim();
+
+  if (title.length < 5) add("critical", "Titre absent ou trop court");
+  if (!event?.start_date) add("critical", "Date de début absente");
+  if (!String(event?.city || "").trim()) add("critical", "Ville absente");
+  if (event?.start_date && event?.end_date && String(event.end_date).slice(0, 10) < String(event.start_date).slice(0, 10)) {
+    add("critical", "Date de fin antérieure au début");
+  }
+  if (!hasEventCoords(event)) add("important", "Coordonnées GPS manquantes");
+  if (!event?.image_url) add("important", "Image manquante");
+  if (!event?.website) add("important", "Source officielle manquante");
+  if (description.length < 120) add("improvement", "Description à renforcer");
+
+  return issues;
+}
+
+function hasAdminEventDateProblem(event) {
+  if (!event?.start_date) return true;
+  return Boolean(event?.end_date && String(event.end_date).slice(0, 10) < String(event.start_date).slice(0, 10));
+}
+
+function getQualitySeverityRank(severity) {
+  return { critical: 0, important: 1, improvement: 2 }[severity] ?? 3;
 }
 
 function getQualityFocusRows(focus) {
@@ -1501,15 +1721,26 @@ function getQualityFocusRows(focus) {
 }
 
 function renderQualityPreviewRow(event) {
-  const quality = getEventQuality(event);
+  const entry = event?.event ? event : buildQualityCorrectionEntry(event);
+  const row = entry.event;
+  const severityLabels = {
+    critical: "Critique",
+    important: "Important",
+    improvement: "Amélioration"
+  };
 
   return `
-    <article class="cockpit-preview-row is-${escapeHtml(quality.level)}">
+    <article class="cockpit-preview-row quality-correction-row is-${escapeHtml(entry.severity)}">
       <div>
-        <strong>${escapeHtml(event.title || "Sans titre")}</strong>
-        <span>${escapeHtml(event.city || "Ville inconnue")} · ${formatDate(event.start_date)} · ${escapeHtml(event.type || "Type inconnu")}</span>
+        <span class="quality-severity">${escapeHtml(severityLabels[entry.severity] || "À vérifier")}</span>
+        <strong>${escapeHtml(row.title || "Sans titre")}</strong>
+        <span>${escapeHtml(row.city || "Ville inconnue")} · ${escapeHtml(formatAdminEventDateRange(row))} · ${escapeHtml(row.type || "Type inconnu")}</span>
+        <small>${escapeHtml(entry.issues.map((issue) => issue.label).join(" · "))}</small>
       </div>
-      <b>${quality.score}%</b>
+      <div class="quality-correction-actions">
+        <b>${entry.quality.score}%</b>
+        <button class="cyber-btn-secondary" type="button" data-quality-event="${escapeHtml(row.id)}">Ouvrir l’événement</button>
+      </div>
     </article>
   `;
 }
@@ -1524,6 +1755,30 @@ function applyQualityFocusAction(action) {
 
   document.querySelector('.admin-tab[data-tab="events"]')?.click();
   renderCustomAdminEventList(rows, getQualityFocusLabel(action));
+}
+
+function openAdminEventFromControl(id) {
+  const event = allEvents.find((item) => String(item.id) === String(id));
+  if (!event) {
+    showToast("Événement introuvable");
+    return;
+  }
+
+  if (searchInput) searchInput.value = "";
+  if (filterStatus) filterStatus.value = "";
+  if (filterType) filterType.value = "";
+  if (filterCity) filterCity.value = "";
+  if (filterDate) filterDate.value = "";
+  if (filterCountry) filterCountry.value = "";
+  if (filterQuality) filterQuality.value = "";
+  if (filterArchive) filterArchive.value = isPastEvent(event) ? "all" : "current";
+
+  switchAdminTab("events");
+  renderEvents();
+  requestAnimationFrame(() => {
+    document.querySelector(`[data-event-id="${CSS.escape(String(id))}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    openEditModal(id);
+  });
 }
 
 function getQualityFocusLabel(action) {
@@ -2149,20 +2404,36 @@ function getFilteredEvents() {
   const status = filterStatus?.value || "";
   const archiveMode = getArchiveMode();
   const type = filterType?.value || "";
+  const city = filterCity?.value || "";
+  const date = filterDate?.value || "";
+  const country = filterCountry?.value || "";
+  const qualityFilter = filterQuality?.value || "";
 
   return allEvents.filter((event) => {
     const haystack = normalize([
       event.title,
       event.city,
       event.region,
+      getAdminCountryName(event.country_code || "FR"),
       event.description
     ].join(" "));
 
     if (search && !haystack.includes(search)) return false;
     if (type && event.type !== type) return false;
+    if (city && event.city !== city) return false;
+    if (country && normalizeAdminCountryCode(event.country_code || "FR") !== country) return false;
+    if (date) {
+      const startDate = String(event.start_date || "").slice(0, 10);
+      const endDate = String(event.end_date || event.start_date || "").slice(0, 10);
+      if (!startDate || startDate > date || endDate < date) return false;
+    }
 
     if (archiveMode === "current" && !isCurrentAdminEvent(event)) return false;
     if (archiveMode === "past" && (!isPastEvent(event) || isPendingEvent(event))) return false;
+
+    if (qualityFilter === "missing-image" && event.image_url) return false;
+    if (qualityFilter === "quality-low" && getEventQuality(event).score >= 55) return false;
+    if (qualityFilter === "missing-coords" && hasEventCoords(event)) return false;
 
     if (status === "pending") return !event.validated && !event.rejected;
     if (status === "validated") return !!event.validated;
@@ -2173,6 +2444,55 @@ function getFilteredEvents() {
 
     return true;
   });
+}
+
+function renderAdminEventFilterOptions() {
+  setAdminFilterOptions(
+    filterCity,
+    allEvents.map((event) => cleanLabel(event.city)).filter(Boolean),
+    "Toutes les villes"
+  );
+
+  const countryCodes = allEvents
+    .map((event) => normalizeAdminCountryCode(event.country_code || "FR"))
+    .filter(Boolean);
+  setAdminFilterOptions(
+    filterCountry,
+    countryCodes,
+    "Tous les pays",
+    (countryCode) => getAdminCountryName(countryCode)
+  );
+}
+
+function setAdminFilterOptions(select, values, emptyLabel, getLabel = (value) => value) {
+  if (!select) return;
+  const currentValue = select.value;
+  const uniqueValues = Array.from(new Set(values)).sort((a, b) => getLabel(a).localeCompare(getLabel(b), "fr"));
+  select.innerHTML = [
+    `<option value="">${escapeHtml(emptyLabel)}</option>`,
+    ...uniqueValues.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(getLabel(value))}</option>`)
+  ].join("");
+  select.value = uniqueValues.includes(currentValue) ? currentValue : "";
+}
+
+async function resetAdminEventFilters() {
+  if (searchInput) searchInput.value = "";
+  if (filterStatus) filterStatus.value = "";
+  if (filterType) filterType.value = "";
+  if (filterCity) filterCity.value = "";
+  if (filterDate) filterDate.value = "";
+  if (filterCountry) filterCountry.value = "";
+  if (filterQuality) filterQuality.value = "";
+
+  const mustReloadCurrentEvents = getArchiveMode() !== "current" && archiveEventsLoaded;
+  if (filterArchive) filterArchive.value = "current";
+
+  if (mustReloadCurrentEvents) {
+    await handleArchiveFilterChange();
+    return;
+  }
+
+  renderEvents();
 }
 
 
@@ -2328,15 +2648,16 @@ function renderEvents() {
 
 function renderEventCard(event) {
   const registrationStatus = window.DEDICALIVRES_REGISTRATION?.getStatus(event);
+  const imageUrl = getAdminExternalUrl(event.image_url);
+  const countryLabel = getAdminCountryName(event.country_code || "FR");
+  const isPending = isPendingEvent(event);
   return `
-    <article class="${getEventCardClasses(event)}">
+    <article class="${getEventCardClasses(event)}" data-event-id="${escapeHtml(event.id)}">
 
       ${
-        event.image_url
+        imageUrl
           ? `
-          <div class="event-admin-thumb-placeholder" title="Image disponible, non chargée automatiquement pour économiser Supabase">
-            IMAGE DISPONIBLE
-          </div>
+          <img class="event-admin-thumb" src="${escapeHtml(imageUrl)}" alt="Affiche de ${escapeHtml(event.title || "l’événement")}" loading="lazy" decoding="async" />
         `
           : `
           <div class="event-admin-thumb-placeholder">
@@ -2351,9 +2672,9 @@ function renderEventCard(event) {
         </div>
 
         <div class="event-meta">
-          <span>📍 ${escapeHtml(event.city || "")}</span>
-          <span>📅 ${formatDate(event.start_date)}</span>
-          <span>🏷️ ${escapeHtml(event.type || "")}</span>
+          <span>📍 ${escapeHtml([event.city, event.region, countryLabel].filter(Boolean).join(" · ") || "Lieu à préciser")}</span>
+          <span>📅 ${escapeHtml(formatAdminEventDateRange(event))}</span>
+          <span>🏷️ ${escapeHtml(event.type || "Type à préciser")}</span>
         </div>
 
         <div class="event-badges">
@@ -2383,6 +2704,8 @@ function renderEventCard(event) {
               : ""
           }
           ${registrationStatus ? `<span class="badge registration-status">INSCRIPTIONS : ${escapeHtml(registrationStatus.shortLabel).toUpperCase()}</span>` : ""}
+          ${event.verified ? `<span class="badge verified">VÉRIFIÉ</span>` : ""}
+          ${hasEventCoords(event) ? `<span class="badge geo-ok">GPS OK</span>` : `<span class="badge geo-missing">GPS MANQUANT</span>`}
         </div>
 
         ${renderEventQuality(event)}
@@ -2391,8 +2714,8 @@ function renderEventCard(event) {
 
       <div class="event-actions">
         <button class="event-action social-copy" data-action="instagram-pack" data-id="${event.id}" type="button" title="Préparer trois visuels Instagram">▣ <span>Insta</span></button>
-        <button class="event-action validate" data-action="validate" data-id="${event.id}" type="button" title="Valider">✔ <span>Valider</span></button>
-        <button class="event-action reject" data-action="reject" data-id="${event.id}" type="button" title="Refuser">✖ <span>Refuser</span></button>
+        ${isPending ? `<button class="event-action validate" data-action="validate" data-id="${event.id}" type="button" title="Valider">✔ <span>Valider</span></button>` : ""}
+        ${isPending ? `<button class="event-action reject" data-action="reject" data-id="${event.id}" type="button" title="Refuser">✖ <span>Refuser</span></button>` : ""}
         <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button" title="${event.featured ? "Retirer la mise en avant" : "Mettre en avant"}">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
         <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button" title="Modifier">✎ <span>Modifier</span></button>
         <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer" title="Voir la fiche">↗ <span>Voir</span></a>
@@ -2425,22 +2748,43 @@ function getEventCardClasses(event) {
   return classes.join(" ");
 }
 
-function bindEventActions() {
-  document.querySelectorAll("[data-action]").forEach((button) => {
+function bindEventActions(root = document) {
+  root.querySelectorAll("[data-action]").forEach((button) => {
+    if (button.dataset.adminActionBound === "true") return;
+    button.dataset.adminActionBound = "true";
     button.addEventListener("click", async () => {
       const action = button.dataset.action;
       const id = button.dataset.id;
+      const shouldAdvanceModeration = Boolean(button.closest("[data-moderation-event]")) && ["validate", "reject"].includes(action);
+      let decisionMade = false;
 
       if (!id) return;
 
-      if (action === "validate") await validateEvent(id);
-      if (action === "reject") await rejectEvent(id);
+      if (action === "validate") decisionMade = await validateEvent(id);
+      if (action === "reject") decisionMade = await rejectEvent(id);
       if (action === "featured") await toggleFeatured(id);
       if (action === "edit") openEditModal(id);
       if (action === "copy-social") await copySocialPost(id);
       if (action === "instagram-pack") await createInstagramPack(id, button);
       if (action === "delete") await deleteRejectedEvent(id);
+      if (shouldAdvanceModeration && decisionMade) focusNextModerationEvent();
     });
+  });
+}
+
+function formatAdminEventDateRange(event) {
+  const start = formatDate(event?.start_date);
+  const end = formatDate(event?.end_date);
+  if (!event?.start_date) return "Date à préciser";
+  return event?.end_date && event.end_date !== event.start_date ? `${start} → ${end}` : start;
+}
+
+function focusNextModerationEvent() {
+  requestAnimationFrame(() => {
+    const nextEvent = moderationEventsList?.querySelector("[data-moderation-event]");
+    if (!nextEvent) return;
+    nextEvent.scrollIntoView({ behavior: "smooth", block: "center" });
+    nextEvent.querySelector("[data-action='validate']")?.focus({ preventScroll: true });
   });
 }
 
@@ -2558,7 +2902,7 @@ function fallbackCopyText(text) {
 /* ACTIONS */
 
 async function validateEvent(id) {
-  if (!(await ensureAdminSession())) return;
+  if (!(await ensureAdminSession())) return false;
   const event = allEvents.find((item) => String(item.id) === String(id));
   let validatedDespiteDuplicateAlert = false;
 
@@ -2576,7 +2920,7 @@ async function validateEvent(id) {
         const approved = await openDuplicateValidationDialog(event, matches);
         if (!approved) {
           showToast("Validation annulée : vérifie les doublons signalés");
-          return;
+          return false;
         }
         validatedDespiteDuplicateAlert = true;
       }
@@ -2585,7 +2929,7 @@ async function validateEvent(id) {
       const continueWithoutCheck = window.confirm(
         "Le contrôle des doublons est momentanément indisponible.\n\nValider tout de même cet événement ?"
       );
-      if (!continueWithoutCheck) return;
+      if (!continueWithoutCheck) return false;
     }
   }
 
@@ -2599,7 +2943,7 @@ async function validateEvent(id) {
 
   if (error) {
     showToast("Erreur validation");
-    return;
+    return false;
   }
 
   await loadDashboard();
@@ -2608,6 +2952,7 @@ async function validateEvent(id) {
     eventActionLabel(id)
   );
   showToast(validatedDespiteDuplicateAlert ? "Événement validé après vérification du doublon" : "Événement validé");
+  return true;
 }
 
 function openDuplicateValidationDialog(event, matches) {
@@ -2669,7 +3014,13 @@ function openDuplicateValidationDialog(event, matches) {
 }
 
 async function rejectEvent(id) {
-  if (!(await ensureAdminSession())) return;
+  if (!(await ensureAdminSession())) return false;
+  const event = allEvents.find((item) => String(item.id) === String(id));
+  const confirmed = window.confirm(
+    `Rejeter cet événement ?\n\n${event?.title || "Sans titre"}\n\nLa fiche restera dans l’administration.`
+  );
+  if (!confirmed) return false;
+
   const { error } = await supabaseClient
     .from("events")
     .update({
@@ -2680,12 +3031,13 @@ async function rejectEvent(id) {
 
   if (error) {
     showToast("Erreur rejet");
-    return;
+    return false;
   }
 
   await loadDashboard();
-  recordAdminAction("Événement refusé", eventActionLabel(id));
+  recordAdminAction("Événement refusé", event?.title || eventActionLabel(id));
   showToast("Événement rejeté");
+  return true;
 }
 
 async function toggleFeatured(id) {
