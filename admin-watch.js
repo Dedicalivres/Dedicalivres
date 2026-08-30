@@ -2836,7 +2836,7 @@
     container.querySelectorAll("[data-watch-submit]").forEach((button) => {
       button.addEventListener("click", () => {
         const index = Number(button.dataset.watchSubmit);
-        openWatchSubmissionPreview(index, queueResults);
+        openWatchSubmissionPreview(index, queueResults, button);
       });
     });
 
@@ -3129,11 +3129,13 @@
     return Math.round(Math.abs(leftTime - rightTime) / 86400000);
   }
 
-  function openWatchSubmissionPreview(index, results = lastResults) {
+  function openWatchSubmissionPreview(index, results = lastResults, trigger = null) {
     const item = results[index];
     if (!item || !["ready", "review"].includes(getWatchWorkflowState(item))) return;
 
-    const card = document.querySelector(`#watch-results [data-watch-result-index="${index}"]`);
+    const card =
+      trigger?.closest("[data-watch-result-index]") ||
+      document.querySelector(`#watch-results [data-watch-result-index="${index}"]`);
     const preview = card?.querySelector("[data-watch-submission-preview]");
     if (!preview) return;
 
