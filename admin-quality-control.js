@@ -25,6 +25,9 @@
   let currentSearch = "";
 
   ready(function () {
+    // Le cockpit V3 dispose déjà de sa file Qualité, calculée depuis allEvents.
+    // Ne pas injecter un second panneau ni relire la table events.
+    if (document.querySelector("#tab-quality #quality-control-list")) return;
     waitForAdmin();
   });
 

@@ -230,8 +230,10 @@
       </div>
     `;
 
+    const baseStatePanel = document.getElementById("admin-base-state-panel");
     const missionPanel = document.getElementById("admin-mission-panel");
-    if (missionPanel) missionPanel.insertAdjacentElement("afterend", panel);
+    if (baseStatePanel) baseStatePanel.insertAdjacentElement("afterend", panel);
+    else if (missionPanel) missionPanel.insertAdjacentElement("afterend", panel);
     else statsGrid.insertAdjacentElement("afterend", panel);
   }
 

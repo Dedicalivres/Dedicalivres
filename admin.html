@@ -204,6 +204,19 @@
           <strong id="stats-visits">0</strong>
         </article>
 
+        <article class="stat-card glow-cyan stat-card-quality" id="stats-quality-card">
+          <span class="stat-label">QUALITÉ</span>
+          <strong id="stats-quality-issues">0</strong>
+        </article>
+
+      </section>
+
+      <section class="admin-panel admin-base-state-panel" id="admin-base-state-panel" aria-labelledby="admin-base-state-title">
+        <div class="section-head">
+          <h3 id="admin-base-state-title">ÉTAT DE LA BASE</h3>
+          <span id="admin-base-state-summary">Analyse des événements chargés…</span>
+        </div>
+        <div id="admin-base-state-grid" class="cockpit-status-grid"></div>
       </section>
 
       <!-- ============================================= -->
@@ -291,35 +304,80 @@
 
       <section class="toolbar admin-toolbar-events">
 
-        <input
-          type="search"
-          id="search-input"
-          placeholder="Recherche événement, ville, région..."
-        />
+        <label class="admin-filter-field admin-filter-search" for="search-input">
+          <span>Recherche</span>
+          <input
+            type="search"
+            id="search-input"
+            placeholder="Titre, région, contenu…"
+          />
+        </label>
 
-        <select id="filter-status">
-          <option value="">Tous</option>
-          <option value="pending">En attente</option>
-          <option value="validated">Validés</option>
-          <option value="rejected">Refusés</option>
-          <option value="featured">Mis en avant</option>
-          <option value="premium-ready">Potentiel premium</option>
-          <option value="missing-image">Sans image</option>
-        </select>
+        <label class="admin-filter-field" for="filter-city">
+          <span>Ville</span>
+          <select id="filter-city">
+            <option value="">Toutes les villes</option>
+          </select>
+        </label>
 
-        <select id="filter-archive" title="Limiter le chargement des événements passés">
-          <option value="current" selected>Actifs + en attente</option>
-          <option value="all">Inclure les passés</option>
-          <option value="past">Passés uniquement</option>
-        </select>
+        <label class="admin-filter-field" for="filter-date">
+          <span>Date</span>
+          <input id="filter-date" type="date" />
+        </label>
 
-        <select id="filter-type">
-          <option value="">Tous types</option>
-          <option value="Salon">Salon</option>
-          <option value="Festival">Festival</option>
-          <option value="Dédicace">Dédicace</option>
-          <option value="Autre">Autre</option>
-        </select>
+        <label class="admin-filter-field" for="filter-status">
+          <span>Statut</span>
+          <select id="filter-status">
+            <option value="">Tous les statuts</option>
+            <option value="pending">En attente</option>
+            <option value="validated">Validés</option>
+            <option value="rejected">Refusés</option>
+            <option value="featured">Mis en avant</option>
+            <option value="premium-ready">Potentiel premium</option>
+            <option value="missing-image">Sans image</option>
+          </select>
+        </label>
+
+        <label class="admin-filter-field" for="filter-archive">
+          <span>Période chargée</span>
+          <select id="filter-archive" title="Limiter le chargement des événements passés">
+            <option value="current" selected>Actifs + en attente</option>
+            <option value="all">Inclure les passés</option>
+            <option value="past">Passés uniquement</option>
+          </select>
+        </label>
+
+        <label class="admin-filter-field" for="filter-type">
+          <span>Type</span>
+          <select id="filter-type">
+            <option value="">Tous les types</option>
+            <option value="Salon">Salon</option>
+            <option value="Festival">Festival</option>
+            <option value="Dédicace">Dédicace</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </label>
+
+        <label class="admin-filter-field" for="filter-country">
+          <span>Pays</span>
+          <select id="filter-country">
+            <option value="">Tous les pays</option>
+          </select>
+        </label>
+
+        <label class="admin-filter-field" for="filter-quality">
+          <span>Qualité</span>
+          <select id="filter-quality">
+            <option value="">Toutes les fiches</option>
+            <option value="missing-image">Image manquante</option>
+            <option value="quality-low">Qualité faible</option>
+            <option value="missing-coords">GPS manquant</option>
+          </select>
+        </label>
+
+        <button id="reset-event-filters" class="cyber-btn-secondary admin-filter-reset" type="button">
+          Réinitialiser
+        </button>
 
       </section>
 
@@ -343,14 +401,20 @@
     <!-- ================================================= -->
 
     <section id="tab-moderation" class="admin-tab-panel">
-      <section class="admin-panel admin-empty-panel">
+      <section id="admin-moderation-command-center" class="admin-panel admin-moderation-command-center" aria-labelledby="moderation-command-title">
         <div class="section-head">
-          <h3>MODÉRATION</h3>
-          <span>Demandes visiteurs</span>
+          <h3 id="moderation-command-title">CENTRE DE DÉCISION</h3>
+          <span id="moderation-command-summary">Chargement de la file…</span>
         </div>
-        <p class="priority-empty">
-          Les demandes auteurs et les témoignages s’affichent ici automatiquement.
-        </p>
+        <div id="moderation-command-grid" class="moderation-command-grid"></div>
+      </section>
+
+      <section class="admin-panel moderation-events-panel" aria-labelledby="moderation-events-title">
+        <div class="section-head">
+          <h3 id="moderation-events-title">ÉVÉNEMENTS À DÉCIDER</h3>
+          <span id="moderation-events-count">0 soumission</span>
+        </div>
+        <div id="moderation-events-list" class="moderation-events-list" aria-live="polite"></div>
       </section>
     </section>
 
@@ -371,6 +435,9 @@
           <label for="quality-focus-select">Vue</label>
           <select id="quality-focus-select">
             <option value="all">Toutes les priorités</option>
+            <option value="critical">Critiques</option>
+            <option value="important">Importantes</option>
+            <option value="improvement">Améliorations</option>
             <option value="pending">Événements en attente</option>
             <option value="missing-image">Sans image</option>
             <option value="missing-coords">Sans coordonnées</option>
