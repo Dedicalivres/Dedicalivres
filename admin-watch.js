@@ -2912,7 +2912,7 @@
     if (getWatchDuplicateKey(item) !== previousDuplicateKey) {
       item.watchDuplicateSignal = getLocalWatchDuplicateSignal(item, lastResults);
     }
-    const nextInferredWorkflowState = inferWatchCandidateWorkflowState(item);
+    const nextInferredWorkflowState = inferEditedWatchCandidateWorkflowState(item);
     const nextWorkflowState = WATCH_CANDIDATE_CLOSED_STATES.includes(previousWorkflowState)
       ? previousWorkflowState
       : nextInferredWorkflowState;
@@ -3442,6 +3442,21 @@
     const status = normalizeForCompare(result?.status || "");
     if (status === "non evenement") return "rejected";
     return isCompleteWatchResult(result) ? "ready" : "review";
+  }
+
+  function inferEditedWatchCandidateWorkflowState(result) {
+    const status = normalizeForCompare(result?.status || "");
+    if (status === "non evenement") return "rejected";
+
+    const hasRequiredIdentity =
+      getSubmissionBlockingFields(result).length === 0 &&
+      Boolean(cleanText(result?.country));
+
+    const qualityScore = getWatchCandidateQualityScore(result);
+
+    return hasRequiredIdentity && qualityScore >= 80
+      ? "ready"
+      : "review";
   }
 
   function getLocalWatchWorkflowEntry(result) {
