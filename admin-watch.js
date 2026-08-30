@@ -625,7 +625,7 @@
 
     updateWatchPersistenceIndicator();
     renderHistory();
-    if (lastResults.length) renderResults(lastResults);
+    renderResults(lastResults);
     if (eventWatchAlerts.length) renderEventWatchAlerts();
     updateWatchOperationsDashboard();
     return watchPersistenceSnapshot;
@@ -683,6 +683,77 @@
     return watchPersistenceSnapshot.candidates.find((candidate) =>
       getWatchCandidatePersistenceKeys(candidate).some((key) => localKeys.has(key))
     ) || null;
+  }
+
+  function createServerWatchQueueCandidate(serverCandidate) {
+    const sourceUrl = cleanText(serverCandidate?.origin_url || serverCandidate?.canonical_origin_url);
+    return {
+      title: cleanText(serverCandidate?.title),
+      startDate: normalizeIsoDate(serverCandidate?.start_date),
+      city: cleanText(serverCandidate?.city),
+      sourceUrl,
+      officialUrl: cleanText(serverCandidate?.canonical_origin_url || sourceUrl),
+      identity_key: cleanText(serverCandidate?.identity_key),
+      workflow_status: cleanText(serverCandidate?.workflow_status),
+      duplicate_event_id: serverCandidate?.duplicate_event_id || null,
+      submitted_event_id: serverCandidate?.submitted_event_id || null,
+      serverCandidateId: serverCandidate?.id || null,
+      serverVersion: Number(serverCandidate?.version || 0) || null,
+      status_updated_at: serverCandidate?.status_updated_at || "",
+      _watchPersisted: true,
+      _watchServerOnly: true,
+      _watchWorkerIndex: null
+    };
+  }
+
+  function enrichWorkerWatchCandidateWithServer(result, serverCandidate, workerIndex) {
+    const enriched = {
+      ...result,
+      _watchPersisted: Boolean(serverCandidate),
+      _watchServerOnly: false,
+      _watchWorkerIndex: workerIndex
+    };
+    if (!serverCandidate) return enriched;
+
+    const serverMetadata = {
+      identity_key: serverCandidate.identity_key,
+      workflow_status: serverCandidate.workflow_status,
+      duplicate_event_id: serverCandidate.duplicate_event_id,
+      submitted_event_id: serverCandidate.submitted_event_id,
+      status_updated_at: serverCandidate.status_updated_at,
+      serverCandidateId: serverCandidate.id,
+      serverVersion: serverCandidate.version
+    };
+    Object.entries(serverMetadata).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== "") enriched[key] = value;
+    });
+    return enriched;
+  }
+
+  function buildWatchCandidateQueue(results = lastResults) {
+    const queue = (Array.isArray(results) ? results : []).map((result, index) =>
+      enrichWorkerWatchCandidateWithServer(result, findServerWatchCandidate(result), index)
+    );
+    const keyToQueueIndex = new Map();
+
+    queue.forEach((candidate, index) => {
+      getWatchCandidatePersistenceKeys(candidate).forEach((key) => keyToQueueIndex.set(key, index));
+    });
+
+    watchPersistenceSnapshot.candidates.forEach((serverCandidate) => {
+      const keys = getWatchCandidatePersistenceKeys(serverCandidate);
+      const matchingIndex = keys
+        .map((key) => keyToQueueIndex.get(key))
+        .find((index) => Number.isInteger(index));
+      if (Number.isInteger(matchingIndex)) return;
+
+      const candidate = createServerWatchQueueCandidate(serverCandidate);
+      const queueIndex = queue.length;
+      queue.push(candidate);
+      keys.forEach((key) => keyToQueueIndex.set(key, queueIndex));
+    });
+
+    return queue;
   }
 
   function adoptServerWatchCandidate(row) {
@@ -1900,7 +1971,7 @@
     if (confirmedCount) setWatchPersistenceAvailabilityAfterWrite("success");
     if (failedCount) setWatchPersistenceAvailabilityAfterWrite("unavailable");
     renderHistory();
-    if (lastResults.length) renderResults(lastResults);
+    renderResults(lastResults);
     updateWatchOperationsDashboard();
     return result;
   }
@@ -2412,16 +2483,16 @@
     const container = document.getElementById("watch-results");
     if (!container) return;
 
-    const sourceResults = Array.isArray(results) ? results : [];
-    updateWatchQueueFilters(sourceResults);
+    const queueResults = buildWatchCandidateQueue(Array.isArray(results) ? results : []);
+    updateWatchQueueFilters(queueResults);
     updateWatchOperationsDashboard();
 
-    if (!sourceResults.length) {
+    if (!queueResults.length) {
       container.innerHTML = `<p class="priority-empty">Aucun résultat à afficher.</p>`;
       return;
     }
 
-    const visibleItems = sourceResults
+    const visibleItems = queueResults
       .map((result, index) => ({
         result,
         index,
@@ -2455,7 +2526,7 @@
     container.querySelectorAll("[data-watch-handled]").forEach((button) => {
       button.addEventListener("click", () => {
         const index = Number(button.dataset.watchHandled);
-        const item = lastResults[index];
+        const item = queueResults[index];
         if (!item) return;
         markHandled(item);
         setWatchWorkflowState(item, "handled");
@@ -2469,7 +2540,7 @@
     container.querySelectorAll("[data-watch-rejected]").forEach((button) => {
       button.addEventListener("click", () => {
         const index = Number(button.dataset.watchRejected);
-        const item = lastResults[index];
+        const item = queueResults[index];
         if (!item) return;
         setWatchWorkflowState(item, "rejected");
         lastResults = sortWatchResultsByCompleteness(lastResults);
@@ -2821,7 +2892,7 @@
   }
 
   function goToNextActiveResult() {
-    const hasActiveResult = lastResults.some((result) =>
+    const hasActiveResult = buildWatchCandidateQueue(lastResults).some((result) =>
       ["ready", "review"].includes(getWatchWorkflowState(result))
     );
     if (!hasActiveResult) return;
@@ -3086,14 +3157,20 @@
     const workflowLabel = getWatchWorkflowLabel(workflowState);
     const isNonEvent = workflowState === "rejected";
     const isActiveWorkflow = ["ready", "review"].includes(workflowState);
-    const isClosedWorkflow = ["handled", "duplicate", "submitted", "rejected"].includes(workflowState);
-    const imageQuality = getWatchImageQuality(result);
-    const candidateQualityScore = getWatchCandidateQualityScore(result);
-    const candidateQualityLevel = getWatchCandidateQualityLevel(candidateQualityScore);
-    const duplicateSignal = getWatchDuplicateSignal(result);
-    const statusClass = isNonEvent
-      ? "low"
-      : (score >= 82 ? "good" : score >= 58 ? "medium" : "low");
+    const isClosedWorkflow = WATCH_CANDIDATE_CLOSED_STATES.includes(workflowState);
+    const isPersisted = result?._watchPersisted === true;
+    const isServerOnly = result?._watchServerOnly === true;
+    const canMarkHandled = isActiveWorkflow;
+    const canReject = isActiveWorkflow || (isServerOnly && workflowState === "handled");
+    const imageQuality = isServerOnly ? null : getWatchImageQuality(result);
+    const candidateQualityScore = isServerOnly ? 0 : getWatchCandidateQualityScore(result);
+    const candidateQualityLevel = isServerOnly ? null : getWatchCandidateQualityLevel(candidateQualityScore);
+    const duplicateSignal = isServerOnly ? null : getWatchDuplicateSignal(result);
+    const statusClass = isServerOnly
+      ? ""
+      : isNonEvent
+        ? "low"
+        : (score >= 82 ? "good" : score >= 58 ? "medium" : "low");
     const rawDescription = String(result.description || result.evidence || "").trim();
     const hasPlaceholderDescription = /\blorem\s+ipsum\b/i.test(rawDescription);
     const visibleDescription = hasPlaceholderDescription
@@ -3103,17 +3180,24 @@
     return `
       <article class="watch-result ${statusClass}${isNonEvent ? " is-non-event" : ""}" data-watch-result-index="${index}">
         <div class="watch-result-main">
-          <div class="watch-result-image ${result.imageUrl ? "" : "is-empty"}">
-            ${result.imageUrl ? `<img src="${escapeAttr(result.imageUrl)}" alt="">` : "Image non détectée"}
-          </div>
+          ${
+            isServerOnly
+              ? ""
+              : `
+                <div class="watch-result-image ${result.imageUrl ? "" : "is-empty"}">
+                  ${result.imageUrl ? `<img src="${escapeAttr(result.imageUrl)}" alt="">` : "Image non détectée"}
+                </div>
+              `
+          }
 
           <div class="watch-result-body">
             <div class="watch-result-topline">
               <span>${escapeHtml(workflowLabel)}</span>
-              <span>${escapeHtml(result.type || "Type inconnu")}</span>
-              ${isActiveWorkflow ? `<span class="watch-quality-badge is-${candidateQualityLevel.state}">Qualité ${candidateQualityScore}% · ${candidateQualityLevel.label}</span>` : ""}
-              ${isActiveWorkflow ? `<span class="watch-image-badge is-${imageQuality.state}">${imageQuality.label}</span>` : ""}
-              ${isActiveWorkflow ? `<span class="watch-duplicate-badge is-${duplicateSignal.state}">${duplicateSignal.label}</span>` : ""}
+              ${isPersisted ? "<span>Persisté</span>" : ""}
+              ${isServerOnly ? "" : `<span>${escapeHtml(result.type || "Type inconnu")}</span>`}
+              ${isActiveWorkflow && !isServerOnly ? `<span class="watch-quality-badge is-${candidateQualityLevel.state}">Qualité ${candidateQualityScore}% · ${candidateQualityLevel.label}</span>` : ""}
+              ${isActiveWorkflow && !isServerOnly ? `<span class="watch-image-badge is-${imageQuality.state}">${imageQuality.label}</span>` : ""}
+              ${isActiveWorkflow && !isServerOnly ? `<span class="watch-duplicate-badge is-${duplicateSignal.state}">${duplicateSignal.label}</span>` : ""}
               ${alreadyHandled && workflowState !== "handled" ? "<span>Déjà traité</span>" : ""}
             </div>
             <h4>${escapeHtml(result.title || "Titre non détecté")}</h4>
@@ -3123,17 +3207,23 @@
             ${
               visibleDescription
                 ? `<p>${escapeHtml(visibleDescription)}</p>`
-                : (isNonEvent ? "" : "<p>Description non détectée.</p>")
+                : (isNonEvent || isServerOnly ? "" : "<p>Description non détectée.</p>")
             }
           </div>
 
-          <strong class="watch-score">${score}%</strong>
+          ${isServerOnly ? "" : `<strong class="watch-score">${score}%</strong>`}
         </div>
 
-        <div class="watch-warning-row">
-          ${missing.length ? `<span>À vérifier : ${escapeHtml(missing.join(", "))}</span>` : "<span>Champs essentiels détectés</span>"}
-          ${warnings.map((warning) => `<span>${escapeHtml(warning)}</span>`).join("")}
-        </div>
+        ${
+          isServerOnly
+            ? ""
+            : `
+              <div class="watch-warning-row">
+                ${missing.length ? `<span>À vérifier : ${escapeHtml(missing.join(", "))}</span>` : "<span>Champs essentiels détectés</span>"}
+                ${warnings.map((warning) => `<span>${escapeHtml(warning)}</span>`).join("")}
+              </div>
+            `
+        }
 
         ${
           isClosedWorkflow
@@ -3150,20 +3240,22 @@
                 )}</strong>
               </div>
             `
-            : `
-              <details class="watch-copy-block">
-                <summary>${workflowState === "ready" ? "Fiche prête à copier" : "Fiche à vérifier"}</summary>
-                <textarea readonly rows="13">${escapeHtml(result.adminText || "")}</textarea>
-              </details>
-            `
+            : isServerOnly
+              ? ""
+              : `
+                <details class="watch-copy-block">
+                  <summary>${workflowState === "ready" ? "Fiche prête à copier" : "Fiche à vérifier"}</summary>
+                  <textarea readonly rows="13">${escapeHtml(result.adminText || "")}</textarea>
+                </details>
+              `
         }
 
-        ${isActiveWorkflow ? renderWatchCandidateEditor(result, index) : ""}
-        ${isActiveWorkflow ? renderWatchSubmissionPreview(result, index) : ""}
+        ${isActiveWorkflow && !isServerOnly ? renderWatchCandidateEditor(result, index) : ""}
+        ${isActiveWorkflow && !isServerOnly ? renderWatchSubmissionPreview(result, index) : ""}
 
         <div class="watch-result-actions">
           ${
-            isClosedWorkflow
+            isClosedWorkflow || isServerOnly
               ? ""
               : `
                 <button class="cyber-btn-primary" data-watch-submit="${index}" type="button">Envoyer en soumission</button>
@@ -3171,14 +3263,8 @@
               `
           }
           <a class="cyber-btn-secondary" href="${escapeAttr(result.sourceUrl || result.officialUrl || "#")}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>
-          ${
-            isClosedWorkflow
-              ? ""
-              : `
-                <button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>
-                <button class="cyber-btn-secondary" data-watch-rejected="${index}" type="button">Écarter</button>
-              `
-          }
+          ${canMarkHandled ? `<button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>` : ""}
+          ${canReject ? `<button class="cyber-btn-secondary" data-watch-rejected="${index}" type="button">Écarter</button>` : ""}
         </div>
       </article>
     `;
@@ -3600,16 +3686,15 @@
 
   function clearWatch() {
     const urls = document.getElementById("watch-urls");
-    const results = document.getElementById("watch-results");
     const copyAll = document.getElementById("watch-copy-all-btn");
     if (urls) urls.value = "";
-    if (results) results.innerHTML = `<p class="priority-empty">Aucune analyse lancée pour le moment.</p>`;
     if (copyAll) copyAll.disabled = true;
     lastResults = [];
     lastPagination = getEmptyPagination();
     watchOffset = 0;
     watchQueueFilter = "active";
     updateWatchQueueFilters([]);
+    renderResults(lastResults);
     updateWatchOperationsDashboard();
     updatePagingControls();
     setStatus("En attente d’une URL. Le résultat reste à vérifier humainement.");
