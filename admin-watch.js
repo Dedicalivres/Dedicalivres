@@ -3581,7 +3581,7 @@
         </div>
 
         <div class="watch-result-actions">
-          ${isActiveWorkflow && !isServerOnly ? `<button class="cyber-btn-primary" data-watch-examine="${index}" aria-controls="watch-candidate-detail-${index}" aria-expanded="false" type="button">Examiner</button>` : ""}
+          ${isActiveWorkflow && (!isServerOnly || workflowState === "ready") ? `<button class="cyber-btn-primary" data-watch-examine="${index}" aria-controls="watch-candidate-detail-${index}" aria-expanded="false" type="button">Examiner</button>` : ""}
           <a class="cyber-btn-secondary" href="${escapeAttr(sourceHref)}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>
           ${officialHref && officialHref !== sourceHref ? `<a class="cyber-btn-secondary" href="${escapeAttr(officialHref)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
           ${canMarkHandled || canReject ? `
@@ -3605,7 +3605,7 @@
                 : "Élément écarté"
         )}</p>` : ""}
 
-        ${isActiveWorkflow && !isServerOnly ? `
+        ${isActiveWorkflow && (!isServerOnly || workflowState === "ready") ? `
           <section id="watch-candidate-detail-${index}" class="watch-candidate-detail" data-watch-candidate-detail="${index}" hidden aria-label="Détails du candidat">
             <h5 tabindex="-1">Examiner la fiche</h5>
             <div class="watch-detail-signals">
