@@ -11,7 +11,7 @@ const required = [
   "Modifier la fiche",
   'name="title"',
   'name="startDate"',
-  'name="endDate"',
+  'data-watch-field="endDate"',
   'name="city"',
   'name="type"',
   'name="country"',
