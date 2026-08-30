@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 const source = fs.readFileSync("admin-watch.js", "utf8");
 
 const required = [
-  "Pilotage Veille",
+  "Centre de pilotage",
   'class="watch-card watch-operations-dashboard"',
   'id="watch-operations-candidates-count"',
   'id="watch-operations-event-count"',
@@ -17,13 +17,13 @@ const required = [
   "Indisponible",
   "Aucune activité enregistrée",
   "Aucune source qualifiée",
-  "Voir les candidats",
-  "Voir Event Watch",
-  "Voir les sources",
+  'data-watch-workspace-view="candidates"',
+  'data-watch-workspace-view="event-watch"',
+  'data-watch-workspace-view="sources"',
   "function updateWatchOperationsDashboard(",
   "function getWatchOperationsLatestActivity(",
   "function renderWatchOperationsSource(",
-  "function scrollToWatchOperationsSection("
+  "function switchWatchWorkspaceView("
 ];
 
 for (const fragment of required) {
@@ -85,19 +85,21 @@ assert.ok(
   "La dernière activité doit utiliser uniquement les timestamps connus et ignorer les dates invalides"
 );
 
-const navigationStart = source.indexOf("function scrollToWatchOperationsSection(");
+const navigationStart = source.indexOf("function switchWatchWorkspaceView(");
 const navigationEnd = source.indexOf("function updateWatchOperationsDashboard(", navigationStart);
 const navigationSource = source.slice(navigationStart, navigationEnd);
 
 assert.ok(
-  navigationSource.includes("document.getElementById") &&
-    navigationSource.includes("scrollIntoView") &&
+  navigationSource.includes('document.querySelectorAll("[data-watch-workspace-panel]")') &&
+    navigationSource.includes('panel.hidden = panel.dataset.watchWorkspacePanel !== view') &&
+    navigationSource.includes('button.setAttribute("aria-selected", String(active))') &&
+    navigationSource.includes("handleWatchWorkspaceKeydown") &&
     !navigationSource.includes("fetch") &&
     !navigationSource.includes("analyzeUrls") &&
     !navigationSource.includes("loadEventWatchAlerts") &&
     !navigationSource.includes("rerunProductiveSource") &&
     !navigationSource.includes("createSubmissionFromWatch"),
-  "La navigation rapide doit uniquement faire défiler vers une section existante"
+  "La navigation interne doit activer une seule vue, rester accessible et ne lancer aucune action métier"
 );
 
 const availabilityStart = source.indexOf("function getEventWatchAvailabilityLabel(");

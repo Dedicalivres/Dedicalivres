@@ -42,6 +42,8 @@
   let eventWatchAvailability = "unchecked";
   let lastWatchAnalysisAt = "";
   let watchQueueFilter = "all";
+  let watchWorkspaceView = "candidates";
+  let watchCandidateSearch = "";
   let watchPersistenceSnapshot = createEmptyWatchPersistenceSnapshot();
   let watchPersistenceLoadPromise = null;
   let lastWatchPersistenceNotice = "";
@@ -112,73 +114,73 @@
 
     tab.innerHTML = `
       <section class="watch-shell" data-watch-version="${VERSION}">
-        <article class="watch-card watch-operations-dashboard" aria-labelledby="watch-operations-title">
-          <div class="watch-card-head">
+        <header class="watch-card watch-operations-dashboard" aria-labelledby="watch-operations-title">
+          <div class="watch-cockpit-heading">
             <div>
-              <h3 id="watch-operations-title">Pilotage Veille</h3>
-              <p>
-                Vue locale des actions en attente, enrichie par la persistance serveur lorsqu’elle est disponible.
-                <span id="watch-persistence-status" class="watch-pill" data-state="local">Persistance : Locale</span>
-              </p>
+              <span class="watch-cockpit-eyebrow">VEILLE</span>
+              <h3 id="watch-operations-title">Centre de pilotage</h3>
+              <p>Surveillez, vérifiez et préparez les événements.</p>
             </div>
-            <div class="watch-operations-nav" aria-label="Navigation rapide Veille">
-              <button class="cyber-btn-secondary" data-watch-dashboard-target="watch-candidates-section" type="button">Voir les candidats</button>
-              <button class="cyber-btn-secondary" data-watch-dashboard-target="watch-event-watch-section" type="button">Voir Event Watch</button>
-              <button class="cyber-btn-secondary" data-watch-dashboard-target="watch-sources-section" type="button">Voir les sources</button>
+            <div class="watch-system-statuses" aria-label="État des services Veille" aria-live="polite">
+              <span id="watch-persistence-status" class="watch-system-status" data-state="local">Persistance : Locale</span>
+              <span id="watch-worker-status" class="watch-system-status" data-state="unchecked">Worker : non vérifié</span>
+              <span id="watch-auto-matte-status" class="watch-system-status" data-state="unchecked">Auto-Matte : en attente</span>
             </div>
           </div>
 
-          <div class="watch-operations-grid" aria-live="polite">
-            <div class="watch-operation-card">
-              <span>À traiter</span>
-              <strong id="watch-operations-candidates-count">0</strong>
-              <small>Candidats prêts ou à vérifier</small>
-            </div>
-            <div class="watch-operation-card">
-              <span>Event Watch</span>
-              <strong id="watch-operations-event-count">0</strong>
-              <small>Local : <span id="watch-operations-event-status" data-state="unchecked">Non vérifié / en attente</span></small>
-            </div>
-            <div class="watch-operation-card">
-              <span>Sources productives</span>
-              <strong id="watch-operations-sources-count">0</strong>
-              <small>Sources connues sur cet appareil</small>
-            </div>
-            <div class="watch-operation-card">
-              <span>Qualité des sources</span>
-              <strong id="watch-operations-source-quality">Aucune source qualifiée</strong>
-              <small>Selon le rendement existant</small>
-            </div>
-          </div>
-
-          <div class="watch-operations-footer">
-            <p><strong>Dernière activité :</strong> <span id="watch-operations-last-activity">Aucune activité enregistrée</span></p>
-            <div class="watch-operations-top-sources">
-              <strong>Meilleures sources</strong>
-              <div id="watch-operations-top-sources"><span>Aucune source productive</span></div>
-            </div>
-          </div>
-
-          <div class="watch-controlled-import">
-            <button id="watch-import-local-btn" class="cyber-btn-secondary" type="button">Importer les données locales</button>
-            <div id="watch-import-preview" class="watch-import-preview" hidden aria-live="polite">
-              <p id="watch-import-summary">Préparation de l’import…</p>
-              <div class="watch-editor-actions">
-                <button id="watch-import-cancel-btn" class="cyber-btn-secondary" type="button">Annuler</button>
-                <button id="watch-import-confirm-btn" class="cyber-btn-primary" type="button">Confirmer l’import</button>
+          <details class="watch-system-details">
+            <summary>Détails système et maintenance</summary>
+            <div class="watch-system-details-grid">
+              <div class="watch-endpoint-box">
+                <span>Endpoint Worker</span>
+                <code id="watch-endpoint-label">${escapeHtml(endpoint)}</code>
+                <button id="watch-health-btn" class="cyber-btn-secondary" type="button">Tester le Worker</button>
+              </div>
+              <div class="watch-controlled-import">
+                <p>L’import local est une opération de maintenance avec précontrôle serveur.</p>
+                <button id="watch-import-local-btn" class="cyber-btn-secondary" type="button">Importer les données locales</button>
+                <div id="watch-import-preview" class="watch-import-preview" hidden aria-live="polite">
+                  <p id="watch-import-summary">Préparation de l’import…</p>
+                  <div class="watch-editor-actions">
+                    <button id="watch-import-cancel-btn" class="cyber-btn-secondary" type="button">Annuler</button>
+                    <button id="watch-import-confirm-btn" class="cyber-btn-primary" type="button">Confirmer l’import</button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </article>
+          </details>
 
-        <article id="watch-event-watch-section" class="watch-card event-watch-admin-card">
+          <span id="watch-operations-sources-count" hidden>0</span>
+          <span id="watch-operations-source-quality" hidden>Aucune source qualifiée</span>
+          <span id="watch-operations-last-activity" hidden>Aucune activité enregistrée</span>
+          <span id="watch-operations-event-status" hidden data-state="unchecked">Non vérifié / en attente</span>
+          <span id="watch-operations-top-sources" hidden>Aucune source productive</span>
+        </header>
+
+        <div class="watch-summary-grid" aria-label="Résumé de la file" aria-live="polite">
+          <button class="watch-summary-card is-priority" data-watch-summary-filter="active" type="button"><span>À traiter</span><strong id="watch-operations-candidates-count" data-watch-summary-count="active">0</strong></button>
+          <button class="watch-summary-card is-positive" data-watch-summary-filter="ready" type="button"><span>Prêts</span><strong data-watch-summary-count="ready">0</strong></button>
+          <button class="watch-summary-card is-priority" data-watch-summary-filter="review" type="button"><span>À vérifier</span><strong data-watch-summary-count="review">0</strong></button>
+          <button class="watch-summary-card" data-watch-summary-view="event-watch" type="button"><span>Event Watch</span><strong id="watch-operations-event-count">0</strong></button>
+          <button class="watch-summary-card is-secondary" data-watch-summary-filter="handled" type="button"><span>Traités</span><strong data-watch-summary-count="handled">0</strong></button>
+          <button class="watch-summary-card is-secondary" data-watch-summary-filter="rejected" type="button"><span>Écartés</span><strong data-watch-summary-count="rejected">0</strong></button>
+        </div>
+
+        <nav class="watch-workspace-nav" role="tablist" aria-label="Sections de la Veille">
+          <button id="watch-tab-candidates" class="watch-workspace-tab is-active" data-watch-workspace-view="candidates" role="tab" aria-selected="true" aria-controls="watch-panel-candidates" tabindex="0" type="button">Candidats</button>
+          <button id="watch-tab-event-watch" class="watch-workspace-tab" data-watch-workspace-view="event-watch" role="tab" aria-selected="false" aria-controls="watch-panel-event-watch" tabindex="-1" type="button">Event Watch</button>
+          <button id="watch-tab-sources" class="watch-workspace-tab" data-watch-workspace-view="sources" role="tab" aria-selected="false" aria-controls="watch-panel-sources" tabindex="-1" type="button">Sources</button>
+          <button id="watch-tab-search" class="watch-workspace-tab" data-watch-workspace-view="search" role="tab" aria-selected="false" aria-controls="watch-panel-search" tabindex="-1" type="button">Nouvelle recherche</button>
+          <button class="watch-workspace-tab" data-watch-finished-navigation type="button">Historique / Terminés</button>
+        </nav>
+
+        <main class="watch-workspace">
+
+        <article id="watch-panel-event-watch" class="watch-card event-watch-admin-card watch-workspace-panel" data-watch-workspace-panel="event-watch" role="tabpanel" aria-labelledby="watch-tab-event-watch" aria-label="Événements à vérifier" hidden>
           <div class="watch-card-head">
             <div>
-              <h3>Événements à vérifier</h3>
-              <p>
-                Changements détectés par Auto-Matte sur des événements associés à Dédicalivres.
-                Aucune information n’est appliquée sans validation humaine.
-              </p>
+              <h3>Event Watch</h3>
+              <p>Changements détectés sur des événements déjà suivis. Aucune information n’est appliquée sans validation humaine.</p>
             </div>
             <button id="event-watch-refresh" class="cyber-btn-secondary" type="button">Actualiser</button>
           </div>
@@ -214,22 +216,13 @@
           </div>
         </article>
 
-        <article class="watch-card watch-hero-card">
+        <article id="watch-panel-search" class="watch-card watch-hero-card watch-workspace-panel" data-watch-workspace-panel="search" role="tabpanel" aria-labelledby="watch-tab-search" hidden>
           <div class="watch-card-head">
             <div>
-              <h3>Veille événements</h3>
-              <p>
-                Analyse une URL ou une liste d’URL, puis prépare une fiche candidate à relire.
-                Cette entrée web complète Auto-Matte local : les deux chemins rejoignent la même modération. Vérifie les doublons avant validation.
-              </p>
+              <h3>Nouvelle recherche</h3>
+              <p>Analysez une URL ou une liste d’URL, puis relisez les fiches préparées.</p>
             </div>
             <span class="watch-pill">V${VERSION}</span>
-          </div>
-
-          <div class="watch-endpoint-box">
-            <span>Worker connecté</span>
-            <code id="watch-endpoint-label">${escapeHtml(endpoint)}</code>
-            <button id="watch-health-btn" class="cyber-btn-secondary" type="button">Tester</button>
           </div>
 
           <div class="watch-form-grid">
@@ -277,10 +270,10 @@
 
           <div class="watch-actions">
             <button id="watch-analyze-btn" class="cyber-btn-primary" type="button">Analyser les URL</button>
-            <button id="watch-next-btn" class="cyber-btn-secondary" type="button" disabled>15 suivants</button>
-            <button id="watch-first-btn" class="cyber-btn-secondary" type="button" disabled>Revenir au début</button>
+            <button id="watch-next-btn" class="cyber-btn-secondary" type="button" hidden disabled>15 suivants</button>
+            <button id="watch-first-btn" class="cyber-btn-secondary" type="button" hidden disabled>Revenir au début</button>
             <button id="watch-clear-btn" class="cyber-btn-secondary" type="button">Effacer</button>
-            <button id="watch-copy-all-btn" class="cyber-btn-secondary" type="button" disabled>Copier toutes les fiches</button>
+            <button id="watch-copy-all-btn" class="cyber-btn-secondary" type="button" hidden disabled>Copier toutes les fiches</button>
           </div>
 
           <p id="watch-page-label" class="watch-page-label">
@@ -292,12 +285,16 @@
           </p>
         </article>
 
-        <article id="watch-candidates-section" class="watch-card">
-          <div class="watch-card-head">
+        <article id="watch-panel-candidates" class="watch-card watch-workspace-panel" data-watch-workspace-panel="candidates" role="tabpanel" aria-labelledby="watch-tab-candidates">
+          <div class="watch-card-head watch-candidate-head">
             <div>
-              <h3>Résultats de veille</h3>
-              <p>Les champs manquants ou incertains sont affichés clairement avant copie.</p>
+              <h3>Candidats</h3>
+              <p>File de travail locale et persistée, sans publication automatique.</p>
             </div>
+            <label class="watch-candidate-search">
+              <span>Rechercher un candidat</span>
+              <input id="watch-candidate-search" type="search" placeholder="Titre, ville, date ou source" autocomplete="off">
+            </label>
           </div>
 
           <div class="watch-queue-toolbar" role="group" aria-label="Filtrer la file de veille">
@@ -318,7 +315,7 @@
           </div>
         </article>
 
-        <article id="watch-sources-section" class="watch-card watch-history-card">
+        <article id="watch-panel-sources" class="watch-card watch-history-card watch-workspace-panel" data-watch-workspace-panel="sources" role="tabpanel" aria-labelledby="watch-tab-sources" hidden>
           <div class="watch-card-head">
             <div>
               <h3>Sources mémorisées</h3>
@@ -328,13 +325,30 @@
           </div>
           <div id="watch-history" class="watch-history"></div>
         </article>
+        </main>
       </section>
     `;
   }
 
   function bindControls() {
-    document.querySelectorAll("[data-watch-dashboard-target]").forEach((button) => {
-      button.addEventListener("click", () => scrollToWatchOperationsSection(button.dataset.watchDashboardTarget));
+    document.querySelectorAll("[data-watch-workspace-view]").forEach((button) => {
+      button.addEventListener("click", () => switchWatchWorkspaceView(button.dataset.watchWorkspaceView));
+      button.addEventListener("keydown", handleWatchWorkspaceKeydown);
+    });
+    document.querySelectorAll("[data-watch-summary-filter]").forEach((button) => {
+      button.addEventListener("click", () => {
+        watchQueueFilter = String(button.dataset.watchSummaryFilter || "active");
+        switchWatchWorkspaceView("candidates");
+        renderResults(lastResults);
+      });
+    });
+    document.querySelectorAll("[data-watch-summary-view]").forEach((button) => {
+      button.addEventListener("click", () => switchWatchWorkspaceView(button.dataset.watchSummaryView));
+    });
+    document.querySelector("[data-watch-finished-navigation]")?.addEventListener("click", () => {
+      watchQueueFilter = "handled";
+      switchWatchWorkspaceView("candidates");
+      renderResults(lastResults);
     });
     document.getElementById("event-watch-refresh")?.addEventListener("click", loadEventWatchAlerts);
     document.getElementById("event-watch-reset-workflow")?.addEventListener("click", resetEventWatchWorkflow);
@@ -387,6 +401,10 @@
         renderResults(lastResults);
       });
     });
+    document.getElementById("watch-candidate-search")?.addEventListener("input", (event) => {
+      watchCandidateSearch = String(event.target.value || "");
+      renderResults(lastResults);
+    });
 
     ["watch-urls", "watch-country", "watch-type", "watch-mode"].forEach((id) => {
       document.getElementById(id)?.addEventListener("change", () => {
@@ -397,17 +415,45 @@
     });
   }
 
-  function scrollToWatchOperationsSection(targetId) {
-    const target = document.getElementById(String(targetId || ""));
-    if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  function switchWatchWorkspaceView(nextView, options = {}) {
+    const allowedViews = ["candidates", "event-watch", "sources", "search"];
+    const view = allowedViews.includes(nextView) ? nextView : "candidates";
+    watchWorkspaceView = view;
+
+    document.querySelectorAll("[data-watch-workspace-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.watchWorkspacePanel !== view;
+    });
+    document.querySelectorAll("[data-watch-workspace-view]").forEach((button) => {
+      const active = button.dataset.watchWorkspaceView === view;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-selected", String(active));
+      button.tabIndex = active ? 0 : -1;
+    });
+
+    if (options.focus === true) {
+      document.querySelector(`[data-watch-workspace-view="${view}"]`)?.focus();
+    }
+  }
+
+  function handleWatchWorkspaceKeydown(event) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const tabs = [...document.querySelectorAll("[data-watch-workspace-view]")];
+    if (!tabs.length) return;
+    event.preventDefault();
+    const currentIndex = Math.max(0, tabs.indexOf(event.currentTarget));
+    const nextIndex = event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? tabs.length - 1
+        : (currentIndex + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    switchWatchWorkspaceView(tabs[nextIndex].dataset.watchWorkspaceView, { focus: true });
   }
 
   function updateWatchOperationsDashboard() {
     const dashboard = document.querySelector(".watch-operations-dashboard");
     if (!dashboard) return;
 
-    const activeCandidateCount = (Array.isArray(lastResults) ? lastResults : [])
+    const activeCandidateCount = buildWatchCandidateQueue(Array.isArray(lastResults) ? lastResults : [])
       .filter((item) => ["ready", "review"].includes(getWatchWorkflowState(item)))
       .length;
     const eventReviewCount = getEventWatchWorkflowCounts(eventWatchAlerts).review;
@@ -437,6 +483,16 @@
     if (eventStatus) {
       eventStatus.textContent = getEventWatchAvailabilityLabel();
       eventStatus.dataset.state = eventWatchAvailability;
+    }
+
+    const autoMatteStatus = document.getElementById("watch-auto-matte-status");
+    if (autoMatteStatus) {
+      autoMatteStatus.textContent = eventWatchAvailability === "available"
+        ? "Auto-Matte : disponible"
+        : eventWatchAvailability === "unavailable"
+          ? "Auto-Matte : indisponible"
+          : "Auto-Matte : en attente";
+      autoMatteStatus.dataset.state = eventWatchAvailability;
     }
 
     const topSources = document.getElementById("watch-operations-top-sources");
@@ -2021,7 +2077,10 @@
       button.disabled = true;
       button.textContent = "Analyse...";
     }
-    if (copyAll) copyAll.disabled = true;
+    if (copyAll) {
+      copyAll.disabled = true;
+      copyAll.hidden = true;
+    }
 
     setStatus("Analyse en cours via le Worker sécurisé...");
 
@@ -2041,6 +2100,7 @@
       lastResults = sortWatchResultsByCompleteness(Array.isArray(payload.results) ? payload.results : []);
       lastPagination = normalizeWatchPagination(payload);
       watchQueueFilter = "active";
+      switchWatchWorkspaceView("candidates");
       renderResults(lastResults);
 
       const duplicateCount = await precheckWatchDuplicates(lastResults);
@@ -2055,7 +2115,10 @@
         duplicateCount ? `${duplicateCount} déjà présente(s) détectée(s) automatiquement.` : "",
         productiveSaved ? "Source à fort rendement mémorisée." : ""
       ].filter(Boolean).join(" "));
-      if (copyAll) copyAll.disabled = !lastResults.length;
+      if (copyAll) {
+        copyAll.disabled = !lastResults.length;
+        copyAll.hidden = !lastResults.length;
+      }
     } catch (error) {
       console.error("Veille admin :", error);
       lastResults = [];
@@ -2074,14 +2137,27 @@
   async function testWorkerHealth() {
     const endpoint = getWatchEndpoint(window.DEDICALIVRES_CONFIG || {});
     const healthUrl = endpoint.replace(/\/analyze\/?$/, "/health");
+    const workerStatus = document.getElementById("watch-worker-status");
+    if (workerStatus) {
+      workerStatus.textContent = "Worker : vérification…";
+      workerStatus.dataset.state = "pending";
+    }
     setStatus("Test de connexion au Worker...");
 
     try {
       const response = await fetch(`${healthUrl}?t=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) throw new Error(`Worker indisponible : HTTP ${response.status}`);
       const payload = await response.json();
+      if (workerStatus) {
+        workerStatus.textContent = "Worker : opérationnel";
+        workerStatus.dataset.state = "available";
+      }
       setStatus(`Worker disponible · ${payload.version || "version non précisée"}`);
     } catch (error) {
+      if (workerStatus) {
+        workerStatus.textContent = "Worker : indisponible";
+        workerStatus.dataset.state = "unavailable";
+      }
       setStatus(error.message || "Worker indisponible.", "error");
     }
   }
@@ -2152,8 +2228,8 @@
       updateEventWatchQueueControls([]);
       container.innerHTML = `
         <div class="event-watch-unavailable" role="status">
-          <strong>Event Watch indisponible</strong>
-          <span>Auto-Matte local n’est pas démarré ou son pont local n’est pas accessible. Le reste de l’administration demeure disponible.</span>
+          <strong>Auto-Matte local indisponible</strong>
+          <span>Aucun changement ne peut être récupéré pour le moment. Le reste de l’administration demeure disponible.</span>
         </div>
       `;
       setEventWatchStatus(`Event Watch indisponible · ${error.message || "connexion impossible"}`, "warning");
@@ -2498,7 +2574,8 @@
         index,
         state: getWatchWorkflowState(result)
       }))
-      .filter((item) => matchesWatchQueueFilter(item.state));
+      .filter((item) => matchesWatchQueueFilter(item.state))
+      .filter((item) => matchesWatchCandidateSearch(item.result));
 
     if (!visibleItems.length) {
       container.innerHTML = `
@@ -2512,6 +2589,19 @@
     container.innerHTML = visibleItems
       .map(({ result, index }) => renderResultCard(result, index))
       .join("");
+
+    container.querySelectorAll("[data-watch-examine]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = Number(button.dataset.watchExamine);
+        const detail = container.querySelector(`[data-watch-candidate-detail="${index}"]`);
+        if (!detail) return;
+        const opening = detail.hidden;
+        detail.hidden = !opening;
+        button.setAttribute("aria-expanded", String(opening));
+        button.textContent = opening ? "Fermer" : "Examiner";
+        if (opening) detail.querySelector("h5")?.focus();
+      });
+    });
 
     container.querySelectorAll("[data-watch-copy]").forEach((button) => {
       button.addEventListener("click", async () => {
@@ -2872,11 +2962,31 @@
     return state === watchQueueFilter;
   }
 
+  function matchesWatchCandidateSearch(result) {
+    const query = normalizeForCompare(watchCandidateSearch);
+    if (!query) return true;
+    const searchableText = [
+      result?.title,
+      result?.city,
+      result?.startDate,
+      result?.endDate,
+      result?.type,
+      result?.sourceUrl,
+      result?.officialUrl
+    ].map((value) => normalizeForCompare(value || "")).join(" ");
+    return searchableText.includes(query);
+  }
+
   function updateWatchQueueFilters(results) {
     const counts = getWatchQueueCounts(results);
 
     document.querySelectorAll("[data-watch-filter-count]").forEach((node) => {
       const key = String(node.dataset.watchFilterCount || "");
+      node.textContent = String(counts[key] || 0);
+    });
+
+    document.querySelectorAll("[data-watch-summary-count]").forEach((node) => {
+      const key = String(node.dataset.watchSummaryCount || "");
       node.textContent = String(counts[key] || 0);
     });
 
@@ -3000,8 +3110,14 @@
       ? currentEnd < total
       : lastPagination.hasMore === true;
 
-    if (nextButton) nextButton.disabled = !hasQuery || !hasMore;
-    if (firstButton) firstButton.disabled = !hasQuery || watchOffset === 0;
+    if (nextButton) {
+      nextButton.disabled = !hasQuery || !hasMore;
+      nextButton.hidden = !hasQuery || !hasMore;
+    }
+    if (firstButton) {
+      firstButton.disabled = !hasQuery || watchOffset === 0;
+      firstButton.hidden = !hasQuery || watchOffset === 0;
+    }
 
     if (label) {
       if (!hasQuery) {
@@ -3178,7 +3294,7 @@
       : rawDescription;
 
     return `
-      <article class="watch-result ${statusClass}${isNonEvent ? " is-non-event" : ""}" data-watch-result-index="${index}">
+      <article class="watch-result ${statusClass}${isNonEvent ? " is-non-event" : ""}${isServerOnly ? " is-server-only" : ""}${isPersisted ? " is-persisted" : ""}" data-watch-result-index="${index}">
         <div class="watch-result-main">
           ${
             isServerOnly
@@ -3214,58 +3330,56 @@
           ${isServerOnly ? "" : `<strong class="watch-score">${score}%</strong>`}
         </div>
 
-        ${
-          isServerOnly
-            ? ""
-            : `
-              <div class="watch-warning-row">
-                ${missing.length ? `<span>À vérifier : ${escapeHtml(missing.join(", "))}</span>` : "<span>Champs essentiels détectés</span>"}
-                ${warnings.map((warning) => `<span>${escapeHtml(warning)}</span>`).join("")}
-              </div>
-            `
-        }
-
-        ${
-          isClosedWorkflow
-            ? `
-              <div class="watch-copy-block">
-                <strong>${escapeHtml(
-                  workflowState === "duplicate"
-                    ? "Événement déjà présent"
-                    : workflowState === "submitted"
-                      ? "Soumission créée"
-                      : workflowState === "handled"
-                        ? "Élément déjà traité"
-                        : "Élément écarté"
-                )}</strong>
-              </div>
-            `
-            : isServerOnly
-              ? ""
-              : `
-                <details class="watch-copy-block">
-                  <summary>${workflowState === "ready" ? "Fiche prête à copier" : "Fiche à vérifier"}</summary>
-                  <textarea readonly rows="13">${escapeHtml(result.adminText || "")}</textarea>
-                </details>
-              `
-        }
-
-        ${isActiveWorkflow && !isServerOnly ? renderWatchCandidateEditor(result, index) : ""}
-        ${isActiveWorkflow && !isServerOnly ? renderWatchSubmissionPreview(result, index) : ""}
-
         <div class="watch-result-actions">
-          ${
-            isClosedWorkflow || isServerOnly
-              ? ""
-              : `
-                <button class="cyber-btn-primary" data-watch-submit="${index}" type="button">Envoyer en soumission</button>
-                <button class="cyber-btn-primary" data-watch-copy="${index}" type="button">Copier la fiche</button>
-              `
-          }
+          ${isActiveWorkflow && !isServerOnly ? `<button class="cyber-btn-primary" data-watch-examine="${index}" aria-controls="watch-candidate-detail-${index}" aria-expanded="false" type="button">Examiner</button>` : ""}
           <a class="cyber-btn-secondary" href="${escapeAttr(result.sourceUrl || result.officialUrl || "#")}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>
-          ${canMarkHandled ? `<button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>` : ""}
-          ${canReject ? `<button class="cyber-btn-secondary" data-watch-rejected="${index}" type="button">Écarter</button>` : ""}
+          ${canMarkHandled || canReject ? `
+            <details class="watch-card-actions-menu">
+              <summary>Actions</summary>
+              <div>
+                ${canMarkHandled ? `<button class="cyber-btn-secondary" data-watch-handled="${index}" type="button">Marquer traité</button>` : ""}
+                ${canReject ? `<button class="cyber-btn-secondary" data-watch-rejected="${index}" type="button">Écarter</button>` : ""}
+              </div>
+            </details>
+          ` : ""}
         </div>
+
+        ${isClosedWorkflow ? `<p class="watch-result-closed">${escapeHtml(
+          workflowState === "duplicate"
+            ? "Événement déjà présent"
+            : workflowState === "submitted"
+              ? "Soumission créée"
+              : workflowState === "handled"
+                ? "Élément déjà traité"
+                : "Élément écarté"
+        )}</p>` : ""}
+
+        ${isActiveWorkflow && !isServerOnly ? `
+          <section id="watch-candidate-detail-${index}" class="watch-candidate-detail" data-watch-candidate-detail="${index}" hidden aria-label="Détails du candidat">
+            <h5 tabindex="-1">Examiner la fiche</h5>
+            <div class="watch-detail-signals">
+              <span>Workflow : ${escapeHtml(workflowLabel)}</span>
+              <span>${isPersisted ? "Persisté sur le serveur" : "Donnée locale"}</span>
+              <span>Qualité : ${candidateQualityScore}%</span>
+              <span>${escapeHtml(imageQuality.label)}</span>
+              <span>${escapeHtml(duplicateSignal.label)}</span>
+            </div>
+            <div class="watch-warning-row">
+              ${missing.length ? `<span>À vérifier : ${escapeHtml(missing.join(", "))}</span>` : "<span>Champs essentiels détectés</span>"}
+              ${warnings.map((warning) => `<span>${escapeHtml(warning)}</span>`).join("")}
+            </div>
+            <details class="watch-copy-block">
+              <summary>${workflowState === "ready" ? "Fiche prête à copier" : "Fiche à vérifier"}</summary>
+              <textarea readonly rows="13">${escapeHtml(result.adminText || "")}</textarea>
+            </details>
+            ${renderWatchCandidateEditor(result, index)}
+            ${renderWatchSubmissionPreview(result, index)}
+            <div class="watch-result-actions watch-detail-actions">
+              <button class="cyber-btn-primary" data-watch-submit="${index}" type="button">Envoyer en soumission</button>
+              <button class="cyber-btn-primary" data-watch-copy="${index}" type="button">Copier la fiche</button>
+            </div>
+          </section>
+        ` : ""}
       </article>
     `;
   }
@@ -3688,11 +3802,17 @@
     const urls = document.getElementById("watch-urls");
     const copyAll = document.getElementById("watch-copy-all-btn");
     if (urls) urls.value = "";
-    if (copyAll) copyAll.disabled = true;
+    if (copyAll) {
+      copyAll.disabled = true;
+      copyAll.hidden = true;
+    }
     lastResults = [];
     lastPagination = getEmptyPagination();
     watchOffset = 0;
     watchQueueFilter = "active";
+    watchCandidateSearch = "";
+    const candidateSearch = document.getElementById("watch-candidate-search");
+    if (candidateSearch) candidateSearch.value = "";
     updateWatchQueueFilters([]);
     renderResults(lastResults);
     updateWatchOperationsDashboard();
@@ -3913,6 +4033,7 @@
     watchOffset = 0;
     lastPagination = getEmptyPagination();
     watchQueueFilter = "active";
+    switchWatchWorkspaceView("search");
     renderResults(lastResults);
     updatePagingControls();
     analyzeUrls();
