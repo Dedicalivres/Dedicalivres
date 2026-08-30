@@ -50,7 +50,7 @@ assert.ok(cardSource.includes("data-watch-candidate-detail"));
 assert.ok(cardSource.includes("renderWatchCandidateEditor(result, index)"));
 assert.ok(cardSource.includes("renderWatchSubmissionPreview(result, index)"));
 assert.ok(cardSource.includes('isServerOnly ? " is-server-only"'));
-assert.ok(cardSource.includes("isActiveWorkflow && !isServerOnly"));
+assert.ok(cardSource.includes('isActiveWorkflow && (!isServerOnly || (workflowState === "ready" && hasDurableContent))'));
 
 // H — les décisions continuent d'emprunter la persistance optimiste existante.
 const workflowSource = sliceFunction("setWatchWorkflowState", "getStoredWatchWorkflowState");

@@ -52,6 +52,7 @@
   let pendingWatchImportSnapshot = null;
   const duplicateCheckCache = new Map();
   const duplicateSignalCache = new Map();
+  const watchSubmissionInFlight = new Set();
 
   ready(() => waitForAdminAuthentication(initWhenReady));
   window.addEventListener("dedicalivres:admin-authenticated", () => waitForAdminAuthentication(initWhenReady));
@@ -1182,6 +1183,42 @@
     else eventAlerts.unshift(row);
     watchPersistenceSnapshot = { ...watchPersistenceSnapshot, eventAlerts };
     return row;
+  }
+
+  function mapServerEventWatchAlert(row) {
+    return {
+      ...row,
+      identityKey: cleanText(row?.identity_key),
+      engineAlertId: cleanText(row?.engine_alert_id),
+      dedicalivres_event_id: cleanText(row?.event_id),
+      source: normalizeUrlValue(row?.source_url),
+      serverPersisted: true
+    };
+  }
+
+  function mergeEventWatchAlerts(localAlerts, serverRows) {
+    const remainingLocal = [...(Array.isArray(localAlerts) ? localAlerts : [])];
+    const mergedServer = (Array.isArray(serverRows) ? serverRows : []).map((row) => {
+      const serverAlert = mapServerEventWatchAlert(row);
+      const serverKeys = new Set(getEventWatchPersistenceKeys(serverAlert));
+      const localIndex = remainingLocal.findIndex((localAlert) =>
+        getEventWatchPersistenceKeys(localAlert).some((key) => serverKeys.has(key))
+      );
+      if (localIndex < 0) return serverAlert;
+
+      const localAlert = remainingLocal.splice(localIndex, 1)[0];
+      return {
+        ...serverAlert,
+        ...localAlert,
+        identity_key: serverAlert.identity_key,
+        identityKey: serverAlert.identityKey,
+        engine_alert_id: serverAlert.engine_alert_id,
+        engineAlertId: serverAlert.engineAlertId,
+        dedicalivres_event_id: localAlert.dedicalivres_event_id || serverAlert.dedicalivres_event_id,
+        serverPersisted: true
+      };
+    });
+    return [...mergedServer, ...remainingLocal];
   }
 
   function normalizeEventWatchTimestamp(value) {
@@ -2400,7 +2437,9 @@
         throw new Error(payload?.error || `HTTP ${response.status}`);
       }
 
-      eventWatchAlerts = Array.isArray(payload.changes) ? payload.changes : [];
+      await startWatchPersistenceLoad();
+      const localAlerts = Array.isArray(payload.changes) ? payload.changes : [];
+      eventWatchAlerts = mergeEventWatchAlerts(localAlerts, watchPersistenceSnapshot.eventAlerts);
       eventWatchAvailability = "available";
       renderEventWatchAlerts();
       const counts = getEventWatchWorkflowCounts(eventWatchAlerts);
@@ -2412,16 +2451,25 @@
         `${counts.ignored} écartée(s).`
       );
     } catch (error) {
-      eventWatchAlerts = [];
+      await startWatchPersistenceLoad();
+      eventWatchAlerts = mergeEventWatchAlerts([], watchPersistenceSnapshot.eventAlerts);
       eventWatchAvailability = "unavailable";
-      updateEventWatchQueueControls([]);
-      container.innerHTML = `
-        <div class="event-watch-unavailable" role="status">
-          <strong>Auto-Matte local indisponible</strong>
-          <span>Aucun changement ne peut être récupéré pour le moment. Le reste de l’administration demeure disponible.</span>
-        </div>
-      `;
-      setEventWatchStatus(`Event Watch indisponible · ${error.message || "connexion impossible"}`, "warning");
+      if (eventWatchAlerts.length) {
+        renderEventWatchAlerts();
+        setEventWatchStatus(
+          `Auto-Matte local indisponible · ${eventWatchAlerts.length} alerte(s) persistée(s) affichée(s) · ${error.message || "connexion impossible"}`,
+          "warning"
+        );
+      } else {
+        updateEventWatchQueueControls([]);
+        container.innerHTML = `
+          <div class="event-watch-unavailable" role="status">
+            <strong>Auto-Matte local indisponible</strong>
+            <span>Aucun changement local ou persisté ne peut être récupéré pour le moment. Le reste de l’administration demeure disponible.</span>
+          </div>
+        `;
+        setEventWatchStatus(`Event Watch indisponible · ${error.message || "connexion impossible"}`, "warning");
+      }
     }
   }
 
@@ -3583,7 +3631,7 @@
         </div>
 
         <div class="watch-result-actions">
-          ${isActiveWorkflow && (!isServerOnly || workflowState === "ready") ? `<button class="cyber-btn-primary" data-watch-examine="${index}" aria-controls="watch-candidate-detail-${index}" aria-expanded="false" type="button">Examiner</button>` : ""}
+          ${isActiveWorkflow && (!isServerOnly || (workflowState === "ready" && hasDurableContent)) ? `<button class="cyber-btn-primary" data-watch-examine="${index}" aria-controls="watch-candidate-detail-${index}" aria-expanded="false" type="button">Examiner</button>` : ""}
           <a class="cyber-btn-secondary" href="${escapeAttr(sourceHref)}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>
           ${officialHref && officialHref !== sourceHref ? `<a class="cyber-btn-secondary" href="${escapeAttr(officialHref)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
           ${canMarkHandled || canReject ? `
@@ -3607,7 +3655,7 @@
                 : "Élément écarté"
         )}</p>` : ""}
 
-        ${isActiveWorkflow && (!isServerOnly || workflowState === "ready") ? `
+        ${isActiveWorkflow && (!isServerOnly || (workflowState === "ready" && hasDurableContent)) ? `
           <section id="watch-candidate-detail-${index}" class="watch-candidate-detail" data-watch-candidate-detail="${index}" hidden aria-label="Détails du candidat">
             <h5 tabindex="-1">Examiner la fiche</h5>
             <div class="watch-detail-signals">
@@ -3828,6 +3876,9 @@
 
   async function createSubmissionFromWatch(item, button) {
     const missing = getSubmissionBlockingFields(item);
+    const submissionKey = getWatchCandidateKey(item);
+    const existingSubmittedEventId = getWatchSubmittedEventId(item);
+    const initialButtonLabel = button?.textContent || "Confirmer l’envoi";
     const submissionStatus = button
       ?.closest("[data-watch-submission-preview]")
       ?.querySelector("[data-watch-submission-status]");
@@ -3843,6 +3894,23 @@
       setStatus(`Soumission impossible : ${missing.join(", ")} à compléter dans la fiche candidate.`, "warning");
       return;
     }
+
+    if (existingSubmittedEventId) {
+      setSubmissionStatus("Cette soumission a déjà été créée.", "success");
+      setStatus("Soumission déjà créée : aucun nouvel événement n’a été inséré.", "warning");
+      if (button) {
+        button.disabled = true;
+        button.textContent = "Soumission créée";
+        button.dataset.created = "true";
+      }
+      return;
+    }
+
+    if (watchSubmissionInFlight.has(submissionKey)) {
+      setSubmissionStatus("Une soumission est déjà en cours pour ce candidat.", "warning");
+      return;
+    }
+    watchSubmissionInFlight.add(submissionKey);
 
     if (button) {
       button.disabled = true;
@@ -3877,19 +3945,24 @@
       }
 
       const payload = buildSubmissionPayload(item);
-      const { error } = await client.from("events").insert([payload]);
+      const { data, error } = await client.from("events").insert([payload]).select("id");
 
       if (error) throw error;
+      const submittedEventId = Array.isArray(data) ? data[0]?.id : data?.id;
+      if (!isUuid(submittedEventId)) {
+        item.submittedEventId = payload.id;
+        throw new Error("La soumission a été créée sans identifiant serveur exploitable.");
+      }
 
+      item.submittedEventId = submittedEventId;
+      await setWatchWorkflowState(item, "submitted");
       markHandled(item);
-      item.submittedEventId = payload.id;
-      setWatchWorkflowState(item, "submitted");
 
       const duplicateKey = getWatchDuplicateKey(item);
       if (duplicateKey) {
         recordWatchDuplicateSignal(item, "existing");
         duplicateCheckCache.set(duplicateKey, Promise.resolve({
-          id: payload.id,
+          id: submittedEventId,
           title: payload.title,
           city: payload.city,
           start_date: payload.start_date
@@ -3908,7 +3981,7 @@
       }
 
       window.dispatchEvent(new CustomEvent("dedicalivres:watch-submission-created", {
-        detail: { id: payload.id, sourceUrl: item.sourceUrl || "" }
+        detail: { id: submittedEventId, sourceUrl: item.sourceUrl || "" }
       }));
     } catch (error) {
       console.error("Création soumission veille :", error);
@@ -3924,9 +3997,19 @@
 
       if (button) {
         button.disabled = false;
-        button.textContent = "Envoyer en soumission";
+        button.textContent = initialButtonLabel;
       }
+    } finally {
+      watchSubmissionInFlight.delete(submissionKey);
     }
+  }
+
+  function getWatchSubmittedEventId(item) {
+    const localId = cleanText(item?.submittedEventId || item?.submitted_event_id);
+    if (isUuid(localId)) return localId;
+    const serverCandidate = findServerWatchCandidate(item);
+    const serverId = cleanText(serverCandidate?.submitted_event_id);
+    return isUuid(serverId) ? serverId : "";
   }
 
   function getSubmissionBlockingFields(item) {
@@ -4086,7 +4169,13 @@
       city: cleanText(item.city),
       price: "",
       start_date: normalizeIsoDate(item.startDate),
-      end_date: normalizeIsoDate(item.endDate),
+      end_date: normalizeOptionalSubmissionDate(item.endDate),
+      registration_open_date: normalizeOptionalSubmissionDate(
+        item.registrationOpenDate || item.registration_open_date
+      ),
+      registration_deadline: normalizeOptionalSubmissionDate(
+        item.registrationDeadline || item.registration_deadline
+      ),
       website: normalizeUrlValue(item.officialUrl || item.sourceUrl),
       description: descriptionParts.join("\n").trim(),
       image_url: normalizeUrlValue(item.imageUrl),
@@ -4095,6 +4184,10 @@
       rejected: false,
       verified: false
     };
+  }
+
+  function normalizeOptionalSubmissionDate(value) {
+    return normalizeIsoDate(value) || null;
   }
 
   function createClientUuid() {

@@ -64,7 +64,7 @@ const adminTextStart = source.indexOf("function buildWatchCandidateAdminText(", 
 const saveSource = source.slice(saveStart, adminTextStart);
 
 assert.ok(
-  saveSource.includes("const item = lastResults[index]") &&
+  saveSource.includes("const item = results[index]") &&
     saveSource.includes("item.missingFields = recalculateWatchCandidateMissingFields(item)") &&
     saveSource.includes("item.adminText = buildWatchCandidateAdminText(item)") &&
     saveSource.includes("getLocalWatchDuplicateSignal(item, lastResults)") &&

@@ -295,7 +295,7 @@ assert.ok(reviewPreview.includes("Workflow à vérifier : relis la fiche avant d
 
 const payload = api.buildSubmissionPayload(fontvieille);
 assert.equal(payload.country_code, "FR");
-assert.equal(payload.end_date, "");
+assert.equal(payload.end_date, null);
 assert.equal(payload.validated, false);
 assert.equal(payload.verified, false);
 
