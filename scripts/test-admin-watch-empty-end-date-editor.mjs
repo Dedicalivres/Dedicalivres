@@ -11,8 +11,9 @@ function extractFunction(name, nextName) {
 }
 
 const renderEditorSource = extractFunction("renderWatchCandidateEditor", "syncWatchCandidateEditorDates");
-const syncDatesSource = extractFunction("syncWatchCandidateEditorDates", "renderWatchSubmissionPreview");
+const syncDatesSource = extractFunction("syncWatchCandidateEditorDates", "bindWatchCandidateEditorDateSync");
 const api = new Function(`
+  let watchEditorRenderSequence = 0;
   function normalizeIsoDate(value) {
     const match = String(value || "").match(/^(20[0-9]{2})-[0-9]{2}-[0-9]{2}$/);
     return match ? match[0] : "";
@@ -40,22 +41,22 @@ for (const absentEndDate of [undefined, null, ""]) {
   const before = structuredClone(candidate);
   const html = api.renderWatchCandidateEditor(candidate, 0);
   assert.match(html, /<input name="startDate" type="date" value="2026-09-20"/);
-  assert.match(html, /<input name="endDate" type="date" value="" autocomplete="off">/);
+  assert.match(html, /<input id="watchEndDate_0-[0-9]+" name="watchEndDate_0-[0-9]+" data-watch-field="endDate" data-watch-user-edited="false" type="date" value="" autocomplete="off">/);
   assert.deepEqual(candidate, before, "Le rendu ne doit pas modifier le candidat");
 }
 
 const datedCandidate = { ...baseCandidate, endDate: "2026-09-21" };
 const datedHtml = api.renderWatchCandidateEditor(datedCandidate, 1);
-assert.match(datedHtml, /<input name="endDate" type="date" value="2026-09-21" autocomplete="off">/);
+assert.match(datedHtml, /<input id="watchEndDate_1-[0-9]+" name="watchEndDate_1-[0-9]+" data-watch-field="endDate" data-watch-user-edited="false" type="date" value="2026-09-21" autocomplete="off">/);
 
 const inputs = {
   startDate: { value: "2026-08-30" },
-  endDate: { value: "2026-08-30" }
+  endDate: { value: "2026-08-30", dataset: {} }
 };
 const container = {
   querySelector(selector) {
     if (selector.includes('name="startDate"')) return inputs.startDate;
-    if (selector.includes('name="endDate"')) return inputs.endDate;
+    if (selector.includes('data-watch-field="endDate"')) return inputs.endDate;
     return null;
   }
 };

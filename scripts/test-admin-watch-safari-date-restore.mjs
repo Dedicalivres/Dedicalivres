@@ -29,7 +29,11 @@ const api = new Function("window", `
 
 const inputs = {
   startDate: { value: "" },
-  endDate: { value: "" }
+  endDate: {
+    value: "",
+    dataset: {},
+    addEventListener() {}
+  }
 };
 let toggleHandler = null;
 const editor = {
@@ -43,7 +47,7 @@ const editor = {
   },
   querySelector(selector) {
     if (selector.includes('name="startDate"')) return inputs.startDate;
-    if (selector.includes('name="endDate"')) return inputs.endDate;
+    if (selector.includes('data-watch-field="endDate"')) return inputs.endDate;
     return null;
   }
 };

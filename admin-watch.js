@@ -44,6 +44,7 @@
   let watchQueueFilter = "all";
   let watchWorkspaceView = "candidates";
   let watchCandidateSearch = "";
+  let watchEditorRenderSequence = 0;
   let watchPersistenceSnapshot = createEmptyWatchPersistenceSnapshot();
   let watchPersistenceLoadPromise = null;
   let lastWatchPersistenceNotice = "";
@@ -2705,7 +2706,7 @@
     const updates = {
       title: value("title"),
       startDate: value("startDate"),
-      endDate: value("endDate"),
+      endDate: getWatchCandidateEndDateUpdate(form, item),
       city: value("city"),
       type: value("type"),
       country: value("country"),
@@ -2734,6 +2735,14 @@
     lastResults = sortWatchResultsByCompleteness(lastResults);
     renderResults(lastResults);
     setStatus(`Fiche mise à jour · état : ${getWatchWorkflowLabel(getWatchWorkflowState(item))}.`);
+  }
+
+  function getWatchCandidateEndDateUpdate(form, item) {
+    const field = form?.querySelector('[data-watch-field="endDate"]');
+    if (!field || field.dataset.watchUserEdited !== "true") {
+      return normalizeIsoDate(item?.endDate);
+    }
+    return normalizeIsoDate(field.value);
   }
 
   function buildWatchCandidateAdminText(item) {
@@ -3409,6 +3418,8 @@
     ].filter(([property]) => Object.prototype.hasOwnProperty.call(result, property));
     const startDateValue = normalizeIsoDate(result?.startDate);
     const endDateValue = normalizeIsoDate(result?.endDate);
+    const editorInstance = `${index}-${++watchEditorRenderSequence}`;
+    const endDateFieldName = `watchEndDate_${editorInstance}`;
 
     return `
       <details class="watch-candidate-editor" data-watch-candidate-editor>
@@ -3425,7 +3436,7 @@
             </label>
             <label>
               <span>Date de fin</span>
-              <input name="endDate" type="date" value="${escapeAttr(endDateValue)}" autocomplete="off">
+              <input id="${endDateFieldName}" name="${endDateFieldName}" data-watch-field="endDate" data-watch-user-edited="false" type="date" value="${escapeAttr(endDateValue)}" autocomplete="off">
             </label>
             <label>
               <span>Ville</span>
@@ -3470,13 +3481,20 @@
   function syncWatchCandidateEditorDates(container, result) {
     if (!container) return;
     const startDateInput = container.querySelector('input[name="startDate"]');
-    const endDateInput = container.querySelector('input[name="endDate"]');
+    const endDateInput = container.querySelector('[data-watch-field="endDate"]');
     if (startDateInput) startDateInput.value = normalizeIsoDate(result?.startDate);
-    if (endDateInput) endDateInput.value = normalizeIsoDate(result?.endDate);
+    if (endDateInput) {
+      endDateInput.value = normalizeIsoDate(result?.endDate);
+      endDateInput.dataset.watchUserEdited = "false";
+    }
   }
 
   function bindWatchCandidateEditorDateSync(container, queueResults) {
     container.querySelectorAll("[data-watch-candidate-editor]").forEach((editor) => {
+      const endDateInput = editor.querySelector('[data-watch-field="endDate"]');
+      endDateInput?.addEventListener("input", () => {
+        endDateInput.dataset.watchUserEdited = "true";
+      });
       editor.addEventListener("toggle", () => {
         if (!editor.open) return;
         const card = editor.closest("[data-watch-result-index]");
