@@ -25,6 +25,7 @@ const api = new Function("window", `
   }
   function escapeHtml(value) { return String(value ?? ""); }
   function escapeAttr(value) { return escapeHtml(value); }
+  function cleanText(value) { return String(value ?? "").trim(); }
   ${renderSource}
   ${syncSource}
   ${bindSource}

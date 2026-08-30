@@ -14,6 +14,7 @@ const countsSource = extractFunction("getWatchQueueCounts", "matchesWatchQueueFi
 const matchesSource = extractFunction("matchesWatchQueueFilter", "matchesWatchCandidateSearch");
 const api = new Function(`
   let watchQueueFilter = "all";
+  const WATCH_CANDIDATE_CLOSED_STATES = ["duplicate", "submitted", "handled", "rejected"];
   function getWatchWorkflowState(result) { return result.workflow_status; }
   ${countsSource}
   ${matchesSource}
