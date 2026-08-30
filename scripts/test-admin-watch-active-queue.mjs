@@ -14,7 +14,7 @@ const required = [
   '["ready", "review"].includes(getWatchWorkflowState(result))',
   'nextCard.scrollIntoView({ behavior: "smooth", block: "start" })',
   'data-watch-result-index="${index}"',
-  "const item = lastResults[index]",
+  "const item = queueResults[index]",
   'watchQueueFilter = "active"',
   'if (nextActive) nextActive.disabled = counts.active === 0'
 ];

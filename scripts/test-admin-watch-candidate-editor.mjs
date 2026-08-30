@@ -5,7 +5,7 @@ const source = fs.readFileSync("admin-watch.js", "utf8");
 
 const required = [
   'const isActiveWorkflow = ["ready", "review"].includes(workflowState)',
-  'isActiveWorkflow && !isServerOnly ? `',
+  'isActiveWorkflow && (!isServerOnly || (workflowState === "ready" && hasDurableContent)) ? `',
   "renderWatchCandidateEditor(result, index)",
   "function renderWatchCandidateEditor(",
   "Modifier la fiche",
@@ -21,7 +21,7 @@ const required = [
   "Enregistrer",
   "Annuler",
   "function saveWatchCandidateEdits(",
-  "const item = lastResults[index]",
+  "const item = results[index]",
   "Object.assign(item, updates)",
   "item.missingFields = recalculateWatchCandidateMissingFields(item)",
   "lastResults = sortWatchResultsByCompleteness(lastResults)",
@@ -53,7 +53,7 @@ const editorHandlerStart = source.indexOf('container.querySelectorAll("[data-wat
 const submitHandler = source.slice(submitHandlerStart, editorHandlerStart);
 
 assert.ok(
-  submitHandler.includes("openWatchSubmissionPreview(index)") &&
+  submitHandler.includes("openWatchSubmissionPreview(index, queueResults, button)") &&
     !submitHandler.includes("createSubmissionFromWatch"),
   "Envoyer en soumission doit ouvrir la prévisualisation sans créer de soumission"
 );
@@ -63,7 +63,7 @@ const saveHandlerStart = source.indexOf("function saveWatchCandidateEdits(", con
 const confirmHandler = source.slice(confirmHandlerStart, saveHandlerStart);
 
 assert.ok(
-  confirmHandler.includes("const item = lastResults[index]") &&
+  confirmHandler.includes("const item = queueResults[index]") &&
     confirmHandler.includes("createSubmissionFromWatch(item, button)"),
   "Seule la confirmation doit appeler la création existante avec l’index réel"
 );
