@@ -81,7 +81,7 @@ vm.runInNewContext(instrumented, sandbox, { filename: "admin-watch.js" });
 const api = sandbox.__WATCH_REVALIDATION_TEST_API__;
 assert.ok(api, "API de test Pack 6C indisponible");
 
-function createCandidateClient({ updates = [] } = {}) {
+function createCandidateClient({ updates = [], inserts = [], reads = [] } = {}) {
   const calls = [];
   return {
     calls,
@@ -89,6 +89,11 @@ function createCandidateClient({ updates = [] } = {}) {
       const call = { table, operation: "", payload: null, filters: [] };
       calls.push(call);
       return {
+        insert(payload) {
+          call.operation = "insert";
+          call.payload = payload;
+          return this;
+        },
         update(payload) {
           call.operation = "update";
           call.payload = payload;
@@ -105,7 +110,8 @@ function createCandidateClient({ updates = [] } = {}) {
         limit() { return this; },
         abortSignal() { return this; },
         then(resolve, reject) {
-          const response = updates.length ? updates.shift() : { data: [], error: null };
+          const queue = call.operation === "update" ? updates : call.operation === "insert" ? inserts : reads;
+          const response = queue.length ? queue.shift() : { data: [], error: null };
           return Promise.resolve(response).then(resolve, reject);
         }
       };
@@ -204,9 +210,12 @@ assert.ok(!fontvieille.missingFields.includes("pays"));
 assert.ok(!fontvieille.adminText.includes("À vérifier : pays"));
 assert.ok(api.getWatchCandidateQualityScore(fontvieille) > qualityBefore, "La qualité doit être recalculée depuis les données éditées");
 assert.equal(api.getWatchWorkflowState(fontvieille), "ready");
-assert.equal(fontvieilleClient.calls.length, 1, "Une seule persistance workflow existante est permise");
+assert.equal(fontvieilleClient.calls.length, 1, "Une seule persistance contenu + workflow est permise");
 assert.equal(fontvieilleClient.calls[0].table, "admin_watch_candidates");
-assert.equal(JSON.stringify(fontvieilleClient.calls[0].payload), JSON.stringify({ workflow_status: "ready" }));
+assert.equal(fontvieilleClient.calls[0].payload.workflow_status, "ready");
+assert.equal(fontvieilleClient.calls[0].payload.country, "France");
+assert.equal(fontvieilleClient.calls[0].payload.end_date, null);
+assert.equal(fontvieilleClient.calls[0].payload.description, fontvieille.description);
 
 const renderedFontvieille = api.renderResultCard(fontvieille, 0);
 assert.ok(renderedFontvieille.includes("Fontvieille · France"));
@@ -218,11 +227,11 @@ const stillReview = { ...structuredClone(baseCandidate), city: "", missingFields
 const noWriteClient = createCandidateClient();
 reset(stillReview, []);
 api.setClient(noWriteClient);
-api.saveWatchCandidateEdits(0, createForm(stillReview, { country: "France" }));
+await api.saveWatchCandidateEdits(0, createForm(stillReview, { country: "France" }));
 assert.deepEqual(Array.from(stillReview.missingFields), ["ville"]);
 assert.equal(api.inferWatchCandidateWorkflowState(stillReview), "review");
 assert.equal(api.getWatchWorkflowState(stillReview), "review");
-assert.equal(noWriteClient.calls.length, 0);
+assert.equal(noWriteClient.calls.length, 0, "Une identité serveur incomplète ne doit pas déclencher d’INSERT");
 
 // Corriger le dernier champ bloquant réutilise les critères existants et passe ready.
 const lastBlocking = { ...structuredClone(baseCandidate), city: "", country: "France", missingFields: ["ville"] };
@@ -238,20 +247,22 @@ assert.equal(api.getWatchWorkflowState(lastBlocking), "ready");
 assert.equal(fontvieille.endDate, "");
 const datedCandidate = { ...structuredClone(baseCandidate), country: "France", endDate: "2026-09-21", missingFields: [] };
 reset(datedCandidate, []);
-api.setClient(createCandidateClient());
-api.saveWatchCandidateEdits(0, createForm(datedCandidate, { country: "France" }));
+api.setClient(createCandidateClient({
+  inserts: [{ data: [{ ...serverRow("ready", 1), end_date: "2026-09-21" }], error: null }]
+}));
+await api.saveWatchCandidateEdits(0, createForm(datedCandidate, { country: "France" }));
 assert.equal(datedCandidate.endDate, "2026-09-21");
 
 // Aucun workflow serveur fermé ne peut être rouvert par cette revalidation.
 for (const closedState of ["duplicate", "submitted", "handled", "rejected"]) {
   const closedCandidate = structuredClone(baseCandidate);
-  const closedClient = createCandidateClient();
+  const closedClient = createCandidateClient({ updates: [{ data: [serverRow(closedState, 6)], error: null }] });
   reset(closedCandidate, [serverRow(closedState, 5)]);
   api.setClient(closedClient);
-  api.saveWatchCandidateEdits(0, createForm(closedCandidate, { country: "France" }));
-  await Promise.resolve();
+  await api.saveWatchCandidateEdits(0, createForm(closedCandidate, { country: "France" }));
   assert.equal(api.getWatchWorkflowState(closedCandidate), closedState);
-  assert.equal(closedClient.calls.length, 0, `${closedState} ne doit déclencher aucune réouverture serveur`);
+  assert.equal(closedClient.calls.length, 1, `${closedState} doit persister le contenu sans réouverture`);
+  assert.equal(closedClient.calls[0].payload.workflow_status, closedState);
 }
 
 // Reconstruction logique : Worker/source avec France + workflow serveur ready = une seule fiche cohérente.
@@ -304,7 +315,9 @@ for (const forbidden of ["fetch(", '.from("events")', ".insert(", ".upsert(", "p
 }
 assert.ok(writerSource.includes("const payload = { workflow_status: nextWorkflowStatus }"));
 assert.ok(!writerSource.includes("country") && !writerSource.includes("end_date") && !writerSource.includes("description"));
-assert.ok(!source.match(/WATCH_SERVER_CANDIDATE_COLUMNS\s*=\s*[^;]*(country|end_date|description)/));
+assert.match(source, /WATCH_SERVER_CANDIDATE_COLUMNS\s*=\s*[^;]*end_date/);
+assert.match(source, /WATCH_SERVER_CANDIDATE_COLUMNS\s*=\s*[^;]*country/);
+assert.match(source, /WATCH_SERVER_CANDIDATE_COLUMNS\s*=\s*[^;]*description/);
 assert.equal((source.match(/\.from\("events"\)\.insert\(/g) || []).length, 1, "Aucune nouvelle publication ne doit être ajoutée");
 assert.ok(source.includes("findExistingSubmissionCached(item)"), "Le précontrôle doublon doit rester actif");
 

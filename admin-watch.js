@@ -17,7 +17,7 @@
   const WATCH_SERVER_CANDIDATES_LIMIT = 500;
   const WATCH_SERVER_SOURCES_LIMIT = 200;
   const WATCH_SERVER_ALERTS_LIMIT = 300;
-  const WATCH_SERVER_CANDIDATE_COLUMNS = "id,identity_key,origin_url,canonical_origin_url,title,start_date,city,source_id,workflow_status,duplicate_event_id,submitted_event_id,status_updated_at,status_updated_by,updated_at,version,last_seen_at";
+  const WATCH_SERVER_CANDIDATE_COLUMNS = "id,identity_key,origin_url,canonical_origin_url,official_url,title,type,start_date,end_date,city,country,venue,address,description,image_url,source_id,workflow_status,duplicate_event_id,submitted_event_id,status_updated_at,status_updated_by,updated_at,version,last_seen_at";
   const WATCH_SERVER_SOURCE_COLUMNS = "id,canonical_url,url_hash,source_url,title,observed_count,complete_count,review_count,rejected_count,duplicate_certain_count,duplicate_probable_count,with_image_count,without_image_count,analyses_count,metrics_since,first_seen_at,last_seen_at,is_active,updated_at,version";
   const WATCH_SERVER_EVENT_ALERT_COLUMNS = "id,identity_key,engine_origin,engine_alert_id,event_id,field,field_label,event_title,event_date,event_city,old_value,new_value,source_url,proof,detected_at,confidence,status_label,workflow_status,status_updated_at,status_updated_by,updated_at,version";
   const WATCH_CONTROLLED_IMPORT_CONCURRENCY = 3;
@@ -745,12 +745,19 @@
 
   function createServerWatchQueueCandidate(serverCandidate) {
     const sourceUrl = cleanText(serverCandidate?.origin_url || serverCandidate?.canonical_origin_url);
-    return {
+    const candidate = {
       title: cleanText(serverCandidate?.title),
+      type: cleanText(serverCandidate?.type),
       startDate: normalizeIsoDate(serverCandidate?.start_date),
+      endDate: normalizeIsoDate(serverCandidate?.end_date),
       city: cleanText(serverCandidate?.city),
+      country: cleanText(serverCandidate?.country),
+      venue: cleanText(serverCandidate?.venue),
+      address: cleanText(serverCandidate?.address),
+      description: cleanText(serverCandidate?.description),
+      imageUrl: cleanText(serverCandidate?.image_url),
       sourceUrl,
-      officialUrl: cleanText(serverCandidate?.canonical_origin_url || sourceUrl),
+      officialUrl: cleanText(serverCandidate?.official_url || serverCandidate?.canonical_origin_url || sourceUrl),
       identity_key: cleanText(serverCandidate?.identity_key),
       workflow_status: cleanText(serverCandidate?.workflow_status),
       duplicate_event_id: serverCandidate?.duplicate_event_id || null,
@@ -762,6 +769,19 @@
       _watchServerOnly: true,
       _watchWorkerIndex: null
     };
+    candidate._watchDurableContent = [
+      candidate.type,
+      candidate.endDate,
+      candidate.country,
+      candidate.venue,
+      candidate.address,
+      candidate.description,
+      candidate.imageUrl,
+      cleanText(serverCandidate?.official_url)
+    ].some(Boolean);
+    candidate.missingFields = recalculateWatchCandidateMissingFields(candidate);
+    candidate.adminText = buildWatchCandidateAdminText(candidate);
+    return candidate;
   }
 
   function enrichWorkerWatchCandidateWithServer(result, serverCandidate, workerIndex) {
@@ -772,6 +792,28 @@
       _watchWorkerIndex: workerIndex
     };
     if (!serverCandidate) return enriched;
+
+    const serverContent = {
+      title: cleanText(serverCandidate.title),
+      type: cleanText(serverCandidate.type),
+      startDate: normalizeIsoDate(serverCandidate.start_date),
+      endDate: normalizeIsoDate(serverCandidate.end_date),
+      city: cleanText(serverCandidate.city),
+      country: cleanText(serverCandidate.country),
+      venue: cleanText(serverCandidate.venue),
+      address: cleanText(serverCandidate.address),
+      description: cleanText(serverCandidate.description),
+      imageUrl: cleanText(serverCandidate.image_url),
+      sourceUrl: cleanText(serverCandidate.origin_url),
+      officialUrl: cleanText(serverCandidate.official_url || serverCandidate.canonical_origin_url)
+    };
+    let contentEnriched = false;
+    Object.entries(serverContent).forEach(([key, value]) => {
+      if (value && !cleanText(enriched[key])) {
+        enriched[key] = value;
+        contentEnriched = true;
+      }
+    });
 
     const serverMetadata = {
       identity_key: serverCandidate.identity_key,
@@ -785,6 +827,10 @@
     Object.entries(serverMetadata).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== "") enriched[key] = value;
     });
+    if (contentEnriched) {
+      enriched.missingFields = recalculateWatchCandidateMissingFields(enriched);
+      enriched.adminText = buildWatchCandidateAdminText(enriched);
+    }
     return enriched;
   }
 
@@ -926,6 +972,124 @@
     } catch (error) {
       return { status: "unavailable", row: null, error };
     }
+  }
+
+  async function insertEditedWatchCandidate(payload) {
+    if (!client || typeof client.from !== "function" || !payload?.identity_key) {
+      return { status: "unavailable", row: null, error: new Error("Persistance candidat indisponible") };
+    }
+
+    try {
+      const response = await awaitWatchPersistenceQuery(
+        client
+          .from("admin_watch_candidates")
+          .insert([payload])
+          .select(WATCH_SERVER_CANDIDATE_COLUMNS)
+      );
+      if (response?.error) {
+        if (!isControlledImportUniqueError(response.error)) {
+          return { status: "unavailable", row: null, error: response.error };
+        }
+        const existing = await readControlledImportCandidate(payload.identity_key);
+        return existing.status === "existing"
+          ? { status: "conflict", row: existing.row, error: null }
+          : { status: "unavailable", row: null, error: existing.error || response.error };
+      }
+      const row = Array.isArray(response?.data) ? response.data[0] : null;
+      return row
+        ? { status: "success", row, error: null }
+        : { status: "unavailable", row: null, error: new Error("Candidat créé sans ligne retournée") };
+    } catch (error) {
+      return { status: "unavailable", row: null, error };
+    }
+  }
+
+  async function updateEditedWatchCandidateOptimistically(serverCandidate, expectedVersion, payload) {
+    if (!client || typeof client.from !== "function") {
+      return { status: "unavailable", row: null, error: new Error("Client Supabase indisponible") };
+    }
+    if (
+      !isUuid(serverCandidate?.id) ||
+      !Number.isInteger(Number(expectedVersion)) ||
+      Number(expectedVersion) < 1
+    ) {
+      return { status: "missing", row: null, error: null };
+    }
+
+    const { identity_key: identityKey, ...updatePayload } = payload || {};
+    if (!identityKey || !WATCH_CANDIDATE_WORKFLOW_STATES.includes(updatePayload.workflow_status)) {
+      return { status: "unavailable", row: null, error: new Error("Contenu candidat invalide") };
+    }
+
+    try {
+      const response = await awaitWatchPersistenceQuery(
+        client
+          .from("admin_watch_candidates")
+          .update(updatePayload)
+          .eq("id", serverCandidate.id)
+          .eq("version", Number(expectedVersion))
+          .select(WATCH_SERVER_CANDIDATE_COLUMNS)
+      );
+      if (response?.error) {
+        return { status: "unavailable", row: null, error: response.error };
+      }
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      if (rows.length === 1) return { status: "success", row: rows[0], error: null };
+
+      const latest = await readLatestServerWatchCandidate(serverCandidate);
+      return latest.status === "success"
+        ? { status: "conflict", row: latest.row, error: null }
+        : latest;
+    } catch (error) {
+      return { status: "unavailable", row: null, error };
+    }
+  }
+
+  async function persistEditedWatchCandidate(item, nextWorkflowStatus) {
+    if (!item || !WATCH_CANDIDATE_WORKFLOW_STATES.includes(nextWorkflowStatus)) {
+      return { status: "unavailable", row: null, error: new Error("Candidat édité invalide") };
+    }
+
+    const serverCandidate = findServerWatchCandidate(item);
+    const serverState = cleanText(serverCandidate?.workflow_status);
+    const persistedWorkflowStatus = (
+      WATCH_CANDIDATE_CLOSED_STATES.includes(serverState) &&
+      ["ready", "review"].includes(nextWorkflowStatus)
+    ) ? serverState : nextWorkflowStatus;
+    const payload = await buildWatchCandidatePersistencePayload(item, persistedWorkflowStatus);
+    if (!payload) {
+      setWatchPersistenceAvailabilityAfterWrite("missing");
+      showWatchPersistenceNotice("Fiche conservée localement : identité serveur incomplète.");
+      return { status: "missing", row: null, error: null };
+    }
+
+    writeLocalWatchWorkflowState(item, persistedWorkflowStatus);
+    const result = serverCandidate
+      ? await updateEditedWatchCandidateOptimistically(serverCandidate, serverCandidate.version, payload)
+      : await insertEditedWatchCandidate(payload);
+
+    if (result.status === "success" && result.row) {
+      adoptServerWatchCandidate(result.row);
+      item.identity_key = result.row.identity_key;
+      writeLocalWatchWorkflowState(item, result.row.workflow_status, result.row.status_updated_at);
+      lastWatchPersistenceNotice = "";
+      setWatchPersistenceAvailabilityAfterWrite("success");
+      refreshWatchCandidateWorkflowView();
+      return result;
+    }
+
+    if (result.status === "conflict" && result.row) {
+      adoptServerWatchCandidate(result.row);
+      writeLocalWatchWorkflowState(item, result.row.workflow_status, result.row.status_updated_at);
+      setWatchPersistenceAvailabilityAfterWrite("conflict");
+      showWatchPersistenceNotice("Cette fiche a été modifiée dans une autre session.");
+      refreshWatchCandidateWorkflowView();
+      return result;
+    }
+
+    setWatchPersistenceAvailabilityAfterWrite(result.status);
+    showWatchPersistenceNotice("Fiche modifiée localement, persistance serveur indisponible.");
+    return result;
   }
 
   async function persistCandidateWorkflowDecision(item, nextWorkflowStatus) {
@@ -1614,7 +1778,7 @@
     return WATCH_CANDIDATE_WORKFLOW_STATES.includes(inferred) ? inferred : "review";
   }
 
-  async function buildControlledImportCandidate(item) {
+  async function buildWatchCandidatePersistencePayload(item, workflowStatus = getControlledImportCandidateWorkflow(item)) {
     const originUrl = cleanText(item?.origin_url || item?.sourceUrl || item?.officialUrl);
     const canonicalUrl = normalizeWatchPersistenceUrl(
       item?.canonical_origin_url || item?.canonicalOriginUrl || originUrl
@@ -1638,10 +1802,18 @@
       identity_key: identityKey,
       origin_url: originUrl || canonicalUrl,
       canonical_origin_url: canonicalUrl,
+      official_url: cleanText(item?.official_url || item?.officialUrl) || null,
       title,
+      type: cleanText(item?.type) || null,
       start_date: startDate,
+      end_date: normalizeIsoDate(item?.end_date || item?.endDate) || null,
       city,
-      workflow_status: getControlledImportCandidateWorkflow(item)
+      country: cleanText(item?.country) || null,
+      venue: cleanText(item?.venue) || null,
+      address: cleanText(item?.address) || null,
+      description: cleanText(item?.description) || null,
+      image_url: cleanText(item?.image_url || item?.imageUrl) || null,
+      workflow_status: WATCH_CANDIDATE_WORKFLOW_STATES.includes(workflowStatus) ? workflowStatus : "review"
     };
 
     const duplicateEventId = item?.duplicate_event_id || item?.duplicateEventId;
@@ -1653,6 +1825,12 @@
       item?.last_seen_at || item?.lastSeenAt || item?.handledAt
     );
     if (lastSeenAt) payload.last_seen_at = lastSeenAt;
+    return payload;
+  }
+
+  async function buildControlledImportCandidate(item) {
+    const payload = await buildWatchCandidatePersistencePayload(item);
+    if (!payload) return null;
     return { item, payload };
   }
 
@@ -2735,15 +2913,18 @@
       item.watchDuplicateSignal = getLocalWatchDuplicateSignal(item, lastResults);
     }
     const nextInferredWorkflowState = inferWatchCandidateWorkflowState(item);
-    if (
-      !WATCH_CANDIDATE_CLOSED_STATES.includes(previousWorkflowState) &&
-      nextInferredWorkflowState !== previousWorkflowState
-    ) {
-      setWatchWorkflowState(item, nextInferredWorkflowState);
-    }
+    const nextWorkflowState = WATCH_CANDIDATE_CLOSED_STATES.includes(previousWorkflowState)
+      ? previousWorkflowState
+      : nextInferredWorkflowState;
+    const persistenceDecision = persistEditedWatchCandidate(item, nextWorkflowState).catch((error) => {
+      setWatchPersistenceAvailabilityAfterWrite("unavailable");
+      showWatchPersistenceNotice("Fiche modifiée localement, persistance serveur indisponible.");
+      return { status: "unavailable", row: null, error };
+    });
     lastResults = sortWatchResultsByCompleteness(lastResults);
     renderResults(lastResults);
     setStatus(`Fiche mise à jour · état : ${getWatchWorkflowLabel(getWatchWorkflowState(item))}.`);
+    return persistenceDecision;
   }
 
   function getWatchCandidateEndDateUpdate(form, item) {
@@ -3327,12 +3508,13 @@
     const isClosedWorkflow = WATCH_CANDIDATE_CLOSED_STATES.includes(workflowState);
     const isPersisted = result?._watchPersisted === true;
     const isServerOnly = result?._watchServerOnly === true;
+    const hasDurableContent = !isServerOnly || result?._watchDurableContent === true;
     const canMarkHandled = isActiveWorkflow;
     const canReject = isActiveWorkflow || (isServerOnly && workflowState === "handled");
-    const imageQuality = isServerOnly ? null : getWatchImageQuality(result);
-    const candidateQualityScore = isServerOnly ? 0 : getWatchCandidateQualityScore(result);
-    const candidateQualityLevel = isServerOnly ? null : getWatchCandidateQualityLevel(candidateQualityScore);
-    const duplicateSignal = isServerOnly ? null : getWatchDuplicateSignal(result);
+    const imageQuality = hasDurableContent ? getWatchImageQuality(result) : null;
+    const candidateQualityScore = hasDurableContent ? getWatchCandidateQualityScore(result) : 0;
+    const candidateQualityLevel = hasDurableContent ? getWatchCandidateQualityLevel(candidateQualityScore) : null;
+    const duplicateSignal = hasDurableContent ? getWatchDuplicateSignal(result) : null;
     const statusClass = isServerOnly
       ? ""
       : isNonEvent
@@ -3343,12 +3525,14 @@
     const visibleDescription = hasPlaceholderDescription
       ? ""
       : rawDescription;
+    const sourceHref = cleanText(result.sourceUrl || result.officialUrl) || "#";
+    const officialHref = cleanText(result.officialUrl);
 
     return `
       <article class="watch-result ${statusClass}${isNonEvent ? " is-non-event" : ""}${isServerOnly ? " is-server-only" : ""}${isPersisted ? " is-persisted" : ""}" data-watch-result-index="${index}">
         <div class="watch-result-main">
           ${
-            isServerOnly
+            !hasDurableContent
               ? ""
               : `
                 <div class="watch-result-image ${result.imageUrl ? "" : "is-empty"}">
@@ -3361,10 +3545,10 @@
             <div class="watch-result-topline">
               <span>${escapeHtml(workflowLabel)}</span>
               ${isPersisted ? "<span>Persisté</span>" : ""}
-              ${isServerOnly ? "" : `<span>${escapeHtml(result.type || "Type inconnu")}</span>`}
-              ${isActiveWorkflow && !isServerOnly ? `<span class="watch-quality-badge is-${candidateQualityLevel.state}">Qualité ${candidateQualityScore}% · ${candidateQualityLevel.label}</span>` : ""}
-              ${isActiveWorkflow && !isServerOnly ? `<span class="watch-image-badge is-${imageQuality.state}">${imageQuality.label}</span>` : ""}
-              ${isActiveWorkflow && !isServerOnly ? `<span class="watch-duplicate-badge is-${duplicateSignal.state}">${duplicateSignal.label}</span>` : ""}
+              ${hasDurableContent ? `<span>${escapeHtml(result.type || "Type inconnu")}</span>` : ""}
+              ${isActiveWorkflow && hasDurableContent ? `<span class="watch-quality-badge is-${candidateQualityLevel.state}">Qualité ${candidateQualityScore}% · ${candidateQualityLevel.label}</span>` : ""}
+              ${isActiveWorkflow && hasDurableContent ? `<span class="watch-image-badge is-${imageQuality.state}">${imageQuality.label}</span>` : ""}
+              ${isActiveWorkflow && hasDurableContent ? `<span class="watch-duplicate-badge is-${duplicateSignal.state}">${duplicateSignal.label}</span>` : ""}
               ${alreadyHandled && workflowState !== "handled" ? "<span>Déjà traité</span>" : ""}
             </div>
             <h4>${escapeHtml(result.title || "Titre non détecté")}</h4>
@@ -3383,7 +3567,8 @@
 
         <div class="watch-result-actions">
           ${isActiveWorkflow && !isServerOnly ? `<button class="cyber-btn-primary" data-watch-examine="${index}" aria-controls="watch-candidate-detail-${index}" aria-expanded="false" type="button">Examiner</button>` : ""}
-          <a class="cyber-btn-secondary" href="${escapeAttr(result.sourceUrl || result.officialUrl || "#")}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>
+          <a class="cyber-btn-secondary" href="${escapeAttr(sourceHref)}" target="_blank" rel="noopener noreferrer">Ouvrir la source</a>
+          ${officialHref && officialHref !== sourceHref ? `<a class="cyber-btn-secondary" href="${escapeAttr(officialHref)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
           ${canMarkHandled || canReject ? `
             <details class="watch-card-actions-menu">
               <summary aria-label="Afficher les actions secondaires">Actions</summary>

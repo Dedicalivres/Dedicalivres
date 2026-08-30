@@ -27,7 +27,7 @@ for (const fragment of required) {
 }
 
 const writerStart = source.indexOf("function adoptServerWatchCandidate(");
-const writerEnd = source.indexOf("function getEventWatchPersistenceKeys(", writerStart);
+const writerEnd = source.indexOf("async function insertEditedWatchCandidate(", writerStart);
 const writerSource = source.slice(writerStart, writerEnd);
 
 assert.equal((writerSource.match(/\.update\(/g) || []).length, 1, "Un seul UPDATE candidat doit exister dans le writer");
