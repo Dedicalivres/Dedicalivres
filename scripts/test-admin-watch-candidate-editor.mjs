@@ -5,7 +5,7 @@ const source = fs.readFileSync("admin-watch.js", "utf8");
 
 const required = [
   'const isActiveWorkflow = ["ready", "review"].includes(workflowState)',
-  'isActiveWorkflow ? renderWatchCandidateEditor(result, index) : ""',
+  'isActiveWorkflow && !isServerOnly ? renderWatchCandidateEditor(result, index) : ""',
   "function renderWatchCandidateEditor(",
   "Modifier la fiche",
   'name="title"',
@@ -79,8 +79,8 @@ assert.ok(
 );
 
 assert.ok(
-  source.includes('isActiveWorkflow ? renderWatchSubmissionPreview(result, index) : ""') &&
-    source.includes('const isClosedWorkflow = ["handled", "duplicate", "submitted", "rejected"].includes(workflowState)'),
+  source.includes('isActiveWorkflow && !isServerOnly ? renderWatchSubmissionPreview(result, index) : ""') &&
+    source.includes("const isClosedWorkflow = WATCH_CANDIDATE_CLOSED_STATES.includes(workflowState)"),
   "Les états terminés ne doivent proposer ni édition ni prévisualisation active"
 );
 
