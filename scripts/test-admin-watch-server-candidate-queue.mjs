@@ -26,7 +26,7 @@ assert.ok(renderSource.includes('setWatchWorkflowState(item, "rejected")'));
 assert.ok(!renderSource.includes("client.from("), "Le rendu ne doit créer aucune voie d’écriture directe");
 
 const writerStart = source.indexOf("function adoptServerWatchCandidate(");
-const writerEnd = source.indexOf("function getEventWatchPersistenceKeys(", writerStart);
+const writerEnd = source.indexOf("async function insertEditedWatchCandidate(", writerStart);
 const writerSource = source.slice(writerStart, writerEnd);
 assert.equal((writerSource.match(/\.update\(/g) || []).length, 1, "Un seul UPDATE candidat optimiste doit subsister");
 assert.ok(!writerSource.includes("admin_watch_transitions"), "Le frontend ne doit jamais écrire les transitions");

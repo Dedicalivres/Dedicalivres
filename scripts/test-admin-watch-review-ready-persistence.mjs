@@ -220,6 +220,8 @@ reset(successCandidate, [serverRow("review", 3)]);
 api.setClient(successClient);
 assert.equal(api.getWatchWorkflowState(successCandidate), "review");
 api.saveWatchCandidateEdits(0, createForm(successCandidate, { country: "France" }));
+await Promise.resolve();
+await Promise.resolve();
 
 assert.equal(api.inferWatchCandidateWorkflowState(successCandidate), "ready");
 assert.equal(successCandidate.endDate, "", "La correction pays ne doit jamais remplir date de fin");
@@ -228,7 +230,9 @@ assert.equal(api.getSnapshot().candidates[0].workflow_status, "review");
 assert.equal(api.getRefreshCount(), 0, "Aucun rafraîchissement d’acquittement ne doit précéder le serveur");
 assert.equal(successClient.calls.length, 1, "Le writer versionné existant doit être appelé exactement une fois");
 assert.equal(successClient.calls[0].operation, "update");
-assert.equal(JSON.stringify(successClient.calls[0].payload), JSON.stringify({ workflow_status: "ready" }));
+assert.equal(successClient.calls[0].payload.workflow_status, "ready");
+assert.equal(successClient.calls[0].payload.country, "France");
+assert.equal(successClient.calls[0].payload.end_date, null);
 assert.deepEqual(successClient.calls[0].filters, [["id", candidateId], ["version", 3]]);
 
 pendingUpdate.resolve({ data: [serverRow("ready", 4)], error: null });
@@ -296,18 +300,19 @@ assert.ok([...storage.values()].some((value) => value.includes('"state":"ready"'
 // Les workflows fermés ne sont jamais rouverts et ne déclenchent aucun UPDATE.
 for (const closedState of ["duplicate", "submitted", "handled", "rejected"]) {
   const closedCandidate = cloneCandidate();
-  const closedClient = createCandidateClient();
+  const closedClient = createCandidateClient({ updates: [{ data: [serverRow(closedState, 6)], error: null }] });
   reset(closedCandidate, [serverRow(closedState, 5)]);
   api.setClient(closedClient);
   api.saveWatchCandidateEdits(0, createForm(closedCandidate, { country: "France" }));
   await settle();
   assert.equal(api.getWatchWorkflowState(closedCandidate), closedState);
-  assert.equal(closedClient.calls.length, 0, `${closedState} ne doit jamais appeler le writer`);
+  assert.equal(closedClient.calls.length, 1, `${closedState} doit utiliser un seul UPDATE de contenu`);
+  assert.equal(closedClient.calls[0].payload.workflow_status, closedState);
 }
 
 // Audit statique : aucun writer, réseau ou chemin de publication supplémentaire.
 const writerStart = source.indexOf("async function updateServerWatchCandidateOptimistically(");
-const writerEnd = source.indexOf("async function persistCandidateWorkflowDecision(", writerStart);
+const writerEnd = source.indexOf("async function insertEditedWatchCandidate(", writerStart);
 const writerSource = source.slice(writerStart, writerEnd);
 assert.equal((writerSource.match(/\.update\(/g) || []).length, 1);
 assert.equal((writerSource.match(/\.from\("admin_watch_candidates"\)/g) || []).length, 1);
