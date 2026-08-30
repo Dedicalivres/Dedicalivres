@@ -39,7 +39,7 @@ const queueSource = sliceFunction("buildWatchCandidateQueue", "adoptServerWatchC
 assert.ok(queueSource.includes("watchPersistenceSnapshot.candidates"));
 assert.ok(queueSource.includes("watchPersistenceSnapshot.candidates.forEach"));
 assert.ok(source.includes("const queueResults = buildWatchCandidateQueue"));
-assert.ok(source.includes(".filter((item) => matchesWatchQueueFilter(item.state))"));
+assert.ok(source.includes(".filter((item) => matchesWatchQueueFilter(item.state, item.result))"));
 assert.ok(source.includes("data-watch-filter-count"));
 assert.ok(source.includes("data-watch-summary-count"));
 

@@ -299,6 +299,7 @@
 
           <div class="watch-queue-toolbar" role="group" aria-label="Filtrer la file de veille">
             <button class="watch-queue-filter is-active" data-watch-queue-filter="all" type="button" aria-pressed="true">Tous <span data-watch-filter-count="all">0</span></button>
+            <button class="watch-queue-filter" data-watch-queue-filter="current-analysis" type="button" aria-pressed="false" hidden>Dernière analyse <span data-watch-filter-count="current-analysis">0</span></button>
             <span class="watch-queue-label">Actifs</span>
             <button class="watch-queue-filter" data-watch-queue-filter="active" type="button" aria-pressed="false">À traiter : <span data-watch-filter-count="active">0</span></button>
             <button class="watch-queue-filter" data-watch-queue-filter="ready" type="button" aria-pressed="false">Prêts <span data-watch-filter-count="ready">0</span></button>
@@ -2099,7 +2100,10 @@
       lastWatchAnalysisAt = new Date().toISOString();
       lastResults = sortWatchResultsByCompleteness(Array.isArray(payload.results) ? payload.results : []);
       lastPagination = normalizeWatchPagination(payload);
-      watchQueueFilter = "active";
+      watchQueueFilter = "current-analysis";
+      watchCandidateSearch = "";
+      const candidateSearch = document.getElementById("watch-candidate-search");
+      if (candidateSearch) candidateSearch.value = "";
       switchWatchWorkspaceView("candidates");
       renderResults(lastResults);
 
@@ -2574,7 +2578,7 @@
         index,
         state: getWatchWorkflowState(result)
       }))
-      .filter((item) => matchesWatchQueueFilter(item.state))
+      .filter((item) => matchesWatchQueueFilter(item.state, item.result))
       .filter((item) => matchesWatchCandidateSearch(item.result));
 
     if (!visibleItems.length) {
@@ -2928,7 +2932,8 @@
       review: "À vérifier",
       duplicate: "Déjà présents",
       handled: "Traités",
-      rejected: "Écartés"
+      rejected: "Écartés",
+      "current-analysis": "Dernière analyse"
     }[filter] || "Tous";
   }
 
@@ -2940,7 +2945,8 @@
       review: 0,
       duplicate: 0,
       handled: 0,
-      rejected: 0
+      rejected: 0,
+      "current-analysis": 0
     };
 
     (Array.isArray(results) ? results : []).forEach((result) => {
@@ -2949,6 +2955,9 @@
       if (Object.prototype.hasOwnProperty.call(counts, state)) {
         counts[state] += 1;
       }
+      if (Number.isInteger(result?._watchWorkerIndex)) {
+        counts["current-analysis"] += 1;
+      }
     });
 
     counts.active = counts.ready + counts.review;
@@ -2956,8 +2965,9 @@
     return counts;
   }
 
-  function matchesWatchQueueFilter(state) {
+  function matchesWatchQueueFilter(state, result = null) {
     if (watchQueueFilter === "all") return true;
+    if (watchQueueFilter === "current-analysis") return Number.isInteger(result?._watchWorkerIndex);
     if (watchQueueFilter === "active") return ["ready", "review"].includes(state);
     return state === watchQueueFilter;
   }
@@ -2993,6 +3003,9 @@
     document.querySelectorAll("[data-watch-queue-filter]").forEach((button) => {
       const filter = String(button.dataset.watchQueueFilter || "all");
       const active = filter === watchQueueFilter;
+      if (filter === "current-analysis") {
+        button.hidden = counts["current-analysis"] === 0;
+      }
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
