@@ -2594,6 +2594,8 @@
       .map(({ result, index }) => renderResultCard(result, index))
       .join("");
 
+    bindWatchCandidateEditorDateSync(container, queueResults);
+
     container.querySelectorAll("[data-watch-examine]").forEach((button) => {
       button.addEventListener("click", () => {
         const index = Number(button.dataset.watchExamine);
@@ -3471,6 +3473,23 @@
     const endDateInput = container.querySelector('input[name="endDate"]');
     if (startDateInput) startDateInput.value = normalizeIsoDate(result?.startDate);
     if (endDateInput) endDateInput.value = normalizeIsoDate(result?.endDate);
+  }
+
+  function bindWatchCandidateEditorDateSync(container, queueResults) {
+    container.querySelectorAll("[data-watch-candidate-editor]").forEach((editor) => {
+      editor.addEventListener("toggle", () => {
+        if (!editor.open) return;
+        const card = editor.closest("[data-watch-result-index]");
+        const index = Number(card?.dataset.watchResultIndex);
+        const result = Number.isInteger(index) ? queueResults[index] : null;
+        if (!result) return;
+
+        syncWatchCandidateEditorDates(editor, result);
+        window.requestAnimationFrame(() => {
+          if (editor.open) syncWatchCandidateEditorDates(editor, result);
+        });
+      });
+    });
   }
 
   function renderWatchSubmissionPreview(result, index) {
