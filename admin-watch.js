@@ -3817,6 +3817,7 @@
         <p class="watch-preview-duplicate-warning" data-watch-duplicate-warning${duplicateSignal.state === "probable" ? "" : " hidden"}>
           Doublon probable : vérifie les éléments similaires avant de confirmer l’envoi.
         </p>
+        <p class="watch-status" data-watch-submission-status hidden aria-live="polite"></p>
         <div class="watch-editor-actions">
           <button class="cyber-btn-secondary" data-watch-preview-back="${index}" type="button">Retour / Corriger</button>
           <button class="cyber-btn-primary" data-watch-confirm-submit="${index}" data-watch-duplicate-reviewed="${duplicateSignal.state === "probable"}" type="button"${blockingFields.length ? " disabled" : ""}>Confirmer l’envoi</button>
@@ -3827,6 +3828,16 @@
 
   async function createSubmissionFromWatch(item, button) {
     const missing = getSubmissionBlockingFields(item);
+    const submissionStatus = button
+      ?.closest("[data-watch-submission-preview]")
+      ?.querySelector("[data-watch-submission-status]");
+
+    const setSubmissionStatus = (message, tone = "") => {
+      if (!submissionStatus) return;
+      submissionStatus.hidden = !message;
+      submissionStatus.textContent = message || "";
+      submissionStatus.dataset.tone = tone;
+    };
 
     if (missing.length) {
       setStatus(`Soumission impossible : ${missing.join(", ")} à compléter dans la fiche candidate.`, "warning");
@@ -3837,6 +3848,7 @@
       button.disabled = true;
       button.textContent = "Envoi...";
     }
+    setSubmissionStatus("Création de la soumission…");
 
     try {
       const duplicate = await findExistingSubmissionCached(item);
@@ -3888,6 +3900,7 @@
       renderHistory();
       renderResults(lastResults);
       setStatus("Soumission créée : elle apparaît maintenant dans la modération des événements.");
+      setSubmissionStatus("Soumission créée. Elle reste en attente de validation humaine.", "success");
 
       if (button) {
         button.textContent = "Soumission créée";
@@ -3899,7 +3912,15 @@
       }));
     } catch (error) {
       console.error("Création soumission veille :", error);
-      setStatus(error.message || "Création de soumission impossible.", "error");
+      const errorDetails = [
+        error?.code,
+        error?.message,
+        error?.details,
+        error?.hint
+      ].filter(Boolean).join(" · ") || "Création de soumission impossible.";
+
+      setStatus(errorDetails, "error");
+      setSubmissionStatus(`Échec de la soumission : ${errorDetails}`, "error");
 
       if (button) {
         button.disabled = false;
