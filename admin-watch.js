@@ -2704,7 +2704,7 @@
     const item = lastResults[index];
     if (!item || !form) return;
     const previousDuplicateKey = getWatchDuplicateKey(item);
-    const previousInferredWorkflowState = inferWatchCandidateWorkflowState(item);
+    const previousWorkflowState = getWatchWorkflowState(item);
 
     const value = (name) => cleanText(form.elements.namedItem(name)?.value || "");
     const updates = {
@@ -2733,7 +2733,10 @@
       item.watchDuplicateSignal = getLocalWatchDuplicateSignal(item, lastResults);
     }
     const nextInferredWorkflowState = inferWatchCandidateWorkflowState(item);
-    if (nextInferredWorkflowState !== previousInferredWorkflowState) {
+    if (
+      !WATCH_CANDIDATE_CLOSED_STATES.includes(previousWorkflowState) &&
+      nextInferredWorkflowState !== previousWorkflowState
+    ) {
       setWatchWorkflowState(item, nextInferredWorkflowState);
     }
     lastResults = sortWatchResultsByCompleteness(lastResults);
@@ -2778,14 +2781,27 @@
   }
 
   function recalculateWatchCandidateMissingFields(item) {
-    const essentialFields = new Set(["titre", "date", "date de debut", "ville"]);
+    const recalculatedFields = new Set([
+      "titre",
+      "date",
+      "date de debut",
+      "ville",
+      "pays",
+      "site officiel",
+      "image",
+      "description"
+    ]);
     const missing = (Array.isArray(item?.missingFields) ? item.missingFields : [])
-      .filter((field) => !essentialFields.has(normalizeForCompare(field)));
+      .filter((field) => !recalculatedFields.has(normalizeForCompare(field)));
 
     if (!cleanText(item?.title)) missing.push("titre");
     if (!normalizeIsoDate(item?.startDate)) missing.push("date");
     if (!cleanText(item?.city)) missing.push("ville");
-    return missing;
+    if (!cleanText(item?.country)) missing.push("pays");
+    if (!cleanText(item?.officialUrl)) missing.push("site officiel");
+    if (!cleanText(item?.imageUrl)) missing.push("image");
+    if (!cleanText(item?.description)) missing.push("description");
+    return [...new Set(missing)];
   }
 
   function getWatchImageQuality(item) {
@@ -3560,6 +3576,8 @@
 
   function renderWatchSubmissionPreview(result, index) {
     const blockingFields = getSubmissionBlockingFields(result);
+    const workflowState = getWatchWorkflowState(result);
+    const needsHumanReview = workflowState === "review";
     const sourceUrl = result.officialUrl || result.sourceUrl || "";
     const imageQuality = getWatchImageQuality(result);
     const candidateQualityScore = getWatchCandidateQualityScore(result);
@@ -3585,10 +3603,12 @@
           <div class="watch-editor-wide"><dt>Description</dt><dd>${escapeHtml(result.description || "Non renseignée")}</dd></div>
           <div class="watch-editor-wide"><dt>URL / source</dt><dd>${sourceUrl ? `<a href="${escapeAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceUrl)}</a>` : "Non renseignée"}</dd></div>
         </dl>
-        <p class="watch-preview-blocking${blockingFields.length ? " has-missing" : ""}">
+        <p class="watch-preview-blocking${blockingFields.length || needsHumanReview ? " has-missing" : ""}">
           ${blockingFields.length
             ? `Champs bloquants : ${escapeHtml(blockingFields.join(", "))}`
-            : "Aucun champ bloquant détecté."}
+            : needsHumanReview
+              ? "Workflow à vérifier : relis la fiche avant de confirmer l’envoi."
+              : "Aucun champ bloquant détecté."}
         </p>
         <p class="watch-preview-duplicate-warning" data-watch-duplicate-warning${duplicateSignal.state === "probable" ? "" : " hidden"}>
           Doublon probable : vérifie les éléments similaires avant de confirmer l’envoi.
