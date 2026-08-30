@@ -2800,7 +2800,7 @@
     container.querySelectorAll("[data-watch-copy]").forEach((button) => {
       button.addEventListener("click", async () => {
         const index = Number(button.dataset.watchCopy);
-        const item = lastResults[index];
+        const item = queueResults[index];
         if (!item?.adminText) return;
         await copyText(item.adminText);
         setStatus("Fiche copiée pour l’admin.");
@@ -2836,14 +2836,14 @@
     container.querySelectorAll("[data-watch-submit]").forEach((button) => {
       button.addEventListener("click", () => {
         const index = Number(button.dataset.watchSubmit);
-        openWatchSubmissionPreview(index);
+        openWatchSubmissionPreview(index, queueResults);
       });
     });
 
     container.querySelectorAll("[data-watch-editor-form]").forEach((form) => {
       form.addEventListener("submit", (event) => {
         event.preventDefault();
-        saveWatchCandidateEdits(Number(form.dataset.watchEditorForm), form);
+        saveWatchCandidateEdits(Number(form.dataset.watchEditorForm), form, queueResults);
       });
     });
 
@@ -2873,15 +2873,15 @@
     container.querySelectorAll("[data-watch-confirm-submit]").forEach((button) => {
       button.addEventListener("click", () => {
         const index = Number(button.dataset.watchConfirmSubmit);
-        const item = lastResults[index];
+        const item = queueResults[index];
         if (!item) return;
         createSubmissionFromWatch(item, button);
       });
     });
   }
 
-  function saveWatchCandidateEdits(index, form) {
-    const item = lastResults[index];
+  function saveWatchCandidateEdits(index, form, results = lastResults) {
+    const item = results[index];
     if (!item || !form) return;
     const previousDuplicateKey = getWatchDuplicateKey(item);
     const previousWorkflowState = getWatchWorkflowState(item);
@@ -3129,8 +3129,8 @@
     return Math.round(Math.abs(leftTime - rightTime) / 86400000);
   }
 
-  function openWatchSubmissionPreview(index) {
-    const item = lastResults[index];
+  function openWatchSubmissionPreview(index, results = lastResults) {
+    const item = results[index];
     if (!item || !["ready", "review"].includes(getWatchWorkflowState(item))) return;
 
     const card = document.querySelector(`#watch-results [data-watch-result-index="${index}"]`);
