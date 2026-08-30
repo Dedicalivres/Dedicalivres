@@ -2603,7 +2603,10 @@
         detail.hidden = !opening;
         button.setAttribute("aria-expanded", String(opening));
         button.textContent = opening ? "Fermer" : "Examiner";
-        if (opening) detail.querySelector("h5")?.focus();
+        if (opening) {
+          syncWatchCandidateEditorDates(detail, queueResults[index]);
+          detail.querySelector("h5")?.focus();
+        }
       });
     });
 
@@ -3402,11 +3405,13 @@
       ["venue", "Lieu"],
       ["address", "Adresse"]
     ].filter(([property]) => Object.prototype.hasOwnProperty.call(result, property));
+    const startDateValue = normalizeIsoDate(result?.startDate);
+    const endDateValue = normalizeIsoDate(result?.endDate);
 
     return `
       <details class="watch-candidate-editor" data-watch-candidate-editor>
         <summary>Modifier la fiche</summary>
-        <form data-watch-editor-form="${index}">
+        <form data-watch-editor-form="${index}" autocomplete="off">
           <div class="watch-editor-grid">
             <label>
               <span>Titre</span>
@@ -3414,11 +3419,11 @@
             </label>
             <label>
               <span>Date de début</span>
-              <input name="startDate" type="date" value="${escapeAttr(normalizeIsoDate(result.startDate))}" required>
+              <input name="startDate" type="date" value="${escapeAttr(startDateValue)}" autocomplete="off" required>
             </label>
             <label>
               <span>Date de fin</span>
-              <input name="endDate" type="date" value="${escapeAttr(normalizeIsoDate(result.endDate))}">
+              <input name="endDate" type="date" value="${escapeAttr(endDateValue)}" autocomplete="off">
             </label>
             <label>
               <span>Ville</span>
@@ -3458,6 +3463,14 @@
         </form>
       </details>
     `;
+  }
+
+  function syncWatchCandidateEditorDates(container, result) {
+    if (!container) return;
+    const startDateInput = container.querySelector('input[name="startDate"]');
+    const endDateInput = container.querySelector('input[name="endDate"]');
+    if (startDateInput) startDateInput.value = normalizeIsoDate(result?.startDate);
+    if (endDateInput) endDateInput.value = normalizeIsoDate(result?.endDate);
   }
 
   function renderWatchSubmissionPreview(result, index) {
