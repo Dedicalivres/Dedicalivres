@@ -321,8 +321,15 @@
         </label>
 
         <label class="admin-filter-field" for="filter-date">
-          <span>Date</span>
-          <input id="filter-date" type="date" />
+          <span>Date de l’événement</span>
+          <input
+            id="filter-date"
+            type="date"
+            value=""
+            autocomplete="off"
+            aria-describedby="filter-date-help"
+          />
+          <small id="filter-date-help">Aucun filtre par défaut · affiche les événements présents à cette date</small>
         </label>
 
         <label class="admin-filter-field" for="filter-status">
@@ -781,14 +788,14 @@
       <section class="admin-panel cockpit-security-panel">
         <div class="section-head">
           <h3>SÉCURITÉ & RETOUR ARRIÈRE</h3>
-          <span>État de contrôle local</span>
+          <span>État de contrôle documenté</span>
         </div>
 
         <div id="control-security-grid" class="cockpit-status-grid"></div>
 
         <div class="cockpit-security-note">
-          <strong>Sauvegarde locale vérifiée</strong>
-          <span>/Users/jeanchristopheleguilly/SupabaseBackups/dedicalivres/2026-05-25_21-24-15</span>
+          <strong>Backup de référence : 31 août 2026</strong>
+          <span>Checksums vérifiés lors de la création · aucune vérification live automatique</span>
         </div>
 
         <div class="cockpit-security-note">
