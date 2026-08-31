@@ -379,9 +379,13 @@ function ensureAdminObservatoryStyles() {
 async function init() {
   window.DEDICALIVRES_ADMIN_AUTHENTICATED = false;
   lockDashboard();
+  clearAdminEventDateFilter();
   bindEvents();
   bindTabs();
   bindAdminSidebar();
+
+  requestAnimationFrame(() => clearAdminEventDateFilter(true));
+  window.addEventListener("pageshow", () => clearAdminEventDateFilter(true));
 
   adminBooting = true;
 
@@ -1607,18 +1611,16 @@ function renderQualityControlCenter() {
   const analyzedEvents = allEvents.filter((event) => !event.rejected && isCurrentAdminEvent(event));
   const corrections = getQualityCorrectionEntries();
   const rows = getQualityCorrectionEntries(focus);
+  const excludedCount = allEvents.length - analyzedEvents.length;
   const correctCount = analyzedEvents.filter((event) => getEventQualityIssues(event).length === 0).length;
   const missingImage = analyzedEvents.filter((event) => !event.image_url).length;
   const missingCoords = analyzedEvents.filter((event) => !hasEventCoords(event)).length;
   const missingSource = analyzedEvents.filter((event) => !event.website).length;
   const weakDescription = analyzedEvents.filter((event) => String(event.description || "").trim().length < 120).length;
   const problematicDates = analyzedEvents.filter((event) => hasAdminEventDateProblem(event)).length;
-  const averageScore = analyzedEvents.length
-    ? Math.round(analyzedEvents.reduce((sum, event) => sum + getEventQuality(event).score, 0) / analyzedEvents.length)
-    : 100;
 
   if (qualityControlCount) {
-    qualityControlCount.textContent = `${corrections.length} à corriger · score moyen ${averageScore}%`;
+    qualityControlCount.textContent = `${analyzedEvents.length} actifs/en attente non rejetés analysés · ${corrections.length} à corriger · ${excludedCount} hors périmètre`;
   }
 
   qualityControlGrid.innerHTML = [
@@ -1687,6 +1689,7 @@ function getEventQualityIssues(event) {
   if (title.length < 5) add("critical", "Titre absent ou trop court");
   if (!event?.start_date) add("critical", "Date de début absente");
   if (!String(event?.city || "").trim()) add("critical", "Ville absente");
+  if (!String(event?.region || "").trim()) add("important", "Région manquante");
   if (event?.start_date && event?.end_date && String(event.end_date).slice(0, 10) < String(event.start_date).slice(0, 10)) {
     add("critical", "Date de fin antérieure au début");
   }
@@ -1812,7 +1815,7 @@ function renderStatsControlCenter() {
     renderControlMetric("À venir", buckets.upcoming.length, "ok", "publics actifs"),
     renderControlMetric("Rejetés", buckets.rejected.length, buckets.rejected.length ? "danger" : "neutral", "historique"),
     renderControlMetric("Mis en avant", buckets.featured.length, buckets.featured.length ? "purple" : "neutral", "sélection éditoriale"),
-    renderControlMetric("Complétude", `${completion}%`, completion >= 80 ? "ok" : completion >= 55 ? "warning" : "danger", "qualité des fiches"),
+    renderControlMetric("Score qualité ≥ 55", `${completion}%`, completion >= 80 ? "ok" : completion >= 55 ? "warning" : "danger", "événements validés à venir"),
     renderControlMetric("Localisations", locationRows.length, locationRows.length ? "info" : "neutral", "signaux récents")
   ].join("");
 
@@ -1855,7 +1858,7 @@ function renderSecurityControlCenter() {
   if (!controlSecurityGrid) return;
 
   controlSecurityGrid.innerHTML = [
-    renderControlMetric("Backup", "OK", "ok", "local vérifié"),
+    renderControlMetric("Backup", "Référence", "info", "31 août 2026 · checksums documentés"),
     renderControlMetric("RLS", "OK", "ok", "policies durcies"),
     renderControlMetric("Storage", "OK", "ok", "uploads limités"),
     renderControlMetric("Admin", "OK", "ok", "helper privé"),
@@ -2495,8 +2498,25 @@ async function resetAdminEventFilters() {
   renderEvents();
 }
 
+function clearAdminEventDateFilter(shouldRender = false) {
+  if (!filterDate) return;
+  const hadRestoredValue = Boolean(filterDate.value);
+  filterDate.value = "";
+  if (shouldRender && hadRestoredValue) renderEvents();
+}
+
 
 /* SCORE QUALITÉ ÉVÉNEMENT */
+
+function getEventLocationMissingLabel(event) {
+  const hasCity = Boolean(String(event?.city || "").trim());
+  const hasRegion = Boolean(String(event?.region || "").trim());
+
+  if (!hasCity && !hasRegion) return "Ville et région manquantes";
+  if (!hasCity) return "Ville manquante";
+  if (!hasRegion) return "Région manquante";
+  return "";
+}
 
 function getEventQuality(event) {
   const checks = [
@@ -2514,7 +2534,7 @@ function getEventQuality(event) {
     },
     {
       key: "location",
-      label: "ville/région",
+      label: getEventLocationMissingLabel(event),
       ok: !!event?.city && !!event?.region,
       points: 15
     },
@@ -2560,11 +2580,13 @@ function getEventQuality(event) {
         : "low";
 
   const label =
-    level === "good"
+    score === 100
       ? "Complet"
-      : level === "medium"
-        ? "À compléter"
-        : "Faible";
+      : level === "good"
+        ? "Solide"
+        : level === "medium"
+          ? "À compléter"
+          : "Faible";
 
   return {
     score,
