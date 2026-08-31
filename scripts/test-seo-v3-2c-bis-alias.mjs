@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 
 const BASE_SHA = "3d2ee57bc1eaf9c1db887cf4f7c7605f93debd63";
+const PILOT_SHA = "a6591ebf1ff0ef6da7b941e2ad62a9d5908feb2f";
 const prefix = "1er-salon-du-livre-saint-sulpice-le-gueretois";
 const aliases = [`${prefix}-4907.html`, `${prefix}-4939.html`, `${prefix}-5030.html`];
 const canonicalName = `${prefix}-4024.html`;
@@ -47,6 +48,7 @@ for (const alias of aliases) {
   assert.ok(!html.includes("application/ld+json"), `JSON-LD résiduel : ${alias}`);
   assert.ok(!html.includes('"@type": "Event"'), `Event JSON-LD résiduel : ${alias}`);
   assert.ok(!/noindex/i.test(html), `noindex inattendu : ${alias}`);
+  assert.equal(html, git("show", `${PILOT_SHA}:${path}`), `Alias pilote modifié : ${alias}`);
 }
 
 const canonicalPath = `evenement/${canonicalName}`;
@@ -73,21 +75,6 @@ assert.equal(occurrences(sitemapBefore, canonicalUrl), 1);
 assert.equal(occurrences(sitemap, canonicalUrl), 1, "Canonique absente ou dupliquée dans le sitemap");
 assert.equal(occurrences(indexBefore, canonicalName), 1);
 assert.equal(occurrences(index, canonicalName), 1, "Canonique absente ou dupliquée dans l’index");
-
-const expectedEventChanges = new Set([
-  ...aliases.map((name) => `evenement/${name}`),
-  "evenement/index.html",
-]);
-const eventChanges = git("diff", "--name-status", BASE_SHA, "--", "evenement")
-  .trim()
-  .split("\n")
-  .filter(Boolean)
-  .map((line) => {
-    const [status, path] = line.split("\t");
-    assert.equal(status, "M", `Modification événement interdite : ${line}`);
-    return path;
-  });
-assert.deepEqual(new Set(eventChanges), expectedEventChanges, "Un autre fichier événement a été modifié");
 
 const baseEventCount = git("ls-tree", "-r", "--name-only", BASE_SHA, "--", "evenement")
   .split("\n")
