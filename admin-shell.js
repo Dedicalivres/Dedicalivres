@@ -3308,6 +3308,155 @@ function renderEvents(events, status) {
       "v11-author-editorial-count"
     );
 
+  const authorConfidenceFilter =
+    document.getElementById(
+      "v11-author-confidence-filter"
+    );
+
+  const authorPhotoFilter =
+    document.getElementById(
+      "v11-author-photo-filter"
+    );
+
+  const authorFutureFilter =
+    document.getElementById(
+      "v11-author-future-filter"
+    );
+
+  const authorAmbiguityFilter =
+    document.getElementById(
+      "v11-author-ambiguity-filter"
+    );
+
+  const authorSearch =
+    document.getElementById(
+      "v11-author-search"
+    );
+
+  const v11AuthorBackoffice =
+    window.DEDICALIVRES_AUTHOR_BACKOFFICE;
+
+  const V11_AUTHOR_REVIEW_STORAGE_KEY =
+    "dedicalivres_author_backoffice_review_v1";
+
+  function loadV11AuthorReviewDecisions() {
+    try {
+      const value = JSON.parse(
+        window.localStorage.getItem(
+          V11_AUTHOR_REVIEW_STORAGE_KEY
+        ) || "{}"
+      );
+
+      return value && typeof value === "object"
+        ? value
+        : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function getV11AuthorReviewKey(author) {
+    return String(
+      author?.id ||
+      author?.slug ||
+      normalize(author?.pseudo || "")
+    );
+  }
+
+  function getV11AuthorReviewDecision(author) {
+    return loadV11AuthorReviewDecisions()[
+      getV11AuthorReviewKey(author)
+    ] || {};
+  }
+
+  function saveV11AuthorReviewDecision(
+    author,
+    patch
+  ) {
+    const decisions =
+      loadV11AuthorReviewDecisions();
+
+    const key =
+      getV11AuthorReviewKey(author);
+
+    decisions[key] = {
+      ...(decisions[key] || {}),
+      ...patch,
+      updatedAt: new Date().toISOString()
+    };
+
+    window.localStorage.setItem(
+      V11_AUTHOR_REVIEW_STORAGE_KEY,
+      JSON.stringify(decisions)
+    );
+
+    return decisions[key];
+  }
+
+  function getV11AuthorBackofficeRecord(author) {
+    const state = context.getState();
+
+    if (
+      !v11AuthorBackoffice ||
+      typeof v11AuthorBackoffice
+        .buildAuthorRecord !== "function"
+    ) {
+      return null;
+    }
+
+    return v11AuthorBackoffice
+      .buildAuthorRecord({
+        author,
+        authors:
+          state.community?.authors || [],
+        presences:
+          state.community?.presences || [],
+        events: state.events || [],
+        review:
+          getV11AuthorReviewDecision(
+            author
+          )
+      });
+  }
+
+  function renderV11AuthorBackofficeCounters(
+    items
+  ) {
+    if (
+      !v11AuthorBackoffice ||
+      typeof v11AuthorBackoffice
+        .buildAuthorBackoffice !== "function"
+    ) {
+      return;
+    }
+
+    const state = context.getState();
+    const summary =
+      v11AuthorBackoffice
+        .buildAuthorBackoffice({
+          authors: items,
+          presences:
+            state.community?.presences || [],
+          events: state.events || [],
+          reviewByIdentity:
+            loadV11AuthorReviewDecisions()
+        });
+
+    document
+      .querySelectorAll(
+        "[data-author-readiness-count]"
+      )
+      .forEach((node) => {
+        const key =
+          node.dataset
+            .authorReadinessCount;
+
+        node.textContent = String(
+          summary.counters[key] || 0
+        );
+      });
+  }
+
   const testimonialsList =
     document.getElementById("v11-testimonials-list");
 
@@ -3891,6 +4040,11 @@ function renderEvents(events, status) {
 
 
   function getV11AuthorEditorialReadiness(author) {
+    const backofficeRecord =
+      getV11AuthorBackofficeRecord(
+        author
+      );
+
     const guide =
       buildV11AuthorEnrichmentGuide(
         author
@@ -3943,7 +4097,19 @@ function renderEvents(events, status) {
         mandatory.length,
       missing,
       nextPriority:
-        missing[0]?.label || null
+        missing[0]?.label || null,
+      publicationStatus:
+        backofficeRecord
+          ?.readiness?.status ||
+        "INCOMPLETE",
+      publicationLabel:
+        backofficeRecord
+          ?.readiness?.label ||
+        "Incomplet",
+      confidence:
+        backofficeRecord
+          ?.quality?.confidence || 0,
+      record: backofficeRecord
     };
   }
 
@@ -3955,7 +4121,7 @@ function renderEvents(events, status) {
       "all";
 
     if (filter === "all") {
-      return true;
+      // Les filtres secondaires restent actifs.
     }
 
     const readiness =
@@ -3963,11 +4129,41 @@ function renderEvents(events, status) {
         author
       );
 
-    if (filter === "published") {
-      return author.published === true;
+    if (
+      filter !== "all" &&
+      readiness.publicationStatus !==
+        filter
+    ) {
+      return false;
     }
 
-    return readiness.state === filter;
+    if (
+      !v11AuthorBackoffice ||
+      !readiness.record
+    ) {
+      return filter === "all";
+    }
+
+    return v11AuthorBackoffice
+      .filterAuthorRecords(
+        [readiness.record],
+        {
+          confidence:
+            authorConfidenceFilter
+              ?.value || "all",
+          photo:
+            authorPhotoFilter
+              ?.value || "all",
+          future:
+            authorFutureFilter
+              ?.value || "all",
+          ambiguity:
+            authorAmbiguityFilter
+              ?.value || "all",
+          search:
+            authorSearch?.value || ""
+        }
+      ).length === 1;
   }
 
 
@@ -4421,6 +4617,9 @@ function renderEvents(events, status) {
     if (!authorsList) return;
 
     renderV11AuthorReleaseGate(items);
+    renderV11AuthorBackofficeCounters(
+      items
+    );
 
     authorsList.replaceChildren();
 
@@ -4481,6 +4680,31 @@ function renderEvents(events, status) {
           item
         );
 
+      const backofficeRecord =
+        readiness.record;
+
+      if (
+        backofficeRecord
+          ?.identity?.photo
+      ) {
+        const photo =
+          document.createElement("img");
+
+        photo.className =
+          "v11-author-card-photo";
+
+        photo.src =
+          backofficeRecord
+            .identity.photo;
+
+        photo.alt =
+          "Portrait de " +
+          backofficeRecord
+            .identity.name;
+
+        body.appendChild(photo);
+      }
+
       const readinessLine =
         document.createElement("div");
 
@@ -4491,16 +4715,14 @@ function renderEvents(events, status) {
         document.createElement("strong");
 
       readinessScore.textContent =
-        readiness.score + "%";
+        readiness.confidence +
+        "% confiance";
 
       const readinessText =
         document.createElement("span");
 
       readinessText.textContent =
-        readiness.nextPriority
-          ? "Priorité : " +
-            readiness.nextPriority
-          : "Critères obligatoires complets";
+        readiness.publicationLabel;
 
       readinessLine.appendChild(
         readinessScore
@@ -4524,6 +4746,32 @@ function renderEvents(events, status) {
         parts.push("Publié");
       }
 
+      if (backofficeRecord) {
+        parts.push(
+          backofficeRecord
+            .history.future.length +
+          " futur" +
+          (
+            backofficeRecord
+              .history.future.length > 1
+              ? "s"
+              : ""
+          )
+        );
+
+        parts.push(
+          backofficeRecord
+            .history.past.length +
+          " passé" +
+          (
+            backofficeRecord
+              .history.past.length > 1
+              ? "s"
+              : ""
+          )
+        );
+      }
+
       meta.textContent =
         parts.length ? parts.join(" · ") : "Fiche auteur";
 
@@ -4532,21 +4780,69 @@ function renderEvents(events, status) {
       body.appendChild(readinessLine);
       body.appendChild(meta);
 
+      if (backofficeRecord) {
+        const quality =
+          document.createElement("div");
+
+        quality.className =
+          "v11-author-card-quality";
+
+        quality.textContent =
+          backofficeRecord
+            .quality.presenceCount +
+          " présence" +
+          (
+            backofficeRecord
+              .quality.presenceCount > 1
+              ? "s"
+              : ""
+          ) +
+          " · " +
+          backofficeRecord
+            .quality.independentSourceCount +
+          " source" +
+          (
+            backofficeRecord
+              .quality.independentSourceCount > 1
+              ? "s"
+              : ""
+          ) +
+          (
+            backofficeRecord
+              .quality.ambiguities.length
+              ? " · " +
+                backofficeRecord
+                  .quality.ambiguities.length +
+                " ambiguïté"
+              : ""
+          );
+
+        body.appendChild(quality);
+      }
+
       const side = document.createElement("div");
       side.className = "v11-community-card-side";
 
       const statusBadge = document.createElement("span");
 
-      if (item.published === true) {
-        statusBadge.className = "v11-chip ok";
-        statusBadge.textContent = "Publié";
-      } else if (item.publication_ready === true) {
-        statusBadge.className = "v11-chip info";
-        statusBadge.textContent = "Prêt";
-      } else {
-        statusBadge.className = "v11-chip warning";
-        statusBadge.textContent = "À compléter";
-      }
+      const statusClasses = {
+        READY: "ok",
+        NEEDS_REVIEW: "info",
+        INCOMPLETE: "warning",
+        AMBIGUOUS: "danger"
+      };
+
+      statusBadge.className =
+        "v11-chip " +
+        (
+          statusClasses[
+            readiness
+              .publicationStatus
+          ] || "warning"
+        );
+
+      statusBadge.textContent =
+        readiness.publicationLabel;
 
       side.appendChild(statusBadge);
 
@@ -5384,9 +5680,34 @@ function renderEvents(events, status) {
       "v11-author-preview"
     );
 
+  const authorTemplatePreview =
+    document.getElementById(
+      "v11-author-template-preview"
+    );
+
   const authorEditButton =
     document.getElementById(
       "v11-author-edit"
+    );
+
+  const authorIdentityValidateButton =
+    document.getElementById(
+      "v11-author-identity-validate"
+    );
+
+  const authorMarkAmbiguousButton =
+    document.getElementById(
+      "v11-author-mark-ambiguous"
+    );
+
+  const authorConfirmPresenceButton =
+    document.getElementById(
+      "v11-author-confirm-presence"
+    );
+
+  const authorIgnoreMatchButton =
+    document.getElementById(
+      "v11-author-ignore-match"
     );
 
   const authorReadyButton =
@@ -5553,6 +5874,41 @@ function renderEvents(events, status) {
     );
   }
 
+  [
+    authorConfidenceFilter,
+    authorPhotoFilter,
+    authorFutureFilter,
+    authorAmbiguityFilter
+  ]
+    .filter(Boolean)
+    .forEach((filter) => {
+      filter.addEventListener(
+        "change",
+        () => {
+          const state =
+            context.getState();
+
+          renderAuthors(
+            state.community?.authors || []
+          );
+        }
+      );
+    });
+
+  if (authorSearch) {
+    authorSearch.addEventListener(
+      "input",
+      () => {
+        const state =
+          context.getState();
+
+        renderAuthors(
+          state.community?.authors || []
+        );
+      }
+    );
+  }
+
   if (authorEnrichmentEdit) {
     authorEnrichmentEdit.addEventListener(
       "click",
@@ -5586,6 +5942,45 @@ function renderEvents(events, status) {
       "click",
       toggleV11AuthorReady
     );
+  }
+
+  if (authorPreviewLink) {
+    authorPreviewLink.addEventListener(
+      "click",
+      renderV11AuthorTemplatePreview
+    );
+  }
+
+  if (authorIdentityValidateButton) {
+    authorIdentityValidateButton
+      .addEventListener(
+        "click",
+        toggleV11AuthorIdentityValidated
+      );
+  }
+
+  if (authorMarkAmbiguousButton) {
+    authorMarkAmbiguousButton
+      .addEventListener(
+        "click",
+        toggleV11AuthorAmbiguity
+      );
+  }
+
+  if (authorConfirmPresenceButton) {
+    authorConfirmPresenceButton
+      .addEventListener(
+        "click",
+        focusV11AuthorPresences
+      );
+  }
+
+  if (authorIgnoreMatchButton) {
+    authorIgnoreMatchButton
+      .addEventListener(
+        "click",
+        ignoreV11AuthorPossibleMatches
+      );
   }
 
   if (authorPublishButton) {
@@ -6984,6 +7379,335 @@ function renderEvents(events, status) {
   }
 
 
+  function renderV11AuthorTemplatePreview() {
+    const author =
+      getSelectedV11Author();
+
+    const record =
+      author
+        ? getV11AuthorBackofficeRecord(
+            author
+          )
+        : null;
+
+    if (
+      !record ||
+      !authorTemplatePreview ||
+      !v11AuthorBackoffice ||
+      typeof v11AuthorBackoffice
+        .renderAuthorPublicTemplate !==
+        "function"
+    ) {
+      return;
+    }
+
+    authorTemplatePreview.innerHTML =
+      v11AuthorBackoffice
+        .renderAuthorPublicTemplate(
+          record
+        );
+
+    authorTemplatePreview.hidden = false;
+    authorTemplatePreview.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  async function toggleV11AuthorIdentityValidated() {
+    if (v11CommunityActionRunning) {
+      return;
+    }
+
+    const state = context.getState();
+    const author =
+      getSelectedV11Author();
+    const client = context.getClient();
+
+    if (
+      state.authenticated !== true ||
+      !author ||
+      !client
+    ) {
+      window.alert(
+        "Session ou fiche auteur indisponible."
+      );
+      return;
+    }
+
+    const validate =
+      author.validated !== true;
+
+    if (!window.confirm(
+      validate
+        ? "Valider cette identité auteur ? Aucune publication ne sera déclenchée."
+        : "Retirer la validation de cette identité auteur ?"
+    )) {
+      return;
+    }
+
+    v11CommunityActionRunning = true;
+    authorIdentityValidateButton.disabled =
+      true;
+
+    try {
+      const result = await client
+        .from("authors")
+        .update({
+          validated: validate,
+          updated_at:
+            new Date().toISOString()
+        })
+        .eq("id", author.id);
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      await context.refresh();
+
+      const refreshed =
+        getSelectedV11Author();
+
+      if (refreshed) {
+        renderV11AuthorDetail(
+          refreshed
+        );
+      }
+
+      v11CommunityMessage(
+        validate
+          ? "Identité auteur validée — aucune publication déclenchée."
+          : "Validation d’identité retirée."
+      );
+    } catch (error) {
+      console.error(
+        "V11 validation identité auteur",
+        error
+      );
+
+      window.alert(
+        error?.message ||
+        "Validation impossible."
+      );
+    } finally {
+      v11CommunityActionRunning = false;
+      authorIdentityValidateButton.disabled =
+        false;
+    }
+  }
+
+  function toggleV11AuthorAmbiguity() {
+    const author =
+      getSelectedV11Author();
+
+    if (!author) return;
+
+    const review =
+      getV11AuthorReviewDecision(
+        author
+      );
+
+    saveV11AuthorReviewDecision(
+      author,
+      {
+        ambiguous:
+          review.ambiguous !== true
+      }
+    );
+
+    const state = context.getState();
+    renderAuthors(
+      state.community?.authors || []
+    );
+    renderV11AuthorDetail(author);
+
+    v11CommunityMessage(
+      review.ambiguous === true
+        ? "Signalement d’ambiguïté retiré localement."
+        : "Identité marquée ambiguë dans ce back-office local."
+    );
+  }
+
+  function ignoreV11AuthorPossibleMatches() {
+    const author =
+      getSelectedV11Author();
+
+    const record =
+      author
+        ? getV11AuthorBackofficeRecord(
+            author
+          )
+        : null;
+
+    const matchKeys =
+      record?.quality
+        ?.possibleSameAs
+        ?.map((item) => item.matchKey)
+        .filter(Boolean) || [];
+
+    if (!author || !matchKeys.length) {
+      return;
+    }
+
+    const review =
+      getV11AuthorReviewDecision(
+        author
+      );
+
+    saveV11AuthorReviewDecision(
+      author,
+      {
+        ignoredMatches: [
+          ...new Set([
+            ...(review.ignoredMatches || []),
+            ...matchKeys
+          ])
+        ]
+      }
+    );
+
+    const state = context.getState();
+    renderAuthors(
+      state.community?.authors || []
+    );
+    renderV11AuthorDetail(author);
+
+    v11CommunityMessage(
+      "Rapprochement ignoré localement — aucune fusion effectuée."
+    );
+  }
+
+  function focusV11AuthorPresences() {
+    const author =
+      getSelectedV11Author();
+
+    if (!author) return;
+
+    const record =
+      getV11AuthorBackofficeRecord(
+        author
+      );
+
+    const hasPending =
+      Number(
+        record?.operations
+          ?.pendingPresenceCount || 0
+      ) > 0;
+
+    const presenceTab =
+      document.querySelector(
+        '[data-community-view="presence"]'
+      );
+
+    if (presenceSearch) {
+      presenceSearch.value =
+        author.pseudo || "";
+    }
+
+    if (presenceStatus) {
+      presenceStatus.value =
+        hasPending ? "pending" : "all";
+    }
+
+    presenceTab?.click();
+
+    presenceSearch?.dispatchEvent(
+      new Event("input", {
+        bubbles: true
+      })
+    );
+
+    presenceSearch?.focus();
+  }
+
+  function appendV11AuthorBackofficeDetails(
+    record
+  ) {
+    if (!record || !authorDetailContent) {
+      return;
+    }
+
+    const root =
+      document.createElement("section");
+
+    root.className =
+      "v11-author-backoffice-details";
+
+    const sections = [
+      {
+        title: "Événements et preuves",
+        rows: record.history.events.map(
+          (event) => [
+            event.startDate || "Date inconnue",
+            event.city,
+            event.title || "Événement",
+            event.presenceStatus,
+            event.proof
+              ? "preuve : " + event.proof
+              : ""
+          ].filter(Boolean).join(" · ")
+        )
+      },
+      {
+        title: "Provenance des données",
+        rows: record.provenance.map(
+          (item) => [
+            item.field,
+            item.origin,
+            item.collectedAt,
+            item.source,
+            item.proof
+          ].filter(Boolean).join(" · ")
+        )
+      },
+      {
+        title: "Ambiguïtés et rapprochements suggérés",
+        rows: record.quality.ambiguities.map(
+          (item) => [
+            item.label,
+            Number.isFinite(item.confidence)
+              ? item.confidence + "%"
+              : "",
+            ...(item.reasons || [])
+          ].filter(Boolean).join(" · ")
+        )
+      }
+    ];
+
+    sections.forEach((section) => {
+      const block =
+        document.createElement("div");
+
+      const title =
+        document.createElement("h4");
+
+      const list =
+        document.createElement("ul");
+
+      title.textContent =
+        section.title;
+
+      const rows =
+        section.rows.length
+          ? section.rows
+          : ["Aucune donnée disponible."];
+
+      rows.forEach((value) => {
+        const item =
+          document.createElement("li");
+
+        item.textContent = value;
+        list.appendChild(item);
+      });
+
+      block.append(title, list);
+      root.appendChild(block);
+    });
+
+    authorDetailContent.appendChild(root);
+  }
+
   function getSelectedV11Author() {
     if (selectedV11AuthorId == null) {
       return null;
@@ -7516,6 +8240,12 @@ function renderEvents(events, status) {
   function closeV11AuthorDetail() {
     if (authorDetail) {
       authorDetail.hidden = true;
+    }
+
+    if (authorTemplatePreview) {
+      authorTemplatePreview.hidden = true;
+      authorTemplatePreview
+        .replaceChildren();
     }
 
     closeV11AuthorEditor();
@@ -8356,6 +9086,11 @@ function renderEvents(events, status) {
 
     selectedV11AuthorId = item.id;
 
+    const backofficeRecord =
+      getV11AuthorBackofficeRecord(
+        item
+      );
+
     const activePanel =
       document.querySelector(
         ".v11-community-panel.is-active"
@@ -8466,21 +9201,121 @@ function renderEvents(events, status) {
       item.created_at
     );
 
+    if (backofficeRecord) {
+      addV11AuthorDetailRow(
+        "Statut de préparation",
+        backofficeRecord
+          .readiness.label +
+        " (" +
+        backofficeRecord
+          .readiness.status +
+        ")"
+      );
+
+      addV11AuthorDetailRow(
+        "Confiance",
+        backofficeRecord
+          .quality.confidence +
+        "% · " +
+        backofficeRecord
+          .quality.confidenceLevel
+      );
+
+      addV11AuthorDetailRow(
+        "Alias / noms de plume",
+        backofficeRecord
+          .identity.aliases.join(", ")
+      );
+
+      addV11AuthorDetailRow(
+        "Présences confirmées",
+        String(
+          backofficeRecord
+            .quality.confirmedPresenceCount
+        )
+      );
+
+      addV11AuthorDetailRow(
+        "Événements futurs / passés",
+        backofficeRecord
+          .history.future.length +
+        " / " +
+        backofficeRecord
+          .history.past.length
+      );
+
+      addV11AuthorDetailRow(
+        "Sources indépendantes",
+        backofficeRecord
+          .quality.independentSources
+          .join(", ")
+      );
+
+      addV11AuthorDetailRow(
+        "Dernier livre / œuvre",
+        backofficeRecord
+          .content.latestWork
+      );
+
+      addV11AuthorDetailRow(
+        "Liens publics utiles",
+        [
+          backofficeRecord
+            .content.website,
+          ...backofficeRecord
+            .content.links
+        ].filter(Boolean).join(" · ")
+      );
+
+      appendV11AuthorBackofficeDetails(
+        backofficeRecord
+      );
+    }
+
     if (authorPreviewLink) {
-      const previewSlug =
-        String(item.slug || "").trim();
+      authorPreviewLink.hidden =
+        !backofficeRecord
+          ?.identity?.name;
+    }
 
-      if (previewSlug) {
-        authorPreviewLink.href =
-          "author.html?slug=" +
-          encodeURIComponent(previewSlug) +
-          "&preview=admin";
+    if (authorTemplatePreview) {
+      authorTemplatePreview.hidden = true;
+      authorTemplatePreview
+        .replaceChildren();
+    }
 
-        authorPreviewLink.hidden = false;
-      } else {
-        authorPreviewLink.hidden = true;
-        authorPreviewLink.removeAttribute("href");
-      }
+    if (authorIdentityValidateButton) {
+      authorIdentityValidateButton
+        .textContent =
+        item.validated === true
+          ? "Retirer validation identité"
+          : "Valider l’identité";
+    }
+
+    if (authorMarkAmbiguousButton) {
+      const review =
+        getV11AuthorReviewDecision(
+          item
+        );
+
+      authorMarkAmbiguousButton
+        .textContent =
+        review.ambiguous === true
+          ? "Retirer ambiguïté"
+          : "Marquer ambigu";
+    }
+
+    if (authorConfirmPresenceButton) {
+      authorConfirmPresenceButton.hidden =
+        !backofficeRecord
+          ?.operations
+          ?.relatedPresenceIds?.length;
+    }
+
+    if (authorIgnoreMatchButton) {
+      authorIgnoreMatchButton.hidden =
+        !backofficeRecord?.quality
+          ?.possibleSameAs?.length;
     }
 
     if (authorReadyButton) {

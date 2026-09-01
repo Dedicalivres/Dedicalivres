@@ -1,0 +1,161 @@
+{
+  "today": "2026-09-01T12:00:00.000Z",
+  "authors": [
+    {
+      "id": "author-ready",
+      "pseudo": "Aurore Exemple",
+      "slug": "aurore-exemple",
+      "profile_type": "author",
+      "avatar_url": "https://images.example/aurore.webp",
+      "bio": "Autrice de romans et participante régulière aux rencontres littéraires.",
+      "website": "https://aurore.example",
+      "location": "Centre-Val de Loire",
+      "validated": true,
+      "created_at": "2026-06-01T10:00:00.000Z"
+    },
+    {
+      "id": "author-ambiguous",
+      "pseudo": "Camille Martin",
+      "slug": "camille-martin",
+      "profile_type": "hybrid",
+      "avatar_url": "https://images.example/camille.webp",
+      "bio": "Auteur et illustrateur présent sur plusieurs rendez-vous.",
+      "website": "https://camille.example",
+      "validated": true,
+      "created_at": "2026-06-02T10:00:00.000Z"
+    },
+    {
+      "id": "author-incomplete",
+      "pseudo": "Noémie Incomplète",
+      "slug": "noemie-incomplete",
+      "profile_type": "artist_author",
+      "bio": "Illustratrice.",
+      "website": "https://noemie.example",
+      "validated": true,
+      "created_at": "2026-06-03T10:00:00.000Z"
+    },
+    {
+      "id": "author-review",
+      "pseudo": "Louis À Vérifier",
+      "slug": "louis-a-verifier",
+      "profile_type": "author",
+      "avatar_url": "https://images.example/louis.webp",
+      "bio": "Auteur détecté par plusieurs signaux concordants.",
+      "website": "https://louis.example",
+      "confidence": 66,
+      "validated": false,
+      "created_at": "2026-06-04T10:00:00.000Z"
+    }
+  ],
+  "events": [
+    {
+      "id": "event-past",
+      "title": "Rencontre de printemps",
+      "start_date": "2026-05-12",
+      "end_date": "2026-05-12",
+      "city": "Tours",
+      "type": "Rencontre",
+      "website": "https://agenda-tours.example/event-past"
+    },
+    {
+      "id": "event-future",
+      "title": "Festival des mots",
+      "start_date": "2026-10-18",
+      "end_date": "2026-10-19",
+      "city": "Blois",
+      "type": "Festival",
+      "website": "https://festival-blois.example/event-future"
+    },
+    {
+      "id": "event-ambiguous",
+      "title": "Salon des images",
+      "start_date": "2026-11-08",
+      "city": "Lyon",
+      "type": "Salon",
+      "website": "https://salon-images.example/event"
+    },
+    {
+      "id": "event-incomplete",
+      "title": "Dédicace locale",
+      "start_date": "2026-12-02",
+      "city": "Angers",
+      "type": "Dédicace",
+      "website": "https://librairie-angers.example/dedicace"
+    },
+    {
+      "id": "event-review",
+      "title": "Lecture publique",
+      "start_date": "2026-09-20",
+      "city": "Nantes",
+      "type": "Lecture",
+      "website": "https://mediatheque-nantes.example/lecture"
+    }
+  ],
+  "presences": [
+    {
+      "id": "presence-ready-past",
+      "event_id": "event-past",
+      "author_id": "author-ready",
+      "pseudo": "Aurore Exemple",
+      "validated": true,
+      "rejected": false,
+      "source": "soumission",
+      "author_profile_url": "https://aurore.example",
+      "admin_note": "Programme officiel vérifié",
+      "created_at": "2026-05-01T09:00:00.000Z"
+    },
+    {
+      "id": "presence-ready-future",
+      "event_id": "event-future",
+      "author_id": "author-ready",
+      "pseudo": "Aurore Exemple",
+      "validated": true,
+      "rejected": false,
+      "source": "admin",
+      "author_profile_url": "https://festival-blois.example/auteurs",
+      "book_or_publisher_url": "https://editeur.example/aurore",
+      "admin_note": "Liste des auteurs confirmée",
+      "created_at": "2026-08-20T09:00:00.000Z"
+    },
+    {
+      "id": "presence-ambiguous",
+      "event_id": "event-ambiguous",
+      "author_id": "author-ambiguous",
+      "pseudo": "Camille Martin",
+      "validated": true,
+      "rejected": false,
+      "source": "Auto-Matte",
+      "author_profile_url": "https://camille.example",
+      "admin_note": "Homonymie à vérifier",
+      "created_at": "2026-08-21T09:00:00.000Z"
+    },
+    {
+      "id": "presence-incomplete",
+      "event_id": "event-incomplete",
+      "author_id": "author-incomplete",
+      "pseudo": "Noémie Incomplète",
+      "validated": true,
+      "rejected": false,
+      "source": "soumission",
+      "author_profile_url": "https://noemie.example",
+      "created_at": "2026-08-22T09:00:00.000Z"
+    },
+    {
+      "id": "presence-review",
+      "event_id": "event-review",
+      "author_id": "author-review",
+      "pseudo": "Louis À Vérifier",
+      "validated": true,
+      "rejected": false,
+      "source": "Auto-Matte",
+      "author_profile_url": "https://louis.example",
+      "created_at": "2026-08-23T09:00:00.000Z"
+    }
+  ],
+  "reviewByIdentity": {
+    "author-ambiguous": {
+      "ambiguous": true,
+      "updatedAt": "2026-08-31T10:00:00.000Z"
+    }
+  }
+}
