@@ -3137,9 +3137,90 @@ body.v11-is-loading .v11-app {
   gap: 8px;
 }
 
+.v11-event-danger-zone {
+  margin-top: 10px;
+  padding: 16px;
+  border: 1px solid rgba(255, 92, 92, .42);
+  border-radius: 12px;
+  background: rgba(91, 20, 27, .16);
+}
+
+.v11-event-danger-zone h4,
+.v11-event-danger-zone h5 {
+  margin: 4px 0 8px;
+  color: #ffb0b0;
+}
+
+.v11-event-danger-zone > p:not(.v11-section-label) {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.v11-event-delete-reason-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.v11-event-delete-button,
+.v11-event-delete-confirm-actions .danger {
+  border-color: rgba(255, 92, 92, .65);
+  background: rgba(164, 32, 43, .24);
+}
+
+.v11-event-delete-flow {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 92, 92, .28);
+}
+
+.v11-event-delete-flow dl {
+  display: grid;
+  grid-template-columns: minmax(70px, .35fr) 1fr;
+  gap: 5px 12px;
+  margin: 10px 0;
+  font-size: 9px;
+}
+
+.v11-event-delete-flow dt {
+  color: var(--muted);
+}
+
+.v11-event-delete-flow dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.v11-event-delete-impact ul {
+  margin: 8px 0;
+  padding-left: 18px;
+  font-size: 9px;
+}
+
+.v11-event-delete-impact .is-blocker,
+.v11-event-delete-error {
+  color: #ff9a9a;
+}
+
+.v11-event-delete-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.v11-event-delete-error {
+  margin: 10px 0 0;
+  font-size: 9px;
+}
+
 @media (max-width: 700px) {
   .v11-event-editor-form,
-  .v11-registration-grid {
+  .v11-registration-grid,
+  .v11-event-delete-reason-grid {
     grid-template-columns: 1fr;
   }
 
