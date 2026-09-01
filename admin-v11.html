@@ -428,14 +428,6 @@
               Mise en avant
             </button>
 
-            <button
-              id="v11-event-delete"
-              type="button"
-              class="v11-action-button danger"
-              disabled
-            >
-              Supprimer
-            </button>
           </div>
 
           <p class="v11-write-lock">
@@ -648,6 +640,93 @@
             <p class="v11-write-lock wide">
               La sauvegarde modifie directement la fiche événement en production.
             </p>
+
+            <section
+              class="v11-event-danger-zone wide"
+              aria-labelledby="v11-event-danger-title"
+            >
+              <p class="v11-section-label">ZONE DANGER</p>
+              <h4 id="v11-event-danger-title">Suppression définitive</h4>
+              <p>
+                Un précontrôle des relations et deux confirmations sont requis.
+              </p>
+
+              <div class="v11-event-delete-reason-grid">
+                <label>
+                  <span>Raison recommandée</span>
+                  <select id="v11-event-delete-reason">
+                    <option value="">Sélectionner…</option>
+                    <option value="duplicate">Doublon</option>
+                    <option value="cancelled">Événement annulé</option>
+                    <option value="input_error">Erreur de saisie</option>
+                    <option value="out_of_scope">Hors périmètre</option>
+                    <option value="other">Autre</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span id="v11-event-delete-detail-label">Précision facultative</span>
+                  <input
+                    id="v11-event-delete-detail"
+                    type="text"
+                    maxlength="240"
+                    autocomplete="off"
+                    placeholder="ID ou titre conservé pour un doublon"
+                  >
+                </label>
+              </div>
+
+              <button
+                id="v11-event-delete-start"
+                type="button"
+                class="v11-action-button danger v11-event-delete-button"
+              >
+                Supprimer cet événement
+              </button>
+
+              <div
+                id="v11-event-delete-flow"
+                class="v11-event-delete-flow"
+                aria-live="polite"
+                hidden
+              >
+                <div id="v11-event-delete-step-one">
+                  <h5>Vous allez supprimer définitivement :</h5>
+                  <dl id="v11-event-delete-summary"></dl>
+                  <div id="v11-event-delete-impact"></div>
+                  <div class="v11-event-delete-confirm-actions">
+                    <button id="v11-event-delete-cancel-one" type="button" class="v11-action-button">
+                      Annuler
+                    </button>
+                    <button id="v11-event-delete-continue" type="button" class="v11-action-button danger" disabled>
+                      Continuer
+                    </button>
+                  </div>
+                </div>
+
+                <div id="v11-event-delete-step-two" hidden>
+                  <label>
+                    <span>Saisissez exactement <strong>SUPPRIMER</strong></span>
+                    <input
+                      id="v11-event-delete-confirmation"
+                      type="text"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                  </label>
+                  <div class="v11-event-delete-confirm-actions">
+                    <button id="v11-event-delete-cancel-two" type="button" class="v11-action-button">
+                      Annuler
+                    </button>
+                    <button id="v11-event-delete-final" type="button" class="v11-action-button danger" disabled>
+                      Supprimer définitivement
+                    </button>
+                  </div>
+                </div>
+
+                <p id="v11-event-delete-error" class="v11-event-delete-error" role="alert" hidden></p>
+              </div>
+            </section>
 
           </form>
         </div>
@@ -2368,7 +2447,8 @@
   <script defer src="duplicate-detection.js?v=v11-18-1"></script>
   <script defer src="admin-v11-bridge.js?v=v11-bridge-40b"></script>
   <script defer src="author-backoffice.js?v=author-backoffice-v1"></script>
-  <script defer src="admin-shell.js?v=v11-69-polish-1"></script>
+  <script defer src="admin-event-deletion.js?v=safe-delete-1"></script>
+  <script defer src="admin-shell.js?v=v11-69-polish-1-safe-delete-1"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
   <script defer src="admin-v11-exports.js?v=v11-exports-39-3"></script>
   <script defer src="admin-social-generator.js?v=v11-social-66-1"></script>

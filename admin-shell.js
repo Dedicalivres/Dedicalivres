@@ -4,6 +4,9 @@
   const context =
     window.DEDICALIVRES_ADMIN_CONTEXT;
 
+  const eventDeletion =
+    window.DEDICALIVRES_EVENT_DELETION;
+
   const buttons =
     document.querySelectorAll("[data-view]");
 
@@ -1174,9 +1177,6 @@
   const eventFeaturedButton =
     document.getElementById("v11-event-featured");
 
-  const eventDeleteButton =
-    document.getElementById("v11-event-delete");
-
   const eventEditButton =
     document.getElementById("v11-event-edit");
 
@@ -1266,6 +1266,56 @@
   const editRegistrationStatus =
     document.getElementById("v11-edit-registration-status");
 
+  const eventDeleteStart =
+    document.getElementById("v11-event-delete-start");
+
+  const eventDeleteFlow =
+    document.getElementById("v11-event-delete-flow");
+
+  const eventDeleteStepOne =
+    document.getElementById("v11-event-delete-step-one");
+
+  const eventDeleteStepTwo =
+    document.getElementById("v11-event-delete-step-two");
+
+  const eventDeleteSummary =
+    document.getElementById("v11-event-delete-summary");
+
+  const eventDeleteImpact =
+    document.getElementById("v11-event-delete-impact");
+
+  const eventDeleteCancelOne =
+    document.getElementById("v11-event-delete-cancel-one");
+
+  const eventDeleteContinue =
+    document.getElementById("v11-event-delete-continue");
+
+  const eventDeleteCancelTwo =
+    document.getElementById("v11-event-delete-cancel-two");
+
+  const eventDeleteConfirmation =
+    document.getElementById("v11-event-delete-confirmation");
+
+  const eventDeleteFinal =
+    document.getElementById("v11-event-delete-final");
+
+  const eventDeleteError =
+    document.getElementById("v11-event-delete-error");
+
+  const eventDeleteReason =
+    document.getElementById("v11-event-delete-reason");
+
+  const eventDeleteDetail =
+    document.getElementById("v11-event-delete-detail");
+
+  const eventDeleteDetailLabel =
+    document.getElementById("v11-event-delete-detail-label");
+
+  const eventDeletionGate =
+    eventDeletion?.createSingleFlightGate();
+
+  let currentEventDeletionImpact = null;
+
   function renderEventDetail(event) {
     if (!eventDetail || !eventDetailContent || !event) {
       return;
@@ -1298,12 +1348,6 @@
         event.featured === true
           ? "Retirer la mise en avant"
           : "Mettre en avant";
-    }
-
-    if (eventDeleteButton) {
-      eventDeleteButton.disabled =
-        v11EventActionRunning ||
-        event.rejected !== true;
     }
 
     if (eventDetailTitle) {
@@ -1505,8 +1549,7 @@
     [
       eventValidateButton,
       eventRejectButton,
-      eventFeaturedButton,
-      eventDeleteButton
+      eventFeaturedButton
     ].forEach(function (button) {
       if (button) button.disabled = busy;
     });
@@ -1798,54 +1841,6 @@
         return;
       }
 
-      if (action === "delete") {
-        if (event.rejected !== true) {
-          window.alert(
-            "Suppression réservée aux événements refusés."
-          );
-          return;
-        }
-
-        const confirmed =
-          window.confirm(
-            "Supprimer définitivement l’événement refusé :\n\n"
-            + (event.title || "Sans titre")
-            + "\n\nCette action est irréversible."
-          );
-
-        if (!confirmed) {
-          return;
-        }
-
-        const response =
-          await client
-            .from("events")
-            .delete()
-            .eq("id", event.id)
-            .eq("rejected", true);
-
-        if (response.error) {
-          throw response.error;
-        }
-
-        v11ActionMessage(
-          "Événement refusé supprimé."
-        );
-
-        selectedV11EventId = null;
-
-        if (eventDetail) {
-          eventDetail.hidden = true;
-        }
-
-        if (eventEditor) {
-          eventEditor.hidden = true;
-        }
-
-        await context.refresh();
-
-        return;
-      }
     } catch (error) {
       console.error(
         "Action événement V11 impossible",
@@ -1898,16 +1893,6 @@
       }
     );
   }
-
-  if (eventDeleteButton) {
-    eventDeleteButton.addEventListener(
-      "click",
-      function () {
-        runV11EventAction("delete");
-      }
-    );
-  }
-
 
   function isoInputDate(value) {
     const raw =
@@ -2102,6 +2087,337 @@
       !eligible;
   }
 
+  function resetV11EventDeletionFlow() {
+    currentEventDeletionImpact = null;
+
+    if (eventDeleteFlow) eventDeleteFlow.hidden = true;
+    if (eventDeleteStepOne) eventDeleteStepOne.hidden = false;
+    if (eventDeleteStepTwo) eventDeleteStepTwo.hidden = true;
+    if (eventDeleteSummary) eventDeleteSummary.replaceChildren();
+    if (eventDeleteImpact) eventDeleteImpact.replaceChildren();
+
+    if (eventDeleteConfirmation) {
+      eventDeleteConfirmation.value = "";
+    }
+
+    if (eventDeleteContinue) eventDeleteContinue.disabled = true;
+
+    if (eventDeleteFinal) {
+      eventDeleteFinal.disabled = true;
+      eventDeleteFinal.textContent = "Supprimer définitivement";
+    }
+
+    if (eventDeleteError) {
+      eventDeleteError.hidden = true;
+      eventDeleteError.textContent = "";
+    }
+
+    if (eventDeleteStart) {
+      eventDeleteStart.disabled = false;
+      eventDeleteStart.textContent = "Supprimer cet événement";
+    }
+  }
+
+  function appendV11DeletionSummary(label, value) {
+    if (!eventDeleteSummary) return;
+
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+    term.textContent = label;
+    description.textContent = value || "Non renseigné";
+    eventDeleteSummary.appendChild(term);
+    eventDeleteSummary.appendChild(description);
+  }
+
+  function renderV11DeletionSummary(event) {
+    if (!eventDeleteSummary) return;
+
+    eventDeleteSummary.replaceChildren();
+    appendV11DeletionSummary("Titre", event.title || "Sans titre");
+    appendV11DeletionSummary("Ville", event.city || "Non renseignée");
+    appendV11DeletionSummary(
+      "Date",
+      [
+        formatDate(event.start_date),
+        event.end_date ? formatDate(event.end_date) : ""
+      ].filter(Boolean).join(" → ")
+    );
+    appendV11DeletionSummary("Type", event.type || "Autre");
+    appendV11DeletionSummary("ID", String(event.id));
+  }
+
+  function renderV11DeletionImpact(impact) {
+    if (!eventDeleteImpact) return;
+
+    eventDeleteImpact.replaceChildren();
+    const title = document.createElement("strong");
+    title.textContent = "Impact contrôlé";
+    eventDeleteImpact.appendChild(title);
+
+    const list = document.createElement("ul");
+
+    Object.values(impact.relations).forEach(function (relation) {
+      const item = document.createElement("li");
+
+      if (relation.availability === "available") {
+        item.textContent = `${relation.label} : ${relation.count}`;
+      } else if (relation.availability === "inline") {
+        item.textContent =
+          `${relation.label} : ${relation.count ? "présentes sur la fiche" : "aucune"}`;
+      } else if (relation.availability === "local_only") {
+        item.textContent = `${relation.label} : stockage local, non dénombrable côté serveur`;
+      } else if (relation.availability === "not_linked") {
+        item.textContent = `${relation.label} : aucun lien event_id identifié`;
+      } else {
+        item.textContent = `${relation.label} : contrôle indisponible`;
+      }
+
+      list.appendChild(item);
+    });
+
+    impact.warnings.forEach(function (warning) {
+      const item = document.createElement("li");
+      item.textContent = `Avertissement : ${warning}`;
+      list.appendChild(item);
+    });
+
+    impact.blockers.forEach(function (blocker) {
+      const item = document.createElement("li");
+      item.className = "is-blocker";
+      item.textContent = `Blocage : ${blocker}`;
+      list.appendChild(item);
+    });
+
+    eventDeleteImpact.appendChild(list);
+  }
+
+  async function inspectEventDeletionImpact(eventId) {
+    if (!eventDeletion) {
+      throw new Error("Module de suppression sécurisée indisponible.");
+    }
+
+    const event =
+      (context.getState().events || []).find(function (item) {
+        return String(item.id) === String(eventId);
+      }) || {};
+
+    return eventDeletion.inspectEventDeletionImpact(
+      context.getClient(),
+      eventId,
+      event
+    );
+  }
+
+  async function beginV11EventDeletion() {
+    const event = getSelectedV11Event();
+
+    if (!event || !eventDeleteFlow) return;
+
+    resetV11EventDeletionFlow();
+    eventDeleteFlow.hidden = false;
+    renderV11DeletionSummary(event);
+
+    if (eventDeleteStart) {
+      eventDeleteStart.disabled = true;
+      eventDeleteStart.textContent = "Analyse…";
+    }
+
+    try {
+      const impact = await inspectEventDeletionImpact(event.id);
+
+      if (
+        String(getSelectedV11Event()?.id || "") !== String(event.id)
+      ) {
+        throw new Error(
+          "La fiche sélectionnée a changé. Recommencez le précontrôle."
+        );
+      }
+
+      currentEventDeletionImpact = impact;
+      renderV11DeletionImpact(impact);
+
+      if (eventDeleteContinue) {
+        eventDeleteContinue.disabled =
+          impact.protected === true || impact.blockers.length > 0;
+      }
+    } catch (error) {
+      currentEventDeletionImpact = null;
+
+      if (eventDeleteError) {
+        eventDeleteError.hidden = false;
+        eventDeleteError.textContent =
+          error?.message || "Précontrôle des dépendances impossible.";
+      }
+    } finally {
+      if (eventDeleteStart) {
+        eventDeleteStart.disabled = false;
+        eventDeleteStart.textContent = "Relancer le précontrôle";
+      }
+    }
+  }
+
+  function continueV11EventDeletion() {
+    const event = getSelectedV11Event();
+
+    if (
+      !event ||
+      !currentEventDeletionImpact ||
+      currentEventDeletionImpact.protected === true ||
+      currentEventDeletionImpact.blockers.length > 0 ||
+      String(currentEventDeletionImpact.eventId) !== String(event.id)
+    ) {
+      return;
+    }
+
+    if (eventDeleteStepOne) eventDeleteStepOne.hidden = true;
+    if (eventDeleteStepTwo) eventDeleteStepTwo.hidden = false;
+
+    if (eventDeleteConfirmation) {
+      eventDeleteConfirmation.value = "";
+      eventDeleteConfirmation.focus();
+    }
+  }
+
+  function updateV11DeletionConfirmation() {
+    const valid = eventDeletion?.isExactConfirmation(
+      eventDeleteConfirmation?.value
+    ) === true;
+    const selected = getSelectedV11Event();
+    const impactValid =
+      Boolean(selected) &&
+      Boolean(currentEventDeletionImpact) &&
+      currentEventDeletionImpact.protected !== true &&
+      currentEventDeletionImpact.blockers.length === 0 &&
+      String(currentEventDeletionImpact.eventId) === String(selected.id);
+
+    if (eventDeleteFinal) {
+      eventDeleteFinal.disabled =
+        !valid ||
+        !impactValid ||
+        eventDeletionGate?.isRunning() === true;
+    }
+  }
+
+  function recordV11DeletionAudit(event) {
+    const state = context.getState();
+    const reason = eventDeletion.buildDeletionReason(
+      eventDeleteReason?.value,
+      eventDeleteDetail?.value
+    );
+
+    try {
+      eventDeletion.recordDeletionAudit(
+        window.localStorage,
+        event,
+        reason,
+        state.session?.user?.id || null
+      );
+    } catch (error) {
+      console.warn("Journal local de suppression indisponible", error);
+    }
+  }
+
+  async function finalizeV11EventDeletion() {
+    if (
+      !eventDeletion ||
+      !eventDeletionGate ||
+      !eventDeletion.isExactConfirmation(eventDeleteConfirmation?.value)
+    ) {
+      return;
+    }
+
+    const selected = getSelectedV11Event();
+
+    if (
+      !selected ||
+      !currentEventDeletionImpact ||
+      String(currentEventDeletionImpact.eventId) !== String(selected.id)
+    ) {
+      if (eventDeleteError) {
+        eventDeleteError.hidden = false;
+        eventDeleteError.textContent =
+          "Précontrôle périmé. Relancez l’analyse des dépendances.";
+      }
+      return;
+    }
+
+    await eventDeletionGate.run(async function () {
+      const event = getSelectedV11Event();
+      const state = context.getState();
+
+      if (
+        !event ||
+        !currentEventDeletionImpact ||
+        String(currentEventDeletionImpact.eventId) !== String(event.id)
+      ) {
+        throw new Error(
+          "Précontrôle périmé. Relancez l’analyse des dépendances."
+        );
+      }
+
+      v11EventActionRunning = true;
+
+      if (eventDeleteFinal) {
+        eventDeleteFinal.disabled = true;
+        eventDeleteFinal.textContent = "Suppression…";
+      }
+
+      if (eventDeleteError) {
+        eventDeleteError.hidden = true;
+        eventDeleteError.textContent = "";
+      }
+
+      try {
+        const latestImpact = await inspectEventDeletionImpact(event.id);
+
+        if (latestImpact.protected || latestImpact.blockers.length > 0) {
+          currentEventDeletionImpact = latestImpact;
+          renderV11DeletionImpact(latestImpact);
+          throw new Error(
+            "Suppression bloquée : les dépendances ont changé ou ne peuvent plus être contrôlées."
+          );
+        }
+
+        await eventDeletion.deleteEventByExactId(
+          context.getClient(),
+          event.id
+        );
+
+        recordV11DeletionAudit(event);
+
+        const remainingEvents = (state.events || []).filter(function (item) {
+          return String(item.id) !== String(event.id);
+        });
+
+        renderEvents(remainingEvents, state.status);
+        selectedV11EventId = null;
+        closeV11EventEditor();
+
+        if (eventDetail) eventDetail.hidden = true;
+
+        v11ActionMessage("Événement supprimé.");
+        await context.refresh();
+      } catch (error) {
+        console.error("Suppression événement V11 impossible", error);
+
+        if (eventDeleteError) {
+          eventDeleteError.hidden = false;
+          eventDeleteError.textContent =
+            "Suppression impossible. " +
+            (error?.message || "Erreur Supabase");
+        }
+      } finally {
+        v11EventActionRunning = false;
+
+        if (eventDeleteFinal) {
+          eventDeleteFinal.textContent = "Supprimer définitivement";
+        }
+
+        updateV11DeletionConfirmation();
+      }
+    });
+  }
+
   function openV11EventEditor(event) {
     if (!event || !eventEditor) {
       return;
@@ -2231,6 +2547,13 @@
     }
 
     updateRegistrationVisibility();
+    resetV11EventDeletionFlow();
+
+    if (eventDeleteReason) eventDeleteReason.value = "";
+    if (eventDeleteDetail) eventDeleteDetail.value = "";
+    if (eventDeleteDetailLabel) {
+      eventDeleteDetailLabel.textContent = "Précision facultative";
+    }
 
     eventEditor.scrollIntoView({
       behavior: "smooth",
@@ -2242,6 +2565,8 @@
     if (eventEditor) {
       eventEditor.hidden = true;
     }
+
+    resetV11EventDeletionFlow();
   }
 
   if (eventEditButton) {
@@ -2286,6 +2611,66 @@
         renderV11EditImage(
           editImage.value
         );
+      }
+    );
+  }
+
+  if (eventDeleteStart) {
+    eventDeleteStart.addEventListener(
+      "click",
+      beginV11EventDeletion
+    );
+  }
+
+  [eventDeleteCancelOne, eventDeleteCancelTwo]
+    .forEach(function (button) {
+      if (button) {
+        button.addEventListener(
+          "click",
+          resetV11EventDeletionFlow
+        );
+      }
+    });
+
+  if (eventDeleteContinue) {
+    eventDeleteContinue.addEventListener(
+      "click",
+      continueV11EventDeletion
+    );
+  }
+
+  if (eventDeleteConfirmation) {
+    eventDeleteConfirmation.addEventListener(
+      "input",
+      updateV11DeletionConfirmation
+    );
+  }
+
+  if (eventDeleteFinal) {
+    eventDeleteFinal.addEventListener(
+      "click",
+      finalizeV11EventDeletion
+    );
+  }
+
+  if (eventDeleteReason) {
+    eventDeleteReason.addEventListener(
+      "change",
+      function () {
+        const duplicate =
+          eventDeleteReason.value === "duplicate";
+
+        if (eventDeleteDetailLabel) {
+          eventDeleteDetailLabel.textContent = duplicate
+            ? "ID ou titre de la fiche conservée (facultatif)"
+            : "Précision facultative";
+        }
+
+        if (eventDeleteDetail) {
+          eventDeleteDetail.placeholder = duplicate
+            ? "ID ou titre conservé"
+            : "Précision sur la suppression";
+        }
       }
     );
   }
