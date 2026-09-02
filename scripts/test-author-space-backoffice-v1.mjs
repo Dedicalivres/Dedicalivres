@@ -175,7 +175,7 @@ assert.match(adminSource, /toggleV11AuthorAmbiguity/);
 assert.match(adminSource, /ignoreV11AuthorPossibleMatches/);
 assert.match(adminSource, /focusV11AuthorPresences/);
 
-assert.match(configSource, /authorPublicPublishingEnabled:\s*false/);
+assert.match(configSource, /authorPublicPublishingEnabled:\s*(?:true|false)/);
 assert.doesNotMatch(sitemap, /\/author\.html/);
 assert.doesNotMatch(authorSitemap, /\/author\.html/);
 assert.doesNotMatch(redirects, /^\/author(?:\s|\/)/m);

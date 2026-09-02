@@ -7,6 +7,12 @@
   const eventDeletion =
     window.DEDICALIVRES_EVENT_DELETION;
 
+  const authorPublication =
+    window.DEDICALIVRES_AUTHOR_PUBLICATION;
+
+  const authorPublicationController =
+    authorPublication?.createController();
+
   const buttons =
     document.querySelectorAll("[data-view]");
 
@@ -3749,9 +3755,30 @@ function renderEvents(events, status) {
   }
 
   function getV11AuthorReviewDecision(author) {
-    return loadV11AuthorReviewDecisions()[
+    const local = loadV11AuthorReviewDecisions()[
       getV11AuthorReviewKey(author)
     ] || {};
+    const persisted =
+      author?.editorial_review &&
+      typeof author.editorial_review === "object"
+        ? author.editorial_review
+        : {};
+
+    return {
+      ...local,
+      ...persisted,
+      ambiguous:
+        author?.editorial_status === "AMBIGUOUS" ||
+        persisted.ambiguous === true
+    };
+  }
+
+  function getV11AuthorReviewDecisions(authors) {
+    return (authors || []).reduce((decisions, author) => {
+      decisions[getV11AuthorReviewKey(author)] =
+        getV11AuthorReviewDecision(author);
+      return decisions;
+    }, {});
   }
 
   function saveV11AuthorReviewDecision(
@@ -3776,6 +3803,51 @@ function renderEvents(events, status) {
     );
 
     return decisions[key];
+  }
+
+  async function persistV11AuthorReviewDecision(author, review, editorialStatus) {
+    const client = context.getClient();
+    const auth = await client?.auth.getUser();
+    const adminId = auth?.data?.user?.id;
+
+    if (!client || auth?.error || !adminId || !author?.id) {
+      throw new Error("Administrateur non identifié.");
+    }
+
+    const timestamp = new Date().toISOString();
+    const payload = {
+      editorial_status: editorialStatus,
+      editorial_review: review,
+      editorial_status_at: timestamp,
+      editorial_status_by: adminId,
+      updated_at: timestamp
+    };
+
+    if (editorialStatus !== "READY") {
+      Object.assign(payload, {
+        publication_ready: false,
+        publication_ready_at: null,
+        publication_ready_by: null,
+        published: false,
+        published_at: null,
+        published_by: null
+      });
+    }
+
+    const result = await client
+      .from("authors")
+      .update(payload)
+      .eq("id", author.id)
+      .select("id, editorial_status, editorial_review, publication_ready, published")
+      .maybeSingle();
+
+    if (result.error) throw result.error;
+    if (!result.data || result.data.editorial_status !== editorialStatus) {
+      throw new Error("La décision éditoriale n’a pas été enregistrée par la base.");
+    }
+
+    await context.refresh();
+    return result.data;
   }
 
   function getV11AuthorBackofficeRecord(author) {
@@ -3824,7 +3896,7 @@ function renderEvents(events, status) {
             state.community?.presences || [],
           events: state.events || [],
           reviewByIdentity:
-            loadV11AuthorReviewDecisions()
+            getV11AuthorReviewDecisions(items)
         });
 
     document
@@ -7882,7 +7954,9 @@ function renderEvents(events, status) {
     }
   }
 
-  function toggleV11AuthorAmbiguity() {
+  async function toggleV11AuthorAmbiguity() {
+    if (v11CommunityActionRunning) return;
+
     const author =
       getSelectedV11Author();
 
@@ -7893,28 +7967,53 @@ function renderEvents(events, status) {
         author
       );
 
-    saveV11AuthorReviewDecision(
-      author,
-      {
-        ambiguous:
-          review.ambiguous !== true
-      }
-    );
+    const markAmbiguous = review.ambiguous !== true;
 
-    const state = context.getState();
-    renderAuthors(
-      state.community?.authors || []
-    );
-    renderV11AuthorDetail(author);
+    if (
+      markAmbiguous &&
+      author.published === true &&
+      !window.confirm(
+        "Cette fiche est publiée. La marquer ambiguë la dépubliera immédiatement. Continuer ?"
+      )
+    ) return;
 
-    v11CommunityMessage(
-      review.ambiguous === true
-        ? "Signalement d’ambiguïté retiré localement."
-        : "Identité marquée ambiguë dans ce back-office local."
-    );
+    const nextReview = {
+      ...review,
+      ambiguous: markAmbiguous,
+      updatedAt: new Date().toISOString()
+    };
+
+    v11CommunityActionRunning = true;
+    authorMarkAmbiguousButton.disabled = true;
+
+    try {
+      const draftAuthor = {
+        ...author,
+        editorial_status: markAmbiguous ? "AMBIGUOUS" : "NEEDS_REVIEW",
+        editorial_review: nextReview
+      };
+      const record = getV11AuthorBackofficeRecord(draftAuthor);
+      const status = markAmbiguous
+        ? "AMBIGUOUS"
+        : record?.readiness?.status || "NEEDS_REVIEW";
+
+      await persistV11AuthorReviewDecision(draftAuthor, nextReview, status);
+      v11CommunityMessage(
+        markAmbiguous
+          ? "Identité marquée ambiguë et publication bloquée côté serveur."
+          : "Signalement d’ambiguïté retiré — nouvelle validation requise."
+      );
+    } catch (error) {
+      window.alert(error?.message || "Décision éditoriale impossible.");
+    } finally {
+      v11CommunityActionRunning = false;
+      authorMarkAmbiguousButton.disabled = false;
+    }
   }
 
-  function ignoreV11AuthorPossibleMatches() {
+  async function ignoreV11AuthorPossibleMatches() {
+    if (v11CommunityActionRunning) return;
+
     const author =
       getSelectedV11Author();
 
@@ -7940,27 +8039,34 @@ function renderEvents(events, status) {
         author
       );
 
-    saveV11AuthorReviewDecision(
-      author,
-      {
-        ignoredMatches: [
-          ...new Set([
-            ...(review.ignoredMatches || []),
-            ...matchKeys
-          ])
-        ]
-      }
-    );
+    const nextReview = {
+      ...review,
+      ignoredMatches: [
+        ...new Set([
+          ...(review.ignoredMatches || []),
+          ...matchKeys
+        ])
+      ],
+      updatedAt: new Date().toISOString()
+    };
 
-    const state = context.getState();
-    renderAuthors(
-      state.community?.authors || []
-    );
-    renderV11AuthorDetail(author);
+    v11CommunityActionRunning = true;
+    authorIgnoreMatchButton.disabled = true;
 
-    v11CommunityMessage(
-      "Rapprochement ignoré localement — aucune fusion effectuée."
-    );
+    try {
+      const draftAuthor = { ...author, editorial_review: nextReview };
+      const nextRecord = getV11AuthorBackofficeRecord(draftAuthor);
+      const status = nextRecord?.readiness?.status || "NEEDS_REVIEW";
+      await persistV11AuthorReviewDecision(draftAuthor, nextReview, status);
+      v11CommunityMessage(
+        "Rapprochement ignoré et décision enregistrée côté serveur."
+      );
+    } catch (error) {
+      window.alert(error?.message || "Décision éditoriale impossible.");
+    } finally {
+      v11CommunityActionRunning = false;
+      authorIgnoreMatchButton.disabled = false;
+    }
   }
 
   function focusV11AuthorPresences() {
@@ -9249,7 +9355,10 @@ function renderEvents(events, status) {
   }
 
   async function toggleV11AuthorPublished() {
-    if (v11CommunityActionRunning) return;
+    if (
+      v11CommunityActionRunning ||
+      authorPublicationController?.isRunning()
+    ) return;
 
     const state = context.getState();
     const author = getSelectedV11Author();
@@ -9260,36 +9369,24 @@ function renderEvents(events, status) {
       return;
     }
 
-    if (author.merged_into) {
-      window.alert("Cette fiche est déjà fusionnée.");
+    if (!authorPublication || !authorPublicationController) {
+      window.alert("Moteur de publication indisponible.");
       return;
     }
 
     const publish = author.published !== true;
-
-    if (
-      publish &&
-      window.DEDICALIVRES_CONFIG
-        ?.authorPublicPublishingEnabled !== true
-    ) {
-      window.alert(
-        "ESPACE AUTEUR EN PRÉPARATION\n\n" +
-        "La publication publique est volontairement désactivée. " +
-        "Utilise « Aperçu interne » pour contrôler la fiche."
-      );
-      return;
-    }
+    const readiness = getV11AuthorBackofficeRecord(author)?.readiness;
 
     if (publish) {
-      const canPublish =
-        author.publication_ready === true &&
-        author.validated === true &&
-        !author.merged_into &&
-        author.published !== true;
+      const blockers = authorPublication.publicationBlockers(
+        author,
+        readiness?.status,
+        window.DEDICALIVRES_CONFIG?.authorPublicPublishingEnabled
+      );
 
-      if (!canPublish) {
+      if (blockers.length) {
         window.alert(
-          "Cette fiche ne remplit pas les conditions de publication."
+          "Publication bloquée.\n\n" + blockers.join("\n")
         );
         return;
       }
@@ -9314,37 +9411,24 @@ function renderEvents(events, status) {
       publish ? "Publication…" : "Dépublication…";
 
     try {
-      let payload;
+      const auth = await client.auth.getUser();
+      const adminId = auth.data?.user?.id;
 
-      if (publish) {
-        const auth = await client.auth.getUser();
-        const adminId = auth.data?.user?.id;
-
-        if (auth.error || !adminId) {
-          throw new Error("Administrateur non identifié.");
-        }
-
-        payload = {
-          published: true,
-          published_at: new Date().toISOString(),
-          published_by: adminId,
-          updated_at: new Date().toISOString()
-        };
-      } else {
-        payload = {
-          published: false,
-          published_at: null,
-          published_by: null,
-          updated_at: new Date().toISOString()
-        };
+      if (auth.error || !adminId) {
+        throw new Error("Administrateur non identifié.");
       }
 
-      const result = await client
-        .from("authors")
-        .update(payload)
-        .eq("id", author.id);
+      const transition = await authorPublicationController.setPublished({
+        client,
+        author,
+        publish,
+        adminId,
+        readinessStatus: readiness?.status,
+        globalEnabled:
+          window.DEDICALIVRES_CONFIG?.authorPublicPublishingEnabled
+      });
 
-      if (result.error) throw result.error;
+      if (transition.skipped) return;
 
       await context.refresh();
 
@@ -9386,8 +9470,15 @@ function renderEvents(events, status) {
 
     const setReady = author.publication_ready !== true;
     const checklist = v11AuthorReadyChecklist(author);
+    const backofficeRecord = getV11AuthorBackofficeRecord(author);
 
-    if (setReady && !checklist.ready) {
+    if (
+      setReady &&
+      (
+        !checklist.ready ||
+        backofficeRecord?.readiness?.status !== "READY"
+      )
+    ) {
       const missing = checklist.checks
         .filter(([, ok]) => !ok)
         .map(([label]) => label);
@@ -9395,8 +9486,15 @@ function renderEvents(events, status) {
       window.alert(
         "Fiche incomplète.\n\n" +
         (missing.length ? "Manque : " + missing.join(", ") + "\n" : "") +
-        (checklist.duplicate ? "Doublon potentiel détecté." : "")
+        (checklist.duplicate ? "Doublon potentiel détecté.\n" : "") +
+        "Statut éditorial : " +
+        (backofficeRecord?.readiness?.status || "INCOMPLETE")
       );
+      return;
+    }
+
+    if (!setReady && author.published === true) {
+      window.alert("Dépublie la fiche avant de retirer son statut prêt à publier.");
       return;
     }
 
@@ -9424,6 +9522,9 @@ function renderEvents(events, status) {
           publication_ready: true,
           publication_ready_at: new Date().toISOString(),
           publication_ready_by: adminId,
+          editorial_status: "READY",
+          editorial_status_at: new Date().toISOString(),
+          editorial_status_by: adminId,
           updated_at: new Date().toISOString()
         };
       } else {
@@ -9431,6 +9532,9 @@ function renderEvents(events, status) {
           publication_ready: false,
           publication_ready_at: null,
           publication_ready_by: null,
+          editorial_status: "NEEDS_REVIEW",
+          editorial_status_at: null,
+          editorial_status_by: null,
           updated_at: new Date().toISOString()
         };
       }
@@ -9438,9 +9542,17 @@ function renderEvents(events, status) {
       const result = await client
         .from("authors")
         .update(payload)
-        .eq("id", author.id);
+        .eq("id", author.id)
+        .select("id, publication_ready, editorial_status")
+        .maybeSingle();
 
       if (result.error) throw result.error;
+      if (
+        !result.data ||
+        result.data.publication_ready !== setReady
+      ) {
+        throw new Error("La base a refusé le changement de readiness.");
+      }
 
       await context.refresh();
 
@@ -9745,12 +9857,29 @@ function renderEvents(events, status) {
         window.DEDICALIVRES_CONFIG
           ?.authorPublicPublishingEnabled === true;
 
-      const canPublish =
-        publicPublishingEnabled &&
-        item.publication_ready === true &&
-        item.validated === true &&
-        !item.merged_into &&
-        item.published !== true;
+      const blockers = authorPublication
+        ? authorPublication.publicationBlockers(
+            item,
+            backofficeRecord?.readiness?.status,
+            publicPublishingEnabled
+          )
+        : ["Moteur de publication indisponible"];
+
+      const canPublish = blockers.length === 0;
+
+      addV11AuthorDetailRow(
+        "Publication serveur",
+        item.published === true
+          ? "Publiée"
+          : item.editorial_status || "INCOMPLETE"
+      );
+
+      addV11AuthorDetailRow(
+        "Publication autorisée",
+        canPublish
+          ? "Oui — confirmation obligatoire"
+          : blockers.join(" · ")
+      );
 
       authorPublishButton.textContent =
         item.published === true
@@ -9769,7 +9898,7 @@ function renderEvents(events, status) {
             ? "Publication publique désactivée — aperçu interne disponible"
             : canPublish
               ? "Publier cette fiche auteur"
-              : "Publication indisponible : fiche non prête ou non validée";
+              : "Publication indisponible : " + blockers.join(" · ");
     }
 
     if (authorMergeButton) {
