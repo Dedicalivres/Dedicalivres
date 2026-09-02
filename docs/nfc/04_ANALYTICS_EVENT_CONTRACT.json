@@ -1,0 +1,47 @@
+{
+  "version": "0.1-draft",
+  "privacy": [
+    "no_precise_gps",
+    "no_fingerprinting",
+    "no_ad_ids",
+    "coarse_device_only"
+  ],
+  "session_rules": {
+    "storage": "sessionStorage",
+    "reload_reuses_session": true,
+    "scene_once_per_session": true,
+    "progress_buckets": [
+      25,
+      50,
+      75,
+      100
+    ]
+  },
+  "events": {
+    "nfc_open": {
+      "once": true
+    },
+    "nfc_scene_view": {
+      "once_per_scene": true
+    },
+    "nfc_progress": {
+      "once_per_bucket": true
+    },
+    "nfc_intent_select": {},
+    "nfc_cta_impression": {
+      "once_per_cta": true
+    },
+    "nfc_cta_click": {},
+    "nfc_enter_site": {},
+    "nfc_site_arrival": {},
+    "nfc_activation": {},
+    "nfc_error": {}
+  },
+  "activation_types": [
+    "favorite_added",
+    "nearby_used",
+    "event_opened",
+    "submission_started",
+    "author_presence_started"
+  ]
+}

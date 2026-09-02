@@ -61,6 +61,10 @@
   X-Robots-Tag: noindex, nofollow, noarchive
   Cache-Control: no-store
 
+/nfc/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-cache
+
 /admin-author-requests-robust.js
   X-Robots-Tag: noindex, nofollow, noarchive
   Cache-Control: no-store

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#05040d" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <title>Le Passage — Dédicalivres</title>
+  <meta name="description" content="Entrez dans Dédicalivres et découvrez les rencontres littéraires près de vous." />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="stylesheet" href="/nfc/nfc.css?v=passage-v1" />
+</head>
+<body>
+  <a class="skip-link" href="#passage">Aller au passage</a>
+
+  <header class="passage-header">
+    <a href="/" aria-label="Revenir à l’accueil Dédicalivres">
+      <img src="/assets/brand/dedicalivres-association-light.png" alt="Dédicalivres" width="142" height="56" />
+    </a>
+    <span aria-hidden="true">Le Passage</span>
+  </header>
+
+  <main id="passage" class="passage" data-passage>
+    <section class="scene scene-door" id="porte" data-scene="door" aria-labelledby="door-title">
+      <div class="scene-content">
+        <p class="scene-index">01 · La porte</p>
+        <div class="door-mark" aria-hidden="true"><span></span></div>
+        <h1 id="door-title">Tu viens d’ouvrir une porte.</h1>
+        <p>Une rencontre peut commencer par un simple geste.</p>
+        <a class="scene-next" href="#rencontre">Continuer <span aria-hidden="true">↓</span></a>
+      </div>
+    </section>
+
+    <section class="scene" id="rencontre" data-scene="encounter" aria-labelledby="encounter-title">
+      <div class="scene-content">
+        <p class="scene-index">02 · La rencontre</p>
+        <h2 id="encounter-title">Les livres créent des rencontres.</h2>
+        <div class="word-cloud" aria-label="Salons, festivals, dédicaces, rencontres, auteurs et lecteurs">
+          <span>Salons</span><span>Festivals</span><span>Dédicaces</span>
+          <span>Rencontres</span><span>Auteurs</span><span>Lecteurs</span>
+        </div>
+        <a class="scene-next" href="#mission">Découvrir Dédicalivres <span aria-hidden="true">↓</span></a>
+      </div>
+    </section>
+
+    <section class="scene" id="mission" data-scene="mission" aria-labelledby="mission-title">
+      <div class="scene-content">
+        <p class="scene-index">03 · Dédicalivres</p>
+        <h2 id="mission-title">Nous rendons ces rencontres visibles.</h2>
+        <p>Un agenda littéraire gratuit et participatif pour savoir où les livres prennent vie.</p>
+        <a class="scene-next" href="#intention">Choisir mon chemin <span aria-hidden="true">↓</span></a>
+      </div>
+    </section>
+
+    <section class="scene scene-intent" id="intention" data-scene="intent" aria-labelledby="intent-title">
+      <div class="scene-content">
+        <p class="scene-index">04 · Mon envie</p>
+        <h2 id="intent-title">Qu’est-ce qui t’amène ici&nbsp;?</h2>
+        <div class="intent-grid" role="group" aria-label="Choisir une intention">
+          <button type="button" data-intent="nearby">Découvrir autour de moi</button>
+          <button type="button" data-intent="favorites">Garder mes prochaines rencontres</button>
+          <button type="button" data-intent="organizer">Je propose un événement</button>
+          <button type="button" data-intent="discover">Simplement découvrir Dédicalivres</button>
+        </div>
+        <p class="intent-feedback" data-intent-feedback aria-live="polite">Choisis une envie pour personnaliser ton arrivée.</p>
+        <a class="scene-next" href="#entree">Ouvrir la porte <span aria-hidden="true">↓</span></a>
+      </div>
+    </section>
+
+    <section class="scene scene-exit" id="entree" data-scene="exit" aria-labelledby="exit-title">
+      <div class="scene-content">
+        <p class="scene-index">05 · Le passage</p>
+        <h2 id="exit-title">La porte est ouverte.</h2>
+        <p>Les prochaines rencontres littéraires sont à portée de main.</p>
+        <a class="enter-button" data-enter-site href="/index.html">Entrer dans Dédicalivres</a>
+        <a class="secondary-link" href="/index.html#agenda">Aller directement à l’agenda</a>
+      </div>
+    </section>
+  </main>
+
+  <nav class="scene-nav" aria-label="Étapes du passage">
+    <a href="#porte" aria-label="Étape 1 : la porte"></a>
+    <a href="#rencontre" aria-label="Étape 2 : la rencontre"></a>
+    <a href="#mission" aria-label="Étape 3 : Dédicalivres"></a>
+    <a href="#intention" aria-label="Étape 4 : mon envie"></a>
+    <a href="#entree" aria-label="Étape 5 : entrer"></a>
+  </nav>
+
+  <noscript>
+    <div class="no-script">JavaScript est désactivé. <a href="/index.html#agenda">Accéder directement à l’agenda Dédicalivres</a>.</div>
+  </noscript>
+
+  <script src="/nfc/nfc.js?v=passage-v1"></script>
+</body>
+</html>
