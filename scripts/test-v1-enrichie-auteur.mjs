@@ -143,6 +143,14 @@ assert.equal(authorBackoffice.evaluateAuthor({ author: { pseudo: "Éditions Test
 
 const authorHtmlSource = fs.readFileSync(path.join(root, "author.html"), "utf8");
 const authorPageSource = fs.readFileSync(path.join(root, "author.js"), "utf8");
+const authorPublicationSource = fs.readFileSync(path.join(root, "author-publication.js"), "utf8");
+const authorPublicationContext = { window: {} };
+vm.createContext(authorPublicationContext);
+vm.runInContext(authorPublicationSource, authorPublicationContext, {
+  filename: "author-publication.js"
+});
+const authorPublication =
+  authorPublicationContext.window.DEDICALIVRES_AUTHOR_PUBLICATION;
 assert.match(authorHtmlSource, /name="robots" content="noindex,nofollow,noarchive,nosnippet"/);
 assert.match(authorHtmlSource, /id="author-events-upcoming"/);
 assert.match(authorHtmlSource, /id="author-events-past"/);
@@ -210,6 +218,7 @@ async function runAuthorPreviewGate(
         authorPublicPublishingEnabled
       },
       DEDICALIVRES_AUTHOR_BACKOFFICE: authorBackoffice,
+      DEDICALIVRES_AUTHOR_PUBLICATION: authorPublication,
       supabase: { createClient: () => client }
     }
   };
@@ -481,9 +490,9 @@ assert.match(
 );
 
 assert.match(
-  authorPageSource,
-  /location,\s*shop_url,\s*profile_type/,
-  "20E.3 : aperçu auteur charge les champs enrichis"
+  authorPublicationSource,
+  /"location",\s*\n\s*"shop_url",\s*"profile_type"/,
+  "20E.3 : la sélection publique charge les champs enrichis"
 );
 
 assert.match(
@@ -1192,19 +1201,19 @@ assert.match(
 );
 
 assert.match(
-  authorPublicJsSource,
+  authorPublicationSource,
   /author\.published === true/,
   "20I.2 : mode public exige published=true"
 );
 
 assert.match(
-  authorPublicJsSource,
+  authorPublicationSource,
   /author\.validated === true/,
   "20I.2 : mode public exige validated=true"
 );
 
 assert.match(
-  authorPublicJsSource,
+  authorPublicationSource,
   /!author\.merged_into/,
   "20I.2 : mode public refuse une fiche fusionnée"
 );
@@ -1443,8 +1452,8 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
 
   assert.match(
     authorConfigSource,
-    /authorPublicPublishingEnabled:\s*false/,
-    "20J.1 : publication auteur publique verrouillée par défaut"
+    /authorPublicPublishingEnabled:\s*true/,
+    "20J.1 : publication auteur publique activée après protection serveur V2"
   );
 
   assert.match(
@@ -1455,8 +1464,8 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
 
   assert.match(
     authorAdminSource,
-    /ESPACE AUTEUR EN PRÉPARATION/,
-    "20J.1 : Admin bloque explicitement la publication"
+    /PUBLICATION PUBLIQUE[\s\S]*Confirmer la publication/,
+    "20J.1 : Admin exige une confirmation explicite avant publication"
   );
 
   assert.match(
@@ -2115,9 +2124,9 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
 
   assert.ok(
     config.includes(
-      "authorPublicPublishingEnabled: false"
+      "authorPublicPublishingEnabled: true"
     ),
-    "V11.60 : le verrou public doit rester désactivé."
+    "V11.60 : l’ouverture publique contrôlée V2 doit être activée."
   );
 
   assert.ok(
@@ -2247,17 +2256,17 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
   );
 
   assert.ok(
-    authorJs.includes(
-      "author.publication_ready === true"
+    authorPublicationSource.includes(
+      '.eq("publication_ready", true)'
     ),
-    "V11.62 : la fiche publique doit exiger publication_ready."
+    "V11.62 : le contrôleur de publication doit exiger publication_ready."
   );
 
   assert.ok(
     config.includes(
-      "authorPublicPublishingEnabled: false"
+      "authorPublicPublishingEnabled: true"
     ),
-    "V11.62 : le verrou global doit rester fermé."
+    "V11.62 : le verrou global doit refléter l’ouverture contrôlée V2."
   );
 
   assert.ok(

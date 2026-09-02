@@ -19,6 +19,7 @@
   const config = window.DEDICALIVRES_CONFIG;
   const geo = window.DEDICALIVRES_GEO;
   const engine = window.DEDICALIVRES_AUTHOR_BACKOFFICE;
+  const publication = window.DEDICALIVRES_AUTHOR_PUBLICATION;
   const profile = document.getElementById("author-profile");
   const upcomingGrid = document.getElementById("author-events-upcoming");
   const pastGrid = document.getElementById("author-events-past");
@@ -42,7 +43,7 @@
 
   if (!profile || !upcomingGrid || !pastGrid) return;
 
-  if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase || !engine) {
+  if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase || !engine || !publication) {
     renderLocked("Aperçu interne indisponible.");
     return;
   }
@@ -131,12 +132,7 @@
 
     const author = await loadAuthor(slug);
 
-    const isPubliclyAvailable =
-      author &&
-      author.published === true &&
-      author.validated === true &&
-      author.publication_ready === true &&
-      !author.merged_into;
+    const isPubliclyAvailable = publication.isPubliclyAvailable(author);
 
     if (!isPubliclyAvailable) {
       renderPublicNotFound();
@@ -179,7 +175,7 @@
   async function loadAuthor(slugValue) {
     let response = await client
       .from("authors")
-      .select("id, pseudo, slug, website, bio, avatar_url, location, shop_url, profile_type, validated, created_at, merged_into, merged_at, publication_ready, published, published_at")
+      .select(publication.PUBLIC_FIELDS)
       .eq("slug", slugValue)
       .maybeSingle();
 

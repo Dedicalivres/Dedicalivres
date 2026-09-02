@@ -3,9 +3,8 @@ window.DEDICALIVRES_CONFIG = {
   supabaseAnonKey: "sb_publishable_EfFj0D-4g3x0E3j0AofRRA_BHo98vvj",
   assetsBaseUrl: "",
 
-  // Espace Auteur — préparation interne uniquement.
-  // Passer explicitement à true lors du lancement public.
-  authorPublicPublishingEnabled: false,
+  // Espace Auteur — publication unitaire explicite, protégée par readiness + RLS.
+  authorPublicPublishingEnabled: true,
 
   // V7.8.0 — Upload hybride : les anciennes images Supabase restent valides,
   // les nouvelles images peuvent être envoyées vers Cloudflare R2 via Worker.
