@@ -6,6 +6,7 @@ const v11 = fs.readFileSync("admin-v11.html", "utf8");
 const shell = fs.readFileSync("admin-shell.js", "utf8");
 const bridge = fs.readFileSync("admin-v11-bridge.js", "utf8");
 const publication = fs.readFileSync("author-publication.js", "utf8");
+const config = fs.readFileSync("config.js", "utf8");
 const readme = fs.readFileSync("README.md", "utf8");
 
 assert.match(v10, /Dédicalivres — Admin V10/);
@@ -13,7 +14,8 @@ assert.doesNotMatch(v10, /data-v11-release-state/);
 assert.match(v11, /data-v11-release-state="preactivation"/);
 assert.match(readme, /Admin V10 active/);
 assert.match(readme, /Admin V11 en préactivation/);
-assert.match(bridge, /V11_WATCH_WRITE_GUARD = true/);
+assert.match(bridge, /V11_WATCH_WRITE_GUARD = !watchSubmissionEnabled/);
+assert.match(config, /adminV11WatchSubmissionEnabled: false/);
 assert.match(v11, /Aucune publication automatique/);
 assert.doesNotMatch(v11, /publication publique reste volontairement désactivée/);
 assert.match(v11, /Les présences peuvent être modifiées ; la suppression reste verrouillée/);

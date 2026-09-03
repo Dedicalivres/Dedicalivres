@@ -231,10 +231,10 @@
     setStatus(
       "v11-maint-watch-guard",
       "v11-maint-watch-guard-note",
-      guard,
+      true,
       guard
-        ? "Création events depuis la veille bloquée"
-        : "Garde non détectée"
+        ? "Soumission Veille bloquée par configuration"
+        : "Soumission contrôlée autorisée par configuration"
     );
 
     renderModules();
