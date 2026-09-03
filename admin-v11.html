@@ -70,6 +70,7 @@
         </div>
 
         <div class="v11-top-actions">
+          <span class="v11-chip warning" data-v11-release-state="preactivation">V11 · préactivation</span>
           <button id="v11-refresh" class="v11-icon-button" aria-label="Actualiser" title="Actualiser">↻</button>
           <button id="v11-logout" class="v11-icon-button" aria-label="Déconnexion" title="Déconnexion">○</button>
           <button class="v11-profile v11-profile-logo" aria-label="Dédicalivres">
@@ -1007,7 +1008,7 @@
           </div>
 
           <p class="v11-write-lock">
-            Modération active. Modification et suppression restent verrouillées.
+            Modération active. Les présences peuvent être modifiées ; la suppression reste verrouillée.
           </p>
         </div>
 
@@ -1370,7 +1371,7 @@
           </div>
 
           <p class="v11-write-lock">
-            Espace Auteur en préparation : édition, consolidation et aperçu interne actifs. La publication publique reste volontairement désactivée jusqu’au lancement du service.
+            Publication unitaire contrôlée : seules les fiches READY, validées et explicitement confirmées peuvent être publiées. Aucune publication automatique.
           </p>
 
           <section
@@ -1533,8 +1534,7 @@
               <p class="v11-section-label">OUVERTURE PUBLIQUE</p>
               <h3>Sas de lancement Espace Auteur</h3>
               <p>
-                Contrôle préparatoire uniquement. Ce panneau n’active aucune
-                publication publique.
+                Audit de l’exposition réelle. Ce panneau ne publie aucune fiche automatiquement.
               </p>
             </div>
 
@@ -1542,7 +1542,7 @@
               id="v11-author-release-lock"
               class="v11-chip warning"
             >
-              Verrou global actif
+              Vérification du statut…
             </span>
           </div>
 
@@ -1581,12 +1581,12 @@
           <section
             id="v11-author-release-dryrun"
             class="v11-author-release-dryrun"
-            aria-label="Simulation ouverture publique Auteur"
+            aria-label="Audit de l’exposition publique Auteur"
           >
             <div class="v11-author-release-dryrun-head">
               <div>
-                <p class="v11-section-label">SIMULATION</p>
-                <h4>Si l’Espace Auteur ouvrait maintenant</h4>
+                <p class="v11-section-label">AUDIT</p>
+                <h4>Exposition publique contrôlée</h4>
                 <p>
                   Lecture seule. Cette simulation reproduit les garde-fous
                   réellement appliqués aux fiches publiques.

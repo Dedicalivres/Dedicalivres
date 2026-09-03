@@ -4793,6 +4793,8 @@ function renderEvents(events, status) {
           readiness.score === 100 &&
           author.validated === true &&
           author.publication_ready === true &&
+          author.editorial_status === "READY" &&
+          !author.merged_into &&
           author.published !== true
         );
       });
@@ -4806,10 +4808,7 @@ function renderEvents(events, status) {
     // Ce calcul reste en lecture seule et n’ouvre jamais le verrou global.
     const wouldBePublic =
       authors.filter(
-        (author) =>
-          author.published === true &&
-          author.validated === true &&
-          author.publication_ready === true
+        (author) => publicationEngine.isPubliclyAvailable(author)
       );
 
     const exposureRisks =
@@ -4999,7 +4998,7 @@ function renderEvents(events, status) {
             futurePublic.target = "_blank";
             futurePublic.rel = "noopener";
             futurePublic.textContent =
-              "URL future";
+              "URL publique";
 
             actions.append(
               preview,
