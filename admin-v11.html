@@ -6,6 +6,7 @@
   <title>Dédicalivres — Admin V11</title>
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="admin-v11.css?v=v11-70-stable-2">
+  <link rel="stylesheet" href="admin-nfc-cockpit.css?v=nfc-cockpit-v1-contrast">
 </head>
 
 <body>
@@ -1915,7 +1916,7 @@
             </div>
           </article>
 
-          <article class="v11-tool-card is-reserved">
+          <article class="v11-tool-card is-operational" data-tool-open="nfc">
             <div class="v11-tool-icon">◈</div>
 
             <div class="v11-tool-content">
@@ -1925,15 +1926,15 @@
                   <h3>NFC</h3>
                 </div>
 
-                <span class="v11-chip neutral">En déploiement</span>
+                <span class="v11-chip info">Cockpit V1</span>
               </div>
 
               <p>
-                Emplacement réservé au futur module NFC & terrain.
+                Crée les codes NFC, suit les scans et mesure le passage vers le site.
               </p>
 
               <div class="v11-tool-meta">
-                <span>Aucun développement V11</span>
+                <span>Scans · engagement · conversion</span>
               </div>
             </div>
           </article>
@@ -1992,6 +1993,50 @@
           <div id="tab-exports" class="v11-legacy-slot" hidden></div>
           <div id="tab-social" class="v11-legacy-slot" hidden></div>
           <div id="v11-partner-widget-panel" class="v11-legacy-slot" hidden></div>
+          <div id="v11-nfc-panel" class="v11-legacy-slot" hidden>
+            <section class="v11-nfc-shell">
+              <div class="v11-nfc-head">
+                <div><p class="v11-section-label">NFC & TERRAIN</p><h3>Cockpit des passages</h3><p>Mesures par code, sans GPS, IP ni profilage.</p></div>
+                <button id="v11-nfc-refresh" class="v11-button secondary" type="button">Actualiser</button>
+              </div>
+              <p id="v11-nfc-feedback" class="v11-nfc-feedback" role="status"></p>
+              <div class="v11-nfc-kpis">
+                <article><span>Scans</span><strong data-nfc-kpi="scans">—</strong></article>
+                <article><span>Engagés</span><strong data-nfc-kpi="engaged">—</strong></article>
+                <article><span>Intentions</span><strong data-nfc-kpi="intents">—</strong></article>
+                <article><span>Entrées site</span><strong data-nfc-kpi="arrivals">—</strong></article>
+                <article><span>Activation</span><strong data-nfc-kpi="activated">—</strong></article>
+              </div>
+              <article class="v11-nfc-card">
+                <h4>Entonnoir sur 30 jours</h4>
+                <div class="v11-nfc-filters">
+                  <label>Période<select id="v11-nfc-period"><option value="7">7 jours</option><option value="30" selected>30 jours</option><option value="90">90 jours</option></select></label>
+                  <label>Support<select id="v11-nfc-support"><option value="all">Tous</option></select></label>
+                  <label>Campagne<select id="v11-nfc-campaign"><option value="all">Toutes</option></select></label>
+                  <label>Partenaire<select id="v11-nfc-partner"><option value="all">Tous</option></select></label>
+                  <label>Événement<select id="v11-nfc-event"><option value="all">Tous</option></select></label>
+                  <label>Code<select id="v11-nfc-tag"><option value="all">Tous</option></select></label>
+                </div>
+                <div id="v11-nfc-funnel" class="v11-nfc-funnel" aria-label="Graphique de conversion NFC"></div>
+              </article>
+              <div class="v11-nfc-grid">
+                <article class="v11-nfc-card">
+                  <h4>Créer un code NFC</h4>
+                  <form id="v11-nfc-form" class="v11-nfc-form">
+                    <label>Nom du support<input name="label" maxlength="120" required placeholder="Affiche Salon du livre"></label>
+                    <label>Type<select name="support_type"><option value="sticker">Sticker</option><option value="card">Carte</option><option value="poster">Affiche</option><option value="book">Livre</option><option value="badge">Badge</option><option value="other">Autre</option></select></label>
+                    <label>Campagne<input name="campaign_key" maxlength="80" placeholder="salon-2026"></label>
+                    <label>Partenaire<input name="partner_key" maxlength="80"></label>
+                    <label>Lieu contextuel<input name="context_location" maxlength="120"></label>
+                    <label>État terrain<select name="lifecycle_status"><option value="TO_PROGRAM">À programmer</option><option value="PROGRAMMED">Programmée</option><option value="TESTED">Testée</option><option value="INSTALLED">Installée</option></select></label>
+                    <label class="v11-nfc-check"><input name="active" type="checkbox"> Activer immédiatement</label>
+                    <button class="v11-primary-button" type="submit">Générer le code</button>
+                  </form>
+                </article>
+                <article class="v11-nfc-card"><h4>Codes et résultats</h4><div class="v11-nfc-table-wrap"><table class="v11-nfc-table"><thead><tr><th>Support</th><th>Code</th><th>Scans</th><th>Entrées</th><th>Parc</th><th>État</th><th>Action</th></tr></thead><tbody id="v11-nfc-tags"></tbody></table></div></article>
+              </div>
+            </section>
+          </div>
           <div id="v11-maintenance-panel" class="v11-legacy-slot" hidden>
             <section class="v11-maintenance-shell">
               <div class="v11-maintenance-head">
@@ -2455,6 +2500,7 @@
   <script defer src="admin-social-generator.js?v=v11-social-66-1"></script>
   <script defer src="admin-v11-partner-widget.js?v=v11-partner-68-1"></script>
   <script defer src="admin-v11-maintenance.js?v=v11-maint-36"></script>
+  <script defer src="admin-nfc-cockpit.js?v=nfc-cockpit-v1"></script>
 
   <section id="v11-auth-gate" class="v11-auth-gate" hidden aria-hidden="true">
     <div class="v11-auth-panel">
