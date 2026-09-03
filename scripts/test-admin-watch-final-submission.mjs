@@ -125,7 +125,7 @@ function serverCandidate(overrides = {}) {
   };
 }
 
-function createClient({ insertError = null } = {}) {
+function createClient({ insertError = null, updateError = null } = {}) {
   const calls = [];
   return {
     calls,
@@ -160,14 +160,16 @@ function createClient({ insertError = null } = {}) {
               ? { data: null, error: insertError }
               : { data: [{ id: eventId }], error: null };
           } else if (table === "admin_watch_candidates" && call.operation === "update") {
-            response = {
-              data: [serverCandidate({
-                workflow_status: "submitted",
-                submitted_event_id: call.payload.submitted_event_id,
-                version: 3
-              })],
-              error: null
-            };
+            response = updateError
+              ? { data: null, error: updateError }
+              : {
+                  data: [serverCandidate({
+                    workflow_status: "submitted",
+                    submitted_event_id: call.payload.submitted_event_id,
+                    version: 3
+                  })],
+                  error: null
+                };
           } else {
             response = { data: [], error: null };
           }
@@ -277,5 +279,42 @@ assert.equal(failedButton.textContent, "Confirmer l’envoi");
 for (const fragment of ["22007", "invalid input syntax", "date: empty", "use null"]) {
   assert.ok(failedButton.status.textContent.includes(fragment));
 }
+
+// Le parcours actuel n'est pas atomique : si le rattachement du candidat échoue,
+// l'événement est déjà inséré. Ce constat impose de conserver le verrou V11 fermé
+// jusqu'à l'ajout d'un contrat serveur transactionnel.
+localStorage.clear();
+const partialCandidate = {
+  ...baseCandidate,
+  identity_key: "candidate:v1:fontvieille-partial",
+  title: "Salon du livre — rupture simulée",
+  sourceUrl: `${sourceUrl}?partial=1`,
+  officialUrl: `${sourceUrl}?partial=1`
+};
+api.setResults([partialCandidate]);
+api.setSnapshot({
+  availability: "server",
+  componentAvailability: { candidates: "available", sources: "available", eventAlerts: "available" },
+  candidates: [serverCandidate({
+    identity_key: partialCandidate.identity_key,
+    title: partialCandidate.title,
+    origin_url: partialCandidate.sourceUrl,
+    canonical_origin_url: partialCandidate.sourceUrl,
+    official_url: partialCandidate.officialUrl
+  })]
+});
+const partialClient = createClient({
+  updateError: { code: "57014", message: "candidate update interrupted" }
+});
+api.setClient(partialClient);
+const partialButton = createButton();
+await api.createSubmissionFromWatch(partialCandidate, partialButton);
+assert.equal(partialClient.calls.filter((call) => call.table === "events" && call.operation === "insert").length, 1);
+assert.equal(partialClient.calls.filter((call) => call.table === "admin_watch_candidates" && call.operation === "update").length, 1);
+assert.equal(api.getWatchWorkflowState(partialCandidate), "submitted");
+assert.equal(partialCandidate.submittedEventId, eventId);
+assert.equal(partialButton.disabled, true);
+assert.equal(partialButton.textContent, "Soumission créée");
+assert.equal(partialButton.status.textContent, "Soumission créée. Elle reste en attente de validation humaine.");
 
 console.log("ADMIN_WATCH_FINAL_SUBMISSION_OK");

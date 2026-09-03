@@ -31,7 +31,7 @@ exige son propre contrat serveur, ses tests RLS et sa procédure de rollback.
 
 ## Lots restants avant activation
 
-1. Tester la Veille de bout en bout ; conserver le verrou si l’écriture serveur n’est pas démontrée sûre.
+1. Ajouter puis valider sur staging le RPC transactionnel de soumission Veille ; l'audit bout en bout a confirmé que les deux écritures clientes actuelles ne sont pas atomiques et le verrou reste fermé.
 2. Compléter la recette V11 sur Safari iPhone, Android et tablette ; Safari desktop et le cockpit NFC sont validés.
 3. Vérifier les erreurs réseau sur l’ensemble des modules ; rôles/RLS NFC, doubles clics et sessions expirées sont couverts.
 4. Faire une sauvegarde des fichiers V10 et relever le commit de rollback.
