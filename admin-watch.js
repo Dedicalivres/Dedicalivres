@@ -3944,18 +3944,39 @@
         return;
       }
 
-      const payload = buildSubmissionPayload(item);
-      const { data, error } = await client.from("events").insert([payload]).select("id");
+      const serverCandidate = findServerWatchCandidate(item);
+      const expectedVersion = Number(serverCandidate?.version || item?.serverVersion || 0);
+      if (!isUuid(serverCandidate?.id) || !Number.isInteger(expectedVersion) || expectedVersion < 1) {
+        throw new Error("La fiche doit être persistée sur le serveur avant sa soumission.");
+      }
+      if (serverCandidate.workflow_status !== "ready") {
+        throw new Error("La fiche serveur n’est pas prête pour la soumission.");
+      }
+
+      const { data, error } = await client.rpc("submit_admin_watch_candidate", {
+        p_candidate_id: serverCandidate.id,
+        p_expected_version: expectedVersion
+      });
 
       if (error) throw error;
-      const submittedEventId = Array.isArray(data) ? data[0]?.id : data?.id;
+      const submission = Array.isArray(data) ? data[0] : data;
+      const submittedEventId = submission?.event_id;
       if (!isUuid(submittedEventId)) {
-        item.submittedEventId = payload.id;
         throw new Error("La soumission a été créée sans identifiant serveur exploitable.");
       }
 
       item.submittedEventId = submittedEventId;
-      await setWatchWorkflowState(item, "submitted");
+      item.workflow_status = "submitted";
+      item.serverVersion = Number(submission?.candidate_version || expectedVersion + 1);
+      item.status_updated_at = submission?.candidate_status_updated_at || new Date().toISOString();
+      adoptServerWatchCandidate({
+        ...serverCandidate,
+        workflow_status: "submitted",
+        submitted_event_id: submittedEventId,
+        version: item.serverVersion,
+        status_updated_at: item.status_updated_at
+      });
+      writeLocalWatchWorkflowState(item, "submitted", item.status_updated_at);
       markHandled(item);
 
       const duplicateKey = getWatchDuplicateKey(item);
@@ -3963,9 +3984,9 @@
         recordWatchDuplicateSignal(item, "existing");
         duplicateCheckCache.set(duplicateKey, Promise.resolve({
           id: submittedEventId,
-          title: payload.title,
-          city: payload.city,
-          start_date: payload.start_date
+          title: cleanText(item.title),
+          city: cleanText(item.city),
+          start_date: normalizeIsoDate(item.startDate)
         }));
       }
 

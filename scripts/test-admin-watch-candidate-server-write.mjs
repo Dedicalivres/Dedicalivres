@@ -17,7 +17,6 @@ const required = [
   "Cette décision a été modifiée dans une autre session.",
   "Décision enregistrée localement.",
   'setWatchWorkflowState(item, "duplicate")',
-  'setWatchWorkflowState(item, "submitted")',
   'setWatchWorkflowState(item, "handled")',
   'setWatchWorkflowState(item, "rejected")'
 ];
@@ -48,27 +47,22 @@ for (const forbidden of [
   assert.ok(!writerSource.includes(forbidden), `Opération interdite dans le writer candidat : ${forbidden}`);
 }
 
-assert.equal(
-  (source.match(/\.from\("events"\)\.insert\(/g) || []).length,
-  1,
-  "Pack 5D ne doit ajouter aucun INSERT events"
-);
+assert.equal((source.match(/\.from\("events"\)\.insert\(/g) || []).length, 0);
 assert.ok(!source.includes("setInterval("), "Pack 5D ne doit ajouter aucun polling");
 
 const submissionStart = source.indexOf("async function createSubmissionFromWatch(");
 const submissionEnd = source.indexOf("function getSubmissionBlockingFields(", submissionStart);
 const submissionSource = source.slice(submissionStart, submissionEnd);
-const eventInsertPosition = submissionSource.indexOf('.from("events").insert([payload])');
-const submittedIdPosition = submissionSource.indexOf("item.submittedEventId = payload.id", eventInsertPosition);
-const submittedWorkflowPosition = submissionSource.indexOf('setWatchWorkflowState(item, "submitted")', submittedIdPosition);
+const rpcPosition = submissionSource.indexOf('client.rpc("submit_admin_watch_candidate"');
+const submittedIdPosition = submissionSource.indexOf("item.submittedEventId = submittedEventId", rpcPosition);
 assert.ok(
-  eventInsertPosition >= 0 && submittedIdPosition > eventInsertPosition && submittedWorkflowPosition > submittedIdPosition,
-  "Le workflow submitted doit être persisté seulement après la soumission métier réussie"
+  rpcPosition >= 0 && submittedIdPosition > rpcPosition,
+  "L'état local submitted doit suivre seulement la réussite du RPC transactionnel"
 );
 assert.equal(
-  (submissionSource.match(/\.from\("events"\)\.insert\(/g) || []).length,
+  (submissionSource.match(/client\.rpc\("submit_admin_watch_candidate"/g) || []).length,
   1,
-  "Un échec du writer ne doit pas relancer la soumission events"
+  "La soumission finale doit utiliser un unique RPC transactionnel"
 );
 
 const instrumented = source.replace(/\}\)\(\);\s*$/, `
