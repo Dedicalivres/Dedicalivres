@@ -175,6 +175,7 @@
     exports: "Exports",
     social: "Social",
     partners: "Widget partenaires",
+    nfc: "NFC & terrain",
     maintenance: "Maintenance"
   };
 
@@ -187,6 +188,8 @@
       "Générateur Social Dédicalivres.",
     partners:
       "Configurateur du widget partenaires.",
+    nfc:
+      "Codes NFC, scans et conversions terrain.",
     maintenance:
       "Diagnostic local de l’administration."
   };
@@ -374,6 +377,7 @@
       exports: "tab-exports",
       social: "tab-social",
       partners: "v11-partner-widget-panel",
+      nfc: "v11-nfc-panel",
       maintenance: "v11-maintenance-panel"
     };
 
@@ -407,6 +411,10 @@
 
     if (name === "maintenance") {
       renderMaintenanceStatus();
+    }
+
+    if (name === "nfc" && typeof window.DEDICALIVRES_NFC_COCKPIT?.open === "function") {
+      window.DEDICALIVRES_NFC_COCKPIT.open();
     }
 
     if (
