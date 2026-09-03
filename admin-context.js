@@ -48,6 +48,7 @@
   };
 
   const listeners = new Set();
+  let authSubscription = null;
 
   function snapshot() {
     return {
@@ -109,13 +110,47 @@
   }
 
   function getClient() {
-    if (state.client) return state.client;
+    if (state.client) {
+      ensureAuthListener(state.client);
+      return state.client;
+    }
 
     if (typeof window.getDedicalivresSupabaseClient === "function") {
       state.client = window.getDedicalivresSupabaseClient();
     }
 
+    ensureAuthListener(state.client);
+
     return state.client;
+  }
+
+  function ensureAuthListener(client) {
+    if (!client || authSubscription || !client.auth?.onAuthStateChange) {
+      return;
+    }
+
+    const result = client.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        setState({
+          authenticated: false,
+          session: null,
+          status: "unauthenticated",
+          error: null,
+          refreshedAt: null
+        });
+        return;
+      }
+
+      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        setState({
+          authenticated: true,
+          session,
+          error: null
+        });
+      }
+    });
+
+    authSubscription = result?.data?.subscription || true;
   }
 
   function isPastEvent(event) {
