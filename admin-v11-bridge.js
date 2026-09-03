@@ -59,9 +59,13 @@
   };
 
 
-  window.V11_WATCH_WRITE_GUARD = true;
+  const watchSubmissionEnabled =
+    window.DEDICALIVRES_CONFIG
+      ?.adminV11WatchSubmissionEnabled === true;
 
-  document.addEventListener(
+  window.V11_WATCH_WRITE_GUARD = !watchSubmissionEnabled;
+
+  if (window.V11_WATCH_WRITE_GUARD) document.addEventListener(
     "click",
     function (event) {
       const submit =
@@ -95,9 +99,9 @@
       "Écriture events désactivée pendant le raccordement V11.";
   }
 
-  document
-    .querySelectorAll("[data-watch-submit]")
-    .forEach(lockWatchSubmitButton);
+  if (window.V11_WATCH_WRITE_GUARD) {
+    document.querySelectorAll("[data-watch-submit]").forEach(lockWatchSubmitButton);
+  }
 
   const watchGuardObserver =
     new MutationObserver(function (mutations) {
@@ -118,12 +122,8 @@
       });
     });
 
-  watchGuardObserver.observe(
-    document.documentElement,
-    {
-      childList: true,
-      subtree: true
-    }
-  );
+  if (window.V11_WATCH_WRITE_GUARD) {
+    watchGuardObserver.observe(document.documentElement, { childList: true, subtree: true });
+  }
 
 })();

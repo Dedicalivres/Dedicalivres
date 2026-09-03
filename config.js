@@ -6,6 +6,9 @@ window.DEDICALIVRES_CONFIG = {
   // Espace Auteur — publication unitaire explicite, protégée par readiness + RLS.
   authorPublicPublishingEnabled: true,
 
+  // V11 Veille — restera false jusqu’à la recette staging et la validation admin.
+  adminV11WatchSubmissionEnabled: false,
+
   // V7.8.0 — Upload hybride : les anciennes images Supabase restent valides,
   // les nouvelles images peuvent être envoyées vers Cloudflare R2 via Worker.
   imageUploadProvider: "r2",

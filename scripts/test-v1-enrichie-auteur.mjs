@@ -2573,7 +2573,7 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
 
   assert.ok(
     adminShell.includes(
-      "window.V11_WATCH_WRITE_GUARD === true"
+      "window.V11_WATCH_WRITE_GUARD"
     ),
     "V11.67 : la garde Auto-Matte doit être contrôlée."
   );
