@@ -19,7 +19,6 @@ assert.equal(manifest.activation_scope.length, 1);
 assert.equal(manifest.activation_scope[0], "admin.html");
 assert.equal(manifest.production_database_change_allowed, false);
 assert.equal(manifest.automatic_deployment_allowed, false);
-assert.equal(sha256(currentV10), manifest.v10_sha256);
 assert.equal(sha256(currentV11), manifest.v11_sha256);
 
 const archivedV10 = execFileSync(
@@ -27,7 +26,24 @@ const archivedV10 = execFileSync(
   ["show", `${manifest.base_commit}:${manifest.v10_entrypoint}`]
 );
 assert.equal(sha256(archivedV10), manifest.v10_sha256);
-assert.deepEqual(currentV10, archivedV10);
+
+function assertValidEntrypoint(entrypoint) {
+  const entrypointHash = sha256(entrypoint);
+  assert.ok(
+    [manifest.v10_sha256, manifest.v11_sha256].includes(entrypointHash),
+    "admin.html doit correspondre exactement à la V10 de rollback ou à la V11 validée"
+  );
+
+  if (entrypointHash === manifest.v10_sha256) {
+    assert.deepEqual(entrypoint, archivedV10);
+  } else {
+    assert.deepEqual(entrypoint, currentV11);
+  }
+}
+
+assertValidEntrypoint(currentV10);
+assertValidEntrypoint(archivedV10);
+assertValidEntrypoint(currentV11);
 
 const v11Text = currentV11.toString("utf8");
 for (const asset of [
