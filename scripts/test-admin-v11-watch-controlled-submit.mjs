@@ -6,7 +6,7 @@ const bridge = fs.readFileSync("admin-v11-bridge.js", "utf8");
 const watch = fs.readFileSync("admin-watch.js", "utf8");
 const maintenance = fs.readFileSync("admin-v11-maintenance.js", "utf8");
 
-assert.match(config, /adminV11WatchSubmissionEnabled: false/);
+assert.match(config, /adminV11WatchSubmissionEnabled: true/);
 assert.match(bridge, /adminV11WatchSubmissionEnabled === true/);
 assert.match(bridge, /V11_WATCH_WRITE_GUARD = !watchSubmissionEnabled/);
 assert.match(bridge, /if \(window\.V11_WATCH_WRITE_GUARD\) document\.addEventListener/);

@@ -20,9 +20,9 @@ sont annulés ensemble.
 
 ## Activation
 
-Ce lot ne modifie pas `adminV11WatchSubmissionEnabled`, qui reste à `false`.
-L’activation nécessite d’abord la recette SQL et navigateur sur le projet staging,
-puis une validation humaine distincte.
+Le lot initial conservait `adminV11WatchSubmissionEnabled` à `false`. Le RPC a
+depuis été appliqué et validé en production le 4 septembre 2026 ; son ouverture
+applicative reste réversible avec ce même drapeau.
 
 La recette SQL `scripts/recipe-admin-v11-watch-transactional-submit.sql` s’exécute
 dans une transaction annulée à la fin. Elle vérifie le succès admin, les drapeaux
@@ -42,6 +42,13 @@ Projet isolé `mnlheukcdadykblnxeuo` :
 - conseiller performance : aucun problème ;
 - conseiller sécurité : avertissement staging préexistant sur la protection des
   mots de passe compromis, sans lien avec ce RPC.
+
+## Validation production du 4 septembre 2026
+
+- migration enregistrée sous `20260904155821_admin_watch_transactional_submit` ;
+- recette SQL complète exécutée sans erreur puis annulée par `rollback` ;
+- aucune fixture candidat ou événement conservée ;
+- exécution anonyme refusée et rôle authentifié soumis à `private.is_admin()`.
 
 ## Rollback
 

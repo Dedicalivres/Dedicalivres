@@ -59,7 +59,7 @@ for (const asset of [
   assert.ok(v11Text.includes(asset), `Ressource V11 absente : ${asset}`);
 }
 assert.doesNotMatch(v11Text, /location(?:\.href|\.replace)?\s*\([^)]*admin-v11\.html/);
-assert.match(config, /adminV11WatchSubmissionEnabled:\s*false/);
+assert.match(config, /adminV11WatchSubmissionEnabled:\s*true/);
 assert.match(
   v11Text,
   /id="v11-author-merge"[\s\S]*?disabled[\s\S]*?>[\s\S]*?Fusionner/

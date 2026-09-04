@@ -8,7 +8,7 @@ const migration = fs.readFileSync(
   "utf8"
 );
 
-assert.match(config, /adminV11WatchSubmissionEnabled:\s*false/);
+assert.match(config, /adminV11WatchSubmissionEnabled:\s*true/);
 assert.match(source, /client\.rpc\("submit_admin_watch_candidate"/);
 assert.match(source, /p_candidate_id:\s*serverCandidate\.id/);
 assert.match(source, /p_expected_version:\s*expectedVersion/);

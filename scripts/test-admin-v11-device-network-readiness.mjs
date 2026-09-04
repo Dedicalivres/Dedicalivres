@@ -6,7 +6,7 @@ const shell = fs.readFileSync("admin-shell.js", "utf8");
 const config = fs.readFileSync("config.js", "utf8");
 const htmlV10 = fs.readFileSync("admin.html", "utf8");
 
-assert.match(config, /adminV11WatchSubmissionEnabled:\s*false/);
+assert.match(config, /adminV11WatchSubmissionEnabled:\s*true/);
 assert.ok(htmlV10.length > 0, "La V10 doit rester présente");
 
 for (const fragment of [
