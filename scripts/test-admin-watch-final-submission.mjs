@@ -5,14 +5,15 @@ import { webcrypto } from "node:crypto";
 
 const source = fs.readFileSync("admin-watch.js", "utf8");
 const migration = fs.readFileSync(
-  "supabase/migrations/20260828152600_admin_watch_persistence_schema_rls.sql",
+  "supabase/migrations/20260903170616_admin_watch_transactional_submit.sql",
   "utf8"
 );
 
-assert.match(source, /\.from\("events"\)\.insert\(\[payload\]\)\.select\("id"\)/);
+assert.match(source, /client\.rpc\("submit_admin_watch_candidate"/);
 assert.match(source, /const watchSubmissionInFlight = new Set\(\)/);
-assert.match(source, /await setWatchWorkflowState\(item, "submitted"\)/);
-assert.match(migration, /create trigger audit_admin_watch_candidate_workflow[\s\S]*private\.audit_admin_watch_workflow\(\)/);
+assert.doesNotMatch(source, /\.from\("events"\)\.insert\(/);
+assert.match(migration, /create function public\.submit_admin_watch_candidate\(/);
+assert.match(migration, /security invoker/);
 
 const instrumented = source.replace(/\}\)\(\);\s*$/, `
   globalThis.__WATCH_FINAL_SUBMISSION_TEST_API__ = {
@@ -125,10 +126,23 @@ function serverCandidate(overrides = {}) {
   };
 }
 
-function createClient({ insertError = null } = {}) {
+function createClient({ rpcError = null } = {}) {
   const calls = [];
   return {
     calls,
+    async rpc(name, args) {
+      calls.push({ operation: "rpc", name, args });
+      return rpcError
+        ? { data: null, error: rpcError }
+        : {
+            data: [{
+              event_id: eventId,
+              candidate_version: 3,
+              candidate_status_updated_at: "2026-09-03T17:30:00.000Z"
+            }],
+            error: null
+          };
+    },
     from(table) {
       const call = { table, operation: "", payload: null, filters: [], columns: "" };
       calls.push(call);
@@ -155,11 +169,7 @@ function createClient({ insertError = null } = {}) {
         abortSignal() { return this; },
         then(resolve, reject) {
           let response;
-          if (table === "events" && call.operation === "insert") {
-            response = insertError
-              ? { data: null, error: insertError }
-              : { data: [{ id: eventId }], error: null };
-          } else if (table === "admin_watch_candidates" && call.operation === "update") {
+          if (table === "admin_watch_candidates" && call.operation === "update") {
             response = {
               data: [serverCandidate({
                 workflow_status: "submitted",
@@ -211,7 +221,7 @@ assert.equal(datedPayload.end_date, "2026-09-21");
 assert.equal(datedPayload.registration_open_date, "2026-06-01");
 assert.equal(datedPayload.registration_deadline, "2026-09-01");
 
-// Candidat server-only après reload : double clic puis retry ne produisent qu'un INSERT.
+// Candidat server-only après reload : double clic puis retry ne produisent qu'un RPC.
 localStorage.clear();
 const candidate = { ...baseCandidate };
 api.setResults([candidate]);
@@ -227,22 +237,17 @@ await Promise.all([
   api.createSubmissionFromWatch(candidate, button),
   api.createSubmissionFromWatch(candidate, button)
 ]);
-assert.equal(successClient.calls.filter((call) => call.table === "events" && call.operation === "insert").length, 1);
-assert.equal(successClient.calls.filter((call) => call.table === "admin_watch_candidates" && call.operation === "update").length, 1);
-assert.equal(successClient.calls.filter((call) => call.table === "admin_watch_transitions").length, 0);
-const eventInsert = successClient.calls.find((call) => call.table === "events" && call.operation === "insert");
-assert.equal(eventInsert.payload[0].end_date, null);
-assert.equal(eventInsert.payload[0].registration_open_date, null);
-assert.equal(eventInsert.payload[0].registration_deadline, null);
-const candidateUpdate = successClient.calls.find((call) => call.table === "admin_watch_candidates" && call.operation === "update");
-assert.equal(candidateUpdate.payload.workflow_status, "submitted");
-assert.equal(candidateUpdate.payload.submitted_event_id, eventId);
+const rpcCalls = successClient.calls.filter((call) => call.operation === "rpc");
+assert.equal(rpcCalls.length, 1);
+assert.equal(rpcCalls[0].name, "submit_admin_watch_candidate");
+assert.equal(rpcCalls[0].args.p_candidate_id, candidateId);
+assert.equal(rpcCalls[0].args.p_expected_version, 2);
 assert.equal(candidate.submittedEventId, eventId);
 assert.equal(api.getWatchWorkflowState(candidate), "submitted");
 await api.createSubmissionFromWatch(candidate, createButton());
-assert.equal(successClient.calls.filter((call) => call.table === "events" && call.operation === "insert").length, 1);
+assert.equal(successClient.calls.filter((call) => call.operation === "rpc").length, 1);
 
-// Une erreur INSERT conserve le workflow et l'identifiant intacts, et rend le bouton réutilisable.
+// Une erreur RPC conserve le workflow et l'identifiant intacts, et rend le bouton réutilisable.
 localStorage.clear();
 const failedCandidate = {
   ...baseCandidate,
@@ -264,17 +269,17 @@ api.setSnapshot({
   })]
 });
 const failedClient = createClient({
-  insertError: { code: "22007", message: "invalid input syntax for type date", details: "date: empty", hint: "use null" }
+  rpcError: { code: "40001", message: "watch_candidate_version_conflict", details: "stale candidate", hint: "reload" }
 });
 api.setClient(failedClient);
 const failedButton = createButton();
 await api.createSubmissionFromWatch(failedCandidate, failedButton);
 assert.equal(failedCandidate.submittedEventId, undefined);
 assert.equal(api.getWatchWorkflowState(failedCandidate), "ready");
-assert.equal(failedClient.calls.filter((call) => call.table === "admin_watch_candidates" && call.operation === "update").length, 0);
+assert.equal(failedClient.calls.filter((call) => call.operation === "rpc").length, 1);
 assert.equal(failedButton.disabled, false);
 assert.equal(failedButton.textContent, "Confirmer l’envoi");
-for (const fragment of ["22007", "invalid input syntax", "date: empty", "use null"]) {
+for (const fragment of ["40001", "watch_candidate_version_conflict", "stale candidate", "reload"]) {
   assert.ok(failedButton.status.textContent.includes(fragment));
 }
 
