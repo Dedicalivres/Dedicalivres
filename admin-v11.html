@@ -900,6 +900,15 @@
             >
               Réinitialiser
             </button>
+
+            <button
+              id="v11-community-archive-history-open"
+              class="v11-text-button"
+              type="button"
+              disabled
+            >
+              Éléments retirés
+            </button>
           </div>
         </div>
 
@@ -1004,14 +1013,48 @@
               class="v11-action-button danger"
               disabled
             >
-              Supprimer
+              Retirer
             </button>
           </div>
 
           <p class="v11-write-lock">
-            Modération active. Les présences peuvent être modifiées ; la suppression reste verrouillée.
+            Modération active. Le retrait réversible reste verrouillé tant que son backend n’est pas validé.
           </p>
         </div>
+
+        <section
+          id="v11-community-archive-panel"
+          class="v11-community-detail"
+          hidden
+        >
+          <div class="v11-event-detail-head">
+            <div>
+              <p class="v11-section-label">RETRAIT RÉVERSIBLE</p>
+              <h3 id="v11-community-archive-title">Retirer un élément</h3>
+            </div>
+            <button id="v11-community-archive-close" class="v11-text-button" type="button">Fermer</button>
+          </div>
+
+          <label class="v11-form-field">
+            <span>Motif obligatoire</span>
+            <textarea id="v11-community-archive-reason" rows="3" maxlength="500" placeholder="Doublon, demande de retrait, contenu invalide…"></textarea>
+          </label>
+
+          <p class="v11-write-lock">
+            L’élément disparaîtra des vues publiques et courantes, mais restera intact en base et pourra être restauré.
+          </p>
+
+          <div class="v11-event-detail-actions">
+            <button id="v11-community-archive-confirm" type="button" class="v11-action-button danger">
+              Confirmer le retrait
+            </button>
+          </div>
+
+          <div class="v11-community-archive-history">
+            <h4>Éléments retirés</h4>
+            <div id="v11-community-archive-history-list"></div>
+          </div>
+        </section>
 
         <section
           id="v11-presence-editor"
@@ -2530,14 +2573,14 @@
   </div>
 
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="config.js?v=shared-client-5-author-merge"></script>
-  <script defer src="admin-context.js?v=v11-context-28"></script>
+  <script defer src="config.js?v=shared-client-6-community-archive"></script>
+  <script defer src="admin-context.js?v=v11-context-29-community-archive"></script>
   <script defer src="duplicate-detection.js?v=v11-18-1"></script>
   <script defer src="admin-v11-bridge.js?v=v11-bridge-40b"></script>
   <script defer src="author-backoffice.js?v=author-backoffice-v1"></script>
   <script defer src="author-publication.js?v=author-publication-v2"></script>
   <script defer src="admin-event-deletion.js?v=safe-delete-1"></script>
-  <script defer src="admin-shell.js?v=v11-74-author-merge"></script>
+  <script defer src="admin-shell.js?v=v11-75-community-archive"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
   <script defer src="admin-v11-exports.js?v=v11-exports-39-3"></script>
   <script defer src="admin-social-generator.js?v=v11-social-66-1"></script>

@@ -23,7 +23,7 @@
 
 ### Encore verrouillé volontairement
 
-- suppression des objets Communauté conservée verrouillée pour le lancement ; la modification des présences et la modération sont déjà actives ;
+- retrait réversible des objets Communauté préparé, mais verrouillé jusqu’à validation et application de son backend ;
 - Studio de dédicace : module réservé ;
 
 Ces verrous ne doivent pas être retirés dans un lot de finition visuelle. Chacun

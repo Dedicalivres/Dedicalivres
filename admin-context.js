@@ -492,6 +492,55 @@
       throw new Error("Client Supabase indisponible");
     }
 
+    const communityArchiveEnabled =
+      window.DEDICALIVRES_CONFIG
+        ?.adminV11CommunityArchiveEnabled === true;
+
+    const presenceColumns = [
+      "id",
+      "event_id",
+      "pseudo",
+      "admin_note",
+      "contact_email",
+      "contact_name",
+      "author_identity_key",
+      "author_slug",
+      "book_or_publisher_url_type",
+      "book_or_publisher_url",
+      "author_profile_url_type",
+      "author_profile_url",
+      "website",
+      "validated",
+      "rejected",
+      "created_at",
+      "author_id",
+      "source",
+      "publication_mode",
+      "publisher_name",
+      "author_portrait_url",
+      "participant_type",
+      "organization_name",
+      "presence_verified"
+    ];
+
+    const testimonialColumns = [
+      "id",
+      "pseudo",
+      "message",
+      "event_title",
+      "image_url",
+      "validated",
+      "rejected",
+      "moderated_at",
+      "moderated_by",
+      "created_at"
+    ];
+
+    if (communityArchiveEnabled) {
+      presenceColumns.push("archived_at", "archived_by", "archive_reason");
+      testimonialColumns.push("archived_at", "archived_by", "archive_reason");
+    }
+
     const [
       presencesResult,
       authorsResult,
@@ -499,34 +548,7 @@
     ] = await Promise.all([
       client
         .from("event_authors_presence")
-        .select(
-          [
-            "id",
-            "event_id",
-            "pseudo",
-            "admin_note",
-            "contact_email",
-            "contact_name",
-            "author_identity_key",
-            "author_slug",
-            "book_or_publisher_url_type",
-            "book_or_publisher_url",
-            "author_profile_url_type",
-            "author_profile_url",
-            "website",
-            "validated",
-            "rejected",
-            "created_at",
-            "author_id",
-            "source",
-            "publication_mode",
-            "publisher_name",
-            "author_portrait_url",
-            "participant_type",
-            "organization_name",
-            "presence_verified"
-          ].join(", ")
-        )
+        .select(presenceColumns.join(", "))
         .order("created_at", { ascending: false })
         .limit(250),
 
@@ -564,20 +586,7 @@
 
       client
         .from("testimonials")
-        .select(
-          [
-            "id",
-            "pseudo",
-            "message",
-            "event_title",
-            "image_url",
-            "validated",
-            "rejected",
-            "moderated_at",
-            "moderated_by",
-            "created_at"
-          ].join(", ")
-        )
+        .select(testimonialColumns.join(", "))
         .order("created_at", { ascending: false })
         .limit(100)
     ]);
@@ -596,7 +605,7 @@
 
     state.community.presences =
       Array.isArray(presencesResult.data)
-        ? presencesResult.data
+        ? presencesResult.data.filter((item) => !item.archived_at)
         : [];
 
     state.community.authors =
@@ -606,7 +615,7 @@
 
     state.community.testimonials =
       Array.isArray(testimonialsResult.data)
-        ? testimonialsResult.data
+        ? testimonialsResult.data.filter((item) => !item.archived_at)
         : [];
 
     const presences = state.community.presences;
