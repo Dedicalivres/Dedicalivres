@@ -5,7 +5,7 @@ import { webcrypto } from "node:crypto";
 
 const source = fs.readFileSync("admin-watch.js", "utf8");
 const migration = fs.readFileSync(
-  "supabase/migrations/20260903170616_admin_watch_transactional_submit.sql",
+  "supabase/migrations/20260904155821_admin_watch_transactional_submit.sql",
   "utf8"
 );
 
