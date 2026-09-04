@@ -1384,6 +1384,49 @@
         </section>
 
         <section
+          id="v11-author-merge-panel"
+          class="v11-community-detail v11-author-merge-panel"
+          hidden
+        >
+          <div class="v11-event-detail-head">
+            <div>
+              <p class="v11-section-label">FUSION AUTEUR CONTRÔLÉE</p>
+              <h3>Comparer avant de fusionner</h3>
+            </div>
+            <button id="v11-author-merge-close" class="v11-text-button" type="button">Fermer</button>
+          </div>
+
+          <div class="v11-author-merge-form">
+            <label class="v11-form-field">
+              <span>Doublon potentiel</span>
+              <select id="v11-author-merge-candidate"></select>
+            </label>
+
+            <label class="v11-form-field">
+              <span>Fiche à conserver</span>
+              <select id="v11-author-merge-primary"></select>
+            </label>
+
+            <div id="v11-author-merge-preview" class="v11-author-merge-preview"></div>
+
+            <p class="v11-write-lock">
+              La fiche secondaire sera archivée logiquement, jamais supprimée. Les présences techniquement liées seront déplacées. Toute publication de la fiche secondaire sera invalidée par le serveur.
+            </p>
+
+            <div class="v11-event-detail-actions">
+              <button id="v11-author-merge-confirm" type="button" class="v11-action-button danger">
+                Confirmer la fusion
+              </button>
+            </div>
+          </div>
+
+          <div class="v11-author-merge-history">
+            <h4>Journal et retour arrière</h4>
+            <div id="v11-author-merge-history-list"></div>
+          </div>
+        </section>
+
+        <section
           id="v11-author-editor"
           class="v11-community-detail"
           hidden
@@ -2487,14 +2530,14 @@
   </div>
 
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="config.js?v=shared-client-4-watch-enabled"></script>
+  <script defer src="config.js?v=shared-client-5-author-merge"></script>
   <script defer src="admin-context.js?v=v11-context-28"></script>
   <script defer src="duplicate-detection.js?v=v11-18-1"></script>
   <script defer src="admin-v11-bridge.js?v=v11-bridge-40b"></script>
   <script defer src="author-backoffice.js?v=author-backoffice-v1"></script>
   <script defer src="author-publication.js?v=author-publication-v2"></script>
   <script defer src="admin-event-deletion.js?v=safe-delete-1"></script>
-  <script defer src="admin-shell.js?v=v11-73-nfc-enabled"></script>
+  <script defer src="admin-shell.js?v=v11-74-author-merge"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
   <script defer src="admin-v11-exports.js?v=v11-exports-39-3"></script>
   <script defer src="admin-social-generator.js?v=v11-social-66-1"></script>

@@ -15,6 +15,7 @@
 - suppression sécurisée avec contrôle des dépendances ;
 - modération des présences et témoignages ;
 - préparation, édition et publication contrôlée des auteurs ;
+- fusion auteur unitaire, auditée et réversible ;
 - exports, générateur social, widget partenaires et maintenance ;
 - intégration Auto-Matte en lecture et persistance de la veille ;
 - NFC Analytics actif en production : collecte, RLS, cockpit, recette et rollback ;
@@ -22,7 +23,6 @@
 
 ### Encore verrouillé volontairement
 
-- fusion auteur : action destructive non ouverte ;
 - suppression des objets Communauté conservée verrouillée pour le lancement ; la modification des présences et la modération sont déjà actives ;
 - Studio de dédicace : module réservé ;
 
@@ -34,7 +34,7 @@ exige son propre contrat serveur, ses tests RLS et sa procédure de rollback.
 1. Terminer la recette sur appareils physiques Safari iPhone, Chrome Android et tablette ; les largeurs correspondantes, les cibles tactiles et l’absence de débordement sont validées en émulation.
 2. Exécuter la coupure réseau réelle sur appareils ; les messages hors ligne/reconnexion, les boutons d’attente, les rôles/RLS NFC, les doubles clics et les sessions expirées sont couverts par le code et les tests.
 3. Conserver le point de restauration V10 au commit `4b6bf27` et le manifeste de rollback.
-4. Traiter séparément les fonctions encore verrouillées : fusion auteur, suppression Communauté et Studio de dédicace.
+4. Traiter séparément les fonctions encore verrouillées : suppression Communauté et Studio de dédicace.
 
 ## Critères de bascule
 
