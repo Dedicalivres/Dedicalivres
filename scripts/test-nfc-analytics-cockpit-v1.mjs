@@ -34,7 +34,10 @@ for (const activation of ["favorite_added","nearby_used","event_opened","submiss
 assert.match(admin, /getRandomValues/); assert.match(admin, /90\*86400000/); assert.match(html, /v11-nfc-funnel/);
 for (const filter of ["v11-nfc-period","v11-nfc-support","v11-nfc-campaign","v11-nfc-partner","v11-nfc-event","v11-nfc-tag"]) assert.ok(html.includes(filter));
 for (const state of ["TO_PROGRAM","PROGRAMMED","TESTED","INSTALLED","MOVED","INACTIVE","LOST"]) assert.ok(admin.includes(state));
-assert.ok(html.includes("admin-nfc-cockpit.css?v=nfc-cockpit-v1-contrast")); assert.match(cockpitCss, /v11-nfc-filters/);
+assert.ok(html.includes("admin-nfc-cockpit.css?v=nfc-cockpit-v1-layout-2")); assert.match(cockpitCss, /v11-nfc-filters/);
+assert.match(cockpitCss, /\.v11-nfc-filters label\s*\{[\s\S]*?min-width:\s*0/);
+assert.match(cockpitCss, /\.v11-nfc-filters select,[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%/);
+assert.match(cockpitCss, /@media \(max-width:\s*1500px\)[\s\S]*?repeat\(3, minmax\(0, 1fr\)\)/);
 for (const token of ["var(--surface-2)", "var(--surface-3)", "var(--text)", "var(--muted)", "var(--border)"]) assert.ok(cockpitCss.includes(token));
 assert.doesNotMatch(cockpitCss, /var\(--v11-(?:surface|border)/);
 assert.doesNotMatch(cockpitCss, /background:\s*#fff|color:\s*#666/);
