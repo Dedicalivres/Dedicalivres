@@ -34,7 +34,7 @@ exige son propre contrat serveur, ses tests RLS et sa procédure de rollback.
 1. Appliquer et valider en production le RPC transactionnel Veille déjà fusionné, dans une opération séparée ; le verrou reste fermé jusque-là.
 2. Terminer la recette sur appareils physiques Safari iPhone, Chrome Android et tablette ; les largeurs correspondantes, les cibles tactiles et l’absence de débordement sont validées en émulation.
 3. Exécuter la coupure réseau réelle sur appareils ; les messages hors ligne/reconnexion, les boutons d’attente, les rôles/RLS NFC, les doubles clics et les sessions expirées sont couverts par le code et les tests.
-4. Faire une sauvegarde des fichiers V10 et relever le commit de rollback.
+4. Point de restauration V10 vérifié au commit `4b6bf27` et manifeste de rollback préparé.
 5. Basculer `admin.html` vers la V11 dans une PR exclusivement dédiée à l’activation.
 
 ## Critères de bascule
