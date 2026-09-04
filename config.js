@@ -12,6 +12,9 @@ window.DEDICALIVRES_CONFIG = {
   // V11 Auteurs — fusion unitaire auditée avec retour arrière transactionnel.
   adminV11AuthorMergeEnabled: true,
 
+  // V11 Communauté — reste fermé jusqu’à validation et application du backend d’archivage.
+  adminV11CommunityArchiveEnabled: false,
+
   // V11 NFC — backend production appliqué et recette de sécurité validée le 4 septembre 2026.
   adminV11NfcCockpitEnabled: true,
 

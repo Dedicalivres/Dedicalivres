@@ -6096,6 +6096,41 @@ function renderEvents(events, status) {
       "v11-community-delete"
     );
 
+  const communityArchiveHistoryOpen =
+    document.getElementById(
+      "v11-community-archive-history-open"
+    );
+
+  const communityArchivePanel =
+    document.getElementById(
+      "v11-community-archive-panel"
+    );
+
+  const communityArchiveTitle =
+    document.getElementById(
+      "v11-community-archive-title"
+    );
+
+  const communityArchiveClose =
+    document.getElementById(
+      "v11-community-archive-close"
+    );
+
+  const communityArchiveReason =
+    document.getElementById(
+      "v11-community-archive-reason"
+    );
+
+  const communityArchiveConfirm =
+    document.getElementById(
+      "v11-community-archive-confirm"
+    );
+
+  const communityArchiveHistoryList =
+    document.getElementById(
+      "v11-community-archive-history-list"
+    );
+
   const presenceEditor =
     document.getElementById(
       "v11-presence-editor"
@@ -10683,6 +10718,219 @@ function renderEvents(events, status) {
     });
   }
 
+  function isV11CommunityArchiveEnabled() {
+    return window.DEDICALIVRES_CONFIG
+      ?.adminV11CommunityArchiveEnabled === true;
+  }
+
+  function closeV11CommunityArchivePanel() {
+    if (v11CommunityActionRunning) return;
+    if (communityArchivePanel) communityArchivePanel.hidden = true;
+  }
+
+  function v11CommunityArchiveError(error, fallback) {
+    const message = String(error?.message || "");
+
+    if (message.includes("admin_required")) {
+      return "Action refusée : droits administrateur requis.";
+    }
+    if (message.includes("archive_reason_invalid")) {
+      return "Le motif doit contenir entre 3 et 500 caractères.";
+    }
+    if (message.includes("community_item_already_archived")) {
+      return "Cet élément a déjà été retiré.";
+    }
+    if (message.includes("community_item_not_archived")) {
+      return "Cet élément n’est plus archivé ou a déjà été restauré.";
+    }
+    if (message.includes("community_item_not_found")) {
+      return "Élément introuvable.";
+    }
+    return fallback;
+  }
+
+  async function loadV11CommunityArchiveHistory() {
+    if (!communityArchiveHistoryList || !isV11CommunityArchiveEnabled()) return;
+
+    communityArchiveHistoryList.replaceChildren();
+    const client = context.getClient();
+
+    if (!client) return;
+
+    const [presences, testimonials] = await Promise.all([
+      client
+        .from("event_authors_presence")
+        .select("id, pseudo, archived_at, archived_by, archive_reason")
+        .not("archived_at", "is", null)
+        .order("archived_at", { ascending: false })
+        .limit(50),
+      client
+        .from("testimonials")
+        .select("id, pseudo, event_title, archived_at, archived_by, archive_reason")
+        .not("archived_at", "is", null)
+        .order("archived_at", { ascending: false })
+        .limit(50)
+    ]);
+
+    const error = presences.error || testimonials.error;
+    if (error) {
+      const warning = document.createElement("p");
+      warning.textContent = "Historique indisponible : " + error.message;
+      communityArchiveHistoryList.appendChild(warning);
+      return;
+    }
+
+    const rows = [
+      ...(presences.data || []).map((item) => ({ ...item, kind: "presence" })),
+      ...(testimonials.data || []).map((item) => ({ ...item, kind: "testimonial" }))
+    ].sort((left, right) => (
+      String(right.archived_at).localeCompare(String(left.archived_at))
+    ));
+
+    if (!rows.length) {
+      const empty = document.createElement("p");
+      empty.textContent = "Aucun élément retiré.";
+      communityArchiveHistoryList.appendChild(empty);
+      return;
+    }
+
+    rows.forEach((item) => {
+      const row = document.createElement("div");
+      const summary = document.createElement("div");
+      const title = document.createElement("strong");
+      const details = document.createElement("small");
+      const restore = document.createElement("button");
+
+      row.className = "v11-community-archive-history-row";
+      title.textContent =
+        (item.kind === "presence" ? "Présence · " : "Témoignage · ") +
+        (item.pseudo || item.event_title || item.id);
+      details.textContent = item.archive_reason || "Motif non renseigné";
+      summary.append(title, details);
+
+      restore.type = "button";
+      restore.className = "v11-action-button";
+      restore.dataset.v11CommunityRestoreKind = item.kind;
+      restore.dataset.v11CommunityRestoreId = String(item.id);
+      restore.textContent = "Restaurer";
+
+      row.append(summary, restore);
+      communityArchiveHistoryList.appendChild(row);
+    });
+  }
+
+  async function openV11CommunityArchivePanel(historyOnly = false) {
+    if (!isV11CommunityArchiveEnabled() || !communityArchivePanel) return;
+
+    const item = historyOnly ? null : getSelectedV11CommunityItem();
+    const kind = historyOnly ? "" : selectedV11CommunityKind;
+
+    communityArchivePanel.hidden = false;
+    communityArchiveTitle.textContent = item
+      ? "Retirer · " + communityValue(item.pseudo || item.event_title)
+      : "Éléments retirés";
+    communityArchiveConfirm.hidden = !item;
+    communityArchiveReason.closest("label").hidden = !item;
+    communityArchiveReason.value = "";
+    communityArchiveConfirm.dataset.kind = kind || "";
+    communityArchiveConfirm.dataset.id = String(item?.id || "");
+
+    await loadV11CommunityArchiveHistory();
+    communityArchivePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function executeV11CommunityArchive() {
+    if (v11CommunityActionRunning || !isV11CommunityArchiveEnabled()) return;
+
+    const kind = String(communityArchiveConfirm?.dataset?.kind || "");
+    const id = String(communityArchiveConfirm?.dataset?.id || "");
+    const reason = String(communityArchiveReason?.value || "").trim();
+    const item = getSelectedV11CommunityItem();
+
+    if (!item || !id || !["presence", "testimonial"].includes(kind)) {
+      window.alert("Élément Communauté introuvable.");
+      return;
+    }
+
+    if (reason.length < 3 || reason.length > 500) {
+      window.alert("Le motif doit contenir entre 3 et 500 caractères.");
+      communityArchiveReason?.focus();
+      return;
+    }
+
+    if (!window.confirm(
+      "CONFIRMER LE RETRAIT\n\n" +
+      communityValue(item.pseudo || item.event_title) + "\n\n" +
+      "L’élément ne sera pas effacé et pourra être restauré."
+    )) return;
+
+    setV11CommunityBusy(true);
+    communityArchiveConfirm.disabled = true;
+    communityArchiveConfirm.textContent = "Retrait en cours…";
+
+    try {
+      const response = await context.getClient().rpc("archive_community_item", {
+        p_kind: kind,
+        p_id: id,
+        p_reason: reason
+      });
+
+      if (response.error) throw response.error;
+
+      communityDetail.hidden = true;
+      selectedV11CommunityKind = null;
+      selectedV11CommunityId = null;
+      await context.refresh();
+      await loadV11CommunityArchiveHistory();
+      v11CommunityMessage("Élément retiré et conservé pour restauration.");
+    } catch (error) {
+      console.error("V11 retrait Communauté", error);
+      window.alert(v11CommunityArchiveError(error, "Retrait impossible."));
+    } finally {
+      setV11CommunityBusy(false);
+      communityArchiveConfirm.disabled = false;
+      communityArchiveConfirm.textContent = "Confirmer le retrait";
+    }
+  }
+
+  async function executeV11CommunityRestore(button) {
+    if (v11CommunityActionRunning || !isV11CommunityArchiveEnabled()) return;
+
+    const kind = String(button?.dataset?.v11CommunityRestoreKind || "");
+    const id = String(button?.dataset?.v11CommunityRestoreId || "");
+
+    if (!id || !["presence", "testimonial"].includes(kind)) return;
+
+    if (!window.confirm(
+      "CONFIRMER LA RESTAURATION\n\n" +
+      "L’élément retrouvera son état de modération précédent."
+    )) return;
+
+    setV11CommunityBusy(true);
+    button.disabled = true;
+    button.textContent = "Restauration…";
+
+    try {
+      const response = await context.getClient().rpc("restore_community_item", {
+        p_kind: kind,
+        p_id: id
+      });
+
+      if (response.error) throw response.error;
+
+      await context.refresh();
+      await loadV11CommunityArchiveHistory();
+      v11CommunityMessage("Élément Communauté restauré.");
+    } catch (error) {
+      console.error("V11 restauration Communauté", error);
+      window.alert(v11CommunityArchiveError(error, "Restauration impossible."));
+      button.disabled = false;
+      button.textContent = "Restaurer";
+    } finally {
+      setV11CommunityBusy(false);
+    }
+  }
+
   function setV11CommunityButtons(item) {
     if (!item) return;
 
@@ -10721,7 +10969,15 @@ function renderEvents(events, status) {
     }
 
     if (communityDeleteButton) {
-      communityDeleteButton.disabled = true;
+      communityDeleteButton.disabled =
+        busy ||
+        !isV11CommunityArchiveEnabled() ||
+        !["presence", "testimonial"].includes(selectedV11CommunityKind);
+
+      communityDeleteButton.title =
+        isV11CommunityArchiveEnabled()
+          ? "Retirer sans effacement physique"
+          : "Retrait réversible non activé";
     }
   }
 
@@ -11375,6 +11631,7 @@ function renderEvents(events, status) {
       function () {
         communityDetail.hidden = true;
         closeV11PresenceEditor();
+        closeV11CommunityArchivePanel();
         selectedV11CommunityKind = null;
         selectedV11CommunityId = null;
       }
@@ -11423,6 +11680,56 @@ function renderEvents(events, status) {
 
         if (item) {
           openV11PresenceEditor(item);
+        }
+      }
+    );
+  }
+
+  if (communityDeleteButton) {
+    communityDeleteButton.addEventListener(
+      "click",
+      function () {
+        openV11CommunityArchivePanel(false);
+      }
+    );
+  }
+
+  if (communityArchiveHistoryOpen) {
+    communityArchiveHistoryOpen.disabled =
+      !isV11CommunityArchiveEnabled();
+
+    communityArchiveHistoryOpen.addEventListener(
+      "click",
+      function () {
+        openV11CommunityArchivePanel(true);
+      }
+    );
+  }
+
+  if (communityArchiveClose) {
+    communityArchiveClose.addEventListener(
+      "click",
+      closeV11CommunityArchivePanel
+    );
+  }
+
+  if (communityArchiveConfirm) {
+    communityArchiveConfirm.addEventListener(
+      "click",
+      executeV11CommunityArchive
+    );
+  }
+
+  if (communityArchiveHistoryList) {
+    communityArchiveHistoryList.addEventListener(
+      "click",
+      function (event) {
+        const button = event.target.closest(
+          "[data-v11-community-restore-id]"
+        );
+
+        if (button) {
+          executeV11CommunityRestore(button);
         }
       }
     );
