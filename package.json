@@ -10,11 +10,12 @@
     "test:v1-enrichie-auteur": "node scripts/test-v1-enrichie-auteur.mjs",
     "test:author-publication-v2": "node scripts/test-author-space-controlled-publication-v2.mjs",
     "test:nfc-passage-v1": "node scripts/test-nfc-immersive-passage-v1.mjs",
-    "check": "node --check dedicalivres-daily-export.js && node test-admin-extract.js && node scripts/test-v1-enrichie-auteur.mjs && node scripts/test-registration-timeline.mjs && node scripts/test-author-space-backoffice-v1.mjs && node scripts/test-author-space-controlled-publication-v2.mjs && node scripts/test-nfc-immersive-passage-v1.mjs && node scripts/test-admin-v11-activation-readiness.mjs && node scripts/test-admin-v11-watch-controlled-submit.mjs && node scripts/test-admin-watch-final-submission.mjs && node scripts/test-admin-watch-candidate-server-write.mjs && node scripts/test-admin-v11-watch-transactional-submit.mjs && node scripts/test-admin-v11-device-network-readiness.mjs && node scripts/test-nfc-analytics-cockpit-v1.mjs && node scripts/test-admin-v11-session-resilience.mjs",
+    "check": "node --check dedicalivres-daily-export.js && node test-admin-extract.js && node scripts/test-v1-enrichie-auteur.mjs && node scripts/test-registration-timeline.mjs && node scripts/test-author-space-backoffice-v1.mjs && node scripts/test-author-space-controlled-publication-v2.mjs && node scripts/test-nfc-immersive-passage-v1.mjs && node scripts/test-admin-v11-activation-readiness.mjs && node scripts/test-admin-v11-watch-controlled-submit.mjs && node scripts/test-admin-watch-final-submission.mjs && node scripts/test-admin-watch-candidate-server-write.mjs && node scripts/test-admin-v11-watch-transactional-submit.mjs && node scripts/test-admin-v11-device-network-readiness.mjs && node scripts/test-admin-v11-cutover-readiness.mjs && node scripts/test-nfc-analytics-cockpit-v1.mjs && node scripts/test-admin-v11-session-resilience.mjs",
     "test:admin-v11-readiness": "node scripts/test-admin-v11-activation-readiness.mjs",
     "test:admin-v11-watch-submit": "node scripts/test-admin-v11-watch-controlled-submit.mjs",
     "test:admin-v11-watch-transaction": "node scripts/test-admin-watch-final-submission.mjs && node scripts/test-admin-watch-candidate-server-write.mjs && node scripts/test-admin-v11-watch-transactional-submit.mjs",
     "test:admin-v11-device-network": "node scripts/test-admin-v11-device-network-readiness.mjs",
+    "test:admin-v11-cutover": "node scripts/test-admin-v11-cutover-readiness.mjs",
     "test:nfc-analytics-v1": "node scripts/test-nfc-analytics-cockpit-v1.mjs",
     "test:admin-v11-session": "node scripts/test-admin-v11-session-resilience.mjs",
     "test:registration-timeline": "node scripts/test-registration-timeline.mjs"

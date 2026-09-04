@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "created_at": "2026-09-04",
+  "base_commit": "4b6bf27874b8229604d484d3c0620dd33f9ab51a",
+  "v10_entrypoint": "admin.html",
+  "v10_sha256": "e6ed2cf869d430c505da98d547ea98aac720eafd4055c694a0527e9e0525cbcc",
+  "v11_source": "admin-v11.html",
+  "v11_sha256": "35f6498365a8807bc6eea3050dcd542732659222f18bc6c8f89c17d779ca2c63",
+  "activation_scope": [
+    "admin.html"
+  ],
+  "production_database_change_allowed": false,
+  "automatic_deployment_allowed": false
+}
