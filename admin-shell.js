@@ -690,6 +690,29 @@
     }, 3200);
   }
 
+  function isV11BrowserOffline() {
+    return typeof navigator !== "undefined" && navigator.onLine === false;
+  }
+
+  function isV11NetworkError(error) {
+    const message = String(error?.message || error || "").toLowerCase();
+    return isV11BrowserOffline() || [
+      "failed to fetch",
+      "networkerror",
+      "network error",
+      "erreur réseau",
+      "timeout",
+      "timed out",
+      "aborterror"
+    ].some((fragment) => message.includes(fragment));
+  }
+
+  function v11ErrorMessage(error, fallback) {
+    return isV11NetworkError(error)
+      ? "Connexion réseau indisponible. Vérifiez votre accès internet puis réessayez."
+      : fallback;
+  }
+
   function normalize(value) {
     return String(value || "")
       .normalize("NFD")
@@ -11157,6 +11180,13 @@ function openCommunityView(name) {
 
     if (!label || !chip) return;
 
+    if (isV11BrowserOffline()) {
+      label.textContent = "Connexion réseau indisponible";
+      chip.textContent = "Hors ligne";
+      chip.className = "v11-chip warning";
+      return;
+    }
+
     if (state.status === "ready") {
       label.textContent =
         "Connexion active";
@@ -11595,7 +11625,10 @@ function openCommunityView(name) {
           console.error(error);
 
           loginFeedback.textContent =
-            "Connexion impossible.";
+            v11ErrorMessage(
+              error,
+              "Connexion impossible. Vérifiez vos identifiants."
+            );
         } finally {
           submit.disabled = false;
           submit.textContent =
@@ -11618,7 +11651,10 @@ function openCommunityView(name) {
           toast(
             state.status === "ready"
               ? "Données actualisées"
-              : "Erreur de chargement",
+              : v11ErrorMessage(
+                  state.error,
+                  "Erreur de chargement. Réessayez."
+                ),
             state.status === "ready"
               ? "ok"
               : "error"
@@ -11639,6 +11675,16 @@ function openCommunityView(name) {
       }
     );
   }
+
+  window.addEventListener("offline", () => {
+    renderSupabaseStatus(context.getState());
+    toast("Connexion réseau perdue. Les actions réseau sont indisponibles.", "error");
+  });
+
+  window.addEventListener("online", () => {
+    renderSupabaseStatus(context.getState());
+    toast("Connexion réseau rétablie. Actualisez les données.");
+  });
 
   window.addEventListener(
     "dedicalivres:v11-debug",

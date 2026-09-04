@@ -31,9 +31,9 @@ exige son propre contrat serveur, ses tests RLS et sa procédure de rollback.
 
 ## Lots restants avant activation
 
-1. Tester la Veille de bout en bout ; conserver le verrou si l’écriture serveur n’est pas démontrée sûre.
-2. Compléter la recette V11 sur Safari iPhone, Android et tablette ; Safari desktop et le cockpit NFC sont validés.
-3. Vérifier les erreurs réseau sur l’ensemble des modules ; rôles/RLS NFC, doubles clics et sessions expirées sont couverts.
+1. Appliquer et valider en production le RPC transactionnel Veille déjà fusionné, dans une opération séparée ; le verrou reste fermé jusque-là.
+2. Terminer la recette sur appareils physiques Safari iPhone, Chrome Android et tablette ; les largeurs correspondantes, les cibles tactiles et l’absence de débordement sont validées en émulation.
+3. Exécuter la coupure réseau réelle sur appareils ; les messages hors ligne/reconnexion, les boutons d’attente, les rôles/RLS NFC, les doubles clics et les sessions expirées sont couverts par le code et les tests.
 4. Faire une sauvegarde des fichiers V10 et relever le commit de rollback.
 5. Basculer `admin.html` vers la V11 dans une PR exclusivement dédiée à l’activation.
 
