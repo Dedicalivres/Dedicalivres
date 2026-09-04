@@ -1,6 +1,8 @@
 .v11-nfc-shell {
   display: grid;
   gap: 20px;
+  min-width: 0;
+  max-width: 100%;
   color: var(--text);
 }
 
@@ -55,6 +57,8 @@
 
 .v11-nfc-kpis article,
 .v11-nfc-card {
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 18px;
@@ -93,6 +97,7 @@
 .v11-nfc-form label,
 .v11-nfc-filters label {
   display: grid;
+  min-width: 0;
   gap: 6px;
   color: var(--soft);
   font-weight: 650;
@@ -102,6 +107,9 @@
 .v11-nfc-form select,
 .v11-nfc-filters select,
 .v11-nfc-table select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 42px;
   padding: 8px 10px;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -157,7 +165,10 @@
 }
 
 .v11-nfc-table-wrap {
-  overflow: auto;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .v11-nfc-table {
@@ -197,9 +208,9 @@
   color: var(--red);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1500px) {
   .v11-nfc-filters {
-    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

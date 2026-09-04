@@ -5,7 +5,7 @@
   "v10_entrypoint": "admin.html",
   "v10_sha256": "e6ed2cf869d430c505da98d547ea98aac720eafd4055c694a0527e9e0525cbcc",
   "v11_source": "admin-v11.html",
-  "v11_sha256": "ff67a9dfad65a696483ff701e7a319292d1ce9aca3d4987fba27c2aaa897ec0a",
+  "v11_sha256": "709e70e5edbe114d28d61701ee2886219366b77029f1024ca3970355371592c4",
   "activation_scope": [
     "admin.html"
   ],
