@@ -36,6 +36,8 @@ faite qu’après export et validation explicite, dans l’ordre `nfc_events`,
 
 - 80 événements maximum par session.
 - 300 événements maximum par code et par minute.
+- Sérialisation transactionnelle très courte par code pour conserver ce plafond
+  lors de scans simultanés.
 - Déduplication `(session, événement, clé)`.
 - Lecture admin limitée aux 5 000 événements les plus récents sur 30 jours.
 - Revue recommandée après un mois pour fixer une politique de rétention selon le volume réel.
