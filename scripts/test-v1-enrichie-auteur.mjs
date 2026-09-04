@@ -2809,7 +2809,7 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
 
   assert.ok(
     adminHtml.includes(
-      'admin-shell.js?v=v11-72-nfc-disabled-feedback'
+      'admin-shell.js?v=v11-73-nfc-enabled'
     ),
     "V11.72 : le shell doit avoir le cache-buster du retour NFC désactivé."
   );

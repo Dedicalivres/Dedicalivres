@@ -39,12 +39,13 @@ for (const token of ["var(--surface-2)", "var(--surface-3)", "var(--text)", "var
 assert.doesNotMatch(cockpitCss, /var\(--v11-(?:surface|border)/);
 assert.doesNotMatch(cockpitCss, /background:\s*#fff|color:\s*#666/);
 assert.match(admin, /data\.nfcToggle|dataset\.nfcToggle/); assert.match(admin, /Désactiver/);
-assert.match(config, /adminV11NfcCockpitEnabled:\s*false/);
+assert.match(config, /adminV11NfcCockpitEnabled:\s*true/);
 assert.match(shell, /adminV11NfcCockpitEnabled === true/);
 assert.match(shell, /name === "nfc" && !nfcCockpitEnabled/);
 assert.match(shell, /Backend NFC non activé en production/);
-assert.match(html, /data-tool-open="nfc" role="button" tabindex="0" aria-disabled="true"/);
-assert.match(html, /Cockpit préparé ; backend de production non activé/);
+assert.match(html, /class="v11-tool-card is-operational" data-tool-open="nfc" role="button" tabindex="0" aria-disabled="false"/);
+assert.match(html, /Pilotez les codes terrain, les scans et les conversions/);
+assert.match(html, /<span class="v11-chip info">Opérationnel<\/span>/);
 assert.match(shell, /function explainNfcUnavailable\(\)/);
 assert.match(shell, /NFC non activé : le backend de production/);
 assert.match(shell, /\["Enter", " "\]\.includes\(event\.key\)/);
