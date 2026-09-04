@@ -41,12 +41,17 @@ Il ne faut donc pas annoncer qu'un `supabase db reset` reconstruit toute la base
    événement et code.
 7. Désactiver le code et vérifier qu'un nouveau scan est refusé.
 8. Contrôler qu'un visiteur anonyme ne peut ni lire ni écrire directement dans
-   `nfc_tags`, `nfc_sessions` ou `nfc_events`.
+   `nfc_tags`, `nfc_sessions` ou `nfc_events`, ni appeler directement les fonctions
+   internes `private.nfc_public_context` et `private.nfc_record_event`.
+9. Lancer au moins deux scans simultanés du même code et vérifier que les plafonds
+   restent appliqués sans doublon ni erreur inattendue.
 
 ## Critères de sortie
 
 - Tous les tests automatiques et la recette intégrée sont PASS.
 - Aucun appel du navigateur n'utilise une clé privilégiée.
+- Seules `public.nfc_resolve_tag` et `public.nfc_track_event` sont exécutables par
+  les rôles visiteurs ; les fonctions `private.*` restent inaccessibles.
 - La migration n'a touché que le staging.
 - Un export de contrôle et le nombre de lignes des trois tables sont conservés.
 - Le rollback fonctionnel (désactivation de tous les codes) a été testé.

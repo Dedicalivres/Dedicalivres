@@ -53,6 +53,8 @@ create table public.nfc_events (
 create index nfc_sessions_tag_opened_idx on public.nfc_sessions(tag_id, opened_at desc);
 create index nfc_events_tag_created_idx on public.nfc_events(tag_id, created_at desc);
 create index nfc_events_name_created_idx on public.nfc_events(event_name, created_at desc);
+create index nfc_tags_event_id_idx on public.nfc_tags(event_id) where event_id is not null;
+create index nfc_tags_created_by_idx on public.nfc_tags(created_by) where created_by is not null;
 
 alter table public.nfc_tags enable row level security;
 alter table public.nfc_sessions enable row level security;
@@ -82,7 +84,7 @@ $$;
 
 create or replace function public.nfc_resolve_tag(p_token text)
 returns table(label text, support_type text, campaign_key text, event_id uuid, partner_key text, context_location text, cta_variant text)
-language sql stable security invoker set search_path = ''
+language sql stable security definer set search_path = ''
 as $$ select * from private.nfc_public_context(p_token) $$;
 
 create or replace function private.nfc_record_event(
@@ -95,10 +97,16 @@ language plpgsql security definer set search_path = ''
 as $$
 declare v_tag public.nfc_tags%rowtype;
 begin
-  if p_session_id is null or p_event_name not in ('nfc_open','nfc_scene_view','nfc_progress','nfc_intent_select','nfc_cta_impression','nfc_cta_click','nfc_enter_site','nfc_site_arrival','nfc_activation','nfc_error')
+  if p_token is null or upper(trim(p_token)) !~ '^[A-Z0-9]{8,24}$'
+     or p_session_id is null
+     or p_event_name is null
+     or p_event_name not in ('nfc_open','nfc_scene_view','nfc_progress','nfc_intent_select','nfc_cta_impression','nfc_cta_click','nfc_enter_site','nfc_site_arrival','nfc_activation','nfc_error')
+     or p_event_key is null
      or p_event_key !~ '^[a-z0-9:_-]{1,80}$' then return false; end if;
   select * into v_tag from public.nfc_tags where public_token = upper(trim(p_token)) and active is true;
   if not found then return false; end if;
+  -- Rend atomiques les plafonds par code, y compris lors de scans simultanés.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_tag.id::text, 0));
   insert into public.nfc_sessions(id, tag_id, support_type_snapshot, campaign_key_snapshot, event_id_snapshot, partner_key_snapshot, context_location_snapshot, device_class)
   values (p_session_id, v_tag.id, v_tag.support_type, v_tag.campaign_key, v_tag.event_id, v_tag.partner_key, v_tag.context_location,
           case when p_device_class in ('mobile','tablet','desktop','unknown') then p_device_class else 'unknown' end)
@@ -126,14 +134,11 @@ create or replace function public.nfc_track_event(
   p_scene_id text default null, p_intent_id text default null,
   p_progress_bucket smallint default null, p_activation_type text default null,
   p_device_class text default null
-) returns boolean language sql security invoker set search_path = ''
+) returns boolean language sql security definer set search_path = ''
 as $$ select private.nfc_record_event(p_token,p_session_id,p_event_name,p_event_key,p_scene_id,p_intent_id,p_progress_bucket,p_activation_type,p_device_class) $$;
 
-revoke all on function private.nfc_public_context(text) from public;
-revoke all on function private.nfc_record_event(text,uuid,text,text,text,text,smallint,text,text) from public;
-grant usage on schema private to anon, authenticated;
-grant execute on function private.nfc_public_context(text) to anon, authenticated;
-grant execute on function private.nfc_record_event(text,uuid,text,text,text,text,smallint,text,text) to anon, authenticated;
+revoke all on function private.nfc_public_context(text) from public, anon, authenticated;
+revoke all on function private.nfc_record_event(text,uuid,text,text,text,text,smallint,text,text) from public, anon, authenticated;
 revoke execute on function public.nfc_resolve_tag(text) from public;
 revoke execute on function public.nfc_track_event(text,uuid,text,text,text,text,smallint,text,text) from public;
 grant execute on function public.nfc_resolve_tag(text) to anon, authenticated;
