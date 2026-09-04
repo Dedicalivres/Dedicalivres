@@ -22,7 +22,7 @@ Il ne faut donc pas annoncer qu'un `supabase db reset` reconstruit toute la base
    production avant toute commande.
 3. Appliquer d'abord le schéma de référence actuellement en production dans ce
    staging, puis seulement la migration :
-   `supabase/migrations/20260903050044_nfc_analytics_cockpit_v1.sql`.
+   `supabase/migrations/20260904142011_nfc_analytics_cockpit_v1.sql`.
 4. Exécuter `supabase/tests/nfc_analytics_cockpit_v1_test.sql` avec un compte SQL
    de staging. Le résultat attendu est `PASS nfc analytics staging SQL`.
 5. Configurer une prévisualisation du front avec l'URL et la clé publique du

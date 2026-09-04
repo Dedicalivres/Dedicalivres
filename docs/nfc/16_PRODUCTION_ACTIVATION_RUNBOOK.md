@@ -5,7 +5,7 @@
 - La production ne contient aucune table ni fonction `nfc_*`.
 - Le cockpit V11 reste verrouillé par `adminV11NfcCockpitEnabled: false`.
 - La migration à appliquer est
-  `supabase/migrations/20260903050044_nfc_analytics_cockpit_v1.sql`.
+  `supabase/migrations/20260904142011_nfc_analytics_cockpit_v1.sql`.
 - L'activation du front fera l'objet d'un lot et d'une validation séparés.
 
 ## Préconditions obligatoires

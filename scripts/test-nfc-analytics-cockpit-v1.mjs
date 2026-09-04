@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 
-const migration = fs.readFileSync("supabase/migrations/20260903050044_nfc_analytics_cockpit_v1.sql", "utf8");
+const migration = fs.readFileSync("supabase/migrations/20260904142011_nfc_analytics_cockpit_v1.sql", "utf8");
 const nfc = fs.readFileSync("nfc/nfc.js", "utf8");
 const admin = fs.readFileSync("admin-nfc-cockpit.js", "utf8");
 const shell = fs.readFileSync("admin-shell.js", "utf8");
