@@ -9,11 +9,13 @@ const publication = fs.readFileSync("author-publication.js", "utf8");
 const config = fs.readFileSync("config.js", "utf8");
 const readme = fs.readFileSync("README.md", "utf8");
 
-assert.match(v10, /Dédicalivres — Admin V10/);
-assert.doesNotMatch(v10, /data-v11-release-state/);
+assert.match(v10, /Dédicalivres — Admin V(?:10|11)/);
 assert.match(v11, /data-v11-release-state="preactivation"/);
-assert.match(readme, /Admin V10 active/);
-assert.match(readme, /Admin V11 en préactivation/);
+assert.match(readme, /Point d’entrée admin actif/);
+assert.match(readme, /Source V11 de référence/);
+assert.match(shell, /\/\\\/admin\\\.html\$\//);
+assert.match(shell, /isActiveEntrypoint \? "active" : "preactivation"/);
+assert.match(shell, /isActiveEntrypoint \? "V11 · active" : "V11 · préactivation"/);
 assert.match(bridge, /V11_WATCH_WRITE_GUARD = !watchSubmissionEnabled/);
 assert.match(config, /adminV11WatchSubmissionEnabled: false/);
 assert.match(v11, /Aucune publication automatique/);

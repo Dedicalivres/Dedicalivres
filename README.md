@@ -6,8 +6,8 @@ Site statique pour repertorier les salons du livre, festivals litteraires, dedic
 
 - Front public: HTML, CSS, JavaScript natif.
 - Base de donnees: Supabase, avec acces public limite par Row Level Security.
-- Admin V10 active: `admin.html` + `admin.js`, protégée par Supabase Auth et par les policies SQL.
-- Admin V11 en préactivation: `admin-v11.html` et ses modules. Elle ne remplace pas encore la V10.
+- Point d’entrée admin actif: `admin.html`, protégé par Supabase Auth et par les policies SQL.
+- Source V11 de référence: `admin-v11.html` et ses modules ; la bascule contrôlée copie cette source vers le point d’entrée actif.
 - Images: Cloudflare R2 via Worker d'upload, avec fallback possible vers Supabase Storage.
 - Exports: Cloudflare Worker `dedicalivres-daily-export.js`, publie les fichiers dans R2.
 
@@ -18,8 +18,8 @@ Site statique pour repertorier les salons du livre, festivals litteraires, dedic
 - `event.html` / `event.js`: fiche evenement publique.
 - `author.html` / `author.js`: aperçu auteur interne, authentifié et non indexé.
 - `author-backoffice.js`: calcul local de préparation `AUTEUR_PRÊT`.
-- `admin.html` / `admin.js`: tableau de bord éditorial V10 actuellement actif.
-- `admin-v11.html` / `admin-shell.js`: future interface V11, à activer uniquement après recette et rollback validés.
+- `admin.html`: point d’entrée de l’interface administrateur active.
+- `admin-v11.html` / `admin-shell.js`: source V11 de référence, activée uniquement par une bascule contrôlée avec rollback validé.
 - `dedicalivres-daily-export.js`: Worker d'exports.
 - `SUPABASE_SECURITY_HARDENING.sql`: policies RLS recommandees.
 - `_headers`: en-tetes de securite pour hebergement type Netlify/Cloudflare Pages compatible.

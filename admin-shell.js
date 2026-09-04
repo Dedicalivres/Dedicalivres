@@ -86,6 +86,25 @@
       "v11-home-priority-detail"
     );
 
+  const releaseState =
+    document.querySelector(
+      "[data-v11-release-state]"
+    );
+
+  const isActiveEntrypoint =
+    /\/admin\.html$/.test(
+      window.location.pathname
+    );
+
+  if (releaseState) {
+    releaseState.dataset.v11ReleaseState =
+      isActiveEntrypoint ? "active" : "preactivation";
+    releaseState.textContent =
+      isActiveEntrypoint ? "V11 · active" : "V11 · préactivation";
+    releaseState.classList.toggle("ok", isActiveEntrypoint);
+    releaseState.classList.toggle("warning", !isActiveEntrypoint);
+  }
+
   if (!authGate) {
     console.error("V11 : auth gate absent du DOM");
   }

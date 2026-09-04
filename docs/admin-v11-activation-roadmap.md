@@ -2,9 +2,9 @@
 
 ## Versions à ne pas confondre
 
-- `admin.html` est la V10 actuellement active.
-- `admin-v11.html` est la V11 en préactivation.
-- Aucun lot V11 ne doit modifier la V10 avant la bascule finale validée.
+- `admin.html` est le point d’entrée actif : V10 avant la bascule, copie validée de la V11 après celle-ci.
+- `admin-v11.html` reste la source V11 de référence et la route de préactivation.
+- Aucun lot V11 ne doit modifier le point d’entrée actif avant la bascule finale validée.
 
 ## État vérifié
 
