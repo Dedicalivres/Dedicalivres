@@ -17,7 +17,7 @@ assert.match(shell, /\/\\\/admin\\\.html\$\//);
 assert.match(shell, /isActiveEntrypoint \? "active" : "preactivation"/);
 assert.match(shell, /isActiveEntrypoint \? "V11 · active" : "V11 · préactivation"/);
 assert.match(bridge, /V11_WATCH_WRITE_GUARD = !watchSubmissionEnabled/);
-assert.match(config, /adminV11WatchSubmissionEnabled: false/);
+assert.match(config, /adminV11WatchSubmissionEnabled: true/);
 assert.match(v11, /Aucune publication automatique/);
 assert.doesNotMatch(v11, /publication publique reste volontairement désactivée/);
 assert.match(v11, /Les présences peuvent être modifiées ; la suppression reste verrouillée/);

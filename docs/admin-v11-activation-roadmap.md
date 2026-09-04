@@ -17,11 +17,11 @@
 - préparation, édition et publication contrôlée des auteurs ;
 - exports, générateur social, widget partenaires et maintenance ;
 - intégration Auto-Matte en lecture et persistance de la veille ;
-- NFC Analytics validé sur staging isolé : collecte, RLS, cockpit et rollback.
+- NFC Analytics actif en production : collecte, RLS, cockpit, recette et rollback ;
+- soumission transactionnelle d’un candidat Veille vers un événement non validé.
 
 ### Encore verrouillé volontairement
 
-- création d’un événement depuis la Veille : `V11_WATCH_WRITE_GUARD` reste actif ;
 - fusion auteur : action destructive non ouverte ;
 - suppression des objets Communauté conservée verrouillée pour le lancement ; la modification des présences et la modération sont déjà actives ;
 - Studio de dédicace : module réservé ;
@@ -29,13 +29,12 @@
 Ces verrous ne doivent pas être retirés dans un lot de finition visuelle. Chacun
 exige son propre contrat serveur, ses tests RLS et sa procédure de rollback.
 
-## Lots restants avant activation
+## Lots restants après activation
 
-1. Appliquer et valider en production le RPC transactionnel Veille déjà fusionné, dans une opération séparée ; le verrou reste fermé jusque-là.
-2. Terminer la recette sur appareils physiques Safari iPhone, Chrome Android et tablette ; les largeurs correspondantes, les cibles tactiles et l’absence de débordement sont validées en émulation.
-3. Exécuter la coupure réseau réelle sur appareils ; les messages hors ligne/reconnexion, les boutons d’attente, les rôles/RLS NFC, les doubles clics et les sessions expirées sont couverts par le code et les tests.
-4. Point de restauration V10 vérifié au commit `4b6bf27` et manifeste de rollback préparé.
-5. Basculer `admin.html` vers la V11 dans une PR exclusivement dédiée à l’activation.
+1. Terminer la recette sur appareils physiques Safari iPhone, Chrome Android et tablette ; les largeurs correspondantes, les cibles tactiles et l’absence de débordement sont validées en émulation.
+2. Exécuter la coupure réseau réelle sur appareils ; les messages hors ligne/reconnexion, les boutons d’attente, les rôles/RLS NFC, les doubles clics et les sessions expirées sont couverts par le code et les tests.
+3. Conserver le point de restauration V10 au commit `4b6bf27` et le manifeste de rollback.
+4. Traiter séparément les fonctions encore verrouillées : fusion auteur, suppression Communauté et Studio de dédicace.
 
 ## Critères de bascule
 
@@ -48,6 +47,6 @@ exige son propre contrat serveur, ses tests RLS et sa procédure de rollback.
 
 ## Rollback
 
-La future bascule doit tenir dans un commit indépendant. Le rollback consiste à
-revenir ce commit afin de restaurer immédiatement la route V10, sans supprimer
-les fichiers V11 ni les données Supabase.
+Le rollback global reste le retour au point V10 `4b6bf27`. Pour la seule Veille,
+remettre `adminV11WatchSubmissionEnabled` à `false` coupe immédiatement la
+soumission sans supprimer les candidats, événements ou journaux d’audit.

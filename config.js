@@ -6,8 +6,8 @@ window.DEDICALIVRES_CONFIG = {
   // Espace Auteur — publication unitaire explicite, protégée par readiness + RLS.
   authorPublicPublishingEnabled: true,
 
-  // V11 Veille — restera false jusqu’à la recette staging et la validation admin.
-  adminV11WatchSubmissionEnabled: false,
+  // V11 Veille — RPC transactionnel appliqué et recette production validée le 4 septembre 2026.
+  adminV11WatchSubmissionEnabled: true,
 
   // V11 NFC — backend production appliqué et recette de sécurité validée le 4 septembre 2026.
   adminV11NfcCockpitEnabled: true,
