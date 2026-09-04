@@ -245,6 +245,13 @@
       "Diagnostic local de l’administration."
   };
 
+  function explainNfcUnavailable() {
+    toast(
+      "NFC non activé : le backend de production et ses règles de sécurité doivent d’abord être validés.",
+      "error"
+    );
+  }
+
   function renderMaintenanceStatus() {
     const maintenancePanel =
       document.getElementById("v11-maintenance-panel");
@@ -498,12 +505,26 @@
         card.dataset.toolOpen === "nfc" &&
         !nfcCockpitEnabled
       ) {
+        explainNfcUnavailable();
         return;
       }
 
       openToolWorkspace(
         card.dataset.toolOpen
       );
+    });
+
+    card.addEventListener("keydown", (event) => {
+      if (
+        card.dataset.toolOpen !== "nfc" ||
+        nfcCockpitEnabled ||
+        !["Enter", " "].includes(event.key)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      explainNfcUnavailable();
     });
   });
 

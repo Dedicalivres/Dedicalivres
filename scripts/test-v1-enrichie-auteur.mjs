@@ -2809,9 +2809,9 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
 
   assert.ok(
     adminHtml.includes(
-      'admin-shell.js?v=v11-71-nfc-production-guard'
+      'admin-shell.js?v=v11-72-nfc-disabled-feedback'
     ),
-    "V11.71 : le shell doit avoir le cache-buster du verrou NFC."
+    "V11.72 : le shell doit avoir le cache-buster du retour NFC désactivé."
   );
 }
 
