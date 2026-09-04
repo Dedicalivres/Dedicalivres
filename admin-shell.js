@@ -177,6 +177,38 @@
   const toolCards =
     document.querySelectorAll("[data-tool-open]");
 
+  const nfcCockpitEnabled =
+    window.DEDICALIVRES_CONFIG
+      ?.adminV11NfcCockpitEnabled === true;
+
+  const nfcToolCard =
+    document.querySelector('[data-tool-open="nfc"]');
+
+  if (nfcToolCard && !nfcCockpitEnabled) {
+    nfcToolCard.classList.remove("is-operational");
+    nfcToolCard.classList.add("is-reserved");
+    nfcToolCard.setAttribute("aria-disabled", "true");
+    nfcToolCard.title =
+      "Backend NFC non activé en production";
+
+    const status =
+      nfcToolCard.querySelector(".v11-chip");
+
+    if (status) {
+      status.classList.remove("info");
+      status.classList.add("neutral");
+      status.textContent = "À activer";
+    }
+
+    const description =
+      nfcToolCard.querySelector("p");
+
+    if (description) {
+      description.textContent =
+        "Cockpit préparé ; backend de production non activé.";
+    }
+  }
+
   const toolWorkspace =
     document.getElementById("v11-tool-workspace");
 
@@ -384,6 +416,10 @@
   function openToolWorkspace(name) {
     if (!toolWorkspace) return;
 
+    if (name === "nfc" && !nfcCockpitEnabled) {
+      return;
+    }
+
     toolWorkspace.hidden = false;
 
     if (toolWorkspaceTitle) {
@@ -458,6 +494,13 @@
 
   toolCards.forEach((card) => {
     card.addEventListener("click", () => {
+      if (
+        card.dataset.toolOpen === "nfc" &&
+        !nfcCockpitEnabled
+      ) {
+        return;
+      }
+
       openToolWorkspace(
         card.dataset.toolOpen
       );

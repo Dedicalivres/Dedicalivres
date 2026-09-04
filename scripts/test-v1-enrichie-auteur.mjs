@@ -2809,9 +2809,9 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
 
   assert.ok(
     adminHtml.includes(
-      'admin-shell.js?v=v11-69-polish-1'
+      'admin-shell.js?v=v11-71-nfc-production-guard'
     ),
-    "V11.69 : le shell doit avoir un cache-buster dédié."
+    "V11.71 : le shell doit avoir le cache-buster du verrou NFC."
   );
 }
 
