@@ -9,8 +9,8 @@ window.DEDICALIVRES_CONFIG = {
   // V11 Veille — restera false jusqu’à la recette staging et la validation admin.
   adminV11WatchSubmissionEnabled: false,
 
-  // V11 NFC — restera false tant que le schéma NFC n’est pas appliqué et validé en production.
-  adminV11NfcCockpitEnabled: false,
+  // V11 NFC — backend production appliqué et recette de sécurité validée le 4 septembre 2026.
+  adminV11NfcCockpitEnabled: true,
 
   // V7.8.0 — Upload hybride : les anciennes images Supabase restent valides,
   // les nouvelles images peuvent être envoyées vers Cloudflare R2 via Worker.
