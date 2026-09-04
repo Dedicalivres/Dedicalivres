@@ -216,8 +216,10 @@ button {
 
 .v11-icon-button,
 .v11-profile {
-  width: 40px;
-  height: 40px;
+  min-width: 44px;
+  width: 44px;
+  min-height: 44px;
+  height: 44px;
   border-radius: 11px;
   border: 1px solid var(--border);
   background: rgba(255,255,255,0.025);
@@ -267,6 +269,7 @@ button {
 
 .v11-primary-button {
   flex: 0 0 auto;
+  min-height: 44px;
   border: 0;
   padding: 12px 18px;
   border-radius: 11px;
@@ -360,6 +363,9 @@ button {
   color: var(--cyan);
   cursor: pointer;
   font-size: 12px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px;
 }
 
 .v11-task-list,
@@ -1325,8 +1331,8 @@ button {
 
 @media (max-width: 760px) {
   .v11-profile-logo {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     padding: 3px;
   }
 
@@ -1341,8 +1347,8 @@ button {
 
 @media (max-width: 430px) {
   .v11-profile-logo {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 
   .v11-topbar h1 {
