@@ -6187,6 +6187,8 @@ function renderEvents(events, status) {
     );
 
   let selectedV11AuthorId = null;
+  let v11AuthorMergeRunning = false;
+  let v11AuthorMergeCandidates = [];
 
   const authorConsolidationRun =
     document.getElementById(
@@ -6293,6 +6295,41 @@ function renderEvents(events, status) {
   const authorMergeButton =
     document.getElementById(
       "v11-author-merge"
+    );
+
+  const authorMergePanel =
+    document.getElementById(
+      "v11-author-merge-panel"
+    );
+
+  const authorMergeClose =
+    document.getElementById(
+      "v11-author-merge-close"
+    );
+
+  const authorMergeCandidate =
+    document.getElementById(
+      "v11-author-merge-candidate"
+    );
+
+  const authorMergePrimary =
+    document.getElementById(
+      "v11-author-merge-primary"
+    );
+
+  const authorMergePreview =
+    document.getElementById(
+      "v11-author-merge-preview"
+    );
+
+  const authorMergeConfirm =
+    document.getElementById(
+      "v11-author-merge-confirm"
+    );
+
+  const authorMergeHistoryList =
+    document.getElementById(
+      "v11-author-merge-history-list"
     );
 
   const authorEditor =
@@ -6557,6 +6594,56 @@ function renderEvents(events, status) {
     authorPublishButton.addEventListener(
       "click",
       toggleV11AuthorPublished
+    );
+  }
+
+  if (authorMergeButton) {
+    authorMergeButton.addEventListener(
+      "click",
+      openV11AuthorMergePanel
+    );
+  }
+
+  if (authorMergeClose) {
+    authorMergeClose.addEventListener(
+      "click",
+      closeV11AuthorMergePanel
+    );
+  }
+
+  if (authorMergeCandidate) {
+    authorMergeCandidate.addEventListener(
+      "change",
+      renderV11AuthorMergePreview
+    );
+  }
+
+  if (authorMergePrimary) {
+    authorMergePrimary.addEventListener(
+      "change",
+      renderV11AuthorMergePreview
+    );
+  }
+
+  if (authorMergeConfirm) {
+    authorMergeConfirm.addEventListener(
+      "click",
+      executeV11AuthorMerge
+    );
+  }
+
+  if (authorMergeHistoryList) {
+    authorMergeHistoryList.addEventListener(
+      "click",
+      function (event) {
+        const button = event.target.closest(
+          "[data-v11-author-merge-revert]"
+        );
+
+        if (button) {
+          executeV11AuthorMergeRevert(button);
+        }
+      }
     );
   }
 
@@ -8853,6 +8940,7 @@ function renderEvents(events, status) {
     }
 
     closeV11AuthorEditor();
+    closeV11AuthorMergePanel();
     selectedV11AuthorId = null;
   }
 
@@ -9685,6 +9773,359 @@ function renderEvents(events, status) {
     }
   }
 
+  function getV11AuthorMergeCandidates(author) {
+    const authors = (context.getState().community?.authors || [])
+      .filter((item) => !item?.merged_into);
+
+    if (
+      !author ||
+      !v11AuthorBackoffice ||
+      typeof v11AuthorBackoffice.findProbableAuthorDuplicates !== "function"
+    ) {
+      return [];
+    }
+
+    return v11AuthorBackoffice
+      .findProbableAuthorDuplicates(authors)
+      .filter((match) => (
+        String(match.left?.id) === String(author.id) ||
+        String(match.right?.id) === String(author.id)
+      ))
+      .map((match) => ({
+        author:
+          String(match.left?.id) === String(author.id)
+            ? match.right
+            : match.left,
+        score: match.score,
+        reasons: match.reasons || []
+      }));
+  }
+
+  function countV11AuthorLinkedPresences(author) {
+    const id = String(author?.id || "");
+    const slug = String(author?.slug || "");
+
+    return (context.getState().community?.presences || [])
+      .filter((presence) => (
+        presence?.participant_type !== "publisher" &&
+        (
+          (id && String(presence?.author_id || "") === id) ||
+          (
+            !presence?.author_id &&
+            slug &&
+            (
+              String(presence?.author_slug || "") === slug ||
+              String(presence?.author_identity_key || "") === slug
+            )
+          )
+        )
+      )).length;
+  }
+
+  function closeV11AuthorMergePanel() {
+    if (v11AuthorMergeRunning) return;
+    if (authorMergePanel) authorMergePanel.hidden = true;
+  }
+
+  function appendV11AuthorMergePreviewCard(label, author, presenceCount) {
+    if (!authorMergePreview) return;
+
+    const card = document.createElement("article");
+    const caption = document.createElement("span");
+    const name = document.createElement("strong");
+    const details = document.createElement("small");
+
+    caption.textContent = label;
+    name.textContent = author?.pseudo || author?.slug || "Auteur sans nom";
+    details.textContent =
+      (author?.slug || "Slug absent") +
+      " · " + presenceCount +
+      " présence" + (presenceCount > 1 ? "s" : "");
+
+    card.append(caption, name, details);
+    authorMergePreview.appendChild(card);
+  }
+
+  function renderV11AuthorMergePreview() {
+    if (
+      !authorMergeCandidate ||
+      !authorMergePrimary ||
+      !authorMergePreview
+    ) return;
+
+    const selected = getSelectedV11Author();
+    const candidateEntry = v11AuthorMergeCandidates.find(
+      (entry) => String(entry.author?.id) === authorMergeCandidate.value
+    );
+    const candidate = candidateEntry?.author;
+
+    authorMergePreview.replaceChildren();
+
+    if (!selected || !candidate) {
+      authorMergeConfirm.disabled = true;
+      return;
+    }
+
+    const currentPrimary = authorMergePrimary.value;
+    const allowedPrimaryIds = [String(selected.id), String(candidate.id)];
+
+    if (
+      authorMergePrimary.options.length !== 2 ||
+      !allowedPrimaryIds.includes(currentPrimary) ||
+      !allowedPrimaryIds.every((id) => (
+        Array.from(authorMergePrimary.options).some((option) => option.value === id)
+      ))
+    ) {
+      authorMergePrimary.replaceChildren();
+      [selected, candidate].forEach((item) => {
+        const option = document.createElement("option");
+        option.value = String(item.id);
+        option.textContent = item.pseudo || item.slug || "Auteur";
+        authorMergePrimary.appendChild(option);
+      });
+      authorMergePrimary.value = allowedPrimaryIds.includes(currentPrimary)
+        ? currentPrimary
+        : String(selected.id);
+    }
+
+    const primary =
+      authorMergePrimary.value === String(candidate.id)
+        ? candidate
+        : selected;
+    const secondary = primary === selected ? candidate : selected;
+
+    appendV11AuthorMergePreviewCard(
+      "Fiche conservée",
+      primary,
+      countV11AuthorLinkedPresences(primary)
+    );
+    appendV11AuthorMergePreviewCard(
+      "Fiche archivée",
+      secondary,
+      countV11AuthorLinkedPresences(secondary)
+    );
+
+    authorMergeConfirm.disabled = v11AuthorMergeRunning;
+    authorMergeConfirm.dataset.primaryId = String(primary.id || "");
+    authorMergeConfirm.dataset.secondaryId = String(secondary.id || "");
+    authorMergeConfirm.title =
+      "Correspondance " + candidateEntry.score + "% · " +
+      candidateEntry.reasons.join(", ");
+  }
+
+  async function loadV11AuthorMergeHistory() {
+    if (!authorMergeHistoryList) return;
+
+    authorMergeHistoryList.replaceChildren();
+    const client = context.getClient();
+
+    if (!client) return;
+
+    const response = await client
+      .from("author_merge_audit")
+      .select("id, primary_author_id, secondary_author_id, reassigned_presences, created_at, reverted_at")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (response.error) {
+      const message = document.createElement("p");
+      message.textContent = "Journal indisponible : " + response.error.message;
+      authorMergeHistoryList.appendChild(message);
+      return;
+    }
+
+    const authors = context.getState().community?.authors || [];
+    const authorName = (id) => {
+      const author = authors.find((item) => String(item.id) === String(id));
+      return author?.pseudo || author?.slug || String(id);
+    };
+
+    if (!response.data?.length) {
+      const empty = document.createElement("p");
+      empty.textContent = "Aucune fusion enregistrée.";
+      authorMergeHistoryList.appendChild(empty);
+      return;
+    }
+
+    response.data.forEach((audit) => {
+      const row = document.createElement("div");
+      const summary = document.createElement("div");
+      const title = document.createElement("strong");
+      const details = document.createElement("small");
+
+      row.className = "v11-author-merge-history-row";
+      title.textContent =
+        authorName(audit.secondary_author_id) + " → " +
+        authorName(audit.primary_author_id);
+      details.textContent =
+        Number(audit.reassigned_presences || 0) + " présence(s) · " +
+        (audit.reverted_at ? "Annulée" : "Active");
+      summary.append(title, details);
+      row.appendChild(summary);
+
+      if (!audit.reverted_at) {
+        const revert = document.createElement("button");
+        revert.type = "button";
+        revert.className = "v11-action-button";
+        revert.dataset.v11AuthorMergeRevert = String(audit.id);
+        revert.textContent = "Annuler cette fusion";
+        row.appendChild(revert);
+      }
+
+      authorMergeHistoryList.appendChild(row);
+    });
+  }
+
+  async function openV11AuthorMergePanel() {
+    const author = getSelectedV11Author();
+
+    if (
+      !author ||
+      window.DEDICALIVRES_CONFIG?.adminV11AuthorMergeEnabled !== true
+    ) return;
+
+    v11AuthorMergeCandidates = getV11AuthorMergeCandidates(author);
+
+    if (!v11AuthorMergeCandidates.length) {
+      window.alert("Aucun doublon suffisamment probable n’est disponible pour cette fiche.");
+      return;
+    }
+
+    authorMergeCandidate.replaceChildren();
+    v11AuthorMergeCandidates.forEach((entry) => {
+      const option = document.createElement("option");
+      option.value = String(entry.author.id);
+      option.textContent =
+        (entry.author.pseudo || entry.author.slug || "Auteur") +
+        " · " + entry.score + "%";
+      authorMergeCandidate.appendChild(option);
+    });
+
+    const candidate = v11AuthorMergeCandidates[0].author;
+    authorMergePrimary.replaceChildren();
+    [author, candidate].forEach((item) => {
+      const option = document.createElement("option");
+      option.value = String(item.id);
+      option.textContent = item.pseudo || item.slug || "Auteur";
+      authorMergePrimary.appendChild(option);
+    });
+
+    authorMergePanel.hidden = false;
+    renderV11AuthorMergePreview();
+    await loadV11AuthorMergeHistory();
+    authorMergePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function v11AuthorMergeErrorMessage(error, fallback) {
+    const message = String(error?.message || "");
+
+    if (message.includes("presence_event_conflict")) {
+      return "Fusion bloquée : les deux fiches ont une présence sur le même événement.";
+    }
+    if (message.includes("already_merged")) {
+      return "Fusion bloquée : une fiche est déjà fusionnée.";
+    }
+    if (message.includes("admin_required")) {
+      return "Action refusée : droits administrateur requis.";
+    }
+    if (message.includes("merge_state_changed")) {
+      return "Retour arrière bloqué : l’état a changé depuis la fusion.";
+    }
+    if (message.includes("presence_restore_count_mismatch")) {
+      return "Retour arrière bloqué : certaines présences ont changé.";
+    }
+    if (message.includes("merge_already_reverted")) {
+      return "Cette fusion a déjà été annulée.";
+    }
+    return fallback;
+  }
+
+  async function executeV11AuthorMerge() {
+    if (v11AuthorMergeRunning || !authorMergeConfirm) return;
+
+    const primaryId = String(authorMergeConfirm.dataset.primaryId || "");
+    const secondaryId = String(authorMergeConfirm.dataset.secondaryId || "");
+    const state = context.getState();
+    const authors = state.community?.authors || [];
+    const primary = authors.find((item) => String(item.id) === primaryId);
+    const secondary = authors.find((item) => String(item.id) === secondaryId);
+
+    if (!primary || !secondary || primaryId === secondaryId) {
+      window.alert("Fusion impossible : sélection invalide.");
+      return;
+    }
+
+    if (!window.confirm(
+      "CONFIRMER LA FUSION\n\n" +
+      "Fiche conservée : " + (primary.pseudo || primary.slug) + "\n" +
+      "Fiche archivée : " + (secondary.pseudo || secondary.slug) + "\n\n" +
+      "Aucune suppression physique. Un retour arrière restera possible depuis le journal."
+    )) return;
+
+    v11AuthorMergeRunning = true;
+    authorMergeConfirm.disabled = true;
+    authorMergeConfirm.textContent = "Fusion en cours…";
+
+    try {
+      const response = await context.getClient().rpc("merge_author_profiles", {
+        p_primary_id: primaryId,
+        p_secondary_id: secondaryId
+      });
+
+      if (response.error) throw response.error;
+
+      selectedV11AuthorId = primaryId;
+      await context.refresh();
+      const refreshed = getSelectedV11Author();
+      if (refreshed) renderV11AuthorDetail(refreshed);
+      authorMergePanel.hidden = true;
+      v11CommunityMessage("Fusion auteur terminée et journalisée.");
+    } catch (error) {
+      console.error("V11 fusion auteur", error);
+      window.alert(v11AuthorMergeErrorMessage(error, "Fusion auteur impossible."));
+    } finally {
+      v11AuthorMergeRunning = false;
+      authorMergeConfirm.disabled = false;
+      authorMergeConfirm.textContent = "Confirmer la fusion";
+    }
+  }
+
+  async function executeV11AuthorMergeRevert(button) {
+    if (v11AuthorMergeRunning) return;
+
+    const auditId = String(button?.dataset?.v11AuthorMergeRevert || "");
+    if (!auditId) return;
+
+    if (!window.confirm(
+      "CONFIRMER LE RETOUR ARRIÈRE\n\n" +
+      "La fiche archivée et ses présences seront restaurées depuis le journal. " +
+      "L’opération sera bloquée si l’état a changé."
+    )) return;
+
+    v11AuthorMergeRunning = true;
+    button.disabled = true;
+    button.textContent = "Annulation…";
+
+    try {
+      const response = await context.getClient().rpc("revert_author_merge", {
+        p_audit_id: auditId
+      });
+
+      if (response.error) throw response.error;
+
+      await context.refresh();
+      await loadV11AuthorMergeHistory();
+      v11CommunityMessage("Fusion auteur annulée et fiche restaurée.");
+    } catch (error) {
+      console.error("V11 retour arrière fusion auteur", error);
+      window.alert(v11AuthorMergeErrorMessage(error, "Retour arrière impossible."));
+      button.disabled = false;
+      button.textContent = "Annuler cette fusion";
+    } finally {
+      v11AuthorMergeRunning = false;
+    }
+  }
+
   function renderV11AuthorDetail(item) {
     if (
       !authorDetail ||
@@ -10015,7 +10456,22 @@ function renderEvents(events, status) {
     }
 
     if (authorMergeButton) {
-      authorMergeButton.disabled = true;
+      const mergeEnabled =
+        window.DEDICALIVRES_CONFIG
+          ?.adminV11AuthorMergeEnabled === true;
+      const mergeCandidates =
+        getV11AuthorMergeCandidates(item);
+
+      authorMergeButton.disabled =
+        !mergeEnabled ||
+        mergeCandidates.length === 0;
+
+      authorMergeButton.title =
+        !mergeEnabled
+          ? "Fusion auteur désactivée"
+          : mergeCandidates.length
+            ? mergeCandidates.length + " doublon(s) potentiel(s) à comparer"
+            : "Aucun doublon suffisamment probable";
     }
 
     authorDetail.scrollIntoView({

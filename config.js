@@ -9,6 +9,9 @@ window.DEDICALIVRES_CONFIG = {
   // V11 Veille — RPC transactionnel appliqué et recette production validée le 4 septembre 2026.
   adminV11WatchSubmissionEnabled: true,
 
+  // V11 Auteurs — fusion unitaire auditée avec retour arrière transactionnel.
+  adminV11AuthorMergeEnabled: true,
+
   // V11 NFC — backend production appliqué et recette de sécurité validée le 4 septembre 2026.
   adminV11NfcCockpitEnabled: true,
 
