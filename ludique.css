@@ -654,7 +654,12 @@ html.a11y-dyslexie .lud-lignes{ display:none }
     padding-bottom:16px !important;
     min-height:auto !important;
   }
-  .association-hero-brand img{ max-height:140px; width:auto }
+  .association-hero-brand img{
+    width:100%;
+    height:auto;
+    max-height:none;
+    object-fit:contain;
+  }
   .association-hero-copy{ gap:6px !important }
 }
 
