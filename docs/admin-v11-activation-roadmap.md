@@ -2,9 +2,9 @@
 
 ## Versions à ne pas confondre
 
-- `admin.html` est le point d’entrée actif : V10 avant la bascule, copie validée de la V11 après celle-ci.
-- `admin-v11.html` reste la source V11 de référence et la route de préactivation.
-- Aucun lot V11 ne doit modifier le point d’entrée actif avant la bascule finale validée.
+- `admin.html` est le point d’entrée actif et correspond à la V11 validée.
+- `admin-v11.html` reste la source V11 de référence ; les deux fichiers doivent rester identiques.
+- La V10 demeure restaurable depuis le commit `4b6bf27`, uniquement par une branche et une PR dédiées.
 
 ## État vérifié
 
@@ -19,22 +19,22 @@
 - exports, générateur social, widget partenaires et maintenance ;
 - intégration Auto-Matte en lecture et persistance de la veille ;
 - NFC Analytics actif en production : collecte, RLS, cockpit, recette et rollback ;
-- soumission transactionnelle d’un candidat Veille vers un événement non validé.
+- soumission transactionnelle d’un candidat Veille vers un événement non validé ;
+- retrait réversible des présences auteurs et témoignages, protégé côté serveur et activé après les PR #140 et #141.
 
-### Encore verrouillé volontairement
+### Hors périmètre actif
 
-- retrait réversible des objets Communauté préparé, mais verrouillé jusqu’à validation et application de son backend ;
 - Studio de dédicace : module réservé ;
 
-Ces verrous ne doivent pas être retirés dans un lot de finition visuelle. Chacun
-exige son propre contrat serveur, ses tests RLS et sa procédure de rollback.
+Le Studio ne doit pas être activé dans un lot de finition. Il exige d’abord un
+cadrage produit, puis son propre contrat serveur, ses tests et sa procédure de rollback.
 
 ## Lots restants après activation
 
 1. Terminer la recette sur appareils physiques Safari iPhone, Chrome Android et tablette ; les largeurs correspondantes, les cibles tactiles et l’absence de débordement sont validées en émulation.
 2. Exécuter la coupure réseau réelle sur appareils ; les messages hors ligne/reconnexion, les boutons d’attente, les rôles/RLS NFC, les doubles clics et les sessions expirées sont couverts par le code et les tests.
 3. Conserver le point de restauration V10 au commit `4b6bf27` et le manifeste de rollback.
-4. Traiter séparément les fonctions encore verrouillées : suppression Communauté et Studio de dédicace.
+4. Cadrer séparément le Studio de dédicace avant tout développement ou activation.
 
 ## Critères de bascule
 
@@ -49,4 +49,6 @@ exige son propre contrat serveur, ses tests RLS et sa procédure de rollback.
 
 Le rollback global reste le retour au point V10 `4b6bf27`. Pour la seule Veille,
 remettre `adminV11WatchSubmissionEnabled` à `false` coupe immédiatement la
-soumission sans supprimer les candidats, événements ou journaux d’audit.
+soumission sans supprimer les candidats, événements ou journaux d’audit. Pour
+la Communauté, remettre `adminV11CommunityArchiveEnabled` à `false` coupe les
+actions d’archivage et de restauration sans supprimer les données.
