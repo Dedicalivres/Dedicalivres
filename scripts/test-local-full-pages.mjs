@@ -79,9 +79,13 @@ try {
   await home.reload();
   await home.locator('#local-results a').waitFor();
   assert.equal(await home.locator('#local-results a').count(), 1);
-  await home.locator('#saved-events').scrollIntoViewIfNeeded();
+  // Freeze decorative movement for reproducible captures, keeping the real CSS layout.
+  await home.addStyleTag({ content: 'html { scroll-behavior: auto !important; } *, *::before, *::after { animation: none !important; transition: none !important; }' });
+  await home.setViewportSize({ width: 390, height: 1100 });
+  await home.evaluate(() => window.scrollTo(0, document.querySelector('#saved-events').getBoundingClientRect().top + window.scrollY - 150));
   await home.locator('#saved-events').screenshot({ path: path.join(output, engine + '-favoris-mobile.png') });
   await home.setViewportSize({ width: 1365, height: 1000 });
+  await home.evaluate(() => window.scrollTo(0, document.querySelector('#saved-events').getBoundingClientRect().top + window.scrollY - 150));
   await home.locator('#saved-events').screenshot({ path: path.join(output, engine + '-favoris-desktop.png') });
   await home.click('#local-seen');
   await home.reload();
