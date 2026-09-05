@@ -2809,7 +2809,7 @@ console.log("V1 enrichie auteur + back-office : contr√¥les fonctionnels et de s√
 
   assert.ok(
     adminHtml.includes(
-      'admin-shell.js?v=v11-76-mobile-active-badge'
+      'admin-shell.js?v=v11-77-active-alias'
     ),
     "V11.76 : le shell doit avoir le cache-buster du badge actif mobile."
   );
