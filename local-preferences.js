@@ -50,7 +50,10 @@
     if (!panel) return;
     const list = document.getElementById('local-rules');
     list.replaceChildren();
-    store.read().rules.forEach((rule, index) => {
+    const rules = store.read().rules;
+    const count = document.getElementById('local-rule-count');
+    if (count) count.textContent = `${rules.length} suivi${rules.length > 1 ? 's' : ''} enregistré${rules.length > 1 ? 's' : ''} sur 20`;
+    rules.forEach((rule, index) => {
       const li = document.createElement('li');
       const text = [rule.country ? (root.DEDICALIVRES_GEO?.getCountryName(rule.country) || rule.country) : '', rule.region, rule.type].filter(Boolean).join(' · ') || 'Tous les événements';
       li.textContent = text + ' ';
@@ -78,11 +81,47 @@
     });
     document.getElementById('local-seen').disabled = !fresh.length;
   }
+  function selection() {
+    return { country: document.getElementById('local-country').value,
+      region: document.getElementById('local-region').value,
+      type: document.getElementById('local-type').value };
+  }
+  function updatePicker() {
+    const country = document.getElementById('local-country');
+    const region = document.getElementById('local-region');
+    const type = document.getElementById('local-type');
+    if (!country || !catalog) return;
+    function options(select, values, emptyLabel, label = x => x) {
+      const previous = select.value;
+      select.replaceChildren();
+      const empty = document.createElement('option'); empty.value = ''; empty.textContent = emptyLabel; select.append(empty);
+      [...new Set(values.filter(v => typeof v === 'string' && v))].sort((a,b) => label(a).localeCompare(label(b), 'fr')).forEach(value => {
+        const option = document.createElement('option'); option.value = value; option.textContent = label(value); select.append(option);
+      });
+      select.value = [...select.options].some(o => o.value === previous) ? previous : '';
+    }
+    options(country, catalog.map(e => e.country_code), 'Tous les pays', value => root.DEDICALIVRES_GEO?.getCountryName(value) || value);
+    options(region, catalog.filter(e => !country.value || e.country_code === country.value).map(e => e.region), 'Toutes les régions');
+    options(type, catalog.map(e => e.type), 'Tous les types');
+    document.getElementById('local-selection').textContent = [country.selectedOptions[0].textContent, region.selectedOptions[0].textContent, type.selectedOptions[0].textContent].join(' · ');
+  }
   if (panel) {
+    ['local-country', 'local-region', 'local-type'].forEach(id => document.getElementById(id)?.addEventListener('change', updatePicker));
+    document.getElementById('local-copy-filters')?.addEventListener('click', () => {
+      if (!catalog) { status('Attendez le chargement réussi de l’agenda.'); return; }
+      document.getElementById('local-country').value = document.getElementById('country-filter')?.value || '';
+      updatePicker();
+      document.getElementById('local-region').value = document.getElementById('region-filter')?.value || '';
+      document.getElementById('local-type').value = document.getElementById('type-filter')?.value || '';
+      updatePicker();
+    });
     document.getElementById('local-save-search').onclick = () => {
       if (!catalog) { status('Attendez le chargement réussi de l’agenda.'); return; }
-      const rule = { country: document.getElementById('country-filter')?.value, region: document.getElementById('region-filter')?.value, type: document.getElementById('type-filter')?.value };
-      status(store.add(rule, catalog) ? 'Critères enregistrés ici. Les prochains événements correspondants apparaîtront à votre retour.' : 'Enregistrement impossible : stockage indisponible ou limite de 20 suivis atteinte.'); render();
+      const rule = selection();
+      if (store.read().rules.some(r => r.country === rule.country && r.region === rule.region && r.type === rule.type)) {
+        status('Ce suivi est déjà enregistré. Choisissez d’autres critères pour en ajouter un.'); return;
+      }
+      status(store.add(rule, catalog) ? 'Suivi ajouté. Vos autres suivis sont conservés. Les nouveautés apparaîtront lors de vos prochaines visites.' : 'Enregistrement impossible : stockage indisponible ou limite de 20 suivis atteinte.'); render();
     };
     document.getElementById('local-seen').onclick = () => { if (catalog) { status(store.acknowledge(catalog) ? 'Nouveautés marquées comme vues.' : 'Enregistrement impossible.'); render(); } };
     document.getElementById('local-clear').onclick = () => {
@@ -93,7 +132,7 @@
         status('Favoris, critères et informations auteur mémorisés effacés.'); render();
       } catch (_) { status('Effacement incomplet : le stockage est indisponible.'); }
     };
-    root.addEventListener('dedicalivres:catalog-loaded', e => { catalog = e.detail; render(); });
+    root.addEventListener('dedicalivres:catalog-loaded', e => { catalog = e.detail; updatePicker(); render(); });
     root.addEventListener('dedicalivres:catalog-error', () => {
       catalog = null;
       document.getElementById('local-count').textContent = 'Nouveautés indisponibles pour le moment';
