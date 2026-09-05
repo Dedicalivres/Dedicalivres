@@ -10,7 +10,7 @@ const config = fs.readFileSync("config.js", "utf8");
 const readme = fs.readFileSync("README.md", "utf8");
 
 assert.match(v10, /Dédicalivres — Admin V(?:10|11)/);
-assert.match(v11, /data-v11-release-state="preactivation"/);
+assert.match(v11, /data-v11-release-state="active">V11 · active/);
 assert.match(readme, /Point d’entrée admin actif/);
 assert.match(readme, /Source V11 de référence/);
 assert.match(shell, /\/\\\/admin\\\.html\$\//);

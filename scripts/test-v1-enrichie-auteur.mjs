@@ -2809,9 +2809,9 @@ console.log("V1 enrichie auteur + back-office : contrôles fonctionnels et de s�
 
   assert.ok(
     adminHtml.includes(
-      'admin-shell.js?v=v11-75-community-archive'
+      'admin-shell.js?v=v11-76-mobile-active-badge'
     ),
-    "V11.75 : le shell doit avoir le cache-buster de l’archivage Communauté."
+    "V11.76 : le shell doit avoir le cache-buster du badge actif mobile."
   );
 }
 
