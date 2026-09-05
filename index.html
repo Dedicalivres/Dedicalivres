@@ -65,7 +65,7 @@
   <link rel="stylesheet" href="ludique.css?v=ludique-22-logo-aspect" />
   <link rel="stylesheet" href="accessibilite.css?v=a11y-9" />
   <link rel="stylesheet" href="agenda-premium.css?v=premium-1" />
-  <link rel="stylesheet" href="local-preferences.css?v=2" />
+  <link rel="stylesheet" href="local-preferences.css?v=3" />
 </head>
 
 <body data-agenda-mode="global">
@@ -294,8 +294,16 @@
       </div>
     <section id="local-discoveries" aria-labelledby="local-title">
       <h3 id="local-title">Mes critères favoris</h3>
-      <p>Choisissez un pays, une région et un type dans les <a href="#agenda-filters">filtres de l’agenda</a>, puis cliquez sur « Suivre ces critères ».</p>
-      <button id="local-save-search" class="btn-secondary" type="button">Suivre ces critères</button>
+      <p>Ajoutez plusieurs suivis indépendants, par exemple les salons en Bretagne et les dédicaces en Belgique. Chaque ajout conserve les précédents (20 maximum).</p>
+      <div class="local-criteria-picker">
+        <label>Pays<select id="local-country"><option value="">Tous les pays</option></select></label>
+        <label>Région<select id="local-region"><option value="">Toutes les régions</option></select></label>
+        <label>Type de rencontre<select id="local-type"><option value="">Tous les types</option></select></label>
+      </div>
+      <p id="local-selection" aria-live="polite">Tous les événements</p>
+      <button id="local-save-search" class="btn-secondary" type="button">Ajouter ce suivi</button>
+      <button id="local-copy-filters" class="btn-secondary" type="button">Reprendre les filtres de l’agenda</button>
+      <p id="local-rule-count" aria-live="polite"></p>
       <ul id="local-rules"></ul>
       <h3 id="local-count">Chargement des nouveautés…</h3>
       <p>À votre retour, retrouvez ici les nouveaux événements. Ils restent visibles jusqu’à « Marquer comme vu ».</p>
@@ -424,7 +432,7 @@
 
 <script src="config.js?v=shared-client-1"></script>
 <script src="geography.js?v=v1-francophone-20260620-map-authors"></script>
-<script src="local-preferences.js?v=1"></script>
+<script src="local-preferences.js?v=2"></script>
 <script src="app.js?v=local-preferences-1"></script>
 
 <script src="tracking-v4.js?v=shared-client-1"></script>

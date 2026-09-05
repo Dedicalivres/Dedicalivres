@@ -53,8 +53,21 @@ try {
   await home.selectOption('#country-filter', 'FR');
   await home.selectOption('#region-filter', 'Bretagne');
   await home.selectOption('#type-filter', 'Salon');
+  await home.click('#local-copy-filters');
   await home.click('#local-save-search');
   assert.equal(await home.locator('#local-rules li').count(), 1);
+  await home.selectOption('#local-region', '');
+  await home.click('#local-save-search');
+  assert.equal(await home.locator('#local-rules li').count(), 2);
+  await home.click('#local-save-search');
+  assert.equal(await home.locator('#local-rules li').count(), 2);
+  assert.match(await home.locator('#local-feedback').textContent(), /déjà enregistré/);
+  await home.reload();
+  await home.locator('#events-grid [data-favorite-id="1"]').waitFor();
+  assert.equal(await home.locator('#local-rules li').count(), 2);
+  await home.locator('#local-rules li').nth(1).locator('button').click();
+  assert.equal(await home.locator('#local-rules li').count(), 1);
+
   const before = await home.evaluate(() => window.__writes.length);
   await home.locator('#events-grid [data-favorite-id="1"]').click();
   assert.equal(await home.evaluate(() => window.__writes.length), before);

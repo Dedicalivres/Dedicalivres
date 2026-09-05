@@ -20,3 +20,8 @@
 .local-author-draft p { font-size: .9rem; }
 .local-author-draft button { padding: 10px; font: inherit; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 8px; }
 @media (max-width: 600px) { #local-discoveries .btn-secondary { width: 100%; } }
+
+#local-discoveries .local-criteria-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+#local-discoveries .local-criteria-picker label { display: grid; gap: 6px; font-weight: 600; min-width: 0; }
+#local-discoveries .local-criteria-picker select { width: 100%; min-width: 0; min-height: 44px; font: inherit; padding: 8px; border: 1px solid #b8a6cd; border-radius: 8px; }
+@media (max-width: 600px) { #local-discoveries .local-criteria-picker { grid-template-columns: 1fr; } }
