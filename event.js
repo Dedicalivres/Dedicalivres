@@ -343,6 +343,9 @@
     calendarButton?.addEventListener("click", () => downloadICS(event));
     shareButton?.addEventListener("click", () => shareEvent(event, shareFeedback));
     refreshFavoriteButton();
+    window.addEventListener('storage', event => {
+      if (event.key === FAVORITES_KEY || event.key === null) refreshFavoriteButton();
+    });
   }
 
   async function shareEvent(event, feedback) {
@@ -431,7 +434,12 @@
     const key = String(id || "");
     if (!key) return;
     const next = ids.includes(key) ? ids.filter((item) => item !== key) : [...ids, key];
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify([...new Set(next)]));
+    try {
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify([...new Set(next)]));
+    } catch (_) {
+      window.alert('Vos favoris ne peuvent pas être enregistrés : le stockage de ce navigateur est indisponible.');
+      return;
+    }
     window.dispatchEvent(new CustomEvent("dedicalivres:favorites-updated"));
   }
 

@@ -5,6 +5,8 @@
   "description": "Tests automatisés pour le Worker d'export Dédicalivres",
   "type": "module",
   "scripts": {
+    "test:local": "node --check local-preferences.js && node --check author-local-draft.js && node --check app.js && node --check event.js && node scripts/test-local-preferences.mjs && node scripts/test-public-catalog.mjs",
+    "test:local-browser": "node scripts/test-local-full-pages.mjs",
     "test:export": "node test-export.js",
     "test:admin-extract": "node test-admin-extract.js",
     "test:v1-enrichie-auteur": "node scripts/test-v1-enrichie-auteur.mjs",

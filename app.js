@@ -580,27 +580,38 @@
     return map;
   }
 
+  async function fetchPublicCatalog(columns) {
+    // Stable ID cursor avoids the API row limit without sending local preferences.
+    const rows = [];
+    const seen = new Set();
+    let cursor = null;
+    for (let page = 0; page < 200; page += 1) {
+      let query = supabaseClient.from('events').select(columns)
+        .eq('validated', true).eq('rejected', false)
+        .order('id', { ascending: true }).limit(500);
+      if (cursor !== null) query = query.gt('id', cursor);
+      const response = await query;
+      if (response.error) return response;
+      if (!Array.isArray(response.data)) return { data: null, error: new Error('Catalogue invalide') };
+      if (!response.data.length) return { data: rows, error: null };
+      for (const event of response.data) {
+        if (event.id == null || seen.has(String(event.id))) return { data: null, error: new Error('Pagination du catalogue incohérente') };
+        seen.add(String(event.id)); rows.push(event);
+      }
+      cursor = response.data[response.data.length - 1].id;
+    }
+    return { data: null, error: new Error('Catalogue trop volumineux pour être chargé complètement') };
+  }
+
   async function loadEvents() {
     setLoadingState();
 
     const legacyColumns = "id,title,type,country_code,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng";
     const registrationColumns = "registration_enabled,registration_open_date,registration_deadline,registration_url,registration_audience,registration_note,registration_force_status";
-    let response = await supabaseClient
-      .from("events")
-      .select(`${legacyColumns},${registrationColumns}`)
-      .eq("validated", true)
-      .eq("rejected", false)
-      .order("featured", { ascending: false })
-      .order("start_date", { ascending: true });
+    let response = await fetchPublicCatalog(`${legacyColumns},${registrationColumns}`);
 
     if (response.error && isMissingColumnError(response.error)) {
-      response = await supabaseClient
-        .from("events")
-        .select(legacyColumns)
-        .eq("validated", true)
-        .eq("rejected", false)
-        .order("featured", { ascending: false })
-        .order("start_date", { ascending: true });
+      response = await fetchPublicCatalog(legacyColumns);
     }
 
     const { data, error } = response;
@@ -608,10 +619,12 @@
     if (error) {
       console.error(error);
       setErrorState("Impossible de charger les événements.");
+      window.dispatchEvent(new CustomEvent('dedicalivres:catalog-error'));
       return;
     }
 
     allEvents = Array.isArray(data) ? data : [];
+    window.dispatchEvent(new CustomEvent('dedicalivres:catalog-loaded', { detail: allEvents.filter(event => !isPastEvent(event)).map(event => ({ ...event, country_code: geo?.getCountryCode(event) || event.country_code })) }));
     renderFilteredEvents();
     renderSavedFavorites();
   }
@@ -1142,7 +1155,7 @@
 
   function bindFavorites() {
     clearFavoritesButton?.addEventListener("click", () => {
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify([]));
+      setFavoriteIds([]);
       refreshFavoriteButtons();
       renderSavedFavorites();
     });
@@ -1176,7 +1189,7 @@
     favoritesList?.addEventListener("click", handleFavoriteClick);
 
     window.addEventListener("storage", (event) => {
-      if (event.key !== FAVORITES_KEY) return;
+      if (event.key !== FAVORITES_KEY && event.key !== null) return;
 
       refreshFavoriteButtons();
       renderSavedFavorites();
@@ -1193,10 +1206,14 @@
   }
 
   function setFavoriteIds(ids) {
+    try {
     localStorage.setItem(
       FAVORITES_KEY,
       JSON.stringify([...new Set(ids.map(String).filter(Boolean))])
     );
+    } catch (_) {
+      window.alert('Vos favoris ne peuvent pas être enregistrés : le stockage de ce navigateur est indisponible.');
+    }
   }
 
   function isFavorite(id) {
