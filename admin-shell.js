@@ -91,18 +91,11 @@
       "[data-v11-release-state]"
     );
 
-  const isActiveEntrypoint =
-    /\/admin\.html$/.test(
-      window.location.pathname
-    );
-
   if (releaseState) {
-    releaseState.dataset.v11ReleaseState =
-      isActiveEntrypoint ? "active" : "preactivation";
-    releaseState.textContent =
-      isActiveEntrypoint ? "V11 · active" : "V11 · préactivation";
-    releaseState.classList.toggle("ok", isActiveEntrypoint);
-    releaseState.classList.toggle("warning", !isActiveEntrypoint);
+    releaseState.dataset.v11ReleaseState = "active";
+    releaseState.textContent = "V11 · active";
+    releaseState.classList.add("ok");
+    releaseState.classList.remove("warning");
   }
 
   if (!authGate) {
