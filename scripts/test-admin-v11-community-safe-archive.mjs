@@ -12,7 +12,8 @@ const sql = fs.readFileSync(
 );
 
 assert.equal(activeHtml, html, "admin.html doit rester identique à admin-v11.html");
-assert.match(config, /adminV11CommunityArchiveEnabled:\s*false/);
+assert.match(config, /adminV11CommunityArchiveEnabled:\s*true/);
+assert.match(html, /Le retrait réversible est disponible pour les administrateurs/);
 assert.match(html, /id="v11-community-archive-panel"/);
 assert.match(html, /id="v11-community-archive-reason"/);
 assert.match(html, /id="v11-community-archive-confirm"/);
