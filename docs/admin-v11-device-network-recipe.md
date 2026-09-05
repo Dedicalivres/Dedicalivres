@@ -8,8 +8,8 @@
 - message distinct pour une erreur réseau et des identifiants refusés ;
 - état « Hors ligne » dans le bloc Supabase ;
 - notification lors de la perte et du retour de connexion ;
-- verrou de soumission Veille conservé à `false` ;
-- aucun changement apporté à la V10.
+- verrou de soumission Veille activé après validation de son backend ;
+- point d’entrée actif V11 conservé identique à sa source de référence.
 
 ## Matrice de validation
 
