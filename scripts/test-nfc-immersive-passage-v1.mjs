@@ -20,6 +20,13 @@ assert.doesNotMatch(html, /data:image\//);
 assert.doesNotMatch(css, /filter:\s*blur/);
 assert.doesNotMatch(js, /navigator\.geolocation/);
 assert.doesNotMatch(js, /fetch\s*\(/);
+const images = [...html.matchAll(/src="(\/assets\/nfc\/[^\"]+\.webp)"/g)].map(match => match[1]);
+assert.equal(images.length, 5, 'five illustrations required');
+let totalBytes = 0;
+for (const image of images) totalBytes += fs.statSync(path.join(root, image)).size;
+assert.ok(totalBytes < 1500000, 'mobile image budget');
+assert.match(html, /visual-scroll\.js\?v=/);
+new vm.Script(fs.readFileSync(path.join(root, 'nfc/visual-scroll.js'), 'utf8'));
 
 const context = { window: {}, URLSearchParams };
 vm.createContext(context);

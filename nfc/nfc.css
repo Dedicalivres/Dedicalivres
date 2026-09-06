@@ -10,8 +10,41 @@
   --muted: #c7bfce;
 }
 
+/* Five complete illustrations; HTML copy remains separate from the artwork. */
+html { scroll-snap-type: none; }
+body { background: #0e0917; }
+.passage-skip { display: inline-flex; gap: 10px; align-items: center; min-height: 44px; font-size: .85rem; text-decoration: none; }
+.passage-header .passage-brand { color: #fff6e8; font: 1.4rem Georgia, serif; letter-spacing: -.04em; text-transform: none; }
+.passage-header > a { text-decoration: none; }
+.passage { position: relative; z-index: 1; }
+.passage .scene { display: block; position: relative; max-width: 640px; margin: 0 auto; min-height: 0; overflow: visible; background: transparent; padding: calc(82px + env(safe-area-inset-top)) 20px calc(54px + env(safe-area-inset-bottom)); }
+.passage .scene:nth-child(n) { background: transparent; }
+.scene-art { margin: 0 auto; width: 100%; }
+.scene-art img { display: block; width: 100%; height: auto; object-fit: contain; }
+.passage .scene-content { position: relative; width: auto; text-align: center; margin: -24% -12px 0; padding: 54px 14px 20px; background: linear-gradient(transparent, rgba(14,9,23,.94) 54px, #0e0917); }
+.passage .scene-index { color: #f0d59b; margin: 0 0 16px; }
+.passage h1, .passage h2 { font-size: clamp(1.9rem, 6.7vw, 3.2rem); line-height: 1.12; margin: 0 auto 20px; }
+.passage .scene-content > p:not(.scene-index) { color: #e0d6e5; font-size: .95rem; line-height: 1.6; }
+.passage .scene-next, .passage .secondary-link { align-items: center; min-height: 44px; margin-top: 16px; color: #e0d6e5; font-size: .9rem; }
+.passage .word-cloud { gap: 12px 16px; margin: 24px auto; max-width: 340px; font-size: .9rem; }
+.passage .word-cloud span { padding: 0; border: 0; background: none; }
+.passage .intent-grid { gap: 10px; margin: 20px auto; }
+.passage .intent-grid button { min-height: 48px; padding: 12px; border: 1px solid #9e875c; border-radius: 10px; background: #191222; font-size: .9rem; }
+.passage .intent-grid button:hover, .passage .intent-grid button[aria-pressed="true"] { color: #0e0917; background: #f0d59b; border-color: #f0d59b; }
+.passage .intent-grid button:focus-visible { outline: 3px solid #f0d59b; outline-offset: 5px; }
+.passage .enter-button { margin-top: 26px; border-radius: 10px; background: #f0d59b; color: #261630; box-shadow: none; }
+.passage .scene-exit { color-scheme: dark; }
+.passage .scene-exit .secondary-link { color: #e0d6e5; }
+.passage-visuals { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.passage-visuals .scene-art { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; padding: calc(72px + env(safe-area-inset-top)) 10px 12px; }
+.passage-visuals img { width: 100%; height: 100%; object-fit: contain; }
+.visual-scroll .passage .scene { max-width: 620px; min-height: 120svh; display: flex; align-items: flex-end; padding-top: 64svh; padding-bottom: 9svh; }
+.visual-scroll .passage .scene:last-child { min-height: 100svh; }
+.visual-scroll .passage .scene:first-child { min-height: 100svh; padding-top: 54svh; padding-bottom: 4svh; }
+.visual-scroll .passage .scene-content { width: 100%; margin: 0; border-radius: 12px; }
+
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-snap-type: y proximity; }
+html { scroll-behavior: smooth; scroll-snap-type: none; }
 body {
   margin: 0;
   background: var(--night);
