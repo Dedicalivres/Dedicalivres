@@ -215,6 +215,7 @@
     document.getElementById("v11-tool-close");
 
   const toolLabels = {
+    photos: "Extraire photos",
     watch: "Auto-Matte / Veille",
     exports: "Exports",
     social: "Social",
@@ -428,6 +429,7 @@
     }
 
     const slotMap = {
+      photos: "tab-photos",
       watch: "tab-watch",
       exports: "tab-exports",
       social: "tab-social",
@@ -463,6 +465,8 @@
         toolDescriptions[name] ||
         "Outil indisponible dans cet espace.";
     }
+
+    if (name === "photos") window.DEDICALIVRES_PHOTO_BATCH?.open();
 
     if (name === "maintenance") {
       renderMaintenanceStatus();
@@ -3623,8 +3627,8 @@ function renderEvents(events, status) {
     }
 
     if (
-      resolvedTarget ===
-      "authors-almost"
+      resolvedTarget === "authors-management" ||
+      resolvedTarget === "authors-almost"
     ) {
       openCommunityView("authors");
       syncV11CommunityToolbar(
@@ -3633,7 +3637,7 @@ function renderEvents(events, status) {
 
       if (authorEditorialFilter) {
         authorEditorialFilter.value =
-          "almost";
+          resolvedTarget === "authors-management" ? "all" : "almost";
       }
 
       if (authorEditorialSort) {
@@ -12481,7 +12485,10 @@ function openCommunityView(name) {
     refreshButton.addEventListener(
       "click",
       async () => {
+        if (refreshButton.disabled) return;
         refreshButton.disabled = true;
+        refreshButton.setAttribute("aria-busy", "true");
+        refreshButton.querySelector(".v11-refresh-label").textContent = "Actualisation…";
 
         try {
           const state =
@@ -12498,7 +12505,11 @@ function openCommunityView(name) {
               ? "ok"
               : "error"
           );
+        } catch (error) {
+          toast("Actualisation impossible. Réessayez.", "error");
         } finally {
+          refreshButton.removeAttribute("aria-busy");
+          refreshButton.querySelector(".v11-refresh-label").textContent = "Rafraîchir";
           refreshButton.disabled = false;
         }
       }

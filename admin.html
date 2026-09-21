@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dédicalivres — Admin V11</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="admin-v11.css?v=v11-70-stable-2">
+  <link rel="stylesheet" href="admin-v11.css?v=admin-photo-batch-1">
   <link rel="stylesheet" href="admin-nfc-cockpit.css?v=nfc-cockpit-v1-layout-2">
 </head>
 
@@ -72,7 +72,7 @@
 
         <div class="v11-top-actions">
           <span class="v11-chip ok" data-v11-release-state="active">V11 · active</span>
-          <button id="v11-refresh" class="v11-icon-button" aria-label="Actualiser" title="Actualiser">↻</button>
+          <button id="v11-refresh" class="v11-icon-button" aria-label="Actualiser" title="Rafraîchir"><span aria-hidden="true">↻</span><span class="v11-refresh-label">Rafraîchir</span></button>
           <button id="v11-logout" class="v11-icon-button" aria-label="Déconnexion" title="Déconnexion">○</button>
           <button class="v11-profile v11-profile-logo" aria-label="Dédicalivres">
             <img src="assets/brand/logo-dedicalivres-sombre.webp" alt="Dédicalivres">
@@ -106,41 +106,41 @@
 
         <section class="v11-grid v11-grid-4">
 
-          <article class="v11-kpi">
+          <button type="button" class="v11-kpi v11-kpi-link" data-home-jump="events-pending">
             <div class="v11-kpi-head">
               <span>Événements</span>
               <span class="v11-status-dot warning"></span>
             </div>
             <strong data-admin-bind="events-pending">12</strong>
             <p>À vérifier</p>
-          </article>
+          </button>
 
-          <article class="v11-kpi">
+          <button type="button" class="v11-kpi v11-kpi-link" data-home-jump="presence-pending">
             <div class="v11-kpi-head">
               <span>Présences</span>
               <span class="v11-status-dot warning"></span>
             </div>
             <strong data-admin-bind="presence-pending">—</strong>
             <p>À modérer</p>
-          </article>
+          </button>
 
-          <article class="v11-kpi">
+          <button type="button" class="v11-kpi v11-kpi-link" data-home-jump="authors-management">
             <div class="v11-kpi-head">
               <span>Auteurs</span>
               <span class="v11-status-dot info"></span>
             </div>
             <strong data-admin-bind="authors-editorial-pending">—</strong>
             <p>À compléter</p>
-          </article>
+          </button>
 
-          <article class="v11-kpi v11-kpi-traffic">
+          <button type="button" class="v11-kpi v11-kpi-traffic v11-kpi-link" data-view="pilotage">
             <div class="v11-kpi-head">
               <span>Visites aujourd’hui</span>
               <span class="v11-status-dot ok"></span>
             </div>
             <strong data-admin-bind="visits-today">—</strong>
             <p class="v11-traffic-delta" data-admin-bind="visits-status">Chargement</p>
-          </article>
+          </button>
 
         </section>
 
@@ -1881,6 +1881,10 @@
         </div>
 
         <div class="v11-tools-grid">
+          <button type="button" class="v11-tool-card v11-photo-tool" data-tool-open="photos">
+            <span class="v11-tool-icon">⇩</span>
+            <span class="v11-tool-content"><strong>Extraire photos</strong><span>Images des événements · J à J+15 · ZIP</span></span>
+          </button>
 
           <article class="v11-tool-card is-operational" data-tool-open="watch">
             <div class="v11-tool-icon">↯</div>
@@ -2076,6 +2080,7 @@
           <div id="tab-events" class="v11-legacy-slot" hidden></div>
           <div id="tab-overview" class="v11-legacy-slot" hidden></div>
           <div id="tab-moderation" class="v11-legacy-slot" hidden></div>
+          <div id="tab-photos" class="v11-legacy-slot" hidden></div>
           <div id="tab-exports" class="v11-legacy-slot" hidden></div>
           <div id="tab-social" class="v11-legacy-slot" hidden></div>
           <div id="v11-partner-widget-panel" class="v11-legacy-slot" hidden></div>
@@ -2580,8 +2585,9 @@
   <script defer src="author-backoffice.js?v=author-backoffice-v1"></script>
   <script defer src="author-publication.js?v=author-publication-v2"></script>
   <script defer src="admin-event-deletion.js?v=safe-delete-1"></script>
-  <script defer src="admin-shell.js?v=v11-77-active-alias"></script>
+  <script defer src="admin-shell.js?v=admin-photo-batch-1"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
+  <script defer src="admin-photo-batch.js?v=photo-batch-1"></script>
   <script defer src="admin-v11-exports.js?v=v11-exports-39-3"></script>
   <script defer src="admin-social-generator.js?v=v11-social-66-1"></script>
   <script defer src="admin-v11-partner-widget.js?v=v11-partner-68-1"></script>
