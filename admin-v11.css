@@ -7037,3 +7037,23 @@ label.is-artist-author {
     transition-duration: .01ms !important;
   }
 }
+
+/* Admin: navigation, mobile refresh and original photo downloads. */
+.v11-kpi-link, .v11-photo-tool { text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.v11-kpi-link:hover, .v11-kpi-link:focus-visible, .v11-photo-tool:focus-visible { outline: 2px solid var(--cyan, #51d7e8); outline-offset: 3px; }
+.v11-refresh-label { display: none; }
+.v11-photo-tool .v11-tool-content { display: grid; gap: 10px; }
+.v11-photo-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 16px 0; }
+.v11-photo-controls label { display: grid; gap: 6px; }
+.v11-photo-controls input { color-scheme: dark; padding: 10px; max-width: 100%; }
+.v11-photo-list { display: grid; gap: 10px; }
+.v11-photo-row { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #28404d; border-radius: 12px; overflow-wrap: anywhere; }
+.v11-photo-row img { width: 72px; height: 72px; object-fit: contain; }
+.v11-photo-row span { flex: 1; min-width: 0; }
+@media (max-width: 760px) {
+  #v11-refresh { display: inline-flex; width: auto; min-height: 44px; padding: 10px; gap: 6px; align-items: center; }
+  .v11-refresh-label { display: inline; font-size: 12px; }
+  .v11-topbar { flex-wrap: wrap; gap: 12px; }
+}
+
+.v11-photo-controls button, .v11-photo-controls input { min-height: 44px; }
