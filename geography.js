@@ -113,11 +113,15 @@
 
   function normalizeCountryCode(value) {
     const code = String(value || DEFAULT_COUNTRY_CODE).trim().toUpperCase();
-    return COUNTRIES[code] ? code : DEFAULT_COUNTRY_CODE;
+    return /^[A-Z]{2}$/.test(code) ? code : DEFAULT_COUNTRY_CODE;
   }
 
   function getCountry(value) {
-    return COUNTRIES[normalizeCountryCode(value)];
+    const code = normalizeCountryCode(value);
+    if (COUNTRIES[code]) return COUNTRIES[code];
+    let name = code;
+    try { name = new Intl.DisplayNames(["fr"], { type: "region" }).of(code); } catch (_) {}
+    return { name, subdivisions: [], subdivisionLabel: "Région", center: EUROPE_CENTER, zoom: EUROPE_ZOOM, hashtags: [] };
   }
 
   function getCountryName(value) {

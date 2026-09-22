@@ -4437,6 +4437,34 @@ function renderEvents(events, status) {
     return item.pseudo || "Sans nom";
   }
 
+  function appendPresenceEvent(parent, item) {
+    const event = Array.isArray(item.events) ? item.events[0] : item.events;
+    const description = document.createElement("p");
+    if (!event) {
+      description.textContent = "Événement introuvable ou inaccessible" + (item.event_id ? " (réf. " + item.event_id + ")" : "");
+      parent.appendChild(description);
+      return;
+    }
+    const date = (value) => {
+      if (!value) return "";
+      const parsed = new Date(String(value).slice(0, 10) + "T12:00:00");
+      return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleDateString("fr-FR");
+    };
+    let country = event.country_code || "Pays non renseigné";
+    try { if (event.country_code) country = new Intl.DisplayNames(["fr"], { type: "region" }).of(event.country_code); } catch (_) {}
+    const dates = [date(event.start_date)];
+    if (event.end_date && event.end_date !== event.start_date) dates.push(date(event.end_date));
+    description.textContent = [event.title || "Événement sans titre", event.city, country, dates.filter(Boolean).join(" – "), event.type].filter(Boolean).join(" · ");
+    parent.appendChild(description);
+    const link = document.createElement("a");
+    link.className = "v11-community-detail-trigger";
+    link.textContent = "Voir l’événement";
+    link.href = "event.html?id=" + encodeURIComponent(event.id);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    parent.appendChild(link);
+  }
+
   function renderPresences(items) {
     if (!presenceList) return;
 
@@ -4553,6 +4581,7 @@ function renderEvents(events, status) {
       body.appendChild(badge);
       body.appendChild(title);
       body.appendChild(meta);
+      appendPresenceEvent(body, item);
 
       const side = document.createElement("div");
       side.className = "v11-community-card-side";
@@ -11478,10 +11507,7 @@ function renderEvents(events, status) {
         item.publisher_name
       );
 
-      addCommunityDetailRow(
-        "Événement",
-        item.event_id
-      );
+      appendPresenceEvent(communityDetailContent, item);
 
       addCommunityDetailRow(
         "Profil public",

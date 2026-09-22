@@ -93,10 +93,10 @@
       </article>
     `;
 
-    let response = await buildEventsQuery(PUBLIC_EVENT_COLUMNS);
+    let response = await fetchSeoCatalog(PUBLIC_EVENT_COLUMNS);
 
     if (response.error && isMissingColumnError(response.error)) {
-      response = await buildEventsQuery(PUBLIC_EVENT_LEGACY_COLUMNS);
+      response = await fetchSeoCatalog(PUBLIC_EVENT_LEGACY_COLUMNS);
     }
 
     const { data, error } = response;
@@ -118,14 +118,33 @@
     renderSeoEvents();
   }
 
+  async function fetchSeoCatalog(columns) {
+    // Stable ID cursor avoids the API row limit without sending local preferences.
+    const rows = [];
+    const seen = new Set();
+    let cursor = null;
+    for (let page = 0; page < 200; page += 1) {
+      let query = buildEventsQuery(columns).order('id', { ascending: true }).limit(500);
+      if (cursor !== null) query = query.gt('id', cursor);
+      const response = await query;
+      if (response.error) return response;
+      if (!Array.isArray(response.data)) return { data: null, error: new Error('Catalogue invalide') };
+      if (!response.data.length) return { data: rows, error: null };
+      for (const event of response.data) {
+        if (event.id == null || seen.has(String(event.id))) return { data: null, error: new Error('Pagination du catalogue incohérente') };
+        seen.add(String(event.id)); rows.push(event);
+      }
+      cursor = response.data[response.data.length - 1].id;
+    }
+    return { data: null, error: new Error('Catalogue trop volumineux pour être chargé complètement') };
+  }
+
   function buildEventsQuery(columns) {
     let query = supabaseClient
       .from("events")
       .select(columns)
       .eq("validated", true)
-      .eq("rejected", false)
-      .order("featured", { ascending: false })
-      .order("start_date", { ascending: true });
+      .eq("rejected", false);
 
     if (!hasInteractiveRegionalMap && region) {
       query = query.eq("region", region);
