@@ -520,7 +520,8 @@
       "author_portrait_url",
       "participant_type",
       "organization_name",
-      "presence_verified"
+      "presence_verified",
+      "events(id,title,city,country_code,start_date,end_date,type)"
     ];
 
     const testimonialColumns = [

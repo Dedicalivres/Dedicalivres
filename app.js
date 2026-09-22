@@ -624,6 +624,24 @@
     }
 
     allEvents = Array.isArray(data) ? data : [];
+    // Retain countries present in the catalog even outside the predefined regions.
+    if (countryFilter && geo) {
+      const known = new Set(Array.from(countryFilter.options, option => option.value));
+      allEvents.forEach(event => {
+        const code = geo.getCountryCode(event);
+        if (known.has(code)) return;
+        const option = document.createElement("option");
+        option.value = code;
+        option.textContent = geo.getCountryName(code);
+        countryFilter.appendChild(option);
+        known.add(code);
+      });
+      const requested = new URLSearchParams(window.location.search || "").get("country");
+      if (requested && known.has(geo.normalizeCountryCode(requested))) {
+        countryFilter.value = geo.normalizeCountryCode(requested);
+        populateAgendaRegionFilter();
+      }
+    }
     window.dispatchEvent(new CustomEvent('dedicalivres:catalog-loaded', { detail: allEvents.filter(event => !isPastEvent(event)).map(event => ({ ...event, country_code: geo?.getCountryCode(event) || event.country_code })) }));
     renderFilteredEvents();
     renderSavedFavorites();
