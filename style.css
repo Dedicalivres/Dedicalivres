@@ -9275,3 +9275,19 @@ html.a11y-soir .author-presence-card.participant-publisher .author-presence-card
 #agenda .agenda-regions-entry:focus-visible{outline:3px solid #61318a;outline-offset:4px}
 @media(max-width:600px){#agenda .agenda-regions-entry{padding:16px;gap:12px;margin:14px 0 18px}#agenda .agenda-regions-copy strong{font-size:16px}}
 @media(prefers-reduced-motion:reduce){#agenda .agenda-regions-entry{transition:none}}
+
+/* Shared presentation for country selection and regional navigation. */
+#territoires-pilotes nav p,.territorial-page .territory-navigation ul{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+#territoires-pilotes nav a,.territorial-page .territory-navigation a{
+ display:inline-flex;align-items:center;gap:8px;padding:12px 16px;margin:4px 0;
+ background:#fffaf5;color:#47246b;border:1px solid #d9c9e8;border-radius:18px;
+ box-shadow:0 3px 10px rgba(71,36,107,.08);text-decoration:none;
+ font-family:inherit;font-size:15px;font-weight:600;line-height:1.4;
+ transition:background-color .16s ease,box-shadow .16s ease,border-color .16s ease;
+}
+#territoires-pilotes nav a::before,.territorial-page .territory-navigation a::before{content:"";display:block;width:18px;height:18px;flex:0 0 18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round' d='m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6ZM9 3v15M15 6v15'/%3E%3C/svg%3E") center/contain no-repeat}
+#territoires-pilotes nav a:hover,.territorial-page .territory-navigation a:hover{background:#f7effc;border-color:#b994d2;box-shadow:0 5px 14px rgba(71,36,107,.13)}
+#territoires-pilotes nav a:focus-visible,.territorial-page .territory-navigation a:focus-visible{outline:3px solid #61318a;outline-offset:4px}
+.territorial-page .territory-breadcrumb a,.territorial-page #territory-content>p a{color:#47246b}
+@media(max-width:600px){#territoires-pilotes nav a,.territorial-page .territory-navigation a{padding:12px;max-width:100%;box-sizing:border-box}}
+@media(prefers-reduced-motion:reduce){#territoires-pilotes nav a,.territorial-page .territory-navigation a{transition:none}}
