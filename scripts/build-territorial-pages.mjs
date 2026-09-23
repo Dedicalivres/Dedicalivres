@@ -1,4 +1,4 @@
-import {pilots,renderTerritory} from './territorial-render.mjs';
+import {territories,renderTerritory,countryLinks} from './territorial-render.mjs';
 import {analyzeQuality} from './territorial-quality.mjs';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
@@ -15,9 +15,10 @@ const {accepted,rejected}=qualify(snapshot.events,registry,observations,today);
 // Reuse the existing regional page shell (header, footer, site styles and navigation).
 const base=fs.readFileSync('evenements-litteraires-bretagne.html','utf8');
 const results=[];
-for(const p of pilots){
+const selected=process.argv.includes('--sample')?territories.filter(p=>p.kind==='country'||['FR-BRE','BE-WAL','CH-local-24'].includes(p.id)):territories;
+for(const p of selected){
  const {main,stats,rows}=renderTerritory({p,events:snapshot.events,registry,verified,capturedAt:snapshot.capturedAt});
- let html=base.replace(/<main[\s\S]*?<\/main>/,main)
+ let html=base.replace('href="index.html?country=FR#agenda">France</a>', 'href="evenements-litteraires-france.html">France</a>').replace(/<main[\s\S]*?<\/main>/,main)
  .replace(/<title>[\s\S]*?<\/title>/,`<title>Événements littéraires en ${p.label}, ${p.country} — Dédicalivres</title>`)
  .replace(/<meta name="description"[^>]*>/,`<meta name="description" content="${stats.total} événements littéraires référencés en ${p.label}, ${p.country} : prochaines rencontres et archives par année. Catalogue actualisé le ${today}." />`)
  .replace(/<link rel="canonical"[^>]*>/,`<link rel="canonical" href="${p.canonical}" />`)
@@ -35,10 +36,11 @@ for(const p of pilots){
 const pages=fs.readdirSync('.').filter(f=>/^evenements-litteraires.*\.html$/.test(f)).map(file=>{
  const h=fs.readFileSync(file,'utf8');return {file,region:h.match(/data-region="([^"]*)"/)?.[1]||null,country:h.match(/data-country-code="([^"]*)"/)?.[1]||null,city:h.match(/data-city="([^"]*)"/)?.[1]||null,canonical:h.match(/rel="canonical" href="([^"]*)"/)?.[1]||null};
 });
-const staticIds=new Map();
-for(const file of fs.readdirSync('evenement')){
- const id=file.match(/-(\d+)\.html$/)?.[1];if(id)staticIds.set(id,[...(staticIds.get(id)||[]),file]);
-}
-const audit={base:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),capturedAt:snapshot.capturedAt,today,total:snapshot.events.length,registryCountries:registry.map(c=>({code:c.code,name:c.name,type:c.subdivisionLabel,territories:c.territories.length})),territoryCounts:registry.flatMap(c=>c.territories.map(t=>({...t,country:c.code,count:snapshot.events.filter(e=>e.country_code===c.code&&e.region===t.label).length}))),pages,duplicateEvents:duplicateGroups(snapshot.events),staticIdCollisions:[...staticIds].filter(([,files])=>files.length>1).map(([id,files])=>({id,files})),unknownTerritories:accepted.filter(e=>!territoryFor(e,registry)),notPublic:rejected,qualityIssues:issues,pilots:results};
+// Keep the earlier historical collision audit; do not scan evenement/.
+const staticIdCollisions=read('docs/territoires/audit.json').staticIdCollisions;
+const audit={base:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),capturedAt:snapshot.capturedAt,today,total:snapshot.events.length,registryCountries:registry.map(c=>({code:c.code,name:c.name,type:c.subdivisionLabel,territories:c.territories.length})),territoryCounts:registry.flatMap(c=>c.territories.map(t=>({...t,country:c.code,count:snapshot.events.filter(e=>e.country_code===c.code&&e.region===t.label).length}))),pages,duplicateEvents:duplicateGroups(snapshot.events),staticIdCollisions,unknownTerritories:accepted.filter(e=>!territoryFor(e,registry)),notPublic:rejected,qualityIssues:issues,pilots:results.filter(p=>['FR-BRE','BE-WAL'].includes(p.id)),territorialPages:results};
 fs.writeFileSync('docs/territoires/audit.json',JSON.stringify(audit,null,2)+'\n');
 console.log(JSON.stringify(results.map(({label,total,upcoming,past,excluded})=>({label,total,upcoming,past,excluded})),null,2));
+
+const index=fs.readFileSync('index.html','utf8');
+fs.writeFileSync('index.html',index.replace(/<section id="territoires-pilotes"[\s\S]*?<\/section>/,`<section id="territoires-pilotes" class="container seo-text-block" aria-labelledby="territoires-pilotes-title"><h2 id="territoires-pilotes-title">Explorer Dédicalivres par territoire</h2><nav aria-label="Agendas par pays"><p>${countryLinks()}</p></nav></section>`));

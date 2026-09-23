@@ -25,3 +25,9 @@
 .territorial-page .header{position:static}
 
 .territorial-page .territory-banner{display:block;width:100%;height:auto;object-fit:contain;border-radius:14px;margin:20px 0}
+
+.territory-navigation{padding:20px;border:1px solid #dfd5e8;border-radius:14px;margin:20px 0;background:#fff}
+.territory-navigation ul{display:flex;flex-wrap:wrap;gap:8px 20px;list-style:none;padding:0}
+.territory-navigation a{display:inline-block;padding:8px 0;color:#3a1c71}
+.territory-navigation [aria-current="page"]{font-weight:800;text-decoration-thickness:3px}
+.territory-editorial{line-height:1.65}.territory-editorial h2{font-size:24px}

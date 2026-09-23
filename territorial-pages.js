@@ -1,7 +1,7 @@
 import {fetchPublicEvents} from './scripts/territorial-catalog.mjs';
-import {pilots,renderTerritory} from './scripts/territorial-render.mjs';
+import {territories,renderTerritory} from './scripts/territorial-render.mjs';
 
-const pilot=pilots.find(p=>p.id===document.getElementById('territory-content')?.dataset.territoryId);
+const pilot=territories.find(p=>p.id===document.getElementById('territory-content')?.dataset.territoryId);
 let loading=false;
 let resources;
 function bindRefresh(){

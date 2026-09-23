@@ -64,3 +64,13 @@ Réutiliser les pages et fonctions existantes, sans deuxième architecture. Pré
 ## Ajustement demandé le 23 septembre
 
 La publication décide de la visibilité. Les alertes de qualité ne retirent ni ne corrigent les annonces : elles apparaissent dans le panneau admin existant. La correction de Mons au 26–27 septembre est reprise et résout l’alerte. Les valeurs observées et sources initiales sont conservées. Actualisation du catalogue public à l’ouverture des pilotes, bouton d’actualisation et maintien des dernières données en cas d’erreur. Le HTML sans JavaScript reste daté de sa génération.
+
+## Généralisation ciblée demandée le 23 septembre 2026
+
+Le nouvel objectif remplace l'arrêt aux deux pilotes : cinq pages pays et seize pages régionales, à partir de la capture publique existante. France : les treize régions du référentiel ; Belgique : Wallonie ; Suisse : Vaud et Fribourg. Les autres subdivisions sans données ne reçoivent pas de nouvelle page. Luxembourg conserve sa page pays existante sans subdivision artificielle. Le catalogue pays reprend aussi les annonces dont le rattachement régional est inconnu.
+
+Annuaire partagé dans `scripts/territorial-directory.mjs`, avec les textes éditoriaux précédents et les liens des visuels vérifiés dans `images-r2.json`. Les futures ouvertures de territoires doivent être ajoutées explicitement à cet annuaire selon les données disponibles. Nouvelle-Aquitaine utilise la variante 2 ; les deux originaux restent en R2.
+
+Recette préalable : Bretagne, Wallonie, Vaud, mobile/desktop, avec/sans JavaScript. Puis génération des 21 pages et contrôle du maillage. `node scripts/build-territorial-pages.mjs --sample` permet de générer les cinq parents et ces trois régions ; sans option, uniquement les 21 pages territoriales. Aucun parcours du répertoire `evenement/` : le diagnostic historique de collisions est conservé depuis l'audit précédent. Sitemap inchangé, aucun mécanisme territorial existant ne le met à jour.
+
+Images absentes : France, Belgique, Suisse (pays), Occitanie. En-tête texte sans image cassée. Aucune nouvelle image, mutation Supabase ou Worker. Publication de ce nouveau lot non effectuée à ce stade.
