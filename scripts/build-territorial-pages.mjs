@@ -43,4 +43,4 @@ fs.writeFileSync('docs/territoires/audit.json',JSON.stringify(audit,null,2)+'\n'
 console.log(JSON.stringify(results.map(({label,total,upcoming,past,excluded})=>({label,total,upcoming,past,excluded})),null,2));
 
 const index=fs.readFileSync('index.html','utf8');
-fs.writeFileSync('index.html',index.replace(/<section id="territoires-pilotes"[\s\S]*?<\/section>/,`<section id="territoires-pilotes" class="container seo-text-block" aria-labelledby="territoires-pilotes-title"><h2 id="territoires-pilotes-title">Explorer Dédicalivres par territoire</h2><nav aria-label="Agendas par pays"><p>${countryLinks()}</p></nav></section>`));
+fs.writeFileSync('index.html',index.replace(/<section id="territoires-pilotes"[\s\S]*?<\/section>/,`<section id="territoires-pilotes" class="container seo-text-block" aria-labelledby="territoires-pilotes-title"><h2 id="territoires-pilotes-title">Explorer Dédicalivres par région</h2><nav aria-label="Agendas par pays"><p>${countryLinks()}</p></nav></section>`));

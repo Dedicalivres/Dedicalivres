@@ -9257,3 +9257,21 @@ html.a11y-soir .author-presence-card.participant-publisher .author-presence-card
     margin-top: 32px;
   }
 }
+
+/* Agenda: one accessible link for the complete regional navigation card. */
+#agenda .agenda-regions-entry {
+  display:flex;align-items:center;gap:14px;width:100%;box-sizing:border-box;
+  margin:16px 0 20px;padding:18px 22px;border:1px solid #d9c9e8;border-radius:18px;
+  background:#fffaf5;color:#47246b;text-decoration:none;
+  box-shadow:0 3px 10px rgba(71,36,107,.08);font-family:inherit;
+  transition:background-color .16s ease,box-shadow .16s ease,border-color .16s ease;
+}
+#agenda .agenda-regions-icon{flex:0 0 26px;width:26px;height:26px;color:#754194}
+#agenda .agenda-regions-copy{display:grid;gap:4px;min-width:0}
+#agenda .agenda-regions-copy strong{font-size:17px;line-height:1.35;font-weight:700}
+#agenda .agenda-regions-copy>span{font-size:13px;line-height:1.5;color:#63516e}
+#agenda .agenda-regions-arrow{margin-left:auto;font-size:24px;color:#854019}
+#agenda .agenda-regions-entry:hover{background:#f7effc;border-color:#b994d2;box-shadow:0 5px 14px rgba(71,36,107,.13)}
+#agenda .agenda-regions-entry:focus-visible{outline:3px solid #61318a;outline-offset:4px}
+@media(max-width:600px){#agenda .agenda-regions-entry{padding:16px;gap:12px;margin:14px 0 18px}#agenda .agenda-regions-copy strong{font-size:16px}}
+@media(prefers-reduced-motion:reduce){#agenda .agenda-regions-entry{transition:none}}
