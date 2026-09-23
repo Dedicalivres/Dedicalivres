@@ -23,7 +23,11 @@
     "test:registration-timeline": "node scripts/test-registration-timeline.mjs",
     "test:admin-v11-author-merge": "node scripts/test-admin-v11-author-merge.mjs",
     "test:admin-v11-community-archive": "node scripts/test-admin-v11-community-safe-archive.mjs",
-    "test:home-logo-mobile": "node scripts/test-home-logo-mobile-aspect.mjs"
+    "test:home-logo-mobile": "node scripts/test-home-logo-mobile-aspect.mjs",
+    "build:territories": "node scripts/build-territorial-pages.mjs",
+    "test:territories": "node scripts/test-territorial-pages.mjs",
+    "capture:territories": "node scripts/capture-territorial-catalog.mjs",
+    "refresh:territories": "npm run capture:territories && npm run build:territories"
   },
   "engines": {
     "node": ">=18"

@@ -58,3 +58,7 @@ wrangler secret put EXPORT_SECRET
 Ne jamais mettre de cle `service_role` dans le front. La cle publique Supabase peut etre exposee, mais toutes les autorisations doivent etre imposees par RLS.
 
 Les endpoints publics de soumission doivent rester limites: evenements en attente seulement, temoignages en attente seulement, tracking en insertion seule, aucune lecture publique de donnees personnelles.
+
+## Pages territoriales SEO/GEO — pilotes locaux
+
+Roadmap, qualification des données et reproduction : [docs/territoires/README.md](docs/territoires/README.md). Deux pilotes seulement, sans publication ni généralisation.

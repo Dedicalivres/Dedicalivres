@@ -1,0 +1,27 @@
+.territorial-page .seo-content{max-width:1120px;padding-top:28px}
+.territorial-page .territory-hero{background:linear-gradient(130deg,#2b1647,#58307d);color:#fff;border-radius:22px;padding:clamp(24px,4vw,48px);margin:18px 0 24px}
+.territorial-page h1{font-size:clamp(28px,4vw,46px);line-height:1.15;color:inherit;margin:12px 0}
+.territorial-page .territory-hero p{max-width:780px;color:#f3edf9;line-height:1.65}
+.territorial-page .territory-kicker{text-transform:uppercase;letter-spacing:.13em;font-size:12px;font-weight:800}
+.territory-breadcrumb{display:flex;flex-wrap:wrap;gap:8px;font-size:14px}
+.territory-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}
+.territory-stats div{border:1px solid #dfd5e8;background:#fff;border-radius:14px;padding:20px}
+.territory-stats dt{font-size:14px;color:#594968}.territory-stats dd{margin:4px 0 0;font-size:30px;font-weight:800;color:#3a1c71}
+.territory-jumps{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0}.territory-jumps a{padding:10px 14px;border:1px solid #b9a7c9;border-radius:24px;color:#3a1c71;background:#fff}
+.territory-list{list-style:none;padding:0;display:grid;gap:12px}.territory-list li{border:1px solid #dfd5e8;border-radius:14px;padding:20px;background:#fff;overflow-wrap:anywhere}
+.territory-list h3{font-size:19px;line-height:1.45;margin:8px 0}.territory-list p{margin:6px 0;color:#53465f}.territory-list .event-date{font-size:14px;font-weight:700;color:#58307d}
+.territory-note{background:#f3eef8;padding:20px;border-radius:14px;line-height:1.65;margin:24px 0}.territory-note summary{cursor:pointer;font-weight:700}.territory-note li{margin:12px 0;overflow-wrap:anywhere}
+.territorial-page section{scroll-margin-top:24px}.territorial-page a:focus-visible{outline:3px solid #98670d;outline-offset:4px}
+@media(max-width:600px){.territory-stats{grid-template-columns:repeat(2,1fr)}.territory-stats div{padding:14px}.territorial-page .header-inner{flex-wrap:wrap}.territorial-page .header nav{flex-wrap:wrap}.territorial-page .logo{max-width:170px;height:auto}.territory-list li{padding:16px}}
+.territorial-page .header .logo{width:110px;height:auto;max-width:110px;object-fit:contain}
+.territorial-page .territory-list a{color:#3a1c71}
+@media(max-width:600px){
+ .territorial-page .header .logo{width:90px;max-width:90px;height:auto}
+ .territorial-page .header nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .territorial-page .header nav a{font-size:12px;line-height:1.2;min-height:40px;padding:8px;white-space:normal}
+ .territorial-page .header nav a span{word-break:normal;overflow-wrap:normal;hyphens:none}
+}
+/* Keep the full mobile navigation from covering section anchors. */
+.territorial-page .header{position:static}
+
+.territorial-page .territory-banner{display:block;width:100%;height:auto;object-fit:contain;border-radius:14px;margin:20px 0}

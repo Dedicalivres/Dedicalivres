@@ -1,0 +1,29 @@
+{
+  "5f2f72d0-7f33-4f9f-b0f2-2e222dc919d0": {
+    "venue": "Salle Côté cours",
+    "source": "https://www.lesailesdubaukion.be/festivals/",
+    "checkedOn": "2026-09-23",
+    "start_date": "2026-10-10",
+    "end_date": "2026-10-11",
+    "city": "Jodoigne",
+    "title": "Les mots en bout de plume"
+  },
+  "9f3b5d30-d3d8-4481-a69f-98b6d9820190": {
+    "venue": "Château de Spontin",
+    "source": "https://chateaudespontin.be/dragonia/",
+    "checkedOn": "2026-09-23",
+    "start_date": "2026-06-27",
+    "end_date": "2026-06-28",
+    "city": "Spontin",
+    "title": "Festival Dragonia"
+  },
+  "f12c95d9-6cab-4210-b25b-10aa3549dcff": {
+    "venue": "Lotto Mons Expo",
+    "source": "https://www.lottomonsexpo.be/Web/nl/kalender/trolls-et-legendes",
+    "checkedOn": "2026-09-23",
+    "start_date": "2027-03-26",
+    "end_date": "2027-03-28",
+    "city": "Mons",
+    "title": "Trolls & Légendes 2027"
+  }
+}

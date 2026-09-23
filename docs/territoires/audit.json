@@ -1,0 +1,1135 @@
+{
+  "base": "d28a0bc60bcd7cd207bed3c964a444fe6f5b8235",
+  "capturedAt": "2026-09-23T05:39:26.649Z",
+  "today": "2026-09-23",
+  "total": 569,
+  "registryCountries": [
+    {
+      "code": "FR",
+      "name": "France",
+      "type": "Région",
+      "territories": 13
+    },
+    {
+      "code": "BE",
+      "name": "Belgique",
+      "type": "Région",
+      "territories": 3
+    },
+    {
+      "code": "LU",
+      "name": "Luxembourg",
+      "type": "Canton",
+      "territories": 12
+    },
+    {
+      "code": "CH",
+      "name": "Suisse",
+      "type": "Canton",
+      "territories": 26
+    },
+    {
+      "code": "MC",
+      "name": "Monaco",
+      "type": "Territoire",
+      "territories": 1
+    }
+  ],
+  "territoryCounts": [
+    {
+      "id": "FR-local-01",
+      "label": "Auvergne-Rhône-Alpes",
+      "country": "FR",
+      "count": 38
+    },
+    {
+      "id": "FR-local-02",
+      "label": "Bourgogne-Franche-Comté",
+      "country": "FR",
+      "count": 16
+    },
+    {
+      "id": "FR-BRE",
+      "label": "Bretagne",
+      "country": "FR",
+      "count": 98
+    },
+    {
+      "id": "FR-local-04",
+      "label": "Centre-Val de Loire",
+      "country": "FR",
+      "count": 35
+    },
+    {
+      "id": "FR-local-05",
+      "label": "Corse",
+      "country": "FR",
+      "count": 1
+    },
+    {
+      "id": "FR-local-06",
+      "label": "Grand Est",
+      "country": "FR",
+      "count": 46
+    },
+    {
+      "id": "FR-local-07",
+      "label": "Hauts-de-France",
+      "country": "FR",
+      "count": 40
+    },
+    {
+      "id": "FR-local-08",
+      "label": "Île-de-France",
+      "country": "FR",
+      "count": 35
+    },
+    {
+      "id": "FR-local-09",
+      "label": "Normandie",
+      "country": "FR",
+      "count": 35
+    },
+    {
+      "id": "FR-local-10",
+      "label": "Nouvelle-Aquitaine",
+      "country": "FR",
+      "count": 84
+    },
+    {
+      "id": "FR-local-11",
+      "label": "Occitanie",
+      "country": "FR",
+      "count": 62
+    },
+    {
+      "id": "FR-local-12",
+      "label": "Pays de la Loire",
+      "country": "FR",
+      "count": 29
+    },
+    {
+      "id": "FR-local-13",
+      "label": "Provence-Alpes-Côte d’Azur",
+      "country": "FR",
+      "count": 33
+    },
+    {
+      "id": "BE-local-01",
+      "label": "Bruxelles-Capitale",
+      "country": "BE",
+      "count": 0
+    },
+    {
+      "id": "BE-local-02",
+      "label": "Flandre",
+      "country": "BE",
+      "count": 0
+    },
+    {
+      "id": "BE-WAL",
+      "label": "Wallonie",
+      "country": "BE",
+      "count": 8
+    },
+    {
+      "id": "LU-local-01",
+      "label": "Capellen",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-02",
+      "label": "Clervaux",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-03",
+      "label": "Diekirch",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-04",
+      "label": "Echternach",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-05",
+      "label": "Esch-sur-Alzette",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-06",
+      "label": "Grevenmacher",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-07",
+      "label": "Luxembourg",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-08",
+      "label": "Mersch",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-09",
+      "label": "Redange",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-10",
+      "label": "Remich",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-11",
+      "label": "Vianden",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "LU-local-12",
+      "label": "Wiltz",
+      "country": "LU",
+      "count": 0
+    },
+    {
+      "id": "CH-local-01",
+      "label": "Argovie",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-02",
+      "label": "Appenzell Rhodes-Extérieures",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-03",
+      "label": "Appenzell Rhodes-Intérieures",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-04",
+      "label": "Bâle-Campagne",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-05",
+      "label": "Bâle-Ville",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-06",
+      "label": "Berne",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-07",
+      "label": "Fribourg",
+      "country": "CH",
+      "count": 2
+    },
+    {
+      "id": "CH-local-08",
+      "label": "Genève",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-09",
+      "label": "Glaris",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-10",
+      "label": "Grisons",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-11",
+      "label": "Jura",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-12",
+      "label": "Lucerne",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-13",
+      "label": "Neuchâtel",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-14",
+      "label": "Nidwald",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-15",
+      "label": "Obwald",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-16",
+      "label": "Saint-Gall",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-17",
+      "label": "Schaffhouse",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-18",
+      "label": "Schwytz",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-19",
+      "label": "Soleure",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-20",
+      "label": "Tessin",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-21",
+      "label": "Thurgovie",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-22",
+      "label": "Uri",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-23",
+      "label": "Valais",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-24",
+      "label": "Vaud",
+      "country": "CH",
+      "count": 1
+    },
+    {
+      "id": "CH-local-25",
+      "label": "Zoug",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "CH-local-26",
+      "label": "Zurich",
+      "country": "CH",
+      "count": 0
+    },
+    {
+      "id": "MC-local-01",
+      "label": "Monaco",
+      "country": "MC",
+      "count": 1
+    }
+  ],
+  "pages": [
+    {
+      "file": "evenements-litteraires-angers.html",
+      "region": null,
+      "country": null,
+      "city": "Angers",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-angers"
+    },
+    {
+      "file": "evenements-litteraires-auvergne-rhone-alpes.html",
+      "region": "Auvergne-Rhône-Alpes",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-auvergne-rhone-alpes"
+    },
+    {
+      "file": "evenements-litteraires-avignon.html",
+      "region": null,
+      "country": null,
+      "city": "Avignon",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-avignon"
+    },
+    {
+      "file": "evenements-litteraires-belgique.html",
+      "region": null,
+      "country": "BE",
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-belgique"
+    },
+    {
+      "file": "evenements-litteraires-bordeaux.html",
+      "region": null,
+      "country": null,
+      "city": "Bordeaux",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-bordeaux"
+    },
+    {
+      "file": "evenements-litteraires-bourgogne-franche-comte.html",
+      "region": "Bourgogne-Franche-Comté",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-bourgogne-franche-comte"
+    },
+    {
+      "file": "evenements-litteraires-bretagne.html",
+      "region": "Bretagne",
+      "country": "FR",
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-bretagne"
+    },
+    {
+      "file": "evenements-litteraires-centre-val-de-loire.html",
+      "region": "Centre-Val de Loire",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-centre-val-de-loire"
+    },
+    {
+      "file": "evenements-litteraires-corse.html",
+      "region": "Corse",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-corse"
+    },
+    {
+      "file": "evenements-litteraires-dijon.html",
+      "region": null,
+      "country": null,
+      "city": "Dijon",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-dijon"
+    },
+    {
+      "file": "evenements-litteraires-grand-est.html",
+      "region": "Grand Est",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-grand-est"
+    },
+    {
+      "file": "evenements-litteraires-grenoble.html",
+      "region": null,
+      "country": null,
+      "city": "Grenoble",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-grenoble"
+    },
+    {
+      "file": "evenements-litteraires-hauts-de-france.html",
+      "region": "Hauts-de-France",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-hauts-de-france"
+    },
+    {
+      "file": "evenements-litteraires-ile-de-france.html",
+      "region": "Île-de-France",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-ile-de-france"
+    },
+    {
+      "file": "evenements-litteraires-lille.html",
+      "region": null,
+      "country": null,
+      "city": "Lille",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-lille"
+    },
+    {
+      "file": "evenements-litteraires-luxembourg.html",
+      "region": null,
+      "country": "LU",
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-luxembourg"
+    },
+    {
+      "file": "evenements-litteraires-lyon.html",
+      "region": null,
+      "country": null,
+      "city": "Lyon",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-lyon"
+    },
+    {
+      "file": "evenements-litteraires-marseille.html",
+      "region": null,
+      "country": null,
+      "city": "Marseille",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-marseille"
+    },
+    {
+      "file": "evenements-litteraires-metz.html",
+      "region": null,
+      "country": null,
+      "city": "Metz",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-metz"
+    },
+    {
+      "file": "evenements-litteraires-monaco.html",
+      "region": null,
+      "country": "MC",
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-monaco"
+    },
+    {
+      "file": "evenements-litteraires-montpellier.html",
+      "region": null,
+      "country": null,
+      "city": "Montpellier",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-montpellier"
+    },
+    {
+      "file": "evenements-litteraires-nancy.html",
+      "region": null,
+      "country": null,
+      "city": "Nancy",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-nancy"
+    },
+    {
+      "file": "evenements-litteraires-nantes.html",
+      "region": null,
+      "country": null,
+      "city": "Nantes",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-nantes"
+    },
+    {
+      "file": "evenements-litteraires-nice.html",
+      "region": null,
+      "country": null,
+      "city": "Nice",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-nice"
+    },
+    {
+      "file": "evenements-litteraires-normandie.html",
+      "region": "Normandie",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-normandie"
+    },
+    {
+      "file": "evenements-litteraires-nouvelle-aquitaine.html",
+      "region": "Nouvelle-Aquitaine",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-nouvelle-aquitaine"
+    },
+    {
+      "file": "evenements-litteraires-occitanie.html",
+      "region": "Occitanie",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-occitanie"
+    },
+    {
+      "file": "evenements-litteraires-paris.html",
+      "region": null,
+      "country": null,
+      "city": "Paris",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-paris"
+    },
+    {
+      "file": "evenements-litteraires-pays-de-la-loire.html",
+      "region": "Pays de la Loire",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-pays-de-la-loire"
+    },
+    {
+      "file": "evenements-litteraires-provence-alpes-cote-azur.html",
+      "region": "Provence-Alpes-Côte d’Azur",
+      "country": null,
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-provence-alpes-cote-azur"
+    },
+    {
+      "file": "evenements-litteraires-reims.html",
+      "region": null,
+      "country": null,
+      "city": "Reims",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-reims"
+    },
+    {
+      "file": "evenements-litteraires-rennes.html",
+      "region": null,
+      "country": null,
+      "city": "Rennes",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-rennes"
+    },
+    {
+      "file": "evenements-litteraires-rouen.html",
+      "region": null,
+      "country": null,
+      "city": "Rouen",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-rouen"
+    },
+    {
+      "file": "evenements-litteraires-strasbourg.html",
+      "region": null,
+      "country": null,
+      "city": "Strasbourg",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-strasbourg"
+    },
+    {
+      "file": "evenements-litteraires-suisse.html",
+      "region": null,
+      "country": "CH",
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-suisse"
+    },
+    {
+      "file": "evenements-litteraires-toulouse.html",
+      "region": null,
+      "country": null,
+      "city": "Toulouse",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-toulouse"
+    },
+    {
+      "file": "evenements-litteraires-tours.html",
+      "region": null,
+      "country": null,
+      "city": "Tours",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-tours"
+    },
+    {
+      "file": "evenements-litteraires-wallonie.html",
+      "region": "Wallonie",
+      "country": "BE",
+      "city": null,
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-wallonie"
+    }
+  ],
+  "duplicateEvents": [
+    [
+      "a19e090c-874f-47ab-b3b6-b33889729101",
+      "af3fe496-1e90-455b-bbf9-cf3d50c05adb"
+    ]
+  ],
+  "staticIdCollisions": [
+    {
+      "id": "3737",
+      "files": [
+        "3e-edition-du-salon-du-livre-et-des-arts-salle-de-l-oratoire-3737.html",
+        "rencontre-avec-sandrine-biyi-arudy-3737.html"
+      ]
+    },
+    {
+      "id": "3689",
+      "files": [
+        "generaliste-salon-du-livre-d-elven-6-decembre-2026-elven-56-elven-3689.html",
+        "madame-wooster-recoit-montreuil-sur-mer-3689.html"
+      ]
+    },
+    {
+      "id": "3716",
+      "files": [
+        "les-mardis-de-juillet-c-est-siestes-litteraires-au-bleuet-banon-3716.html",
+        "rencontre-avec-un-auteur-perigueux-3716.html"
+      ]
+    },
+    {
+      "id": "3815",
+      "files": [
+        "lussan-se-livre-22eme-edition-place-aux-ecrivains-lussan-3815.html",
+        "salon-du-livre-au-chateau-de-montgeoffroy-a-maze-maze-milon-3815.html"
+      ]
+    },
+    {
+      "id": "3915",
+      "files": [
+        "salon-du-livre-bage-dommartin-3915.html",
+        "seances-de-dedicaces-25-octobre-au-barrage-de-la-grande-dixence-hereme-3915.html"
+      ]
+    },
+    {
+      "id": "3916",
+      "files": [
+        "salon-du-livre-bellac-3916.html",
+        "seances-de-dedicaces-30-aout-au-barrage-de-la-grande-dixence-heremence-3916.html"
+      ]
+    }
+  ],
+  "unknownTerritories": [
+    {
+      "id": "18a26cb3-ee56-47b5-9519-ef530ce3faf6",
+      "title": "Salon du Livre",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Indre-et-Loire",
+      "city": "Marçay",
+      "start_date": "2026-06-20",
+      "end_date": "2026-06-21",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://opalebd.com/festivals/details/4390",
+      "territoryId": null,
+      "status": "past"
+    },
+    {
+      "id": "5ec59d7a-5ee8-4fe6-a4a3-bb99330877a9",
+      "title": "Dédicace",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "saone et loire",
+      "city": "Mâcon — 71000",
+      "start_date": "2026-07-04",
+      "end_date": "2026-07-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://sites.google.com/view/gabrielgachen",
+      "territoryId": null,
+      "status": "past"
+    },
+    {
+      "id": "6c2b8a95-1d9a-477e-af6c-5d445a379f80",
+      "title": "Grim'Loire",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "",
+      "city": "Azay-le-Rideau",
+      "start_date": "2026-10-10",
+      "end_date": "2026-10-11",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.grimloire.fr/",
+      "territoryId": null,
+      "status": "future"
+    },
+    {
+      "id": "a1bb4d6e-81a0-4619-a037-5a7962d81146",
+      "title": "Salon du Livre",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Meurthe-et-Moselle",
+      "city": "Toul",
+      "start_date": "2026-06-19",
+      "end_date": "2026-06-21",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.toul.fr/?salon-du-livre-2026",
+      "territoryId": null,
+      "status": "past"
+    },
+    {
+      "id": "c1e5f65f-1902-4d8f-967d-373218c4b7fa",
+      "title": "Festival international de littérature de Loèche-les-Bains",
+      "type": "Festival",
+      "country_code": "FR",
+      "region": "valais",
+      "city": "loèche-les-bains",
+      "start_date": "2026-06-26",
+      "end_date": "2026-06-28",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.literaturfestival.ch/",
+      "territoryId": null,
+      "status": "past"
+    }
+  ],
+  "notPublic": [],
+  "qualityIssues": [
+    {
+      "id": "6c2b8a95-1d9a-477e-af6c-5d445a379f80",
+      "title": "Grim'Loire",
+      "city": "Azay-le-Rideau",
+      "country": "FR",
+      "region": "",
+      "start_date": "2026-10-10",
+      "end_date": "2026-10-11",
+      "kind": "geography",
+      "reason": "Pays ou territoire absent / hors référentiel. Aucun classement géographique automatique.",
+      "source": null,
+      "checkedOn": null,
+      "published": true,
+      "status": "future"
+    },
+    {
+      "id": "a1c0b6c6-5db0-4ca2-a37d-5f6397a55fa6",
+      "title": "Imaginambulles",
+      "city": "Puilboreau",
+      "country": "FR",
+      "region": "Bretagne",
+      "start_date": "2026-06-13",
+      "end_date": "2026-06-14",
+      "kind": "geography",
+      "reason": "Puilboreau est en Charente-Maritime, hors Bretagne.",
+      "source": "https://www.ville-puilboreau.fr/wp-content/uploads/2025/03/Magazine-54-Calameo.pdf",
+      "checkedOn": "2026-09-23",
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "a1bb4d6e-81a0-4619-a037-5a7962d81146",
+      "title": "Salon du Livre",
+      "city": "Toul",
+      "country": "FR",
+      "region": "Meurthe-et-Moselle",
+      "start_date": "2026-06-19",
+      "end_date": "2026-06-21",
+      "kind": "geography",
+      "reason": "Pays ou territoire absent / hors référentiel. Aucun classement géographique automatique.",
+      "source": null,
+      "checkedOn": null,
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "18a26cb3-ee56-47b5-9519-ef530ce3faf6",
+      "title": "Salon du Livre",
+      "city": "Marçay",
+      "country": "FR",
+      "region": "Indre-et-Loire",
+      "start_date": "2026-06-20",
+      "end_date": "2026-06-21",
+      "kind": "geography",
+      "reason": "Pays ou territoire absent / hors référentiel. Aucun classement géographique automatique.",
+      "source": null,
+      "checkedOn": null,
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "c1e5f65f-1902-4d8f-967d-373218c4b7fa",
+      "title": "Festival international de littérature de Loèche-les-Bains",
+      "city": "loèche-les-bains",
+      "country": "FR",
+      "region": "valais",
+      "start_date": "2026-06-26",
+      "end_date": "2026-06-28",
+      "kind": "geography",
+      "reason": "Pays ou territoire absent / hors référentiel. Aucun classement géographique automatique.",
+      "source": null,
+      "checkedOn": null,
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "5ec59d7a-5ee8-4fe6-a4a3-bb99330877a9",
+      "title": "Dédicace",
+      "city": "Mâcon — 71000",
+      "country": "FR",
+      "region": "saone et loire",
+      "start_date": "2026-07-04",
+      "end_date": "2026-07-04",
+      "kind": "geography",
+      "reason": "Pays ou territoire absent / hors référentiel. Aucun classement géographique automatique.",
+      "source": null,
+      "checkedOn": null,
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "c55d3cad-5be3-48d5-a6ae-39e038ca6fef",
+      "title": "Festival de la Bande Dessinée Contern – 1er Festival de BD de la Grande Région",
+      "city": "Louvain-la-Neuve",
+      "country": "BE",
+      "region": "Wallonie",
+      "start_date": "2026-07-18",
+      "end_date": "2026-07-19",
+      "kind": "geography",
+      "reason": "Le titre et la source situent ce festival à Contern (Luxembourg), contrairement à Louvain-la-Neuve / BE dans le catalogue.",
+      "source": "https://contern.lu/culture-sports-loisirs/culture/festival-de-la-bd/",
+      "checkedOn": "2026-09-23",
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "a19e090c-874f-47ab-b3b6-b33889729101",
+      "title": "Salon du livre de Frontignan-de-Comminges",
+      "city": "Frontignan-de-Comminges",
+      "country": "FR",
+      "region": "Occitanie",
+      "start_date": "2026-07-19",
+      "end_date": "2026-07-19",
+      "kind": "duplicate",
+      "reason": "Même titre, ville et dates qu’une autre annonce (af3fe496-1e90-455b-bbf9-cf3d50c05adb). À comparer, sans retrait automatique.",
+      "source": null,
+      "checkedOn": null,
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "af3fe496-1e90-455b-bbf9-cf3d50c05adb",
+      "title": "Salon du livre de Frontignan-de-Comminges",
+      "city": "Frontignan-de-Comminges",
+      "country": "FR",
+      "region": "Occitanie",
+      "start_date": "2026-07-19",
+      "end_date": "2026-07-19",
+      "kind": "duplicate",
+      "reason": "Même titre, ville et dates qu’une autre annonce (a19e090c-874f-47ab-b3b6-b33889729101). À comparer, sans retrait automatique.",
+      "source": null,
+      "checkedOn": null,
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "8253c7e9-56a7-4368-b963-060a84ddcd68",
+      "title": "SALON DU LIVRE L'ASSASSIN HABITE DANS LE 29",
+      "city": "Fouesnant",
+      "country": "FR",
+      "region": "Bretagne",
+      "start_date": "2026-08-06",
+      "end_date": "2026-08-06",
+      "kind": "duplicate",
+      "reason": "Doublon probable : deux annonces du salon policier de Beg-Meil le même jour. Aucune fusion automatique ; vérifier si les deux annonces décrivent le même rendez-vous.",
+      "source": null,
+      "checkedOn": "2026-09-23",
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "3c20bba7-b05e-4400-ab7c-6e97e84f91c3",
+      "title": "Salon du Livre Policier - Beg-Meil",
+      "city": "Fouesnant",
+      "country": "FR",
+      "region": "Bretagne",
+      "start_date": "2026-08-06",
+      "end_date": "2026-08-06",
+      "kind": "duplicate",
+      "reason": "Doublon probable : deux annonces du salon policier de Beg-Meil le même jour. Aucune fusion automatique ; vérifier si les deux annonces décrivent le même rendez-vous.",
+      "source": null,
+      "checkedOn": "2026-09-23",
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "1fb9347c-7fb1-4734-8cea-a37c178a1dbe",
+      "title": "Rencontre avec Blandine Rinkel",
+      "city": "Bruxelles",
+      "country": "BE",
+      "region": "Wallonie",
+      "start_date": "2026-08-17",
+      "end_date": "2026-08-17",
+      "kind": "geography",
+      "reason": "Bruxelles appartient à Bruxelles-Capitale, pas à la Wallonie.",
+      "source": "https://www.belgium.be/fr/la_belgique/pouvoirs_publics/regions",
+      "checkedOn": "2026-09-23",
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "a9e84fea-5b7d-4f0f-8f80-ef1b98db8f27",
+      "title": "Story Heaven 2026",
+      "city": "Bruxelles",
+      "country": "BE",
+      "region": "Wallonie",
+      "start_date": "2026-09-05",
+      "end_date": "2026-09-06",
+      "kind": "geography",
+      "reason": "Bruxelles appartient à Bruxelles-Capitale, pas à la Wallonie.",
+      "source": "https://www.belgium.be/fr/la_belgique/pouvoirs_publics/regions",
+      "checkedOn": "2026-09-23",
+      "published": true,
+      "status": "past"
+    },
+    {
+      "id": "f55bec3f-3ae5-4488-83a4-cfe50e3448a5",
+      "title": "Meet the author : Martine Delvaux",
+      "city": "Bruxelles",
+      "country": "BE",
+      "region": "Wallonie",
+      "start_date": "2026-09-22",
+      "end_date": "2026-09-22",
+      "kind": "geography",
+      "reason": "Bruxelles appartient à Bruxelles-Capitale, pas à la Wallonie.",
+      "source": "https://www.belgium.be/fr/la_belgique/pouvoirs_publics/regions",
+      "checkedOn": "2026-09-23",
+      "published": true,
+      "status": "past"
+    }
+  ],
+  "pilots": [
+    {
+      "id": "FR-BRE",
+      "label": "Bretagne",
+      "country": "France",
+      "code": "FR",
+      "countryUrl": "index.html?country=FR#agenda",
+      "image": "https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev/event-images/2026/09/1790175488170-ec149276-cbbd-4a3b-bbf8-36d470890eb6.png",
+      "imageWidth": 2172,
+      "imageHeight": 724,
+      "file": "evenements-litteraires-bretagne.html",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-bretagne",
+      "creation": "Date de création publique non établie. Page présente dans le dépôt depuis le 27 avril 2026.",
+      "total": 98,
+      "upcoming": 25,
+      "ongoing": 0,
+      "past": 73,
+      "undated": 0,
+      "cancelled": 0,
+      "excluded": 0,
+      "ids": [
+        "3c895f47-b7fd-414d-8be7-699fc2f0f67f",
+        "54f89147-8cd4-4abc-b883-cca26c5e31a2",
+        "48805061-274c-4d89-a6e7-02b7c0027cea",
+        "69737f46-8b12-41eb-81e2-a069629322c7",
+        "347c40f4-c071-4d67-b4e2-fe362dc928cb",
+        "29b84d05-479a-41f9-aa02-67778d3663d3",
+        "de0fe139-8ee8-4011-92f5-0b84e006e339",
+        "fb8356c3-fe1d-43ee-9c5b-6fa1a34756b9",
+        "68d1cb04-c487-4505-a153-d15116e3923c",
+        "20add376-f45a-41d9-bc3c-e83b4cff4806",
+        "ba013873-311c-4f5d-8edd-1a12dbd2d577",
+        "0cf31a46-574b-44d6-8efb-46e070444ba4",
+        "79c64c5b-18b1-48ad-8552-a2e0893ad4fc",
+        "01e0b1b8-3a3c-45a1-86cf-e060737bb705",
+        "91be739a-c6eb-4d41-8cf6-bfbb80e92cc7",
+        "a1c0b6c6-5db0-4ca2-a37d-5f6397a55fa6",
+        "f646f365-dc45-4ca5-ba69-00a22e7e3c7b",
+        "1f0589c6-b1d5-44f5-b0b7-4f80e2684731",
+        "d6354508-0961-40c2-b558-8ccd2e06ebb5",
+        "a67e395b-6020-495b-9e74-9e0024d7815f",
+        "1dbf5d5a-c699-4102-8720-b918db1afc51",
+        "e4aadc7f-20f3-413c-acd9-451944569c60",
+        "64fc61e8-ea0c-4d3a-988f-b55d50cbc13b",
+        "2a1e2cab-2ce7-49d8-8395-090e046c5ab5",
+        "4606f796-c0d7-45c0-86cc-36266384acc1",
+        "c0b63a63-5850-42e4-beab-ce84ebf922ab",
+        "7bbc20eb-7a96-4a08-8d93-7679abd03efe",
+        "46f35b0e-0d87-463d-8d05-a8951d990918",
+        "0e37be3a-ffa4-4964-b8e3-54dc34e4d7b8",
+        "bd6a71cf-0429-4ac7-8568-f59c4c769520",
+        "1c55a545-2792-48dd-827e-02eb6c4643e4",
+        "a24f0508-015c-4cd7-b206-b136b7734ba0",
+        "15324d55-a1c0-448d-a382-594943ed0df4",
+        "25698a69-8078-403a-a6ef-582d8afe1b31",
+        "83edf99e-dfab-4bce-ae9e-716ed136c4a9",
+        "9dcbdaed-1ba7-4e36-8b6e-1c96cdf358c4",
+        "74b2cef1-d126-45f3-80b7-b5b577eec304",
+        "39982164-8270-4431-b19f-5741b2e6ce8d",
+        "0c543c6d-4756-4bcd-9efa-388146642a10",
+        "8d9c21c1-f4ba-4ae4-b500-cef412ae1b53",
+        "02956b63-48cb-4f5c-92e2-74b7148d39d3",
+        "109602c5-ef7d-4d4b-84c8-17b4ac6f06e0",
+        "700317ed-80d0-4c53-b96f-03af34ae13c3",
+        "9a212ac2-e9e1-45b0-89a9-af9b4291a1bd",
+        "d7ba01af-7d7e-4435-b5aa-4b1562d81bc3",
+        "5215bbe0-b0b1-4f85-9783-4f9e98524961",
+        "cf357fa6-d3f1-43cf-a3bb-a599aa92e9a4",
+        "c87ab098-7b5c-4212-b1da-06b3a95b776d",
+        "8253c7e9-56a7-4368-b963-060a84ddcd68",
+        "3c20bba7-b05e-4400-ab7c-6e97e84f91c3",
+        "5c6307de-1822-4442-8d3b-973ccec7ca46",
+        "f5ddca0a-cf33-498b-8202-25cc2f582bff",
+        "26699867-fcdd-4f21-8018-ac80b979633b",
+        "d85c430d-a704-4f82-a7df-dc7806cb0f33",
+        "5143e087-24b4-4320-9e47-cc1ff640ae2c",
+        "1538413f-1219-4497-84a8-448d558f07fa",
+        "5acdc5d0-cdd8-48c9-ad73-2c7d00af4523",
+        "dae977f2-e656-4cf7-b7e0-b79d0d88629b",
+        "35e8682f-98f5-4cf0-adf4-dae0eaa1c362",
+        "a1978215-9973-444f-bf7a-3d8f182d0056",
+        "c5462304-e3f4-4a25-b23a-0b991ea8ebcc",
+        "87b344f6-f500-4b87-b19f-5b9e49e4b7f4",
+        "18156b5d-2f83-4b85-8cfd-87683c075a66",
+        "2dd11384-cfe8-4659-bcf5-4346f069a0ce",
+        "ac979b42-1b9f-4871-8ed3-bd46ea1f9d60",
+        "6102bab7-a9ff-47be-aebe-efc0e6459a1a",
+        "594a910d-d93e-4631-a9c3-c0ac4f9e425b",
+        "ee707f7a-68f9-4878-9505-4db9a483b33e",
+        "0161d739-9226-4aeb-8ec4-ec2d7074dba6",
+        "db6a095b-b493-4493-bbd8-4e389f48d09b",
+        "c5b7adfd-bf17-4d28-ab48-82460a0c968c",
+        "8ed7e855-a67d-4f7a-aa34-d134cc395530",
+        "1c54dc0a-b9ee-45e4-8a2f-350c7547c212",
+        "766d62dd-a8e6-4b3c-84a4-00dc1062c83f",
+        "07de1b69-452a-440d-827f-2d24919f37ea",
+        "d3c157d5-c08c-4466-86ef-2dfe90bce31a",
+        "8a721714-e98b-4e3d-bbf6-0efba679bff8",
+        "91f20756-c92f-41ae-b321-60cc73185cfb",
+        "3e7af91b-4c92-477c-b9d9-360239e77bf5",
+        "fbe64b8b-974b-4500-809d-4776d30d19ff",
+        "6add8f19-e220-4826-92e4-b22bf91b2169",
+        "d193abe9-302c-47fb-93a2-dbb4cb7791e5",
+        "bfe75f54-6489-4e54-afac-81471c2cd69d",
+        "bc1d2bc0-00de-429d-89a7-981a75921144",
+        "68d05f70-51ab-40b4-920c-9687a1c8d1ab",
+        "9388c03d-0ac9-4de9-ae6c-d1f6e17329bc",
+        "c97d08c2-5cd5-4fa2-886f-417d2484462e",
+        "e7052295-d270-434a-9fee-9c08c199f006",
+        "aa503615-808c-44e0-86cf-e7f704e2ffcf",
+        "316861b7-0dd1-4ea7-b458-9fd8da849881",
+        "dc155d97-0c40-412b-87ea-033f51958976",
+        "84f8e08a-0ee9-481e-8474-37a5221120ef",
+        "eb6672b2-900f-4c6a-9021-ea84c5036769",
+        "076053cd-b387-4a94-a61d-0e8f0b5b9784",
+        "7da7140e-0a1b-4fb9-8353-a76afbd5895b",
+        "c574ed06-0989-42bb-8bf9-2159d9ab3281",
+        "a189eb48-a96a-41bb-970a-85d5c47892c3",
+        "1ebc51fb-3934-4103-839d-1dc9cb4f6ab5"
+      ]
+    },
+    {
+      "id": "BE-WAL",
+      "label": "Wallonie",
+      "country": "Belgique",
+      "code": "BE",
+      "countryUrl": "evenements-litteraires-belgique.html",
+      "image": "https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev/event-images/2026/09/1790175473845-66b96fa3-9e2d-4b0a-8a30-234707af0b67.png",
+      "imageWidth": 1916,
+      "imageHeight": 821,
+      "file": "evenements-litteraires-wallonie.html",
+      "canonical": "https://dedicalivres.fr/evenements-litteraires-wallonie",
+      "creation": "Page créée le 22 septembre 2026.",
+      "total": 8,
+      "upcoming": 3,
+      "ongoing": 0,
+      "past": 5,
+      "undated": 0,
+      "cancelled": 0,
+      "excluded": 0,
+      "ids": [
+        "9f3b5d30-d3d8-4481-a69f-98b6d9820190",
+        "c55d3cad-5be3-48d5-a6ae-39e038ca6fef",
+        "1fb9347c-7fb1-4734-8cea-a37c178a1dbe",
+        "a9e84fea-5b7d-4f0f-8f80-ef1b98db8f27",
+        "f55bec3f-3ae5-4488-83a4-cfe50e3448a5",
+        "0627ab62-44b8-4e12-baa7-c29b158ed664",
+        "5f2f72d0-7f33-4f9f-b0f2-2e222dc919d0",
+        "f12c95d9-6cab-4210-b25b-10aa3549dcff"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,257 @@
+[
+  {
+    "code": "FR",
+    "name": "France",
+    "subdivisionLabel": "Région",
+    "territories": [
+      {
+        "id": "FR-local-01",
+        "label": "Auvergne-Rhône-Alpes"
+      },
+      {
+        "id": "FR-local-02",
+        "label": "Bourgogne-Franche-Comté"
+      },
+      {
+        "id": "FR-BRE",
+        "label": "Bretagne"
+      },
+      {
+        "id": "FR-local-04",
+        "label": "Centre-Val de Loire"
+      },
+      {
+        "id": "FR-local-05",
+        "label": "Corse"
+      },
+      {
+        "id": "FR-local-06",
+        "label": "Grand Est"
+      },
+      {
+        "id": "FR-local-07",
+        "label": "Hauts-de-France"
+      },
+      {
+        "id": "FR-local-08",
+        "label": "Île-de-France"
+      },
+      {
+        "id": "FR-local-09",
+        "label": "Normandie"
+      },
+      {
+        "id": "FR-local-10",
+        "label": "Nouvelle-Aquitaine"
+      },
+      {
+        "id": "FR-local-11",
+        "label": "Occitanie"
+      },
+      {
+        "id": "FR-local-12",
+        "label": "Pays de la Loire"
+      },
+      {
+        "id": "FR-local-13",
+        "label": "Provence-Alpes-Côte d’Azur"
+      }
+    ]
+  },
+  {
+    "code": "BE",
+    "name": "Belgique",
+    "subdivisionLabel": "Région",
+    "territories": [
+      {
+        "id": "BE-local-01",
+        "label": "Bruxelles-Capitale"
+      },
+      {
+        "id": "BE-local-02",
+        "label": "Flandre"
+      },
+      {
+        "id": "BE-WAL",
+        "label": "Wallonie"
+      }
+    ]
+  },
+  {
+    "code": "LU",
+    "name": "Luxembourg",
+    "subdivisionLabel": "Canton",
+    "territories": [
+      {
+        "id": "LU-local-01",
+        "label": "Capellen"
+      },
+      {
+        "id": "LU-local-02",
+        "label": "Clervaux"
+      },
+      {
+        "id": "LU-local-03",
+        "label": "Diekirch"
+      },
+      {
+        "id": "LU-local-04",
+        "label": "Echternach"
+      },
+      {
+        "id": "LU-local-05",
+        "label": "Esch-sur-Alzette"
+      },
+      {
+        "id": "LU-local-06",
+        "label": "Grevenmacher"
+      },
+      {
+        "id": "LU-local-07",
+        "label": "Luxembourg"
+      },
+      {
+        "id": "LU-local-08",
+        "label": "Mersch"
+      },
+      {
+        "id": "LU-local-09",
+        "label": "Redange"
+      },
+      {
+        "id": "LU-local-10",
+        "label": "Remich"
+      },
+      {
+        "id": "LU-local-11",
+        "label": "Vianden"
+      },
+      {
+        "id": "LU-local-12",
+        "label": "Wiltz"
+      }
+    ]
+  },
+  {
+    "code": "CH",
+    "name": "Suisse",
+    "subdivisionLabel": "Canton",
+    "territories": [
+      {
+        "id": "CH-local-01",
+        "label": "Argovie"
+      },
+      {
+        "id": "CH-local-02",
+        "label": "Appenzell Rhodes-Extérieures"
+      },
+      {
+        "id": "CH-local-03",
+        "label": "Appenzell Rhodes-Intérieures"
+      },
+      {
+        "id": "CH-local-04",
+        "label": "Bâle-Campagne"
+      },
+      {
+        "id": "CH-local-05",
+        "label": "Bâle-Ville"
+      },
+      {
+        "id": "CH-local-06",
+        "label": "Berne"
+      },
+      {
+        "id": "CH-local-07",
+        "label": "Fribourg"
+      },
+      {
+        "id": "CH-local-08",
+        "label": "Genève"
+      },
+      {
+        "id": "CH-local-09",
+        "label": "Glaris"
+      },
+      {
+        "id": "CH-local-10",
+        "label": "Grisons"
+      },
+      {
+        "id": "CH-local-11",
+        "label": "Jura"
+      },
+      {
+        "id": "CH-local-12",
+        "label": "Lucerne"
+      },
+      {
+        "id": "CH-local-13",
+        "label": "Neuchâtel"
+      },
+      {
+        "id": "CH-local-14",
+        "label": "Nidwald"
+      },
+      {
+        "id": "CH-local-15",
+        "label": "Obwald"
+      },
+      {
+        "id": "CH-local-16",
+        "label": "Saint-Gall"
+      },
+      {
+        "id": "CH-local-17",
+        "label": "Schaffhouse"
+      },
+      {
+        "id": "CH-local-18",
+        "label": "Schwytz"
+      },
+      {
+        "id": "CH-local-19",
+        "label": "Soleure"
+      },
+      {
+        "id": "CH-local-20",
+        "label": "Tessin"
+      },
+      {
+        "id": "CH-local-21",
+        "label": "Thurgovie"
+      },
+      {
+        "id": "CH-local-22",
+        "label": "Uri"
+      },
+      {
+        "id": "CH-local-23",
+        "label": "Valais"
+      },
+      {
+        "id": "CH-local-24",
+        "label": "Vaud"
+      },
+      {
+        "id": "CH-local-25",
+        "label": "Zoug"
+      },
+      {
+        "id": "CH-local-26",
+        "label": "Zurich"
+      }
+    ]
+  },
+  {
+    "code": "MC",
+    "name": "Monaco",
+    "subdivisionLabel": "Territoire",
+    "territories": [
+      {
+        "id": "MC-local-01",
+        "label": "Monaco"
+      }
+    ]
+  }
+]

@@ -1,0 +1,170 @@
+[
+  {
+    "id": "1fb9347c-7fb1-4734-8cea-a37c178a1dbe",
+    "kind": "geography",
+    "reason": "Bruxelles appartient à Bruxelles-Capitale, pas à la Wallonie.",
+    "source": "https://www.belgium.be/fr/la_belgique/pouvoirs_publics/regions",
+    "checkedOn": "2026-09-23",
+    "expected": {
+      "country_code": "BE",
+      "region": "Bruxelles-Capitale"
+    },
+    "relatedIds": [],
+    "observed": {
+      "country_code": "BE",
+      "region": "Wallonie",
+      "city": "Bruxelles",
+      "start_date": "2026-08-17",
+      "end_date": "2026-08-17",
+      "title": "Rencontre avec Blandine Rinkel"
+    },
+    "observedAt": "2026-09-22T20:08:09.655Z"
+  },
+  {
+    "id": "3c20bba7-b05e-4400-ab7c-6e97e84f91c3",
+    "kind": "duplicate",
+    "reason": "Doublon probable : deux annonces du salon policier de Beg-Meil le même jour. Aucune fusion automatique ; vérifier si les deux annonces décrivent le même rendez-vous.",
+    "source": null,
+    "checkedOn": "2026-09-23",
+    "expected": {},
+    "relatedIds": [
+      "3c20bba7-b05e-4400-ab7c-6e97e84f91c3",
+      "8253c7e9-56a7-4368-b963-060a84ddcd68"
+    ],
+    "observed": {
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Fouesnant",
+      "start_date": "2026-08-06",
+      "end_date": "2026-08-06",
+      "title": "Salon du Livre Policier - Beg-Meil"
+    },
+    "observedAt": "2026-09-22T20:08:09.655Z"
+  },
+  {
+    "id": "8253c7e9-56a7-4368-b963-060a84ddcd68",
+    "kind": "duplicate",
+    "reason": "Doublon probable : deux annonces du salon policier de Beg-Meil le même jour. Aucune fusion automatique ; vérifier si les deux annonces décrivent le même rendez-vous.",
+    "source": null,
+    "checkedOn": "2026-09-23",
+    "expected": {},
+    "relatedIds": [
+      "3c20bba7-b05e-4400-ab7c-6e97e84f91c3",
+      "8253c7e9-56a7-4368-b963-060a84ddcd68"
+    ],
+    "observed": {
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Fouesnant",
+      "start_date": "2026-08-06",
+      "end_date": "2026-08-06",
+      "title": "SALON DU LIVRE L'ASSASSIN HABITE DANS LE 29"
+    },
+    "observedAt": "2026-09-22T20:08:09.655Z"
+  },
+  {
+    "id": "a1c0b6c6-5db0-4ca2-a37d-5f6397a55fa6",
+    "kind": "geography",
+    "reason": "Puilboreau est en Charente-Maritime, hors Bretagne.",
+    "source": "https://www.ville-puilboreau.fr/wp-content/uploads/2025/03/Magazine-54-Calameo.pdf",
+    "checkedOn": "2026-09-23",
+    "expected": {
+      "country_code": "FR",
+      "region": "Nouvelle-Aquitaine"
+    },
+    "relatedIds": [],
+    "observed": {
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Puilboreau",
+      "start_date": "2026-06-13",
+      "end_date": "2026-06-14",
+      "title": "Imaginambulles"
+    },
+    "observedAt": "2026-09-22T20:08:09.655Z"
+  },
+  {
+    "id": "a9e84fea-5b7d-4f0f-8f80-ef1b98db8f27",
+    "kind": "geography",
+    "reason": "Bruxelles appartient à Bruxelles-Capitale, pas à la Wallonie.",
+    "source": "https://www.belgium.be/fr/la_belgique/pouvoirs_publics/regions",
+    "checkedOn": "2026-09-23",
+    "expected": {
+      "country_code": "BE",
+      "region": "Bruxelles-Capitale"
+    },
+    "relatedIds": [],
+    "observed": {
+      "country_code": "BE",
+      "region": "Wallonie",
+      "city": "Bruxelles",
+      "start_date": "2026-09-05",
+      "end_date": "2026-09-06",
+      "title": "Story Heaven 2026"
+    },
+    "observedAt": "2026-09-22T20:08:09.655Z"
+  },
+  {
+    "id": "c55d3cad-5be3-48d5-a6ae-39e038ca6fef",
+    "kind": "geography",
+    "reason": "Le titre et la source situent ce festival à Contern (Luxembourg), contrairement à Louvain-la-Neuve / BE dans le catalogue.",
+    "source": "https://contern.lu/culture-sports-loisirs/culture/festival-de-la-bd/",
+    "checkedOn": "2026-09-23",
+    "expected": {
+      "country_code": "LU",
+      "city": "Contern"
+    },
+    "relatedIds": [],
+    "observed": {
+      "country_code": "BE",
+      "region": "Wallonie",
+      "city": "Louvain-la-Neuve",
+      "start_date": "2026-07-18",
+      "end_date": "2026-07-19",
+      "title": "Festival de la Bande Dessinée Contern – 1er Festival de BD de la Grande Région"
+    },
+    "observedAt": "2026-09-22T20:08:09.655Z"
+  },
+  {
+    "id": "f55bec3f-3ae5-4488-83a4-cfe50e3448a5",
+    "kind": "geography",
+    "reason": "Bruxelles appartient à Bruxelles-Capitale, pas à la Wallonie.",
+    "source": "https://www.belgium.be/fr/la_belgique/pouvoirs_publics/regions",
+    "checkedOn": "2026-09-23",
+    "expected": {
+      "country_code": "BE",
+      "region": "Bruxelles-Capitale"
+    },
+    "relatedIds": [],
+    "observed": {
+      "country_code": "BE",
+      "region": "Wallonie",
+      "city": "Bruxelles",
+      "start_date": "2026-09-22",
+      "end_date": "2026-09-22",
+      "title": "Meet the author : Martine Delvaux"
+    },
+    "observedAt": "2026-09-22T20:08:09.655Z"
+  },
+  {
+    "id": "0627ab62-44b8-4e12-baa7-c29b158ed664",
+    "kind": "dates",
+    "reason": "Dates à comparer avec l’organisateur : 26 et 27 septembre 2026.",
+    "source": "https://www.monslivre.be/salon-du-livre-de-wallonie/",
+    "checkedOn": "2026-09-23",
+    "expected": {
+      "start_date": "2026-09-26",
+      "end_date": "2026-09-27"
+    },
+    "relatedIds": [],
+    "observed": {
+      "country_code": "BE",
+      "region": "Wallonie",
+      "city": "Mons",
+      "start_date": "2026-09-27",
+      "end_date": "2026-09-27",
+      "title": "Salon littéraire à Mons | Salon du Livre de Wallonie"
+    },
+    "observedAt": "2026-09-22T20:08:09.655Z"
+  }
+]

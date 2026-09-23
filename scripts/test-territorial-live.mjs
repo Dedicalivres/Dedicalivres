@@ -1,0 +1,92 @@
+import fs from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
+const snapshot=JSON.parse(await fs.readFile('docs/territoires/catalogue-public.json','utf8'));
+const out=process.env.TEST_OUTPUT||'../../outputs';
+const browser=await chromium.launch({headless:true});
+const base=process.env.TEST_BASE_URL||'http://127.0.0.1:8765';
+const monsId='0627ab62-44b8-4e12-baa7-c29b158ed664';
+const proof={};
+try{
+ let live=[...snapshot.events],failure=false,reads=0;
+ const context=await browser.newContext({viewport:{width:390,height:844}});
+ await context.route('**/*',async route=>{
+  const url=new URL(route.request().url());
+  if(url.pathname==='/rest/v1/events'){
+   assert.equal(route.request().method(),'GET');reads++;
+   if(failure)return route.fulfill({status:503,body:'unavailable'});
+   const cursor=url.searchParams.get('id')?.slice(3);
+   return route.fulfill({json:live.filter(e=>!cursor||e.id>cursor).sort((a,b)=>a.id.localeCompare(b.id)).slice(0,40)});
+  }
+  return url.hostname==='127.0.0.1'?route.continue():route.abort();
+ });
+ const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base+'/evenements-litteraires-wallonie.html');
+ await page.waitForFunction(()=>document.getElementById('territory-refresh-status').textContent==='Catalogue public actualisé.');
+ assert.equal(await page.locator('[data-event-id]').count(),8);
+ const mons=page.locator(`[data-event-id="${monsId}"]`);
+ assert.equal(await mons.locator('time').first().getAttribute('datetime'),'2026-09-26');
+ assert.equal(await mons.locator('time').last().getAttribute('datetime'),'2026-09-27');
+ const newEvent={...snapshot.events.find(e=>e.id===monsId),id:'ffffffff-ffff-4fff-8fff-ffffffffffff',title:'Nouvelle annonce publique de test'};
+ live.push(newEvent);
+ await page.locator('#territory-refresh').click();
+ await page.waitForFunction(()=>document.querySelector('[data-count="total"]').textContent==='9');
+ assert.equal(await page.locator('[data-event-id]').count(),9);
+ // Corrections must replace values without keeping an old exclusion or venue override.
+ live=live.map(e=>e.id===monsId?{...e,end_date:'2026-09-28'}:e);
+ await page.locator('#territory-refresh').click();
+ await page.waitForFunction(id=>document.querySelector(`[data-event-id="${id}"] time:last-child`)?.getAttribute('datetime')==='2026-09-28',monsId);
+ failure=true;
+ await page.locator('#territory-refresh').click();
+ await page.waitForFunction(()=>document.getElementById('territory-refresh-status').textContent.startsWith('Actualisation indisponible'));
+ assert.equal(await page.locator('[data-event-id]').count(),9);
+ assert.equal(await page.locator('[data-count="total"]').textContent(),'9');
+ proof.public={initial:8,afterNewPublication:9,correctionReflected:true,failurePreservesRows:true,reads};
+ assert.deepEqual(errors,[]);
+ await context.close();
+
+ const adminContextSource=await fs.readFile('admin-context.js','utf8');
+ const literal=adminContextSource.match(/const state = (\{[\s\S]*?\n  \});/)[1];
+ const initial=Function('return ('+literal+')')();
+ Object.assign(initial,{status:'ready',authenticated:true,events:snapshot.events});
+ const fixture=`const listeners=new Set();let state=${JSON.stringify(initial)};
+ window.__replaceAdminState=values=>{state={...state,...values};listeners.forEach(fn=>fn(state));};
+ window.DEDICALIVRES_ADMIN_CONTEXT={getState:()=>state,getClient:()=>null,subscribe(fn){listeners.add(fn);fn(state);return ()=>listeners.delete(fn)},restoreSession:async()=>state,refresh:async()=>state};`;
+ const admin=await browser.newContext({viewport:{width:1440,height:1000}});
+ await admin.route('**/*',route=>{
+  const url=new URL(route.request().url());
+  if(url.hostname!=='127.0.0.1')return route.abort();
+  if(url.pathname==='/admin-context.js')return route.fulfill({contentType:'application/javascript',body:fixture});
+  const allowed=['/config.js','/admin-shell.js','/admin-territorial-quality.js','/scripts/territorial-catalog.mjs','/scripts/territorial-quality.mjs'];
+  if(url.pathname.endsWith('.js')&&!allowed.includes(url.pathname))return route.fulfill({contentType:'application/javascript',body:''});
+  assert.equal(route.request().method(),'GET');
+  return route.continue();
+ });
+ const review=await admin.newPage();const adminErrors=[];review.on('pageerror',e=>adminErrors.push(e.message));
+ await review.goto(base+'/admin-v11.html');
+ await review.locator('[data-view="events"]').first().click();
+ await review.locator('#v11-territorial-scope').selectOption('all');
+ assert.equal(await review.locator(`[data-quality-event-id="${monsId}"]`).count(),0);
+ await review.evaluate(id=>{const s=window.DEDICALIVRES_ADMIN_CONTEXT.getState();window.__replaceAdminState({events:s.events.map(e=>e.id===id?{...e,start_date:'2026-09-27'}:e)});},monsId);
+ assert.equal(await review.locator(`[data-quality-event-id="${monsId}"]`).count(),1);
+ await review.locator(`[data-quality-event-id="${monsId}"] button`).click();
+ assert(await review.locator('#v11-event-detail').isVisible());
+ assert((await review.locator('#v11-event-detail-title').textContent()).includes('Mons'));
+ await review.locator('#v11-event-detail-close').click();
+ await review.evaluate(id=>{const s=window.DEDICALIVRES_ADMIN_CONTEXT.getState();window.__replaceAdminState({events:s.events.map(e=>e.id===id?{...e,start_date:'2026-09-26'}:e)});},monsId);
+ assert.equal(await review.locator(`[data-quality-event-id="${monsId}"]`).count(),0);
+ await review.locator('#v11-territorial-quality').scrollIntoViewIfNeeded();
+ await review.screenshot({path:out+'/admin-anomalies-desktop.png'});
+ await review.setViewportSize({width:390,height:844});
+ await review.locator('#v11-territorial-quality').scrollIntoViewIfNeeded();
+ assert.equal(await review.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await review.screenshot({path:out+'/admin-anomalies-mobile.png'});
+ proof.admin={activeRows:await review.locator('[data-quality-event-id]').count(),monsAlertResolved:true,existingDetailOpened:true,networkWrites:0};
+ await review.evaluate(()=>window.__replaceAdminState({authenticated:false,status:'unauthenticated'}));
+ assert.equal(await review.locator('#v11-territorial-quality').isVisible(),false);
+ assert.equal(await review.locator('[data-quality-event-id]').count(),0);
+ assert.deepEqual(adminErrors,[]);
+ await admin.close();
+ await fs.writeFile(out+'/recette-publication-anomalies.json',JSON.stringify(proof,null,2));
+ console.log('PASS : publication ajoutée, correction suivie, panne sans perte, admin avec fiche existante, alerte Mons résolue, déconnexion masquée, aucune écriture réseau.');
+}finally{await browser.close();}

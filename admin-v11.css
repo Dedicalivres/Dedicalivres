@@ -7057,3 +7057,12 @@ label.is-artist-author {
 }
 
 .v11-photo-controls button, .v11-photo-controls input { min-height: 44px; }
+
+/* Read-only territorial quality review; uses the existing event editor. */
+.v11-territorial-issues{list-style:none;padding:0;display:grid;gap:12px;max-height:600px;overflow:auto}
+.v11-territorial-issues>li{padding:16px;border:1px solid var(--border,rgba(255,255,255,.16));border-radius:12px;overflow-wrap:anywhere}
+.v11-territorial-issues h4{margin:0 0 8px}.v11-territorial-issues button{margin-top:10px}
+#v11-territorial-quality select{max-width:100%;padding:8px}
+
+#v11-territorial-quality a{color:#73e6f0;text-decoration:underline}
+#v11-territorial-quality select{background:#12232d;color:#eaf1f6;border:1px solid #536570;border-radius:8px}

@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-09-23T05:13:43.485Z",
+  "files": [
+    {
+      "file": "app.js",
+      "http": 200,
+      "matchesBaseline": true,
+      "sha256": "853c0fcb2a0b7591bdd709a09136f264a2eac21e49e63b59cca86cf7b1d64ae9"
+    },
+    {
+      "file": "event.js",
+      "http": 200,
+      "matchesBaseline": true,
+      "sha256": "cf31c539763599916e5baf35f709ef153c0737ea532303d9de5dee156b57e8ef"
+    },
+    {
+      "file": "local-preferences.js",
+      "http": 200,
+      "matchesBaseline": true,
+      "sha256": "938b39d02015aefd95742f02c0d5b64b588b6daba74c8e8c6eb656158e3c63a6"
+    }
+  ]
+}
