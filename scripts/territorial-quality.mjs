@@ -1,4 +1,18 @@
-import {classify,duplicateGroups,territoryFor} from './territorial-catalog.mjs';
+import {classify,duplicateGroups,normalize,territoryFor} from './territorial-catalog.mjs';
+export function publishedDuplicateGroups(events) {
+ const groups=new Map();
+ for(const event of events||[]){
+  if(event?.validated!==true||event?.rejected===true)continue;
+  const title=normalize(event.title);
+  const city=normalize(event.city);
+  const start=String(event.start_date||'');
+  const end=String(event.end_date||event.start_date||'');
+  if(!title||!city||!start)continue;
+  const key=[String(event.country_code||'').toUpperCase(),title,city,start,end].join('|');
+  groups.set(key,[...(groups.get(key)||[]),event]);
+ }
+ return [...groups.values()].filter(group=>group.length>1);
+}
 export function analyzeQuality(events,registry,observations,today) {
  const issues=[];
  const byId=new Map(events.map(e=>[String(e.id),e]));

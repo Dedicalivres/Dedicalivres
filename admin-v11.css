@@ -7066,3 +7066,5 @@ label.is-artist-author {
 
 #v11-territorial-quality a{color:#73e6f0;text-decoration:underline}
 #v11-territorial-quality select{background:#12232d;color:#eaf1f6;border:1px solid #536570;border-radius:8px}
+.v11-duplicate-review{margin-bottom:24px}.v11-duplicate-groups{display:grid;gap:16px}.v11-duplicate-group{padding:16px;border:1px solid #8a6d2f;border-radius:12px;background:rgba(138,109,47,.1)}
+.v11-duplicate-comparison{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.v11-duplicate-card{padding:12px;border:1px solid var(--border,rgba(255,255,255,.16));border-radius:10px;background:#12232d;overflow-wrap:anywhere}.v11-duplicate-card img,.v11-duplicate-image-empty{display:block;width:100%;height:140px;object-fit:contain;border-radius:8px;background:#09161d}.v11-duplicate-image-empty{display:grid;place-items:center;color:#a9b6bd}.v11-duplicate-card dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 10px}.v11-duplicate-card dt{font-weight:700}.v11-duplicate-card dd{margin:0;min-width:0}.v11-duplicate-card code{white-space:normal;overflow-wrap:anywhere}
