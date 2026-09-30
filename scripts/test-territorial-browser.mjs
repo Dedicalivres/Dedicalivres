@@ -11,7 +11,11 @@ try{
   // Prevent analytics/third-party requests during local verification.
   await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
   const page=await context.newPage();
+  const runtimeErrors=[];
+  page.on('pageerror',error=>runtimeErrors.push(error.message));
+  page.on('console',message=>{if(message.type()==='error')runtimeErrors.push(message.text());});
   for(const p of audit.pilots){
+   runtimeErrors.length=0;
    await page.goto('http://127.0.0.1:8765/'+p.file);
    assert.equal(await page.locator('[data-event-id]').count(),p.total);
    assert.equal(Number(await page.locator('[data-count="total"]').textContent()),p.total);
@@ -30,6 +34,7 @@ try{
    const href=await page.locator('[data-event-id] a').first().getAttribute('href');
    const id=new URL(href,'http://local/').searchParams.get('id');
    assert(p.ids.includes(id));
+   assert.deepEqual(runtimeErrors,[],`${p.label}: JavaScript errors`);
    results.push({territory:p.id,width:viewport.width,javaScriptEnabled,events:p.total,overflow});
   }
   await context.close();

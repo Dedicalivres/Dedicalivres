@@ -5,6 +5,13 @@ import {territories} from './territorial-directory.mjs';
 export {territories};
 export const pilots=territories.filter(p=>['FR-BRE','BE-WAL'].includes(p.id));
 export function countryLinks(){return territories.filter(p=>p.kind==='country').map(p=>`<a href="${p.file}">${esc(p.label)}</a>`).join(' · ');}
+function territoryIntro(p){
+ const pilots={
+  'FR-BRE':'Dédicalivres rassemble ici les salons du livre, festivals, dédicaces et rencontres littéraires annoncés en Bretagne, en France. Consultez les événements à venir puis les archives régionales.',
+  'BE-WAL':'Retrouvez avec Dédicalivres les salons du livre, festivals, dédicaces et rencontres littéraires annoncés en Wallonie, en Belgique. Parcourez les prochains rendez-vous puis les archives du territoire.'
+ };
+ return pilots[p.id]||`Dédicalivres rassemble les événements littéraires annoncés en ${p.label}, ${p.country} : rendez-vous à venir et archives du territoire.`;
+}
 function navigation(p){
  const siblings=territories.filter(t=>t.kind==='region'&&t.code===p.code);
  return `<nav class="territory-navigation" aria-label="Navigation territoriale"><h2>${p.kind==='country'?'Explorer les régions':'Explorer '+esc(p.country)}</h2>${p.kind==='country'?`<p>${siblings.length?'Sélectionnez une région pour découvrir ses rendez-vous littéraires à venir et ses archives.':'Consultez les rendez-vous littéraires à venir et les archives de ce pays, sans étape régionale supplémentaire.'}</p>`:''}<p>${p.kind==='region'?`<a href="${p.countryUrl}">${esc(p.country)}</a> · `:''}<a href="index.html#agenda">Voir tout l’agenda</a></p><ul>${siblings.map(t=>`<li><a href="${t.file}"${t.id===p.id?' aria-current="page"':''}>${esc(t.label)}</a></li>`).join('')}</ul>${p.code==='BE'&&p.kind==='country'?'<p>Bruxelles-Capitale et Flandre : aucune annonce rattachée dans la capture utilisée pour créer ces pages. Le catalogue pays ci-dessous inclut leurs nouvelles annonces dès actualisation.</p>':''}${p.kind==='country'?`<p>Autres pays : ${countryLinks()}</p>`:''}</nav>`;
@@ -33,7 +40,7 @@ function list(rows){return rows.length?`<ul class="territory-list">${rows.map(it
  const main=`<main id="territory-content" class="container seo-content" data-territory-id="${p.id}" data-as-of="${today}">
  <nav class="territory-breadcrumb" aria-label="Fil d’Ariane"><a href="index.html">Accueil</a><span aria-hidden="true">›</span>${p.kind==='region'?`<a href="${p.countryUrl}">${p.country}</a><span aria-hidden="true">›</span>`:''}<span aria-current="page">${p.label}</span></nav>
  ${p.image?`<img class="territory-banner" src="${esc(p.image)}" width="${p.imageWidth}" height="${p.imageHeight}" alt="${esc(p.country)} · ${esc(p.label)}" fetchpriority="high">`:''}
- <section class="territory-hero"><p class="territory-kicker">Explorer les régions · ${p.country}</p><h1>Les rendez-vous du livre en ${p.label}</h1><p>Salons, festivals et rencontres avec les auteurs : préparez vos prochaines sorties et retrouvez les événements passés.</p><p>${p.creation}<br>Dernière actualisation de ce catalogue : <time datetime="${capturedAt}">${date(today)}</time> (capture publique à ${capturedAt.slice(11,16)} UTC).</p></section>
+ <section class="territory-hero"><p class="territory-kicker">Explorer les régions · ${p.country}</p><h1>Les rendez-vous du livre en ${p.label}</h1><p>${territoryIntro(p)}</p><p>${p.creation}<br>Dernière actualisation de ce catalogue : <time datetime="${capturedAt}">${date(today)}</time> (capture publique à ${capturedAt.slice(11,16)} UTC).</p></section>
  ${navigation(p)}
  ${p.editorial?`<div class="territory-editorial">${p.editorial}</div>`:''}
  <p id="territory-refresh-status" role="status">${live?"Catalogue public actualisé.":"Catalogue enregistré à la date indiquée ci-dessus."}</p><button id="territory-refresh" class="btn-secondary" type="button" hidden>Actualiser le catalogue</button>

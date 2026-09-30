@@ -23,6 +23,7 @@ assert.equal(normalize('Événement'),normalize('Evenement'));
 const snapshot=JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json'));
 const audit=JSON.parse(fs.readFileSync('docs/territoires/audit.json'));
 const source=new Map(snapshot.events.map(e=>[e.id,e]));
+const pilotIntros=[];
 for(const p of audit.pilots){
  const html=fs.readFileSync(p.file,'utf8');
  const ids=[...html.matchAll(/<li data-event-id="([^"]+)"/g)].map(m=>m[1]);
@@ -32,6 +33,20 @@ for(const p of audit.pilots){
  assert.equal(p.total,p.upcoming+p.past+p.undated+p.cancelled);
  assert.equal(html.match(/rel="canonical" href="([^"]*)"/)[1],p.canonical);
  assert.equal((html.match(/rel="canonical"/g)||[]).length,1);
+ assert.equal(html.match(/<title>([^<]+)<\/title>/)[1],`Événements littéraires en ${p.label}, ${p.country} — Dédicalivres`);
+ const description=html.match(/<meta name="description" content="([^"]+)"/)[1];
+ for(const term of ['Dédicalivres','salons du livre','festivals','dédicaces','rencontres littéraires','à venir',p.label,p.country])assert(description.includes(term),`${p.label}: ${term}`);
+ assert.equal((html.match(/<h1>/g)||[]).length,1);
+ assert(html.includes(`<h1>Les rendez-vous du livre en ${p.label}</h1>`));
+ const structured=JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
+ assert.equal(structured['@type'],'CollectionPage');
+ assert.equal(structured.url,p.canonical);
+ assert.equal(structured.isPartOf?.name,'Dédicalivres');
+ assert.equal(structured.about?.name,p.label);
+ assert.equal(structured.about?.containedInPlace?.name,p.country);
+ assert(html.includes(`href="${p.countryUrl}"`));
+ assert(html.includes('href="index.html#agenda"'));
+ pilotIntros.push(html.match(/<section class="territory-hero">[\s\S]*?<h1>[^<]+<\/h1><p>([^<]+)<\/p>/)[1]);
  assert(!html.includes('src="seo-pages.js'));
  assert(!html.includes('src="tracking-v4.js'));
  assert(!html.includes('Chargement'));
@@ -46,6 +61,7 @@ for(const p of audit.pilots){
   assert(fs.existsSync(m[1].split(/[?#]/)[0]),m[1]);
  }
 }
+assert.equal(new Set(pilotIntros).size,audit.pilots.length);
 console.log('PASS territorial: dates inclusives, invalides, sans date, annulations, pays inconnus, collisions, doublons, visibilité, listes, compteurs, ordre, liens et canonicals');
 
 // Quality flags are advisory. Published records must never disappear.
