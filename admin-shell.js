@@ -13,6 +13,9 @@
   const authorPublicationController =
     authorPublication?.createController();
 
+  const eventImageUpload =
+    window.DEDICALIVRES_ADMIN_EVENT_IMAGE;
+
   const buttons =
     document.querySelectorAll("[data-view]");
 
@@ -1269,6 +1272,8 @@
 
   let selectedV11EventId = null;
   let v11EventActionRunning = false;
+  let selectedV11EventImageFile = null;
+  let selectedV11EventImagePreviewUrl = "";
 
   const eventDetail =
     document.getElementById("v11-event-detail");
@@ -1347,6 +1352,12 @@
 
   const editImage =
     document.getElementById("v11-edit-image");
+
+  const editImageFile =
+    document.getElementById("v11-edit-image-file");
+
+  const editImageFeedback =
+    document.getElementById("v11-edit-image-feedback");
 
   const editImagePreview =
     document.getElementById("v11-edit-image-preview");
@@ -2191,6 +2202,51 @@
     editImageEmpty.hidden = true;
   }
 
+  function setV11EditImageFeedback(message, error = false) {
+    if (!editImageFeedback) return;
+    editImageFeedback.textContent = message || "";
+    editImageFeedback.dataset.state = error ? "error" : "ready";
+  }
+
+  function clearV11EventImageSelection() {
+    if (selectedV11EventImagePreviewUrl) {
+      URL.revokeObjectURL(selectedV11EventImagePreviewUrl);
+    }
+
+    selectedV11EventImageFile = null;
+    selectedV11EventImagePreviewUrl = "";
+
+    if (editImageFile) {
+      editImageFile.value = "";
+    }
+  }
+
+  function selectV11EventImage(file) {
+    try {
+      if (!eventImageUpload?.validate) {
+        throw new Error("Module d’upload R2 indisponible.");
+      }
+
+      eventImageUpload.validate(file);
+    } catch (error) {
+      clearV11EventImageSelection();
+      renderV11EditImage(editImage?.value);
+      setV11EditImageFeedback(
+        error?.message || "Image invalide.",
+        true
+      );
+      return;
+    }
+
+    clearV11EventImageSelection();
+    selectedV11EventImageFile = file;
+    selectedV11EventImagePreviewUrl = URL.createObjectURL(file);
+    renderV11EditImage(selectedV11EventImagePreviewUrl);
+    setV11EditImageFeedback(
+      "Aperçu local prêt. L’image sera envoyée vers R2 lors de l’enregistrement."
+    );
+  }
+
   function updateRegistrationVisibility() {
     if (!editRegistration || !editType) {
       return;
@@ -2541,6 +2597,10 @@
     }
 
     eventEditor.hidden = false;
+    clearV11EventImageSelection();
+    setV11EditImageFeedback(
+      "L’image sera envoyée vers le stockage R2 lors de l’enregistrement."
+    );
 
     if (eventEditorTitle) {
       eventEditorTitle.textContent =
@@ -2684,6 +2744,7 @@
     }
 
     resetV11EventDeletionFlow();
+    clearV11EventImageSelection();
   }
 
   if (eventEditButton) {
@@ -2725,8 +2786,23 @@
     editImage.addEventListener(
       "input",
       function () {
+        clearV11EventImageSelection();
         renderV11EditImage(
           editImage.value
+        );
+        setV11EditImageFeedback(
+          "URL conservée. Sélectionne un fichier pour la remplacer via R2."
+        );
+      }
+    );
+  }
+
+  if (editImageFile) {
+    editImageFile.addEventListener(
+      "change",
+      function () {
+        selectV11EventImage(
+          editImageFile.files?.[0] || null
         );
       }
     );
@@ -3072,6 +3148,30 @@
     }
 
     try {
+      if (selectedV11EventImageFile) {
+        try {
+          if (!eventImageUpload?.resolve) {
+            throw new Error("Module d’upload R2 indisponible.");
+          }
+
+          setV11EditImageFeedback("Envoi de l’image vers R2…");
+          payload.image_url =
+            await eventImageUpload.resolve(
+              payload.image_url,
+              selectedV11EventImageFile
+            );
+        } catch (error) {
+          const message =
+            error?.message || "Upload R2 impossible.";
+          setV11EditImageFeedback(message, true);
+          window.alert(
+            "Upload de l’image impossible. L’image précédente est conservée.\n\n" +
+            message
+          );
+          return;
+        }
+      }
+
       let response =
         await client
           .from("events")
@@ -3109,6 +3209,10 @@
 
       if (response.error) {
         throw response.error;
+      }
+
+      if (editImage) {
+        editImage.value = payload.image_url || "";
       }
 
       v11ActionMessage(

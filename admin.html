@@ -527,8 +527,20 @@
               <input id="v11-edit-image" type="url">
             </label>
 
+            <label class="wide">
+              <span>Ajouter ou remplacer l’image · 5 Mo maximum</span>
+              <input
+                id="v11-edit-image-file"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+              >
+              <small id="v11-edit-image-feedback" role="status" aria-live="polite">
+                L’image sera envoyée vers le stockage R2 lors de l’enregistrement.
+              </small>
+            </label>
+
             <div class="v11-edit-image-preview wide">
-              <img id="v11-edit-image-preview" alt="" hidden>
+              <img id="v11-edit-image-preview" alt="Aperçu de l’image de l’événement" hidden>
               <span id="v11-edit-image-empty">Aucune affiche</span>
             </div>
 
@@ -2584,10 +2596,11 @@
   <script defer src="admin-context.js?v=v11-context-30-presence-event"></script>
   <script defer src="duplicate-detection.js?v=v11-18-1"></script>
   <script defer src="admin-v11-bridge.js?v=v11-bridge-40b"></script>
+  <script defer src="admin-event-image.js?v=event-image-r2-1"></script>
   <script defer src="author-backoffice.js?v=author-backoffice-v1"></script>
   <script defer src="author-publication.js?v=author-publication-v2"></script>
   <script defer src="admin-event-deletion.js?v=safe-delete-1"></script>
-  <script defer src="admin-shell.js?v=admin-presence-event-1"></script>
+  <script defer src="admin-shell.js?v=event-image-r2-1"></script>
   <script type="module" src="admin-territorial-quality.js"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
   <script defer src="admin-photo-batch.js?v=photo-batch-1"></script>
