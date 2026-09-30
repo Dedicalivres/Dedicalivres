@@ -2531,11 +2531,18 @@
 
           const postcode = properties.postcode || "";
           const context = properties.context || "";
+          const region = String(context)
+            .split(",")
+            .map((part) => part.trim())
+            .filter(Boolean)
+            .at(-1) || "";
 
           return buildCitySuggestion({
             city: cityName,
             postcode,
             context,
+            region,
+            countryCode: "FR",
             lng: Number(coords[0]),
             lat: Number(coords[1])
           });
@@ -2596,6 +2603,8 @@
             city: commune.nom || "",
             postcode,
             context,
+            region: commune.region?.nom || "",
+            countryCode: "FR",
             lng: Number(coords[0]),
             lat: Number(coords[1])
           });
@@ -2636,6 +2645,7 @@
         city: "Aiffres",
         postcode: "79230",
         context: "Deux-Sèvres, Nouvelle-Aquitaine",
+        region: "Nouvelle-Aquitaine",
         lat: 46.2872,
         lng: -0.415833333333
       },
@@ -2643,6 +2653,7 @@
         city: "Créteil",
         postcode: "94000",
         context: "Val-de-Marne, Île-de-France",
+        region: "Île-de-France",
         lat: 48.790367,
         lng: 2.455572
       },
@@ -2650,6 +2661,7 @@
         city: "Nanterre",
         postcode: "92000",
         context: "Hauts-de-Seine, Île-de-France",
+        region: "Île-de-France",
         lat: 48.892427,
         lng: 2.207126
       },
@@ -2657,6 +2669,7 @@
         city: "Versailles",
         postcode: "78000",
         context: "Yvelines, Île-de-France",
+        region: "Île-de-France",
         lat: 48.804865,
         lng: 2.120355
       },
@@ -2664,6 +2677,7 @@
         city: "Bobigny",
         postcode: "93000",
         context: "Seine-Saint-Denis, Île-de-France",
+        region: "Île-de-France",
         lat: 48.906388,
         lng: 2.445223
       },
@@ -2671,6 +2685,7 @@
         city: "Évry-Courcouronnes",
         postcode: "91000",
         context: "Essonne, Île-de-France",
+        region: "Île-de-France",
         lat: 48.624167,
         lng: 2.429722
       },
@@ -2678,6 +2693,7 @@
         city: "Cergy",
         postcode: "95000",
         context: "Val-d’Oise, Île-de-France",
+        region: "Île-de-France",
         lat: 49.035617,
         lng: 2.060325
       },
@@ -2685,6 +2701,7 @@
         city: "Melun",
         postcode: "77000",
         context: "Seine-et-Marne, Île-de-France",
+        region: "Île-de-France",
         lat: 48.539927,
         lng: 2.660816
       }
