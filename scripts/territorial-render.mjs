@@ -10,7 +10,12 @@ function territoryIntro(p){
   'FR-BRE':'Dédicalivres rassemble ici les salons du livre, festivals, dédicaces et rencontres littéraires annoncés en Bretagne, en France. Consultez les événements à venir puis les archives régionales.',
   'BE-WAL':'Retrouvez avec Dédicalivres les salons du livre, festivals, dédicaces et rencontres littéraires annoncés en Wallonie, en Belgique. Parcourez les prochains rendez-vous puis les archives du territoire.'
  };
- return pilots[p.id]||`Dédicalivres rassemble les événements littéraires annoncés en ${p.label}, ${p.country} : rendez-vous à venir et archives du territoire.`;
+ if(pilots[p.id])return pilots[p.id];
+ if(p.kind==='country'){
+  const location=({FR:'en France',BE:'en Belgique',CH:'en Suisse',LU:'au Luxembourg',MC:'à Monaco'}[p.code]||`en ${p.country}`);
+  return `Dédicalivres rassemble les événements littéraires annoncés ${location} : rendez-vous à venir et archives nationales.`;
+ }
+ return `Dédicalivres rassemble les événements littéraires annoncés en ${p.label}, ${p.country} : rendez-vous à venir et archives du territoire.`;
 }
 function navigation(p){
  const siblings=territories.filter(t=>t.kind==='region'&&t.code===p.code);

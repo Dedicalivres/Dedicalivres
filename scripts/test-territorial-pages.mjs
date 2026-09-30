@@ -23,6 +23,45 @@ assert.equal(normalize('Événement'),normalize('Evenement'));
 const snapshot=JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json'));
 const audit=JSON.parse(fs.readFileSync('docs/territoires/audit.json'));
 const source=new Map(snapshot.events.map(e=>[e.id,e]));
+const countryLocation=p=>({FR:'en France',BE:'en Belgique',CH:'en Suisse',LU:'au Luxembourg',MC:'à Monaco'}[p.code]||`en ${p.country}`);
+const titles=new Set(),descriptions=new Set(),canonicals=new Set(),intros=new Set();
+for(const p of audit.territorialPages){
+ const html=fs.readFileSync(p.file,'utf8');
+ const ids=[...html.matchAll(/<li data-event-id="([^"]+)"/g)].map(m=>m[1]);
+ assert.deepEqual([...ids].sort(),[...p.ids].sort(),`${p.label}: événements`);
+ assert.equal(new Set(ids).size,p.total,`${p.label}: événements uniques`);
+ const title=html.match(/<title>([^<]+)<\/title>/)[1];
+ const expectedTitle=p.kind==='country'?`Événements littéraires ${countryLocation(p)} — Dédicalivres`:`Événements littéraires en ${p.label}, ${p.country} — Dédicalivres`;
+ assert.equal(title,expectedTitle);
+ titles.add(title);
+ const description=html.match(/<meta name="description" content="([^"]+)"/)[1];
+ for(const term of ['Dédicalivres','salons du livre','festivals','dédicaces','rencontres littéraires','à venir',p.country])assert(description.includes(term),`${p.label}: ${term}`);
+ if(p.kind==='region')assert(description.includes(p.label),`${p.label}: région absente de la description`);
+ descriptions.add(description);
+ const canonical=html.match(/rel="canonical" href="([^"]*)"/)[1];
+ assert.equal(canonical,p.canonical);
+ assert.equal((html.match(/rel="canonical"/g)||[]).length,1);
+ canonicals.add(canonical);
+ assert.equal((html.match(/<h1>/g)||[]).length,1);
+ assert(html.includes(`<h1>Les rendez-vous du livre en ${p.label}</h1>`));
+ const structured=JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
+ assert.equal(structured['@type'],'CollectionPage');
+ assert.equal(structured.url,p.canonical);
+ assert.equal(structured.isPartOf?.name,'Dédicalivres');
+ assert.equal(structured.about?.name,p.label);
+ if(p.kind==='region')assert.equal(structured.about?.containedInPlace?.name,p.country);
+ assert.equal(structured.breadcrumb?.itemListElement?.at(-1)?.item,p.canonical);
+ if(p.kind==='region')assert(html.includes(`href="${p.countryUrl}"`));
+ assert(html.includes('href="index.html#agenda"'));
+ const intro=html.match(/<section class="territory-hero">[\s\S]*?<h1>[^<]+<\/h1><p>([^<]+)<\/p>/)[1];
+ intros.add(intro);
+ if(p.total===0){assert.equal(ids.length,0);assert(html.includes('Aucun événement dans cette catégorie'));}
+ for(const m of html.matchAll(/href="([^"#]+)(?:#[^"]*)?"/g)){
+  if(/^(https?:|mailto:)/.test(m[1]))continue;
+  assert(fs.existsSync(m[1].split(/[?#]/)[0]),`${p.label}: ${m[1]}`);
+ }
+}
+for(const [name,set] of Object.entries({titles,descriptions,canonicals,intros}))assert.equal(set.size,audit.territorialPages.length,`${name} uniques`);
 const pilotIntros=[];
 for(const p of audit.pilots){
  const html=fs.readFileSync(p.file,'utf8');
@@ -62,6 +101,7 @@ for(const p of audit.pilots){
  }
 }
 assert.equal(new Set(pilotIntros).size,audit.pilots.length);
+console.log(`PASS SEO/GEO territorial : ${audit.territorialPages.length} pages, métadonnées, JSON-LD, maillage, événements et pages vides contrôlés`);
 console.log('PASS territorial: dates inclusives, invalides, sans date, annulations, pays inconnus, collisions, doublons, visibilité, listes, compteurs, ordre, liens et canonicals');
 
 // Quality flags are advisory. Published records must never disappear.
