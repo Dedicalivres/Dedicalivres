@@ -37,7 +37,7 @@ for(const p of selected){
  .replace(/<body[^>]*>/,`<body class="seo-page territorial-page" data-region="${p.label}" data-country-code="${p.code}">`)
  .replace(/\s*<link rel="stylesheet" href="territorial-pages.css"\s*\/>/g,'')
  .replace('</head>',`<link rel="stylesheet" href="territorial-pages.css" />\n<meta property="og:title" content="${ogTitle(p)}" />\n<meta property="og:description" content="${seoDescription(p)}" />\n<meta property="og:url" content="${p.canonical}" />\n<script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'CollectionPage',name:structuredName(p),description:seoDescription(p),url:p.canonical,inLanguage:'fr-FR',dateModified:reviewedOn,isPartOf:{'@type':'WebSite',name:'Dédicalivres',url:'https://dedicalivres.fr/'},about:structuredAbout(p),breadcrumb:{'@type':'BreadcrumbList',itemListElement:breadcrumbItems(p).map((x,i)=>({'@type':'ListItem',position:i+1,...x}))}})}</script>\n</head>`);
- html=html.replace(/<script[^>]*src="territorial-pages.js"[^>]*><\/script>/g,'').replace('</body>','<script src="config.js?v=territorial-live-1"></script>\n<script type="module" src="territorial-pages.js"></script>\n</body>');
+ html=html.replace(/<script[^>]*src="territorial-pages.js"[^>]*><\/script>/g,'').replace('</body>','<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="config.js?v=territorial-live-1"></script>\n<script src="tracking-v4.js?v=p1-static-1"></script>\n<script type="module" src="territorial-pages.js"></script>\n</body>');
  html=html.replace(/[ \t]+$/gm,'').replace(/\n{3,}/g,'\n\n');
  fs.writeFileSync(p.file,html);
  results.push({...p,...stats,ids:rows.map(e=>e.id)});

@@ -28,6 +28,8 @@
     "test:territories": "node scripts/test-territorial-pages.mjs",
     "build:authors": "node scripts/build-author-pages.mjs",
     "test:authors-seo": "node scripts/test-author-seo-pages.mjs",
+    "build:tracking-static": "node scripts/instrument-static-event-pages.mjs && node scripts/build-territorial-pages.mjs",
+    "test:tracking-static": "node scripts/test-tracking-static-pages.mjs",
     "capture:territories": "node scripts/capture-territorial-catalog.mjs",
     "refresh:territories": "npm run capture:territories && npm run build:territories"
   },

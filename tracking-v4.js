@@ -10,6 +10,12 @@
 (function () {
   "use strict";
 
+  window.DEDICALIVRES_TRACKING = {
+    normalizePath,
+    getTrackedPath,
+    getEventId
+  };
+
   const config = window.DEDICALIVRES_CONFIG;
 
   if (!config || !config.supabaseUrl || !config.supabaseAnonKey || !window.supabase) {
@@ -25,25 +31,24 @@
     window.DEDICALIVRES_SUPABASE_CLIENT = client;
   }
 
-  trackSiteVisit();
+  const trackedPath = getTrackedPath();
+  const eventId = getEventId();
+
+  if (eventId) trackEventVisit(eventId, trackedPath);
+  else trackSiteVisit(trackedPath);
   trackNfcArrival();
   installNfcActivationTracking();
 
-  const eventId = new URLSearchParams(window.location.search).get("id");
-  if (eventId && location.pathname.includes("event")) {
-    trackEventVisit(eventId);
-  }
-
-  async function trackSiteVisit() {
+  async function trackSiteVisit(path) {
     try {
-      const key = `dedicalivres_site_visit_${location.pathname}_${location.search}`;
+      const key = `dedicalivres_site_visit_${path}`;
 
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
 
       const payload = {
         page: document.title || location.pathname || null,
-        path: location.pathname + location.search,
+        path,
         referrer: document.referrer || null,
         user_agent: navigator.userAgent || null
       };
@@ -58,7 +63,7 @@
     }
   }
 
-  async function trackEventVisit(eventId) {
+  async function trackEventVisit(eventId, path) {
     try {
       const key = `dedicalivres_event_visit_${eventId}`;
 
@@ -68,7 +73,7 @@
       const { error } = await client.from("event_visits").insert([
         {
           event_id: eventId,
-          path: location.pathname + location.search,
+          path,
           referrer: document.referrer || null,
           user_agent: navigator.userAgent || null
         }
@@ -78,6 +83,41 @@
     } catch (error) {
       console.warn("Tracking visite événement non enregistré :", error);
     }
+  }
+
+  function normalizePath(value) {
+    const path = String(value || "/").split(/[?#]/, 1)[0] || "/";
+    const normalized = `/${path}`.replace(/\/{2,}/g, "/");
+    return normalized.length > 1 ? normalized.replace(/\/$/, "") : normalized;
+  }
+
+  function getTrackedPath() {
+    const path = normalizePath(location.pathname);
+    const isTerritorial = Boolean(document.body?.matches?.(".territorial-page[data-country-code]"));
+    const isStaticEvent = /^\/evenement\/(?!index(?:\.html)?$)[^/]+(?:\.html)?$/.test(path);
+    const eventId = getEventId();
+
+    if (isTerritorial || isStaticEvent) {
+      try {
+        const canonical = document.querySelector('link[rel="canonical"]')?.href;
+        const url = new URL(canonical, location.origin);
+        if (url.origin === location.origin) return normalizePath(url.pathname);
+      } catch (_) {}
+      return path;
+    }
+
+    if (eventId) return `${path}?id=${encodeURIComponent(eventId)}`;
+    return path + location.search;
+  }
+
+  function getEventId() {
+    const path = normalizePath(location.pathname);
+    const candidate = path === "/event.html"
+      ? new URLSearchParams(location.search).get("id")
+      : document.body?.dataset?.eventId || null;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(candidate || ""))
+      ? String(candidate)
+      : null;
   }
 
   async function trackNfcArrival() {

@@ -87,7 +87,8 @@ for(const p of audit.pilots){
  assert(html.includes('href="index.html#agenda"'));
  pilotIntros.push(html.match(/<section class="territory-hero">[\s\S]*?<h1>[^<]+<\/h1><p>([^<]+)<\/p>/)[1]);
  assert(!html.includes('src="seo-pages.js'));
- assert(!html.includes('src="tracking-v4.js'));
+ assert.equal((html.match(/src="tracking-v4\.js/g)||[]).length,1);
+ assert.equal((html.match(/@supabase\/supabase-js/g)||[]).length,1);
  assert(!html.includes('Chargement'));
  const upcoming=html.split('id="a-venir"')[1].split('</section>')[0];
  const upcomingIds=[...upcoming.matchAll(/data-event-id="([^"]+)"/g)].map(m=>m[1]);
