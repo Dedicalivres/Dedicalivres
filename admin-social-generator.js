@@ -100,7 +100,9 @@
 
   window.DEDICALIVRES_SOCIAL_GENERATOR = {
     version: VERSION,
-    createEventPack: createSingleEventPack
+    createEventPack: createSingleEventPack,
+    getWeekendRange,
+    matchesWeekend
   };
 
   ready(() => {
@@ -280,6 +282,7 @@
               <select id="visual-period-filter">
                 <option value="upcoming">À venir</option>
                 <option value="week">Cette semaine</option>
+                <option value="weekend">Ce week-end</option>
                 <option value="month">Ce mois</option>
                 <option value="custom">Dates personnalisées</option>
               </select>
@@ -516,6 +519,9 @@
   function matchesVisualPeriod(event) {
     const period = document.getElementById("visual-period-filter")?.value || "upcoming";
     const today = startOfDay(new Date());
+
+    if (period === "weekend") return matchesWeekend(event, today);
+
     const eventStart = parseLocalDate(event.start_date);
     const eventEnd = parseLocalDate(event.end_date || event.start_date);
 
@@ -546,6 +552,20 @@
     }
 
     return true;
+  }
+
+  function getWeekendRange(referenceDate = new Date()) {
+    const today = startOfDay(referenceDate);
+    const saturday = addDays(today, today.getDay() === 0 ? -1 : 6 - today.getDay());
+    return { start: saturday, end: addDays(saturday, 1) };
+  }
+
+  function matchesWeekend(event, referenceDate = new Date()) {
+    const eventStart = parseLocalDate(event?.start_date);
+    const eventEnd = parseLocalDate(event?.end_date || event?.start_date);
+    if (!eventStart && !eventEnd) return false;
+    const weekend = getWeekendRange(referenceDate);
+    return rangesOverlap(eventStart || eventEnd, eventEnd || eventStart, weekend.start, weekend.end);
   }
 
   function renderSelector() {
