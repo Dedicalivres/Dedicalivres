@@ -2,9 +2,11 @@
   'use strict';
   // Only reusable author information; never consent, files, tokens or event dates.
   const allowed = ['pseudo', 'author_pseudo', 'participant_type', 'publication_mode', 'author_profile_url', 'author_profile_url_type', 'book_or_publisher_url', 'book_or_publisher_url_type', 'publisher_name', 'organization_name', 'organization_website', 'contact_name', 'contact_email'];
+  const profileAllowed = ['bio', 'location', 'website', 'shop_url', 'profile_type'];
   function bind(form) {
     if (form.dataset.localDraft) return;
     form.dataset.localDraft = 'true';
+    const storedFields = form.id === 'author-profile-submission-form' ? ['request_type', ...allowed, ...profileAllowed] : allowed;
     const key = 'dedicalivres_author_draft_v1_' + form.id;
     const box = document.createElement('fieldset'); box.className = 'local-author-draft';
     const legend = document.createElement('legend'); legend.textContent = 'Retrouver mes informations auteur'; box.append(legend);
@@ -20,11 +22,16 @@
       if (saved?.version === 1 && saved.fields && typeof saved.fields === 'object') {
         toggle.checked = true;
         toggle.defaultChecked = true;
-        allowed.forEach(name => {
+        storedFields.forEach(name => {
           const field = form.elements.namedItem(name);
           if (field && typeof saved.fields[name] === 'string') {
-            field.value = saved.fields[name].slice(0, 1000);
-            field.dispatchEvent(new Event('change', { bubbles: true }));
+            field.value = saved.fields[name].slice(0, name === 'bio' ? 5000 : 1000);
+            if (typeof field.dispatchEvent === 'function') {
+              field.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+              const selected = Array.from(field).find(item => item.checked);
+              selected?.dispatchEvent(new Event('change', { bubbles: true }));
+            }
           }
         });
         feedback.textContent = 'Informations auteur restaurées depuis ce navigateur.';
@@ -37,7 +44,7 @@
     function save() {
       if (!toggle.checked) return;
       const fields = {};
-      allowed.forEach(name => { const field = form.elements.namedItem(name); if (field && typeof field.value === 'string') fields[name] = field.value.slice(0, 1000); });
+      storedFields.forEach(name => { const field = form.elements.namedItem(name); if (field && typeof field.value === 'string') fields[name] = field.value.slice(0, name === 'bio' ? 5000 : 1000); });
       try { localStorage.setItem(key, JSON.stringify({ version: 1, fields })); toggle.defaultChecked = true; feedback.textContent = 'Informations auteur enregistrées dans ce navigateur.'; }
       catch (_) { feedback.textContent = 'Enregistrement impossible. Votre saisie reste disponible sur cette page.'; }
     }
@@ -49,10 +56,10 @@
         feedback.textContent = 'Mémorisation désactivée : les données ont été effacées dans un autre onglet. Votre saisie actuelle est conservée.';
       }
     });
-    form.addEventListener('input', event => { if (allowed.includes(event.target.name)) save(); });
-    form.addEventListener('change', event => { if (allowed.includes(event.target.name)) save(); });
+    form.addEventListener('input', event => { if (storedFields.includes(event.target.name)) save(); });
+    form.addEventListener('change', event => { if (storedFields.includes(event.target.name)) save(); });
   }
-  function scan() { document.querySelectorAll('#author-presence-form, #submission-form').forEach(bind); }
+  function scan() { document.querySelectorAll('#author-presence-form, #submission-form, #author-profile-submission-form').forEach(bind); }
   scan();
   new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
 })();

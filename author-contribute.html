@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proposer une fiche auteur — Dédicalivres</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#3A1C71" />
+  <link rel="stylesheet" href="style.css?v=corrections-1208-1" />
+</head>
+<body class="submit-page">
+  <header class="header">
+    <div class="container header-inner">
+      <a href="index.html" aria-label="Accueil Dédicalivres">
+        <picture><source srcset="logo.webp" type="image/webp"><img src="logo.png" class="logo" width="52" height="52" alt="Dédicalivres" /></picture>
+      </a>
+      <nav aria-label="Navigation principale">
+        <a href="index.html#agenda">Agenda</a>
+        <a href="soumettre.html">Soumettre un événement</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container submit-page-main">
+    <section class="seo-hero submit-hero">
+      <p class="category-kicker">Contribution auteur</p>
+      <h1>Créer ou mettre à jour ma fiche auteur</h1>
+      <p>Votre proposition sera relue avant toute modification publique.</p>
+    </section>
+
+    <section class="submit-page-layout submit-page-layout-compact" aria-labelledby="author-contribution-title">
+      <form id="author-profile-submission-form" class="submission-form-card">
+        <h2 id="author-contribution-title">Informations proposées</h2>
+
+        <fieldset>
+          <legend>Type de demande</legend>
+          <label><input type="radio" name="request_type" value="create" checked /> Créer ma fiche</label>
+          <label><input type="radio" name="request_type" value="modify" /> Mettre à jour une fiche existante</label>
+        </fieldset>
+
+        <label id="author-target-wrap" hidden>
+          <span>Fiche auteur concernée</span>
+          <select id="author-target" name="target_author_id">
+            <option value="">Choisir une fiche publiée</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Nom public / pseudo</span>
+          <input name="pseudo" type="text" minlength="2" maxlength="120" required />
+        </label>
+
+        <label>
+          <span>Biographie</span>
+          <textarea name="bio" rows="7" maxlength="5000"></textarea>
+        </label>
+
+        <label>
+          <span>Localisation générale</span>
+          <input name="location" type="text" maxlength="200" placeholder="Ex. Bretagne, France" />
+        </label>
+
+        <div class="form-grid-2">
+          <label>
+            <span>Site ou réseau principal</span>
+            <input name="website" type="url" placeholder="https://…" />
+          </label>
+          <label>
+            <span>Boutique ou page livre</span>
+            <input name="shop_url" type="url" placeholder="https://…" />
+          </label>
+        </div>
+
+        <label>
+          <span>Type de profil</span>
+          <select name="profile_type" required>
+            <option value="author">Auteur</option>
+            <option value="artist_author">Artiste-auteur</option>
+            <option value="hybrid">Auteur et artiste-auteur</option>
+          </select>
+        </label>
+
+        <label class="upload-box">
+          <input id="author-contribution-photo" name="author_portrait" type="file" accept="image/jpeg,image/png,image/webp" />
+          <span class="upload-icon">Portrait</span>
+          <strong>Proposer une photo</strong>
+          <small>JPG, PNG ou WEBP — moins de 4 Mo. La photo publiée reste inchangée avant validation.</small>
+        </label>
+        <div id="author-contribution-preview" class="image-preview"></div>
+
+        <label class="legal-consent">
+          <input name="legal_accept" type="checkbox" required />
+          <span>J’autorise Dédicalivres à relire et modérer cette proposition avant publication.</span>
+        </label>
+
+        <button type="submit">Envoyer la proposition</button>
+        <p id="author-contribution-feedback" class="form-feedback" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js?v=shared-client-1"></script>
+  <script src="author-contribution-core.js?v=1"></script>
+  <script src="author-contribute.js?v=1"></script>
+  <script src="author-local-draft.js?v=2"></script>
+</body>
+</html>
