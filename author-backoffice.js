@@ -185,6 +185,7 @@
       .filter((row) => row?.validated === true && row?.rejected !== true && row?.events?.id)
       .forEach((row) => map.set(String(row.events.id), row.events));
 
+    const ongoing = [];
     const upcoming = [];
     const past = [];
 
@@ -193,9 +194,11 @@
       const start = eventDateValue(event, "start_date");
       const comparison = Number.isFinite(end) ? end : start;
       if (Number.isFinite(comparison) && comparison < today) past.push(event);
+      else if (Number.isFinite(start) && start <= today) ongoing.push(event);
       else upcoming.push(event);
     });
 
+    ongoing.sort((left, right) => eventDateValue(left, "start_date") - eventDateValue(right, "start_date"));
     upcoming.sort((left, right) => {
       const leftDate = eventDateValue(left, "start_date");
       const rightDate = eventDateValue(right, "start_date");
@@ -204,7 +207,7 @@
     });
     past.sort((left, right) => eventDateValue(right, "start_date") - eventDateValue(left, "start_date"));
 
-    return { upcoming, past };
+    return { ongoing, upcoming, past };
   }
 
   function evaluateAuthor(options = {}) {
@@ -283,9 +286,10 @@
       ...readiness,
       slug: clean(author.slug || validPresences[0]?.author_slug || validPresences[0]?.author_identity_key),
       location,
+      ongoingEvents: eventGroups.ongoing,
       upcomingEvents: eventGroups.upcoming,
       pastEvents: eventGroups.past,
-      historyCount: eventGroups.upcoming.length + eventGroups.past.length
+      historyCount: eventGroups.ongoing.length + eventGroups.upcoming.length + eventGroups.past.length
     };
   }
 

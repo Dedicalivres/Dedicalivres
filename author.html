@@ -51,11 +51,15 @@
 </header>
 
 <main class="container section">
-  <p>
+  <nav class="detail-back-link" aria-label="Fil d’Ariane">
     <a id="author-back-link" class="card-link detail-back-link" href="index.html">
-      ← Retour à Dédicalivres
+      Accueil
     </a>
-  </p>
+    <span aria-hidden="true"> › </span>
+    <a href="auteurs-independants.html">Auteurs</a>
+    <span aria-hidden="true"> › </span>
+    <span id="author-breadcrumb-name">Auteur</span>
+  </nav>
 
   <article id="author-profile" class="author-profile">
     <div class="empty-state">
@@ -83,6 +87,12 @@
     </div>
 
     <div id="author-travel-map" class="author-travel-map" aria-label="Carte des déplacements littéraires"></div>
+  </section>
+
+  <section id="author-ongoing-section" class="section" hidden>
+    <h2>Événements en cours</h2>
+    <p class="author-history-label">Présences en cours indiquées sur Dédicalivres</p>
+    <div id="author-events-ongoing" class="events-grid"></div>
   </section>
 
   <section id="author-upcoming-section" class="section" hidden>

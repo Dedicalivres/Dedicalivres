@@ -24,8 +24,8 @@
       author &&
       author.published === true &&
       author.validated === true &&
-      author.publication_ready === true &&
-      author.editorial_status === "READY" &&
+      (author.publication_ready === undefined || author.publication_ready === true) &&
+      (author.editorial_status === undefined || author.editorial_status === "READY") &&
       !author.merged_into
     );
   }

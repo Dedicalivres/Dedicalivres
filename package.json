@@ -26,6 +26,8 @@
     "test:home-logo-mobile": "node scripts/test-home-logo-mobile-aspect.mjs",
     "build:territories": "node scripts/build-territorial-pages.mjs",
     "test:territories": "node scripts/test-territorial-pages.mjs",
+    "build:authors": "node scripts/build-author-pages.mjs",
+    "test:authors-seo": "node scripts/test-author-seo-pages.mjs",
     "capture:territories": "node scripts/capture-territorial-catalog.mjs",
     "refresh:territories": "npm run capture:territories && npm run build:territories"
   },

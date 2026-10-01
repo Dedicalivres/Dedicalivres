@@ -21,8 +21,10 @@
   const engine = window.DEDICALIVRES_AUTHOR_BACKOFFICE;
   const publication = window.DEDICALIVRES_AUTHOR_PUBLICATION;
   const profile = document.getElementById("author-profile");
+  const ongoingGrid = document.getElementById("author-events-ongoing");
   const upcomingGrid = document.getElementById("author-events-upcoming");
   const pastGrid = document.getElementById("author-events-past");
+  const ongoingSection = document.getElementById("author-ongoing-section");
   const upcomingSection = document.getElementById("author-upcoming-section");
   const pastSection = document.getElementById("author-past-section");
   const travelSection = document.getElementById("author-travel-section");
@@ -40,6 +42,7 @@
   const twitterImageMeta = document.getElementById("author-twitter-image");
   const contextLink = document.getElementById("author-context-link");
   const backLink = document.getElementById("author-back-link");
+  const breadcrumbName = document.getElementById("author-breadcrumb-name");
 
   if (!profile || !upcomingGrid || !pastGrid) return;
 
@@ -98,6 +101,14 @@
       });
 
       renderAuthor(draft, { adminPreview: true });
+      if (ongoingGrid && ongoingSection) {
+        renderEvents(
+          draft.ongoingEvents,
+          ongoingGrid,
+          ongoingSection,
+          "Aucun événement en cours indiqué."
+        );
+      }
       renderEvents(
         draft.upcomingEvents,
         upcomingGrid,
@@ -114,6 +125,7 @@
       // V11.59 — l’aperçu interne doit refléter la future page publique.
       // La carte reste noindex et réservée à la session admin.
       renderAuthorTravelMap([
+        ...draft.ongoingEvents,
         ...draft.upcomingEvents,
         ...draft.pastEvents
       ]);
@@ -149,6 +161,14 @@
     });
 
     renderAuthor(draft, { adminPreview: false });
+    if (ongoingGrid && ongoingSection) {
+      renderEvents(
+        draft.ongoingEvents,
+        ongoingGrid,
+        ongoingSection,
+        "Aucun événement en cours indiqué."
+      );
+    }
     renderEvents(
       draft.upcomingEvents,
       upcomingGrid,
@@ -163,12 +183,14 @@
     );
 
     renderAuthorTravelMap([
+      ...draft.ongoingEvents,
       ...draft.upcomingEvents,
       ...draft.pastEvents
     ]);
 
     configurePublicMetadata(draft);
     injectAuthorSchema(draft);
+    injectBreadcrumbSchema(draft);
     unlockPublicIndexing(draft);
   }
 
@@ -273,6 +295,7 @@
     const bioLead = bioParts[0] || "";
     const bioRest = bioParts.slice(1).join("\n\n");
     const initials = getAuthorInitials(draft.identity);
+    if (breadcrumbName) breadcrumbName.textContent = draft.identity || "Auteur";
 
     profile.innerHTML = `
       ${
@@ -298,7 +321,7 @@
 
           <div class="author-mobile-overlay">
             <span class="author-mobile-type">${escapeHtml(draft.profileLabel)}</span>
-            <h1>${escapeHtml(draft.identity || "Identité à compléter")}</h1>
+            <p class="author-title">${escapeHtml(draft.identity || "Identité à compléter")}</p>
             ${
               draft.location
                 ? `<p>📍 ${escapeHtml(draft.location)}</p>`
@@ -587,15 +610,14 @@
 
   function configurePublicMetadata(draft) {
     const identity = cleanText(draft?.identity || "Auteur");
-    const description =
-      `Découvrez ${identity}, sa fiche et ses présences littéraires sur Dédicalivres.`;
-    const publicUrl =
-      `${window.location.origin}${window.location.pathname}?slug=${encodeURIComponent(slug)}`;
+    const description = buildSeoDescription(draft);
+    const publicUrl = `${window.location.origin}/auteurs/${encodeURIComponent(slug)}/`;
     const imageUrl =
       resolveImageUrl(draft?.photo) ||
       `${window.location.origin}/logo.png`;
-    const title = `${identity} — Dédicalivres`;
+    const title = `${identity} — dédicaces, salons et rencontres | Dédicalivres`;
 
+    document.title = title;
     if (canonicalLink) canonicalLink.href = publicUrl;
     if (ogTitleMeta) ogTitleMeta.setAttribute("content", title);
     if (ogDescriptionMeta) ogDescriptionMeta.setAttribute("content", description);
@@ -610,8 +632,7 @@
     const previous = document.getElementById("author-jsonld");
     if (previous) previous.remove();
 
-    const publicUrl =
-      `${window.location.origin}${window.location.pathname}?slug=${encodeURIComponent(slug)}`;
+    const publicUrl = `${window.location.origin}/auteurs/${encodeURIComponent(slug)}/`;
 
     const schema = {
       "@context": "https://schema.org",
@@ -623,6 +644,8 @@
 
     const imageUrl = resolveImageUrl(draft?.photo);
     if (imageUrl) schema.image = imageUrl;
+    const description = buildSeoDescription(draft);
+    if (description) schema.description = description;
     if (draft?.location) schema.homeLocation = cleanText(draft.location);
 
     const sameAs = [
@@ -643,6 +666,38 @@
     document.head.appendChild(script);
   }
 
+  function injectBreadcrumbSchema(draft) {
+    const previous = document.getElementById("author-breadcrumb-jsonld");
+    if (previous) previous.remove();
+    const publicUrl = `${window.location.origin}/auteurs/${encodeURIComponent(slug)}/`;
+    const script = document.createElement("script");
+    script.id = "author-breadcrumb-jsonld";
+    script.type = "application/ld+json";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", position: 1, name: "Accueil", item: `${window.location.origin}/` },
+        { "@type": "ListItem", position: 2, name: "Auteurs", item: `${window.location.origin}/auteurs-independants` },
+        { "@type": "ListItem", position: 3, name: cleanText(draft?.identity || "Auteur"), item: publicUrl }
+      ]
+    });
+    document.head.appendChild(script);
+  }
+
+  function buildSeoDescription(draft) {
+    const identity = cleanText(draft?.identity || "Auteur");
+    const bio = cleanText(draft?.bio || "");
+    if (bio) {
+      const prefix = `${identity} — `;
+      const limit = Math.max(40, 160 - prefix.length);
+      return `${prefix}${bio.length > limit ? `${bio.slice(0, limit - 1).trim()}…` : bio}`;
+    }
+    const location = cleanText(draft?.location || "");
+    const count = Number(draft?.historyCount || 0);
+    return `Fiche de ${identity} sur Dédicalivres${location ? ` — localisation : ${location}` : ""}${count ? `, avec ${count} événement${count > 1 ? "s" : ""} littéraire${count > 1 ? "s" : ""} associé${count > 1 ? "s" : ""}` : ""}.`;
+  }
+
   function isValidPublicUrl(value) {
     try {
       const url = new URL(String(value || ""));
@@ -658,10 +713,9 @@
     }
 
     if (descriptionMeta) {
-      const identity = cleanText(draft?.identity || "Auteur");
       descriptionMeta.setAttribute(
         "content",
-        `Découvrez ${identity}, sa fiche et ses présences littéraires sur Dédicalivres.`
+        buildSeoDescription(draft)
       );
     }
   }
@@ -679,6 +733,7 @@
     `;
 
     upcomingSection.hidden = true;
+    if (ongoingSection) ongoingSection.hidden = true;
     pastSection.hidden = true;
   }
 
@@ -686,6 +741,7 @@
     document.title = "Fiche auteur non publiée — Dédicalivres";
     profile.innerHTML = `<div class="empty-state"><h1>Fiche auteur non publiée</h1><p>${escapeHtml(message)}</p><a class="btn-secondary" href="admin.html">Accès administration</a></div>`;
     upcomingSection.hidden = true;
+    if (ongoingSection) ongoingSection.hidden = true;
     pastSection.hidden = true;
   }
 
@@ -693,6 +749,7 @@
     document.title = "Aperçu auteur introuvable — Dédicalivres";
     profile.innerHTML = `<div class="empty-state"><p>Aucune fiche ou présence ne correspond à cet auteur.</p></div>`;
     upcomingSection.hidden = true;
+    if (ongoingSection) ongoingSection.hidden = true;
     pastSection.hidden = true;
   }
 

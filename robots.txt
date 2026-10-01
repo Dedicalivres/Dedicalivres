@@ -18,3 +18,4 @@ Disallow: /config.js
 Disallow: /tracking-v4.js
 
 Sitemap: https://dedicalivres.fr/sitemap.xml
+Sitemap: https://dedicalivres.fr/sitemap-seo-auteurs.xml
