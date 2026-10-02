@@ -6,7 +6,7 @@
   <title>Proposer une fiche auteur — Dédicalivres</title>
   <meta name="robots" content="noindex,nofollow" />
   <meta name="theme-color" content="#3A1C71" />
-  <link rel="stylesheet" href="style.css?v=corrections-1208-1" />
+  <link rel="stylesheet" href="style.css?v=author-contribute-2" />
 </head>
 <body class="submit-page">
   <header class="header">
@@ -26,75 +26,120 @@
       <p class="category-kicker">Contribution auteur</p>
       <h1>Créer ou mettre à jour ma fiche auteur</h1>
       <p>Votre proposition sera relue avant toute modification publique.</p>
+      <ol class="author-contribution-progress" aria-label="Étapes de la proposition">
+        <li><span>1</span> Ma fiche</li>
+        <li><span>2</span> Mon portrait</li>
+        <li><span>3</span> Vérification et envoi</li>
+      </ol>
     </section>
 
     <section class="submit-page-layout submit-page-layout-compact" aria-labelledby="author-contribution-title">
       <form id="author-profile-submission-form" class="submission-form-card">
-        <h2 id="author-contribution-title">Informations proposées</h2>
+        <section class="author-contribution-step" aria-labelledby="author-contribution-title">
+          <div class="author-step-heading">
+            <span aria-hidden="true">1</span>
+            <div><p>Votre présence dans l’annuaire</p><h2 id="author-contribution-title">Ma fiche</h2></div>
+          </div>
 
-        <fieldset>
-          <legend>Type de demande</legend>
-          <label><input type="radio" name="request_type" value="create" checked /> Créer ma fiche</label>
-          <label><input type="radio" name="request_type" value="modify" /> Mettre à jour une fiche existante</label>
-        </fieldset>
+          <fieldset class="author-request-type">
+            <legend>Type de demande</legend>
+            <div class="author-request-options">
+              <label>
+                <input type="radio" name="request_type" value="create" checked />
+                <span><strong>Créer ma fiche</strong><small>Première présence dans l’annuaire</small></span>
+              </label>
+              <label>
+                <input type="radio" name="request_type" value="modify" />
+                <span><strong>Mettre à jour ma fiche</strong><small>Modifier une fiche déjà publiée</small></span>
+              </label>
+            </div>
+          </fieldset>
 
-        <label id="author-target-wrap" hidden>
-          <span>Fiche auteur concernée</span>
-          <select id="author-target" name="target_author_id">
-            <option value="">Choisir une fiche publiée</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Nom public / pseudo</span>
-          <input name="pseudo" type="text" minlength="2" maxlength="120" required />
-        </label>
-
-        <label>
-          <span>Biographie</span>
-          <textarea name="bio" rows="7" maxlength="5000"></textarea>
-        </label>
-
-        <label>
-          <span>Localisation générale</span>
-          <input name="location" type="text" maxlength="200" placeholder="Ex. Bretagne, France" />
-        </label>
-
-        <div class="form-grid-2">
-          <label>
-            <span>Site ou réseau principal</span>
-            <input name="website" type="url" placeholder="https://…" />
+          <label id="author-target-wrap" hidden>
+            <span>Fiche auteur concernée</span>
+            <select id="author-target" name="target_author_id">
+              <option value="">Choisir une fiche publiée</option>
+            </select>
           </label>
-          <label>
-            <span>Boutique ou page livre</span>
-            <input name="shop_url" type="url" placeholder="https://…" />
+
+          <label class="author-field-wide">
+            <span>Nom public / pseudo</span>
+            <input name="pseudo" type="text" minlength="2" maxlength="120" required />
           </label>
-        </div>
 
-        <label>
-          <span>Type de profil</span>
-          <select name="profile_type" required>
-            <option value="author">Auteur</option>
-            <option value="artist_author">Artiste-auteur</option>
-            <option value="hybrid">Auteur et artiste-auteur</option>
-          </select>
-        </label>
+          <label class="author-field-wide">
+            <span>Biographie</span>
+            <textarea name="bio" rows="9" maxlength="5000"></textarea>
+          </label>
 
-        <label class="upload-box">
-          <input id="author-contribution-photo" name="author_portrait" type="file" accept="image/jpeg,image/png,image/webp" />
-          <span class="upload-icon">Portrait</span>
-          <strong>Proposer une photo</strong>
-          <small>JPG, PNG ou WEBP — moins de 4 Mo. La photo publiée reste inchangée avant validation.</small>
-        </label>
-        <div id="author-contribution-preview" class="image-preview"></div>
+          <div class="form-grid-2">
+            <label>
+              <span>Localisation générale</span>
+              <input name="location" type="text" maxlength="200" placeholder="Ex. Bretagne, France" />
+            </label>
+            <label>
+              <span>Type de profil</span>
+              <select name="profile_type" required>
+                <option value="author">Auteur</option>
+                <option value="artist_author">Artiste-auteur</option>
+                <option value="hybrid">Auteur et artiste-auteur</option>
+              </select>
+            </label>
+          </div>
 
-        <label class="legal-consent">
-          <input name="legal_accept" type="checkbox" required />
-          <span>J’autorise Dédicalivres à relire et modérer cette proposition avant publication.</span>
-        </label>
+          <div class="form-grid-2">
+            <label>
+              <span>Site ou réseau principal</span>
+              <input name="website" type="url" placeholder="https://…" />
+            </label>
+            <label>
+              <span>Boutique ou page livre</span>
+              <input name="shop_url" type="url" placeholder="https://…" />
+            </label>
+          </div>
+        </section>
 
-        <button type="submit">Envoyer la proposition</button>
-        <p id="author-contribution-feedback" class="form-feedback" aria-live="polite"></p>
+        <section class="author-contribution-step" aria-labelledby="author-portrait-title">
+          <div class="author-step-heading">
+            <span aria-hidden="true">2</span>
+            <div><p>Votre image publique</p><h2 id="author-portrait-title">Mon portrait</h2></div>
+          </div>
+
+          <label class="upload-box author-portrait-upload">
+            <input id="author-contribution-photo" name="author_portrait" type="file" accept="image/jpeg,image/png,image/webp" />
+            <span class="upload-icon">Portrait</span>
+            <strong>Ajouter une photo</strong>
+            <small>JPG, PNG ou WEBP · moins de 4 Mo</small>
+            <small>La photo actuellement publiée reste inchangée tant que votre proposition n’est pas validée.</small>
+          </label>
+          <div id="author-contribution-preview" class="image-preview"></div>
+        </section>
+
+        <section class="author-contribution-step" aria-labelledby="author-submit-title">
+          <div class="author-step-heading">
+            <span aria-hidden="true">3</span>
+            <div><p>Protection et modération</p><h2 id="author-submit-title">Vérification et envoi</h2></div>
+          </div>
+
+          <aside class="author-human-check" aria-labelledby="author-human-check-title">
+            <h3 id="author-human-check-title">Une dernière étape humaine</h3>
+            <p>Pour protéger les auteurs contre les créations ou modifications de fiches par un tiers, nous pouvons vous demander de confirmer que cette fiche vous concerne.</p>
+            <p>Après l’envoi, contactez simplement Dédicalivres depuis votre profil auteur public Facebook ou Instagram. À défaut, vous pouvez nous écrire par e-mail.</p>
+            <p>Cette démarche n’empêche pas l’envoi de votre proposition : elle nous permet de vérifier votre identité avant publication lorsque cela est nécessaire.</p>
+            <div class="author-human-actions" aria-label="Contacter Dédicalivres">
+              <a href="https://www.instagram.com/dedicalivres/" target="_blank" rel="noopener noreferrer">Instagram</a>
+              <a href="mailto:dedicalivres@gmail.com?subject=V%C3%A9rification%20de%20ma%20fiche%20auteur">E-mail</a>
+            </div>
+          </aside>
+
+          <label class="legal-consent author-consent-card">
+            <input name="legal_accept" type="checkbox" required />
+            <span>J’autorise Dédicalivres à relire et modérer cette proposition avant publication.</span>
+          </label>
+
+          <button class="author-submit-button" type="submit">Envoyer la proposition</button>
+          <p id="author-contribution-feedback" class="form-feedback" aria-live="polite"></p>
+        </section>
       </form>
     </section>
   </main>
@@ -103,6 +148,6 @@
   <script src="config.js?v=shared-client-1"></script>
   <script src="author-contribution-core.js?v=1"></script>
   <script src="author-contribute.js?v=1"></script>
-  <script src="author-local-draft.js?v=2"></script>
+  <script src="author-local-draft.js?v=3"></script>
 </body>
 </html>

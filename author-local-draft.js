@@ -6,16 +6,17 @@
   function bind(form) {
     if (form.dataset.localDraft) return;
     form.dataset.localDraft = 'true';
-    const storedFields = form.id === 'author-profile-submission-form' ? ['request_type', ...allowed, ...profileAllowed] : allowed;
+    const isProfileForm = form.id === 'author-profile-submission-form';
+    const storedFields = isProfileForm ? ['request_type', ...allowed, ...profileAllowed] : allowed;
     const key = 'dedicalivres_author_draft_v1_' + form.id;
-    const box = document.createElement('fieldset'); box.className = 'local-author-draft';
-    const legend = document.createElement('legend'); legend.textContent = 'Retrouver mes informations auteur'; box.append(legend);
+    const box = document.createElement('fieldset'); box.className = isProfileForm ? 'local-author-draft local-author-draft-compact' : 'local-author-draft';
+    const legend = document.createElement('legend'); legend.textContent = isProfileForm ? 'Retrouver mes informations sur cet appareil' : 'Retrouver mes informations auteur'; box.append(legend);
     const label = document.createElement('label');
     const toggle = document.createElement('input'); toggle.type = 'checkbox'; toggle.defaultChecked = false;
     label.append(toggle, ' Conserver mes informations auteur dans ce navigateur'); box.append(label);
     const info = document.createElement('p'); info.textContent = 'Sur un appareil personnel uniquement. Les coordonnées restent accessibles aux utilisateurs de ce navigateur. Photos et consentement ne sont pas conservés. Les informations sont transmises au site uniquement lorsque vous envoyez le formulaire.'; box.append(info);
     const feedback = document.createElement('p'); feedback.setAttribute('role', 'status'); box.append(feedback);
-    const forget = document.createElement('button'); forget.type = 'button'; forget.textContent = 'Effacer les informations auteur mémorisées'; box.append(forget);
+    const forget = document.createElement('button'); forget.type = 'button'; forget.textContent = isProfileForm ? 'Effacer les informations mémorisées' : 'Effacer les informations auteur mémorisées'; box.append(forget);
     form.prepend(box);
     try {
       const saved = JSON.parse(localStorage.getItem(key));

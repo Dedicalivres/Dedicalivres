@@ -5910,6 +5910,381 @@ body.testimonials-page .testimonial-submit-layout-compact {
   margin-right: auto;
 }
 
+/* =========================================================
+   CONTRIBUTION AUTEUR — parcours éditorial léger
+========================================================= */
+
+body.submit-page .submit-hero .category-kicker {
+  text-align: left;
+}
+
+.author-contribution-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.author-contribution-progress li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(58, 28, 113, .12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .78);
+  color: var(--purple);
+  font-size: .86rem;
+  font-weight: 900;
+}
+
+.author-contribution-progress span,
+.author-step-heading > span {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--purple);
+  color: #fff;
+  font-weight: 950;
+}
+
+#author-profile-submission-form {
+  display: grid;
+  gap: clamp(18px, 3vw, 28px);
+}
+
+.author-contribution-step {
+  display: grid;
+  gap: 18px;
+  padding: clamp(22px, 4vw, 36px);
+  border: 1px solid rgba(58, 28, 113, .10);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(22, 128, 60, .10), transparent 28%),
+    linear-gradient(145deg, rgba(255, 255, 255, .96), rgba(248, 244, 251, .86));
+  box-shadow: 0 18px 46px rgba(58, 28, 113, .10);
+}
+
+.author-step-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.author-step-heading > span {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, var(--purple), #5b2aa0);
+  font-size: 1.05rem;
+}
+
+.author-step-heading p,
+.author-step-heading h2 {
+  margin: 0;
+}
+
+.author-step-heading p {
+  color: #16803c;
+  font-size: .76rem;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.author-step-heading h2 {
+  color: var(--purple-dark);
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.65rem, 3vw, 2.25rem);
+  line-height: 1.08;
+}
+
+#author-profile-submission-form label:not(.upload-box):not(.legal-consent):not(.author-request-type label) {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: var(--purple);
+  font-size: .92rem;
+  font-weight: 900;
+}
+
+#author-profile-submission-form [hidden] {
+  display: none !important;
+}
+
+#author-profile-submission-form input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
+#author-profile-submission-form select,
+#author-profile-submission-form textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 13px 15px;
+  border: 1px solid #ded4e9;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+}
+
+#author-profile-submission-form textarea {
+  min-height: 220px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+#author-profile-submission-form input:focus-visible,
+#author-profile-submission-form select:focus-visible,
+#author-profile-submission-form textarea:focus-visible,
+#author-profile-submission-form button:focus-visible,
+#author-profile-submission-form a:focus-visible {
+  outline: 3px solid rgba(255, 107, 53, .42);
+  outline-offset: 3px;
+}
+
+.author-request-type {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.author-request-type legend {
+  margin-bottom: 9px;
+  color: var(--purple);
+  font-size: .92rem;
+  font-weight: 900;
+}
+
+.author-request-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.author-request-options label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 11px;
+  align-items: start;
+  min-height: 84px;
+  padding: 16px;
+  border: 1px solid rgba(58, 28, 113, .16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .82);
+  color: var(--purple);
+  cursor: pointer;
+}
+
+.author-request-options label:has(input:checked) {
+  border-color: rgba(22, 128, 60, .52);
+  background: rgba(22, 128, 60, .10);
+  box-shadow: 0 0 0 4px rgba(22, 128, 60, .10);
+}
+
+.author-request-options input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: #16803c;
+}
+
+.author-request-options strong,
+.author-request-options small {
+  display: block;
+}
+
+.author-request-options small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.author-portrait-upload {
+  min-height: 210px;
+  border-color: rgba(22, 128, 60, .32);
+  background: linear-gradient(145deg, rgba(22, 128, 60, .10), rgba(255, 255, 255, .92));
+}
+
+.author-portrait-upload strong {
+  font-size: 1.08rem;
+}
+
+.author-portrait-upload small {
+  max-width: 620px;
+  line-height: 1.45;
+}
+
+#author-contribution-preview:has(img) {
+  display: block;
+}
+
+#author-contribution-preview img {
+  max-height: 360px;
+  object-fit: contain;
+}
+
+.author-human-check {
+  padding: clamp(18px, 3vw, 26px);
+  border: 1px solid rgba(22, 128, 60, .28);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(22, 128, 60, .10), rgba(255, 255, 255, .88));
+}
+
+.author-human-check h3 {
+  margin: 0 0 10px;
+  color: #126a33;
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.3rem, 2.4vw, 1.7rem);
+}
+
+.author-human-check p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.author-human-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.author-human-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 9px 15px;
+  border: 1px solid rgba(58, 28, 113, .16);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--purple);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+#author-profile-submission-form .author-consent-card {
+  margin: 0;
+  background: rgba(255, 255, 255, .90);
+}
+
+#author-profile-submission-form .author-consent-card input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 21px;
+  height: 21px;
+  margin: 1px 0 0;
+  accent-color: #16803c;
+}
+
+.author-submit-button {
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 22px;
+  background: linear-gradient(135deg, var(--orange), #ff8a54);
+  color: #fff;
+  font: inherit;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(255, 107, 53, .24);
+}
+
+.author-submit-button:disabled {
+  cursor: wait;
+  opacity: .68;
+}
+
+#author-profile-submission-form .form-feedback {
+  min-height: 1.5em;
+  margin: 0;
+  font-weight: 850;
+}
+
+#author-profile-submission-form .local-author-draft-compact {
+  min-width: 0;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(58, 28, 113, .10);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .64);
+  color: var(--muted);
+}
+
+#author-profile-submission-form .local-author-draft-compact legend {
+  padding: 0 6px;
+  color: var(--purple);
+  font-size: .9rem;
+  font-weight: 900;
+}
+
+#author-profile-submission-form .local-author-draft-compact label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--purple);
+  font-size: .88rem;
+  font-weight: 850;
+}
+
+#author-profile-submission-form .local-author-draft-compact input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  margin: 1px 0 0;
+  accent-color: #16803c;
+}
+
+#author-profile-submission-form .local-author-draft-compact p {
+  margin: 8px 0 0;
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
+#author-profile-submission-form .local-author-draft-compact button {
+  min-height: 40px;
+  margin-top: 9px;
+  padding: 8px 12px;
+  border: 1px solid rgba(58, 28, 113, .18);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--purple);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .author-contribution-progress {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .author-request-options,
+  #author-profile-submission-form .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .author-contribution-step {
+    padding: 20px 16px;
+    border-radius: 22px;
+  }
+
+  .author-step-heading {
+    align-items: flex-start;
+  }
+
+  .author-submit-button {
+    width: 100%;
+  }
+}
+
 body.testimonials-page .testimonial-inspiration-card,
 body.testimonials-page .testimonial-form-card {
   border-radius: 30px;

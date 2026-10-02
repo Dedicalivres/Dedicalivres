@@ -111,6 +111,18 @@ assert.ok(rejectFunction);
 assert.doesNotMatch(rejectFunction, /update public\.authors/);
 
 assert.match(publicPage, /Créer ou mettre à jour ma fiche auteur/);
+assert.match(publicPage, /1 · Ma fiche|<span>1<\/span> Ma fiche/);
+assert.match(publicPage, /2 · Mon portrait|<span>2<\/span> Mon portrait/);
+assert.match(publicPage, /3 · Vérification et envoi|<span>3<\/span> Vérification et envoi/);
+assert.match(publicPage, /Une dernière étape humaine/);
+assert.match(publicPage, /Cette démarche n’empêche pas l’envoi de votre proposition/);
+assert.match(publicPage, /https:\/\/www\.instagram\.com\/dedicalivres\//);
+assert.match(publicPage, /mailto:dedicalivres@gmail\.com/);
+assert.doesNotMatch(publicPage, /facebook\.com/i);
+assert.match(publicPage, /name="request_type" value="create" checked/);
+assert.match(publicPage, /name="request_type" value="modify"/);
+assert.match(publicPage, /name="legal_accept" type="checkbox" required/);
+assert.match(publicPage, /author-local-draft\.js\?v=3/);
 assert.match(publicScript, /body\.append\("folder", "author-portraits"\)/);
 assert.match(publicScript, /4 \* 1024 \* 1024/);
 assert.match(publicScript, /author_profile_submissions/);
@@ -129,6 +141,8 @@ for (const page of [adminHtml, adminV11Html]) {
 }
 assert.match(localDraft, /#author-profile-submission-form/);
 assert.match(localDraft, /form\.id === 'author-profile-submission-form'/);
+assert.match(localDraft, /Retrouver mes informations sur cet appareil/);
+assert.match(localDraft, /Effacer les informations mémorisées/);
 assert.match(hardening, /create policy "Admins can manage authors"[\s\S]*?for all\s+to authenticated/);
 assert.doesNotMatch(hardening, /on public\.authors\s+for update\s+to anon/i);
 
