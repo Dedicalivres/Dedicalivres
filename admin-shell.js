@@ -1515,7 +1515,9 @@
             : "À vérifier"
       ],
       ["Mise en avant", event.featured === true ? "Oui" : "Non"],
-      ["Vérifié", event.verified === true ? "Oui" : "Non"]
+      ["Vérifié", event.verified === true ? "Oui" : "Non"],
+      ["Contact proposant — nom/structure", event.submitter_name],
+      ["Contact proposant — e-mail", event.submitter_email, "email"]
     ];
 
     if (
@@ -1589,13 +1591,17 @@
 
       key.textContent = entry[0];
 
-      const value =
-        document.createElement("strong");
+      const value = entry[2] === "email" && entry[1]
+        ? document.createElement("a")
+        : document.createElement("strong");
 
-      value.textContent =
-        entry[1] == null || entry[1] === ""
-          ? "Non renseigné"
-          : String(entry[1]);
+      value.textContent = entry[1] == null || entry[1] === ""
+        ? "Non renseigné"
+        : String(entry[1]);
+
+      if (entry[2] === "email" && entry[1]) {
+        value.href = "mailto:" + String(entry[1]);
+      }
 
       row.appendChild(key);
       row.appendChild(value);

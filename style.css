@@ -7753,6 +7753,15 @@ body.testimonials-page {
   box-shadow: 0 14px 34px rgba(58, 28, 113, .09);
 }
 
+.submission-contact-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(58, 28, 113, .14);
+  border-radius: 18px;
+  background: rgba(241, 232, 251, .30);
+}
+
 .submission-author-panel[hidden] {
   display: none !important;
 }

@@ -714,10 +714,35 @@
       throw response.error;
     }
 
-    state.events =
+    const events =
       response && Array.isArray(response.data)
         ? response.data
         : [];
+
+    let contacts = [];
+
+    if (events.length > 0) {
+      const contactResponse = await client
+        .from("event_submission_contacts")
+        .select("event_id, submitter_name, submitter_email");
+
+      if (contactResponse.error) {
+        throw contactResponse.error;
+      }
+
+      contacts = Array.isArray(contactResponse.data)
+        ? contactResponse.data
+        : [];
+    }
+
+    const contactsByEventId = new Map(
+      contacts.map((item) => [String(item.event_id), item])
+    );
+
+    state.events = events.map((item) => ({
+      ...item,
+      ...(contactsByEventId.get(String(item.id)) || {})
+    }));
 
     state.metrics = computeMetrics(state.events);
   }

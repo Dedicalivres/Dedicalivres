@@ -273,6 +273,26 @@
         <div id="image-preview" class="image-preview"></div>
       </div>
 
+      <section class="submission-contact-panel" aria-labelledby="submission-contact-title">
+        <div class="submission-author-intro">
+          <p class="category-kicker">Modération</p>
+          <h3 id="submission-contact-title">Votre contact</h3>
+          <p>Ces coordonnées sont utilisées uniquement pour la vérification de votre proposition et ne sont jamais affichées publiquement.</p>
+        </div>
+
+        <div class="form-grid-2">
+          <label>
+            <span>Nom ou structure <small>(facultatif)</small></span>
+            <input name="submitter_name" type="text" autocomplete="organization" maxlength="160" />
+          </label>
+
+          <label>
+            <span>E-mail</span>
+            <input name="submitter_email" type="email" autocomplete="email" maxlength="254" required />
+          </label>
+        </div>
+      </section>
+
       <label class="legal-consent">
         <input name="legal_accept" type="checkbox" required />
         <span>

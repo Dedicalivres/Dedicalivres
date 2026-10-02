@@ -21,7 +21,7 @@ assert.ok(
   "La section auteur doit rester après les informations principales"
 );
 const formHtml = html.match(/<form id="submission-form"[\s\S]*?<\/form>/)?.[0] || "";
-assert.equal((formHtml.match(/\sname="[^"]+"/g) || []).length, 28, "Les 28 contrôles métier doivent rester présents");
+assert.equal((formHtml.match(/\sname="[^"]+"/g) || []).length, 30, "Les 30 contrôles métier doivent rester présents");
 
 assert.doesNotMatch(app, /uploadImageToSupabase|bascule Supabase/);
 

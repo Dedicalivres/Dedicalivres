@@ -1785,6 +1785,13 @@
     try {
       validateSubmissionDates(formData);
 
+      const submitterName = cleanText(formData.get("submitter_name"));
+      const submitterEmail = cleanText(formData.get("submitter_email")).toLowerCase();
+
+      if (!isValidEmail(submitterEmail) || submitterEmail.length > 254) {
+        throw new Error("Veuillez saisir une adresse e-mail valide.");
+      }
+
       const rawLat = String(formData.get("lat") || "").trim();
       const rawLng = String(formData.get("lng") || "").trim();
       let lat = rawLat ? Number(rawLat) : Number.NaN;
@@ -1843,27 +1850,11 @@
 
       const authorPresencePayload = await buildSubmittedAuthorPresencePayload(formData, payload);
 
-      let { error } = await supabaseClient
-        .from("events")
-        .insert([payload]);
-
-      if (error && isMissingColumnError(error)) {
-        const legacyPayload = { ...payload };
-        [
-          "registration_enabled",
-          "registration_open_date",
-          "registration_deadline",
-          "registration_url",
-          "registration_audience",
-          "registration_note",
-          "registration_force_status"
-        ].forEach((key) => delete legacyPayload[key]);
-
-        const legacyResponse = await supabaseClient
-          .from("events")
-          .insert([legacyPayload]);
-        error = legacyResponse.error;
-      }
+      const { error } = await supabaseClient.rpc("submit_event_with_contact", {
+        p_event: payload,
+        p_submitter_name: submitterName || null,
+        p_submitter_email: submitterEmail
+      });
 
       if (error) throw error;
 
