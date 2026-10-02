@@ -51,8 +51,18 @@
       subtitle: "Rendre visible mes dédicaces",
       title: "Bienvenue, auteur.",
       message:
-        "Dédicalivres peut vous aider à rendre vos séances de dédicace et rencontres plus visibles auprès des lecteurs.",
+        "Créez ou complétez votre fiche Dédicalivres pour la relier aux événements auxquels vous participez.",
       actions: [
+        {
+          label: "Créer ou proposer ma fiche auteur",
+          hint: "Ouvrir le formulaire auteur",
+          run: () => goTo("author-contribute.html")
+        },
+        {
+          label: "Consulter l’annuaire des auteurs",
+          hint: "Voir les fiches publiées",
+          run: () => goTo("/auteurs/")
+        },
         {
           label: "Je participe à un événement déjà inscrit",
           hint: "Rechercher l’événement et indiquer ma présence",

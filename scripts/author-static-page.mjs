@@ -195,7 +195,7 @@ export function renderAuthorIndexPage({ baseHtml, authors }) {
   };
   const main = `<main class="container section" data-generated-author-index="true">
     <nav class="detail-back-link" aria-label="Fil d’Ariane"><a href="/">Accueil</a><span aria-hidden="true"> › </span><span>Auteurs</span></nav>
-    <section class="seo-hero"><p class="category-kicker">Auteurs Dédicalivres</p><h1>Auteurs publiés</h1><p>${escapeHtml(description)}</p></section>
+    <section class="seo-hero"><p class="category-kicker">Auteurs Dédicalivres</p><h1>Auteurs publiés</h1><p>${escapeHtml(description)}</p><a class="btn-secondary registration-cta" href="/author-contribute.html">Créer ou proposer ma fiche</a></section>
     <section class="section" aria-labelledby="author-index-title"><h2 id="author-index-title">Explorer les auteurs</h2><div class="events-grid">${cards || `<article class="empty-state"><p>Aucune fiche auteur publiée pour le moment.</p></article>`}</div></section>
   </main>`;
   const html = baseHtml
