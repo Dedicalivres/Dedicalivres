@@ -17,7 +17,12 @@
     const info = document.createElement('p'); info.textContent = 'Sur un appareil personnel uniquement. Les coordonnées restent accessibles aux utilisateurs de ce navigateur. Photos et consentement ne sont pas conservés. Les informations sont transmises au site uniquement lorsque vous envoyez le formulaire.'; box.append(info);
     const feedback = document.createElement('p'); feedback.setAttribute('role', 'status'); box.append(feedback);
     const forget = document.createElement('button'); forget.type = 'button'; forget.textContent = isProfileForm ? 'Effacer les informations mémorisées' : 'Effacer les informations auteur mémorisées'; box.append(forget);
-    form.prepend(box);
+    const submissionAuthorFields = form.id === 'submission-form'
+      ? form.querySelector('#dedicace-author-fields')
+      : null;
+    const submissionAuthorIntro = submissionAuthorFields?.querySelector('.submission-author-intro');
+    if (submissionAuthorIntro) submissionAuthorIntro.insertAdjacentElement('afterend', box);
+    else form.prepend(box);
     try {
       const saved = JSON.parse(localStorage.getItem(key));
       if (saved?.version === 1 && saved.fields && typeof saved.fields === 'object') {

@@ -2181,19 +2181,11 @@
     }
 
     const compressed = await compressImage(file);
-    let imageUrl = "";
-
-    if (shouldUseR2Upload()) {
-      try {
-        imageUrl = await uploadImageToR2(compressed, "event-images");
-      } catch (error) {
-        console.warn("Upload R2 indisponible, bascule Supabase :", error);
-      }
+    if (!shouldUseR2Upload()) {
+      throw new Error("Le stockage d’image R2 est indisponible. Réessayez plus tard.");
     }
 
-    if (!imageUrl) {
-      imageUrl = await uploadImageToSupabase(compressed, "event-images");
-    }
+    const imageUrl = await uploadImageToR2(compressed, "event-images");
 
     if (cacheKey) eventImageUploadCache.set(cacheKey, imageUrl);
     return imageUrl;
@@ -2291,26 +2283,6 @@
     }
 
     return payload.url;
-  }
-
-  async function uploadImageToSupabase(file, bucket) {
-    const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
-
-    const { error } = await supabaseClient.storage
-      .from(bucket)
-      .upload(fileName, file, {
-        cacheControl: "2592000",
-        upsert: false
-      });
-
-    if (error) throw error;
-
-    const { data } = supabaseClient.storage
-      .from(bucket)
-      .getPublicUrl(fileName);
-
-    return data.publicUrl;
   }
 
   async function compressImage(file) {

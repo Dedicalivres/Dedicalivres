@@ -5580,6 +5580,20 @@ button,
   line-height: 1.06;
 }
 
+.submission-moderation-note {
+  margin: 0 0 2px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--orange);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .72);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.submission-moderation-note strong {
+  color: var(--purple);
+}
+
 .form-grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
