@@ -1335,8 +1335,8 @@ assert.match(
 
 assert.match(
   authorsPresenceDiscoverySource,
-  /author\.html\?slug=\$\{encodeURIComponent\(participant\.public_author_slug\)\}/,
-  "20J.1 : URL construite uniquement depuis le slug public vérifié"
+  /\/auteurs\/\$\{encodeURIComponent\(participant\.public_author_slug\)\}\//,
+  "20J.1 : URL canonique construite uniquement depuis le slug public vérifié"
 );
 
 assert.doesNotMatch(

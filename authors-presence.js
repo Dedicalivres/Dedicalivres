@@ -547,7 +547,7 @@
     const typeLabel = getParticipantTypeLabel(participantType);
     const publicAuthorUrl =
       !isPublisher && participant.public_author_slug
-        ? `author.html?slug=${encodeURIComponent(participant.public_author_slug)}`
+        ? `/auteurs/${encodeURIComponent(participant.public_author_slug)}/`
         : "";
 
     return `

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fetchPublicAuthorCatalog, renderAuthorStaticPage } from "./author-static-page.mjs";
+import { authorIndexUrl, fetchPublicAuthorCatalog, renderAuthorIndexPage, renderAuthorStaticPage } from "./author-static-page.mjs";
 
 const config = fs.readFileSync("config.js", "utf8");
 const supabaseUrl = config.match(/supabaseUrl:\s*["']([^"']+)/)?.[1];
@@ -11,6 +11,9 @@ const baseHtml = fs.readFileSync("author.html", "utf8");
 const generatedAt = new Date().toISOString();
 const catalog = await fetchPublicAuthorCatalog({ supabaseUrl, supabaseAnonKey });
 const urls = [];
+fs.mkdirSync("auteurs", { recursive: true });
+const index = renderAuthorIndexPage({ baseHtml, authors: catalog.map(({ author }) => author) });
+fs.writeFileSync(path.join("auteurs", "index.html"), index.html);
 for (const { author, events } of catalog) {
   const rendered = renderAuthorStaticPage({ baseHtml, author, events, generatedAt });
   const directory = path.join("auteurs", author.slug);
@@ -21,7 +24,7 @@ for (const { author, events } of catalog) {
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://dedicalivres.fr/auteurs-independants</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>${authorIndexUrl()}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
 ${urls.map(({ loc, lastmod }) => `  <url><loc>${loc}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`).join("\n")}
 </urlset>
 `;

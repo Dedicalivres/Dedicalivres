@@ -678,7 +678,7 @@
       "@type": "BreadcrumbList",
       "itemListElement": [
         { "@type": "ListItem", position: 1, name: "Accueil", item: `${window.location.origin}/` },
-        { "@type": "ListItem", position: 2, name: "Auteurs", item: `${window.location.origin}/auteurs-independants` },
+        { "@type": "ListItem", position: 2, name: "Auteurs", item: `${window.location.origin}/auteurs/` },
         { "@type": "ListItem", position: 3, name: cleanText(draft?.identity || "Auteur"), item: publicUrl }
       ]
     });

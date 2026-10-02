@@ -20,6 +20,10 @@ export function canonicalUrl(slug) {
   return `${SITE_URL}/auteurs/${encodeURIComponent(clean(slug))}/`;
 }
 
+export function authorIndexUrl() {
+  return `${SITE_URL}/auteurs/`;
+}
+
 export function seoDescription(author, eventCount = 0) {
   const name = clean(author?.pseudo || "Auteur");
   const bio = clean(author?.bio);
@@ -116,7 +120,7 @@ export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Accueil", item: `${SITE_URL}/` },
-      { "@type": "ListItem", position: 2, name: "Auteurs", item: `${SITE_URL}/auteurs-independants` },
+      { "@type": "ListItem", position: 2, name: "Auteurs", item: authorIndexUrl() },
       { "@type": "ListItem", position: 3, name, item: canonical }
     ]
   };
@@ -127,7 +131,7 @@ export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }
     hybrid: "Profil hybride"
   }[clean(author.profile_type)] || "Auteur";
   const main = `<main class="container section" data-generated-author-page="true" data-author-slug="${escapeHtml(slug)}">
-    <nav class="detail-back-link" aria-label="Fil d’Ariane"><a href="/">Accueil</a><span aria-hidden="true"> › </span><a href="/auteurs-independants">Auteurs</a><span aria-hidden="true"> › </span><span>${escapeHtml(name)}</span></nav>
+    <nav class="detail-back-link" aria-label="Fil d’Ariane"><a href="/">Accueil</a><span aria-hidden="true"> › </span><a href="/auteurs/">Auteurs</a><span aria-hidden="true"> › </span><span>${escapeHtml(name)}</span></nav>
     <article class="author-profile"><div class="author-profile-inner">
       <div class="author-visual">${author.avatar_url ? `<img class="author-avatar" src="${escapeHtml(author.avatar_url)}" alt="${escapeHtml(name)}" />` : `<div class="author-avatar-placeholder">${escapeHtml(initials)}</div>`}<div class="author-visual-wash" aria-hidden="true"></div></div>
       <div class="author-profile-content"><div class="author-editorial-heading"><p class="author-kicker">${escapeHtml(profileLabel)}</p><h1 class="author-title">${escapeHtml(name)}</h1>${author.location ? `<p class="author-location">📍 ${escapeHtml(author.location)}</p>` : ""}</div>
@@ -160,6 +164,59 @@ export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }
     .replace(/[ \t]+$/gm, "")
     .replace(/\n{3,}/g, "\n\n");
   return { html, canonical, groups, description, title, person, breadcrumb };
+}
+
+export function renderAuthorIndexPage({ baseHtml, authors }) {
+  const canonical = authorIndexUrl();
+  const title = "Auteurs publiés — Dédicalivres";
+  const description = "Découvrez les auteurs publiés sur Dédicalivres et les événements littéraires auxquels ils sont associés.";
+  const publishedAuthors = (Array.isArray(authors) ? authors : [])
+    .filter((author) => author?.validated === true && author?.published === true && !author?.merged_into && clean(author?.slug))
+    .sort((a, b) => clean(a.pseudo).localeCompare(clean(b.pseudo), "fr", { sensitivity: "base" }));
+  const cards = publishedAuthors.map((author) => {
+    const name = clean(author.pseudo || "Auteur");
+    const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase();
+    return `<article class="event-card author-index-card">
+      ${author.avatar_url ? `<img class="card-image" src="${escapeHtml(author.avatar_url)}" alt="Portrait de ${escapeHtml(name)}" loading="lazy" />` : `<div class="card-image author-avatar-placeholder" aria-hidden="true">${escapeHtml(initials)}</div>`}
+      <div class="card-body">
+        <h2 class="card-title">${escapeHtml(name)}</h2>
+        ${clean(author.location) ? `<div class="card-meta"><span>📍 ${escapeHtml(author.location)}</span></div>` : ""}
+        <div class="card-footer"><a class="card-link" href="${canonicalUrl(author.slug)}">Voir la fiche auteur</a></div>
+      </div>
+    </article>`;
+  }).join("\n");
+  const breadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: `${SITE_URL}/` },
+      { "@type": "ListItem", position: 2, name: "Auteurs", item: canonical }
+    ]
+  };
+  const main = `<main class="container section" data-generated-author-index="true">
+    <nav class="detail-back-link" aria-label="Fil d’Ariane"><a href="/">Accueil</a><span aria-hidden="true"> › </span><span>Auteurs</span></nav>
+    <section class="seo-hero"><p class="category-kicker">Auteurs Dédicalivres</p><h1>Auteurs publiés</h1><p>${escapeHtml(description)}</p></section>
+    <section class="section" aria-labelledby="author-index-title"><h2 id="author-index-title">Explorer les auteurs</h2><div class="events-grid">${cards || `<article class="empty-state"><p>Aucune fiche auteur publiée pour le moment.</p></article>`}</div></section>
+  </main>`;
+  const html = baseHtml
+    .replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(title)}</title>`)
+    .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${escapeHtml(description)}" />`)
+    .replace(/<meta id="author-robots"[^>]*>/, `<meta name="robots" content="index,follow" />`)
+    .replace(/<link id="author-canonical"[^>]*>/, `<link rel="canonical" href="${canonical}" />`)
+    .replace(/<meta id="author-og-title"[^>]*>/, `<meta property="og:title" content="${escapeHtml(title)}" />`)
+    .replace(/<meta id="author-og-description"[^>]*>/, `<meta property="og:description" content="${escapeHtml(description)}" />`)
+    .replace(/<meta id="author-og-url"[^>]*>/, `<meta property="og:url" content="${canonical}" />`)
+    .replace(/<meta property="og:type" content="profile" \/>/, `<meta property="og:type" content="website" />`)
+    .replace(/<meta id="author-twitter-title"[^>]*>/, `<meta name="twitter:title" content="${escapeHtml(title)}" />`)
+    .replace(/<meta id="author-twitter-description"[^>]*>/, `<meta name="twitter:description" content="${escapeHtml(description)}" />`)
+    .replace("</head>", `<script type="application/ld+json">${JSON.stringify(breadcrumb)}</script>\n</head>`)
+    .replace(/<main[\s\S]*?<\/main>/, main)
+    .replace(/<script\b[^>]*src="[^"]+"[^>]*><\/script>/g, "")
+    .replace(/\s+(href|src|srcset)="(?!https?:|mailto:|#|\/)([^"]+)"/g, ' $1="/$2"')
+    .replace(/<body([^>]*)>/, `<body$1 data-generated-author-index="true">`)
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n");
+  return { html, canonical, title, description, authors: publishedAuthors, breadcrumb };
 }
 
 export async function fetchPublicAuthorCatalog({ supabaseUrl, supabaseAnonKey, fetchImpl = fetch }) {
