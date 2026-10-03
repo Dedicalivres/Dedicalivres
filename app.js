@@ -1810,7 +1810,7 @@
         price: formData.get("price"),
         start_date: formData.get("start_date"),
         end_date: formData.get("end_date") || null,
-        website: formData.get("website") || null,
+        website: normalizeOptionalWebsite(formData.get("website")) || null,
         description: formData.get("description") || null,
         lat: Number.isFinite(lat) ? lat : null,
         lng: Number.isFinite(lng) ? lng : null,
@@ -2006,7 +2006,7 @@
       .filter((value) => allowedAudience.includes(value));
     const openDate = cleanText(formData.get("registration_open_date")) || null;
     const deadline = cleanText(formData.get("registration_deadline")) || null;
-    const registrationUrl = cleanText(formData.get("registration_url")) || null;
+    const registrationUrl = normalizeOptionalWebsite(formData.get("registration_url")) || null;
     const note = cleanText(formData.get("registration_note")).slice(0, 1000) || null;
     const forcedStatus = ["complet", "cloture", "annule"].includes(formData.get("registration_force_status"))
       ? formData.get("registration_force_status")
@@ -2016,7 +2016,7 @@
       throw new Error("La date d’ouverture des inscriptions doit précéder la date limite.");
     }
     if (registrationUrl && !isValidUrl(registrationUrl)) {
-      throw new Error("Merci d’indiquer un lien d’inscription HTTP(S) valide.");
+      throw new Error("Adresse web invalide");
     }
     if (!audience.length) {
       throw new Error("Sélectionnez au moins un profil pouvant s’inscrire.");
@@ -3359,19 +3359,11 @@
   }
 
   function normalizeOptionalWebsite(value) {
-    const raw = cleanText(value);
-    if (!raw) return "";
-    if (/^https?:\/\//i.test(raw)) return raw;
-    return `https://${raw}`;
+    return window.DEDICALIVRES_URLS.normalizeOptional(value);
   }
 
   function isValidUrl(value) {
-    try {
-      const url = new URL(value);
-      return ["http:", "https:"].includes(url.protocol);
-    } catch {
-      return false;
-    }
+    return window.DEDICALIVRES_URLS.isValid(value);
   }
 
   function inferAuthorProfileUrlType(value) {

@@ -5,8 +5,10 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const urlSource = fs.readFileSync(path.join(root, "url-normalizer.js"), "utf8");
 const coreSource = fs.readFileSync(path.join(root, "author-contribution-core.js"), "utf8");
 const context = vm.createContext({ URL });
+vm.runInContext(urlSource, context);
 vm.runInContext(coreSource, context);
 const core = context.DEDICALIVRES_AUTHOR_CONTRIBUTION;
 const migration = fs.readFileSync(

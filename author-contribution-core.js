@@ -30,14 +30,10 @@
   }
 
   function normalizeUrl(value, label) {
-    const raw = cleanText(value);
-    if (!raw) return "";
     try {
-      const url = new URL(raw);
-      if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error();
-      return url.href;
+      return root.DEDICALIVRES_URLS.normalizeOptional(value);
     } catch (_) {
-      throw new Error(`${label} doit être une URL HTTP(S) valide.`);
+      throw new Error("Adresse web invalide");
     }
   }
 
@@ -69,6 +65,16 @@
     return value === null || value === undefined ? "" : String(value).trim();
   }
 
+  function comparableField(field, value) {
+    const raw = comparable(value);
+    if (!raw || !["website", "shop_url"].includes(field)) return raw;
+    try {
+      return new URL(root.DEDICALIVRES_URLS.normalizeOptional(raw)).href;
+    } catch {
+      return raw;
+    }
+  }
+
   function buildSubmission({ mode, input, currentAuthor = null, proposedAvatarUrl = "" }) {
     const requestType = mode === "modify" ? "modify" : "create";
     const normalized = normalizeFields(input);
@@ -95,7 +101,7 @@
     }
 
     EDITABLE_FIELDS.forEach((field) => {
-      if (comparable(normalized[field]) !== comparable(currentAuthor[field])) {
+      if (comparableField(field, normalized[field]) !== comparableField(field, currentAuthor[field])) {
         payload[field] = normalized[field];
       }
     });

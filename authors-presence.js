@@ -975,10 +975,7 @@
   }
 
   function normalizeWebsite(value) {
-    const raw = cleanText(value);
-    if (!raw) return "";
-    if (/^https?:\/\//i.test(raw)) return raw;
-    return `https://${raw}`;
+    return window.DEDICALIVRES_URLS.normalizeOptional(value);
   }
 
   function normalizeOptionalWebsite(value) {
@@ -988,12 +985,7 @@
   }
 
   function isValidUrl(value) {
-    try {
-      const url = new URL(value);
-      return ["http:", "https:"].includes(url.protocol);
-    } catch {
-      return false;
-    }
+    return window.DEDICALIVRES_URLS.isValid(value);
   }
 
   function isValidEmail(value) {

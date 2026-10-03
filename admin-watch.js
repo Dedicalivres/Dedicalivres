@@ -2943,8 +2943,8 @@
       type: value("type"),
       country: value("country"),
       description: value("description"),
-      officialUrl: value("officialUrl"),
-      imageUrl: value("imageUrl")
+      officialUrl: window.DEDICALIVRES_URLS.normalizeOptional(value("officialUrl")),
+      imageUrl: window.DEDICALIVRES_URLS.normalizeOptional(value("imageUrl"))
     };
 
     ["venue", "address"].forEach((property) => {

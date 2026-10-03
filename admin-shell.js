@@ -2960,7 +2960,7 @@
         ),
 
       registration_url:
-        cleanV11Value(
+        normalizeV11OptionalUrl(
           editRegistrationUrl?.value
         ),
 
@@ -3066,9 +3066,9 @@
         ),
 
       website:
-        String(
-          editWebsite?.value || ""
-        ).trim(),
+        normalizeV11OptionalUrl(
+          editWebsite?.value
+        ),
 
       description:
         String(
@@ -3076,7 +3076,7 @@
         ).trim(),
 
       image_url:
-        cleanV11Value(
+        normalizeV11OptionalUrl(
           editImage?.value
         ),
 
@@ -6940,31 +6940,11 @@ function renderEvents(events, status) {
 
 
   function normalizeV11OptionalUrl(value) {
-    const text =
-      String(value || "").trim();
-
-    if (!text) {
-      return null;
-    }
-
     try {
-      const parsed =
-        new URL(text);
-
-      if (
-        parsed.protocol !== "http:" &&
-        parsed.protocol !== "https:"
-      ) {
-        throw new Error(
-          "Protocole non autorisé"
-        );
-      }
-
-      return parsed.toString();
-
-    } catch (error) {
+      return window.DEDICALIVRES_URLS.normalizeOptional(value) || null;
+    } catch {
       throw new Error(
-        "Une URL saisie est invalide."
+        "Adresse web invalide"
       );
     }
   }
