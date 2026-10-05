@@ -5058,7 +5058,7 @@ function renderEvents(events, status) {
     // Ce calcul reste en lecture seule et n’ouvre jamais le verrou global.
     const wouldBePublic =
       authors.filter(
-        (author) => publicationEngine.isPubliclyAvailable(author)
+        (author) => window.DEDICALIVRES_AUTHOR_PUBLICATION.isPubliclyAvailable(author)
       );
 
     const exposureRisks =
