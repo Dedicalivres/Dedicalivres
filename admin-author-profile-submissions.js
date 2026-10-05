@@ -27,7 +27,7 @@
 
   function ensurePanel() {
     if (document.getElementById("author-profile-submissions-panel")) return;
-    const host = document.getElementById("tab-moderation");
+    const host = document.getElementById("v11-community-authors") || document.getElementById("tab-moderation");
     if (!host) return;
     const panel = document.createElement("section");
     panel.id = "author-profile-submissions-panel";
