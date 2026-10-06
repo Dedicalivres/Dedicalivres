@@ -72,7 +72,7 @@
     fresh.forEach(event => {
       const li = document.createElement('li');
       const link = document.createElement('a');
-      link.href = 'event.html?id=' + encodeURIComponent(event.id);
+      link.href = root.DEDICALIVRES_EVENT_CANONICAL?.href?.(event.id) || '/event.html?id=' + encodeURIComponent(event.id);
       link.textContent = event.title || 'Événement'; li.append(link); results.append(li);
       const info = document.createElement('span');
       const date = /^\d{4}-\d{2}-\d{2}$/.test(event.start_date || '') ? new Date(event.start_date + 'T12:00:00') : null;

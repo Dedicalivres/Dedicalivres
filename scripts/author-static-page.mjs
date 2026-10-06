@@ -1,3 +1,5 @@
+import canonicalMap from "../docs/territoires/event-canonical-map.json" with { type: "json" };
+
 const SITE_URL = "https://dedicalivres.fr";
 
 const clean = (value) => String(value || "").replace(/\s+/g, " ").trim();
@@ -22,6 +24,17 @@ export function canonicalUrl(slug) {
 
 export function authorIndexUrl() {
   return `${SITE_URL}/auteurs/`;
+}
+
+export function eventCanonicalHref(event) {
+  const id = clean(event?.id);
+  const canonicalPath = canonicalMap[id];
+
+  if (canonicalPath) {
+    return `/${String(canonicalPath).replace(/^\/+/, "")}`;
+  }
+
+  return `/event.html?id=${encodeURIComponent(id)}`;
 }
 
 export function seoDescription(author, eventCount = 0) {
@@ -81,7 +94,7 @@ function renderEvent(event) {
       ${event.type ? `<div class="card-tags"><span class="badge">${escapeHtml(event.type)}</span></div>` : ""}
       <h3 class="card-title">${escapeHtml(event.title || "Sans titre")}</h3>
       <div class="card-meta"><span>📅 ${escapeHtml(formatDateRange(event))}</span><span>📍 ${escapeHtml(place || "Lieu non précisé")}</span></div>
-      <div class="card-footer"><a class="card-link" href="/event.html?id=${encodeURIComponent(event.id)}">Voir le détail</a></div>
+      <div class="card-footer"><a class="card-link" href="${eventCanonicalHref(event)}">Voir le détail</a></div>
     </div>
   </article>`;
 }

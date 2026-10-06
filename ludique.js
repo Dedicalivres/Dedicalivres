@@ -453,7 +453,12 @@
 
     var items = events.map(function (ev) {
       var dep = ev.region || ev.city || "";
-      return '<a href="event.html?id=' + encodeURIComponent(ev.id) + '">' +
+      var eventHref =
+        window.DEDICALIVRES_EVENT_CANONICAL &&
+        typeof window.DEDICALIVRES_EVENT_CANONICAL.href === "function"
+          ? window.DEDICALIVRES_EVENT_CANONICAL.href(ev.id)
+          : "/event.html?id=" + encodeURIComponent(ev.id);
+      return '<a href="' + eventHref + '">' +
         '<span class="lud-tk-type">' + escapeHtml(ev.type || "Événement") + '</span>' +
         (dep ? '<span class="lud-tk-dep">' + escapeHtml(dep) + '</span>' : '') +
         escapeHtml(ev.title || "") +

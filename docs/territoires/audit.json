@@ -1,8 +1,8 @@
 {
-  "base": "8bdafb25a63cdad5679add955ffa089d2dbe9ace",
-  "capturedAt": "2026-10-06T05:42:03.907Z",
+  "base": "28e569e4088dd44bab455d4cc16fea6bc2f936a8",
+  "capturedAt": "2026-10-06T16:04:16.461Z",
   "today": "2026-10-06",
-  "total": 618,
+  "total": 619,
   "registryCountries": [
     {
       "code": "FR",
@@ -76,7 +76,7 @@
       "id": "FR-local-07",
       "label": "Hauts-de-France",
       "country": "FR",
-      "count": 44
+      "count": 45
     },
     {
       "id": "FR-local-08",
@@ -935,8 +935,8 @@
         "Provence-Alpes-Côte d’Azur"
       ],
       "editorial": "",
-      "total": 605,
-      "upcoming": 159,
+      "total": 606,
+      "upcoming": 160,
       "ongoing": 3,
       "past": 446,
       "undated": 0,
@@ -1409,6 +1409,7 @@
         "fbefb41b-dfc7-4fc6-a464-87bbc52a7d6b",
         "c862dbce-396d-47b3-b02b-e5b7d98e9f21",
         "3586b8f1-7133-4d9c-97c6-89317f713708",
+        "006b3ed2-a845-44d7-8c07-df47ff5e908d",
         "0614e0eb-f5b8-44f5-8b0d-c02c40c2f322",
         "2f91a079-942f-4aa7-b44e-6ca3d4dacfbb",
         "6c2b8a95-1d9a-477e-af6c-5d445a379f80",
@@ -2101,8 +2102,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Hauts-de-France</h2>\n    <p>Dans les Hauts-de-France, les salons du livre, festivals, librairies et médiathèques font vivre les rencontres entre auteurs et lecteurs. Dédicalivres rassemble les événements littéraires de la région pour aider chacun à trouver son prochain rendez-vous.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Hauts-de-France</h2>\n  <p>La région Hauts-de-France regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-lille.html\">Lille</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Hauts-de-France. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Hauts-de-France</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Hauts-de-France ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 44,
-      "upcoming": 6,
+      "total": 45,
+      "upcoming": 7,
       "ongoing": 0,
       "past": 38,
       "undated": 0,
@@ -2147,6 +2148,7 @@
         "4c8eb9e4-d09c-4aa1-b399-78c681dc8933",
         "37e9ce42-7fcd-4c8f-bdc1-f09e7a2d4f50",
         "b30e0e81-5254-4e9a-a023-d37077bb3b05",
+        "006b3ed2-a845-44d7-8c07-df47ff5e908d",
         "f66f6a44-28a7-4021-a081-a65d0e51bf0a",
         "10e71fba-065f-469e-af08-ff1dc863c967",
         "a348cf69-2428-40a4-b913-eb533afb1cee",

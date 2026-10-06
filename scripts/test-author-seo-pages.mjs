@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import { authorIndexUrl, classifyEvents, fetchPublicAuthorCatalog, renderAuthorIndexPage, renderAuthorStaticPage, seoDescription } from "./author-static-page.mjs";
+import { authorIndexUrl, classifyEvents, eventCanonicalHref, fetchPublicAuthorCatalog, renderAuthorIndexPage, renderAuthorStaticPage, seoDescription } from "./author-static-page.mjs";
 
 const baseHtml = fs.readFileSync("author.html", "utf8");
 const author = {
@@ -22,6 +22,15 @@ const event = (id, start_date, end_date = start_date) => ({
   id, title: `Événement ${id}`, city: "Rennes", region: "Bretagne", country_code: "FR",
   start_date, end_date, type: "Dédicace", image_url: "", validated: true, rejected: false
 });
+assert.equal(
+  eventCanonicalHref({ id: "54f89147-8cd4-4abc-b883-cca26c5e31a2" }),
+  "/evenement/katell-poquet-quimper-54f89147-8cd4-4abc-b883-cca26c5e31a2.html"
+);
+assert.equal(
+  eventCanonicalHref({ id: "unknown-event" }),
+  "/event.html?id=unknown-event"
+);
+
 const events = [
   event("past", "2026-09-01"),
   event("ongoing", "2026-10-01", "2026-10-02"),

@@ -6,6 +6,7 @@
 
   <title>Dédicalivres — Détail événement littéraire</title>
   <meta name="description" content="Détail d’un événement littéraire référencé sur Dédicalivres : salon, festival ou séance de dédicace." />
+  <meta name="robots" content="noindex,follow" />
   <meta name="theme-color" content="#3A1C71" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -115,6 +116,44 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js?v=shared-client-1"></script>
 <script src="geography.js?v=v1-francophone-20260620-map-authors"></script>
+<script src="/event-canonical.js?v=1"></script>
+<script data-event-canonical-legacy-redirect="true">
+(function () {
+  "use strict";
+
+  var id =
+    new URLSearchParams(
+      window.location.search
+    ).get("id");
+
+  var resolver =
+    window.DEDICALIVRES_EVENT_CANONICAL;
+
+  if (
+    !id ||
+    !resolver ||
+    typeof resolver.pathFor !== "function" ||
+    !resolver.pathFor(id)
+  ) {
+    return;
+  }
+
+  var target =
+    resolver.href(
+      id,
+      window.location.hash || ""
+    );
+
+  var current =
+    window.location.pathname +
+    window.location.search +
+    window.location.hash;
+
+  if (target && target !== current) {
+    window.location.replace(target);
+  }
+})();
+</script>
 <script src="tracking-v4.js?v=shared-client-1"></script>
 <script src="event.js?v=local-preferences-1"></script>
 <script src="author-local-draft.js?v=1"></script>

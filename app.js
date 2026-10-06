@@ -110,6 +110,30 @@
     Autre: { className: "type-autre", color: "#2f6fed" }
   };
 
+  function eventDetailHref(id, anchor = "") {
+    const resolver =
+      window.DEDICALIVRES_EVENT_CANONICAL;
+
+    if (
+      resolver &&
+      typeof resolver.href === "function"
+    ) {
+      return resolver.href(id, anchor);
+    }
+
+    const base =
+      `/event.html?id=${encodeURIComponent(id || "")}`;
+
+    if (!anchor) return base;
+
+    const suffix = String(anchor);
+
+    return base +
+      (suffix.startsWith("#")
+        ? suffix
+        : `#${suffix}`);
+  }
+
   init();
 
   function init() {
@@ -1116,7 +1140,7 @@
           <div class="card-footer">
             <a
               class="card-link"
-              href="event.html?id=${encodeURIComponent(event.id)}"
+              href="${eventDetailHref(event.id)}"
             >
               Voir le détail
             </a>
@@ -1316,7 +1340,7 @@
         </div>
 
         <div class="favorite-item-actions">
-          <a class="card-link" href="event.html?id=${encodeURIComponent(event.id)}">
+          <a class="card-link" href="${eventDetailHref(event.id)}">
             Voir
           </a>
           <button
@@ -1484,7 +1508,7 @@
       ? formatDateRange(event.start_date, event.end_date)
       : "Date à préciser";
     const description = truncateText(event.description || "", 135);
-    const detailUrl = `event.html?id=${encodeURIComponent(event.id)}`;
+    const detailUrl = eventDetailHref(event.id);
 
     return `
       <article class="map-floating-event">
@@ -2094,7 +2118,7 @@
               <strong>${escapeHtml(existing.title || "Événement existant")}</strong>
               <small>${escapeHtml(date)} · ${escapeHtml(place)}</small>
               <small>${escapeHtml((match.reasons || []).join(" · "))}</small>
-              <a href="event.html?id=${encodeURIComponent(existing.id || "")}" target="_blank" rel="noopener noreferrer">Ouvrir la fiche existante</a>
+              <a href="${eventDetailHref(existing.id || "")}" target="_blank" rel="noopener noreferrer">Ouvrir la fiche existante</a>
             </article>
           `;
         }).join("")}
