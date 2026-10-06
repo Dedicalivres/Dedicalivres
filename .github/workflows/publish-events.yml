@@ -50,6 +50,8 @@ jobs:
       PUBLICATION_PREACTIVATION_TEST:
         ${{ vars.PUBLICATION_AUTOMATION_ENABLED != 'true' && github.event_name == 'workflow_dispatch' && inputs.preactivation_test == true }}
 
+      PYTHONDONTWRITEBYTECODE: "1"
+
 
     steps:
 
