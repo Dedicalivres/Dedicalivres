@@ -19,3 +19,5 @@ Disallow: /tracking-v4.js
 
 Sitemap: https://dedicalivres.fr/sitemap.xml
 Sitemap: https://dedicalivres.fr/sitemap-seo-auteurs.xml
+
+Sitemap: https://dedicalivres.fr/sitemap-evenements.xml

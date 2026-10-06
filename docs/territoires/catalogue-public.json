@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-23T05:39:26.649Z",
+  "capturedAt": "2026-10-06T14:12:25.691Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -15,6 +15,34 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.reseau-ecume.fr/"
+    },
+    {
+      "id": "00413406-fd94-4937-96cd-d2133c4e3e65",
+      "title": "Dédicace de Mireille Grosjean",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Normandie",
+      "city": "Trouville-sur-Mer",
+      "start_date": "2026-10-25",
+      "end_date": "2026-10-25",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
+    },
+    {
+      "id": "006b3ed2-a845-44d7-8c07-df47ff5e908d",
+      "title": "Dédicace Lucas Heller",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Hauts-de-France",
+      "city": "Douai",
+      "start_date": "2026-10-10",
+      "end_date": null,
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "0099415e-0936-40b4-845b-dc83bb753b4d",
@@ -549,6 +577,20 @@
       "website": ""
     },
     {
+      "id": "0fe7bebf-6034-4a00-8d7c-ac5a6449e1cd",
+      "title": "Festival du Livre",
+      "type": "Festival",
+      "country_code": "FR",
+      "region": "Hauts-de-France",
+      "city": "Neuville-en-Ferrain",
+      "start_date": "2026-09-27",
+      "end_date": "2026-09-27",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
+    },
+    {
       "id": "0feba7bf-a6d4-40eb-b441-7ce91f290756",
       "title": "Rencontres littéraires Meert",
       "type": "Dédicace",
@@ -661,6 +703,20 @@
       "website": "http://odysseesromanceescoeursdebikers/facebook"
     },
     {
+      "id": "11faefef-a886-4c8f-98c4-8c421ae2d061",
+      "title": "Rencontre, dédicace - Patrick Ranoux et Bernard Reviriego",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Nouvelle-Aquitaine",
+      "city": "Excideuil",
+      "start_date": "2026-10-09",
+      "end_date": "2026-10-09",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
+    },
+    {
       "id": "12b0bf7b-bbb1-4946-b210-c16f948437bd",
       "title": "Rencontre d’auteur polar avec David Hury",
       "type": "Dédicace",
@@ -717,6 +773,20 @@
       "website": "https://www.canalbd.net/bd-flash-chartres/"
     },
     {
+      "id": "14d987d0-90fe-45cf-8f0f-3233c8c77c4c",
+      "title": "Dédicace de Charlotte Bruno à l'Espace Culturel Leclerc de Fouesnant-Pleuven",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Pleuven",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://linktr.ee/charlottebrunoautrice"
+    },
+    {
       "id": "15324d55-a1c0-448d-a382-594943ed0df4",
       "title": "Rencontre-Dédicaces estivales",
       "type": "Dédicace",
@@ -757,6 +827,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "15d0cd55-567c-485d-9edd-4a0b269de984",
+      "title": "Festival Crimes et Intrigues - 2ème édition",
+      "type": "Festival",
+      "country_code": "FR",
+      "region": "Nouvelle-Aquitaine",
+      "city": "Castillonnès",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-15",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://castifestival47.org/event/festival-crimes-intrigues/"
     },
     {
       "id": "16313bea-510e-4a31-ac65-2a89e7678bb4",
@@ -847,7 +931,7 @@
       "title": "Salon du Livre",
       "type": "Salon",
       "country_code": "FR",
-      "region": "Indre-et-Loire",
+      "region": "Centre-Val de Loire",
       "city": "Marçay",
       "start_date": "2026-06-20",
       "end_date": "2026-06-21",
@@ -1071,7 +1155,7 @@
       "title": "Rencontre avec Blandine Rinkel",
       "type": "Dédicace",
       "country_code": "BE",
-      "region": "Wallonie",
+      "region": "Bruxelles-Capitale",
       "city": "Bruxelles",
       "start_date": "2026-08-17",
       "end_date": "2026-08-17",
@@ -1137,6 +1221,20 @@
       "website": "https://www.facebook.com/SimonLarocheOfficiel"
     },
     {
+      "id": "21862472-2cc1-4d2c-8109-2d6e8e125248",
+      "title": "Marché-dédicace avec Jean-Michel Magnac",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Nouvelle-Aquitaine",
+      "city": "Eymet",
+      "start_date": "2026-10-01",
+      "end_date": "2026-10-01",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://asso.librairies-nouvelleaquitaine.com/librairies/librairie-la-mauvaise-herbe/"
+    },
+    {
       "id": "21a2964e-0270-4389-95eb-c5381352b469",
       "title": "Soirée dédicace - La Loire à Vélo",
       "type": "Dédicace",
@@ -1191,6 +1289,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://salondulivredemonaco.com/"
+    },
+    {
+      "id": "22a6915c-17a3-473d-9d06-6e10c6e2c259",
+      "title": "20e entretiens de Bibracte : récits de paysages.",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bourgogne-Franche-Comté",
+      "city": "Saint-Léger-sous-Beuvray",
+      "start_date": "2026-10-16",
+      "end_date": "2026-10-17",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://grandsite-bibracte-morvan.fr/fr/20e-entretiens-de-bibracte-morvan-recits-de-paysages"
     },
     {
       "id": "23dde9ec-2c5d-490c-9999-2728ebab588a",
@@ -1375,6 +1487,20 @@
       "website": ""
     },
     {
+      "id": "290aa44a-184e-4520-b98d-62b686a89f3c",
+      "title": "Rencontre littéraire avec Didier Le Fur",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Centre-Val de Loire",
+      "city": "Amboise",
+      "start_date": "2026-10-15",
+      "end_date": "2026-10-15",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://contact@auberge-de-la-treille.com"
+    },
+    {
       "id": "2927c99b-067f-4077-b6b0-4a2d9820420a",
       "title": "20 ème édition du Festival littéraire Place Aux Nouvelles 2026 à Lauzerte - samedi 19 au dimanche 20 septembre 2026 - Guide Tarn Aveyron",
       "type": "Festival",
@@ -1471,6 +1597,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://unidivers.fr/event/seance-de-dedicace-nant-aveyron-2026-08-09/"
+    },
+    {
+      "id": "2d30dca3-fde8-4d93-80d3-cf4a17070b26",
+      "title": "L'auteur Alexandre de Vitry présente son essai « Seul contre tous : Histoire de l'individualisme littéraire »",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-10-16",
+      "end_date": "2026-10-16",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "2d6a656f-c1eb-44f4-b95e-4d0394d81c54",
@@ -1627,6 +1767,20 @@
       "website": "https://openagenda.com/lagenda-litteraire-de-la-librairie-de-paris-place-de-clichy/events/laurence-joseph-et-charlotte-casiraghi-pour-le-lancement-de-la-collection-un-pas-de-cand244te"
     },
     {
+      "id": "33c6615f-a424-4479-86d5-86ae8573fcb5",
+      "title": "L'illustratrice Émilie Tronche présente son roman graphique « L'Été de Bérénice »",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-10-28",
+      "end_date": "2026-10-28",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
+    },
+    {
       "id": "33cfcde5-4e90-4029-b9c5-ef72af369b85",
       "title": "Sieste littéraire du Bleuet ",
       "type": "Autre",
@@ -1669,6 +1823,20 @@
       "website": "https://goelandmasque.fr/"
     },
     {
+      "id": "34b3f6b2-15c3-4349-b0e0-95a8c90ae267",
+      "title": "Alain Hégoburu en séance de dédicaces",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Nouvelle-Aquitaine",
+      "city": "Mauléon-Licharre",
+      "start_date": "2026-10-31",
+      "end_date": "2026-10-31",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
+    },
+    {
       "id": "352a4601-5797-41f3-b677-09651047d3e1",
       "title": "Annonce de dédicace – Marie Auriol",
       "type": "Dédicace",
@@ -1695,6 +1863,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.musee-armee.fr"
+    },
+    {
+      "id": "3586b8f1-7133-4d9c-97c6-89317f713708",
+      "title": "Dédicace espace culturel E. LECLERC de Caen",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Normandie",
+      "city": "Caen",
+      "start_date": "2026-10-10",
+      "end_date": "2026-10-10",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.facebook.com/profile.php?id=61561313773516"
     },
     {
       "id": "35937eac-afed-45e4-b9f5-ad0e7bd2c777",
@@ -1793,6 +1975,34 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://data.datatourisme.fr/23/7932ffd7-6b0e-3084-9c1c-6ed3f04a66c0"
+    },
+    {
+      "id": "37e9ce42-7fcd-4c8f-bdc1-f09e7a2d4f50",
+      "title": "Séance de Dédicace du jeune auteur de Bourgogne - Cédric Leroux",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Hauts-de-France",
+      "city": "Varennes-sur-Seine",
+      "start_date": "2026-10-03",
+      "end_date": "2026-10-03",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://portescristallines.fr"
+    },
+    {
+      "id": "38c619d6-d3da-420b-a0f5-56f761ebf7e8",
+      "title": "Violette Mirgue : Rencontre-Dédicace avec l'autrice-illustratrice Marie-Constance Mallard",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Toulouse",
+      "start_date": "2026-10-27",
+      "end_date": "2026-10-27",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://augustins.toulouse.fr/"
     },
     {
       "id": "39162ebd-806e-4b6d-ab41-f1fa79e9c7e5",
@@ -2831,6 +3041,20 @@
       "website": "https://www.vallee-dordogne.com/offres/salon-du-livre-a-serilhac-nid-de-plumes-serilhac-fr-2611796#:~:text=Le%20salon%20du%20livre%20de,des%20moments%20de%20partage%20littéraire."
     },
     {
+      "id": "57b95e19-6fa1-4fae-83d9-2e41eb38960f",
+      "title": "Jean-Philippe Toussaint présente son roman « La Hantise »",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-10-22",
+      "end_date": "2026-10-22",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
+    },
+    {
       "id": "5817248f-f1e3-45c1-87c7-d5d2649d6893",
       "title": "RENCONTRE DÉDICACE AVEC L'AUTEUR NICOLAS DRUART",
       "type": "Dédicace",
@@ -3059,8 +3283,8 @@
       "title": "Dédicace",
       "type": "Dédicace",
       "country_code": "FR",
-      "region": "saone et loire",
-      "city": "Mâcon — 71000",
+      "region": "Bourgogne-Franche-Comté",
+      "city": "Mâcon",
       "start_date": "2026-07-04",
       "end_date": "2026-07-04",
       "validated": true,
@@ -3193,6 +3417,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://mediatheques.redon-agglomeration.bzh/"
+    },
+    {
+      "id": "64718de8-29d4-45ca-8170-aeda05774a9d",
+      "title": "Séance dédicace chez Cultura",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Pays de la Loire",
+      "city": "Angers",
+      "start_date": "2026-10-24",
+      "end_date": "2026-10-24",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "64c2ea92-232a-4dc5-9cb0-105827e24253",
@@ -3479,7 +3717,7 @@
       "title": "Grim'Loire",
       "type": "Salon",
       "country_code": "FR",
-      "region": "",
+      "region": "Centre-Val de Loire",
       "city": "Azay-le-Rideau",
       "start_date": "2026-10-10",
       "end_date": "2026-10-11",
@@ -3487,6 +3725,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.grimloire.fr/"
+    },
+    {
+      "id": "6c40945c-59a8-41c2-85e2-9e24f6dd5f8d",
+      "title": "Rendez-vous littéraire avec Yannick Haenel - Les Passagers du livre",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Foix",
+      "start_date": "2026-10-20",
+      "end_date": "2026-10-20",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "6cf4584c-43d4-4228-847a-e12dc38aef21",
@@ -3573,6 +3825,20 @@
       "website": "https://www.instagram.com/salondulivrequeervendee"
     },
     {
+      "id": "6ef46e3b-6bd8-46f0-ac77-52234a92810e",
+      "title": "Rencontre - dédicace avec Romain Huet",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bourgogne-Franche-Comté",
+      "city": "Nevers",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-18",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://culture.nevers.fr/lieux-culturels/mediatheque-jean-jaures-grotte-bleue/"
+    },
+    {
       "id": "6fae9861-1d63-46c1-b417-b1612f0e5aac",
       "title": "Saint Antoine sur livres",
       "type": "Salon",
@@ -3655,6 +3921,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.uzes-pontdugard.com/fete-manifestation/lussan-se-livre-22eme-edition-place-aux-ecrivains/"
+    },
+    {
+      "id": "73362870-c65b-4b01-b500-1d037dddae7c",
+      "title": "L'historienne Antoinette Ferrand présente son essai « L'Égypte de Nasser : Classes moyennes et idéal socialiste »",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-10-15",
+      "end_date": "2026-10-15",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "749349aa-d673-4957-985f-7280556fbecc",
@@ -3875,6 +4155,20 @@
       "city": "Quimperlé",
       "start_date": "2026-07-17",
       "end_date": "2026-07-17",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
+    },
+    {
+      "id": "7c01936f-42f9-450c-a2b7-dfd678dfccbf",
+      "title": "Salon du livre de Cérences",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Normandie",
+      "city": "Cérences",
+      "start_date": "2026-09-27",
+      "end_date": "2026-09-27",
       "validated": true,
       "rejected": false,
       "registration_force_status": null,
@@ -4173,6 +4467,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/SimonLarocheOfficiel"
+    },
+    {
+      "id": "855f52e0-63e1-4486-97ef-a9b88bf892d9",
+      "title": "Dédicace de Charlotte Bruno à la librairie Rayon de Soleil de Guidel",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Guidel",
+      "start_date": "2026-10-17",
+      "end_date": "2026-10-17",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://linktr.ee/charlottebrunoautrice"
     },
     {
       "id": "857c5c0e-f5c2-45ee-8dd6-3a6974c5da74",
@@ -4609,6 +4917,20 @@
       "website": ""
     },
     {
+      "id": "94c2f248-24b2-403b-a0e7-f645c145ca12",
+      "title": "Rencontre et dédicaces avec Bertrand Munier",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Grand Est",
+      "city": "Rambervillers",
+      "start_date": "2026-10-11",
+      "end_date": "2026-10-11",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
+    },
+    {
       "id": "94db0fb8-e85e-40f1-9cee-b8b9a9b32e84",
       "title": "RENCONTRE LITTÉRAIRE AVEC ANNE GODARD - MAISON DES MOTS - LIBRAIRIE OXYMORE",
       "type": "Dédicace",
@@ -4775,6 +5097,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://lesquisseetlemot.art/"
+    },
+    {
+      "id": "9a8dd43f-8408-4eed-b8ff-f9332e9be630",
+      "title": "Dédicace de Michel Chabanolles à l'Espace Culturel de Scaër",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Scaër",
+      "start_date": "2026-10-03",
+      "end_date": "2026-10-03",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.facebook.com/profile.php?id=61583477344788"
     },
     {
       "id": "9abc861a-d4eb-4a84-baf4-b08f80abed80",
@@ -4959,25 +5295,11 @@
       "website": "https://www.tourismebretagne.com"
     },
     {
-      "id": "a19e090c-874f-47ab-b3b6-b33889729101",
-      "title": "Salon du livre de Frontignan-de-Comminges",
-      "type": "Salon",
-      "country_code": "FR",
-      "region": "Occitanie",
-      "city": "Frontignan-de-Comminges",
-      "start_date": "2026-07-19",
-      "end_date": "2026-07-19",
-      "validated": true,
-      "rejected": false,
-      "registration_force_status": null,
-      "website": "https://www.facebook.com/salon.du.livre.de.frontignan.de.comminges/"
-    },
-    {
       "id": "a1bb4d6e-81a0-4619-a037-5a7962d81146",
       "title": "Salon du Livre",
       "type": "Salon",
       "country_code": "FR",
-      "region": "Meurthe-et-Moselle",
+      "region": "Grand Est",
       "city": "Toul",
       "start_date": "2026-06-19",
       "end_date": "2026-06-21",
@@ -5027,6 +5349,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.cotesdarmor.com/fr/fiche/fetes-et-manifestations/rencontre-dedicace-de-pascal-millet-perros-guirec_TFOFMABRE022V54RRR9/"
+    },
+    {
+      "id": "a348cf69-2428-40a4-b913-eb533afb1cee",
+      "title": "rencontre avec Alexis Laipsker",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Hauts-de-France",
+      "city": "Saint-Amand-les-Eaux",
+      "start_date": "2026-10-14",
+      "end_date": "2026-10-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.facebook.com/p/Espace-culturel-ELeclerc-Saint-Amand-les-Eaux-100083547783907/"
     },
     {
       "id": "a4737592-2995-4e85-a923-dc675d53d670",
@@ -5145,7 +5481,7 @@
       "title": "Story Heaven 2026",
       "type": "Salon",
       "country_code": "BE",
-      "region": "Wallonie",
+      "region": "Bruxelles-Capitale",
       "city": "Bruxelles",
       "start_date": "2026-09-05",
       "end_date": "2026-09-06",
@@ -5323,6 +5659,20 @@
       "website": "https://www.katellpoquetauteur.com"
     },
     {
+      "id": "accbd34e-9a02-46ec-8f28-206cb3cee3cb",
+      "title": "Salon du livre du Roannais",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Auvergne-Rhône-Alpes",
+      "city": "Saint-Léger-sur-Roanne",
+      "start_date": "2026-10-10",
+      "end_date": "2026-10-11",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.culturonsdemain.fr"
+    },
+    {
       "id": "ad1c1061-45ff-431a-9d3f-1fd27c792d78",
       "title": "15 eme salon du roman historique de Levallois",
       "type": "Salon",
@@ -5337,6 +5687,20 @@
       "website": "https://www.ville-levallois.fr/salon-du-roman-historique-2026/"
     },
     {
+      "id": "ad560044-5620-4f38-b8e4-d595c3730f69",
+      "title": "Conférence sur Florilangues",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Foix",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
+    },
+    {
       "id": "ade1bdca-c169-48cd-b640-08c17a94d5c8",
       "title": "Salon international du livre - 36ème édition",
       "type": "Salon",
@@ -5349,6 +5713,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.salondulivrepassy.com"
+    },
+    {
+      "id": "aef8412e-2300-4ae6-8536-21eb2ba83d65",
+      "title": "Rencontre littéraire avec Laurent Mauvignier - Les Passagers du livre",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Foix",
+      "start_date": "2026-12-01",
+      "end_date": "2026-12-01",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "af3fe496-1e90-455b-bbf9-cf3d50c05adb",
@@ -5433,6 +5811,34 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.lozere-tourisme.com/fete-manifestation/seance-de-dedicace-de-myriam-angilella-scot/"
+    },
+    {
+      "id": "b30e0e81-5254-4e9a-a023-d37077bb3b05",
+      "title": "Séance de Dédicace du jeune auteur de Bourgogne - Cédric Leroux",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Hauts-de-France",
+      "city": "Varennes-sur-Seine",
+      "start_date": "2026-10-03",
+      "end_date": "2026-10-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://portescristallines.fr"
+    },
+    {
+      "id": "b323a4ae-bc5e-41c5-9f73-9400c8b0c279",
+      "title": "Salon du livre",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Centre-Val de Loire",
+      "city": "Saint-Doulchard",
+      "start_date": "2026-10-10",
+      "end_date": "2026-10-11",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
     },
     {
       "id": "b42163bc-bcaa-4d4d-9370-b7f72fdc3fef",
@@ -5841,6 +6247,20 @@
       "website": "https://www.facebook.com/lairedebroca"
     },
     {
+      "id": "c0ee50f3-bdea-4f2d-8769-c3374f1221fd",
+      "title": "Rencontre d'auteur : Laurent Guillaume à la Médiathèque de Pradines",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Pradines",
+      "start_date": "2026-10-08",
+      "end_date": "2026-10-08",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
+    },
+    {
       "id": "c131a35a-8f7b-45be-8e5b-13172921b014",
       "title": "Salon du Livre 2026 - Département de la Marne",
       "type": "Salon",
@@ -5872,8 +6292,8 @@
       "id": "c1e5f65f-1902-4d8f-967d-373218c4b7fa",
       "title": "Festival international de littérature de Loèche-les-Bains",
       "type": "Festival",
-      "country_code": "FR",
-      "region": "valais",
+      "country_code": "CH",
+      "region": "Valais",
       "city": "loèche-les-bains",
       "start_date": "2026-06-26",
       "end_date": "2026-06-28",
@@ -5909,6 +6329,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.cultura.com/les-magasins/cultura-brive-centre/librairie-brive-centre.html"
+    },
+    {
+      "id": "c3aafdda-11ca-4342-9686-6a5212e946c3",
+      "title": "Bulles en-Barrois - Festival de la BD et du livre d'illustration",
+      "type": "Festival",
+      "country_code": "FR",
+      "region": "Grand Est",
+      "city": "Fains-Véel",
+      "start_date": "2027-03-27",
+      "end_date": "2027-03-28",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
     },
     {
       "id": "c3af9bac-a762-47a9-b748-d471997dcc19",
@@ -5984,9 +6418,9 @@
       "id": "c55d3cad-5be3-48d5-a6ae-39e038ca6fef",
       "title": "Festival de la Bande Dessinée Contern – 1er Festival de BD de la Grande Région",
       "type": "Festival",
-      "country_code": "BE",
-      "region": "Wallonie",
-      "city": "Louvain-la-Neuve",
+      "country_code": "LU",
+      "region": "Luxembourg",
+      "city": "Contern",
       "start_date": "2026-07-18",
       "end_date": "2026-07-19",
       "validated": true,
@@ -6021,6 +6455,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.librairiedialogues.fr"
+    },
+    {
+      "id": "c57debb2-10df-4ee1-8e20-bb7ca0179ffe",
+      "title": "SALON DU LIVRE",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Avignonet-Lauragais",
+      "start_date": "2026-11-22",
+      "end_date": "2026-11-22",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
     },
     {
       "id": "c5a10e4e-5302-400c-8a3c-cbbce33aac89",
@@ -6105,6 +6553,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://docs.google.com/forms/d/e/1FAIpQLSeUqrj36BJEbxKETLOnF4Pav6TXqV9j3AjGgQ4lBt6HPzcILg/viewform"
+    },
+    {
+      "id": "c862dbce-396d-47b3-b02b-e5b7d98e9f21",
+      "title": "29ème  Salon du livre \"Lire en Tursan\"",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Nouvelle-Aquitaine",
+      "city": "Geaune",
+      "start_date": "2026-10-10",
+      "end_date": "2026-10-11",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
     },
     {
       "id": "c87ab098-7b5c-4212-b1da-06b3a95b776d",
@@ -6301,6 +6763,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.destinationhautlanguedoc.fr/agenda/dedicace-de-carole-seguier-0"
+    },
+    {
+      "id": "cf111e86-6e3d-4365-a815-821b0aedc442",
+      "title": "Salon du livre Fitou : Fitou entre les Pages ",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Fitou",
+      "start_date": "2026-10-10",
+      "end_date": "2026-10-10",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "cf357fa6-d3f1-43cf-a3bb-a599aa92e9a4",
@@ -6737,6 +7213,20 @@
       "website": null
     },
     {
+      "id": "db6b3e23-5413-4f4b-85f1-cab0eb5681b5",
+      "title": "Dédicace de Françoise Le Mer à l'Espace Culturel de Scaër",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Scaër",
+      "start_date": "2026-10-31",
+      "end_date": "2026-10-31",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.facebook.com/profile.php?id=61583477344788"
+    },
+    {
       "id": "dbb80f01-76b1-4d43-bbd8-8ea928990ed5",
       "title": "Dédicace Mathieu Guibé",
       "type": "Dédicace",
@@ -6791,6 +7281,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.salondulivresaintremydeprovence.fr/accueil"
+    },
+    {
+      "id": "dd8d6627-f236-4091-98ac-c72f9b1dddb5",
+      "title": "Rendez-vous littéraire avec Sarah Biasini - Les Passagers du livre",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Foix",
+      "start_date": "2027-02-23",
+      "end_date": "2027-02-23",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "ddebdff7-4c56-40e8-9a3d-bbd860135419",
@@ -6891,6 +7395,20 @@
       "website": "https://kwoila.fr/events/e43aa3b1-74c5-4817-9341-98c0ff0c93e3"
     },
     {
+      "id": "dfe0030d-a47c-49ac-9a71-c20247c6293d",
+      "title": "Séance dédicace à Roscoff.",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Roscoff",
+      "start_date": "2026-10-17",
+      "end_date": "2026-10-17",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://lechantdelamaree.fr/"
+    },
+    {
       "id": "e16f09e8-cb60-40c1-aa9b-4201bd26c042",
       "title": "Festival Les Fifres de Garonne",
       "type": "Festival",
@@ -6903,6 +7421,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://l.facebook.com/l.php?u=http%3A%2F%2Fwww.sous-fifres.fr%2F%3Ffbclid%3DIwZXh0bgNhZW0CMTAAYnJpZBEwWXp4T09LanVNQ2JLMzkwRHNydGMGYXBwX2lkEDIyMjAzOTE3ODgyMDA4OTIAAR65tH-ncAGifYptQgB16c0E3ILrp1h7lSgBK6vJMifC2iUntgROVFm46H7Z6w_aem_nTjYXC5d_JhlVjgMPXF4dg&h=AUA14lkgsSjPPlMtjcreQgHUiBTPlAWh2XtjLAZj_cCIyamhxPNbYRGjO4JmqFZEjFB_SIx4MSpgvH4qB82O16iK23DLYadatzCJYRx7Dth6X-MG6Oeo2Szdj-dag1jhanwKv2_nY_e-jZ-sKt043Q"
+    },
+    {
+      "id": "e1de6187-a314-4760-8be4-ac1185e15530",
+      "title": "La philosophe Marie Robert présente son essai « La Puissance du lien »",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-10-13",
+      "end_date": "2026-10-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "e210704b-d8f9-4c13-87e9-748a63ca029e",
@@ -6975,6 +7507,34 @@
       "website": ""
     },
     {
+      "id": "e36a84d7-bd03-4d01-ab38-814be8f6e387",
+      "title": "Books&Cie Fantasy et romance",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Auvergne-Rhône-Alpes",
+      "city": "Vif",
+      "start_date": "2027-05-08",
+      "end_date": "2027-05-09",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
+    },
+    {
+      "id": "e380c538-2bc7-4ad4-b53e-22b601fb6381",
+      "title": "Salon International du Livre de Grenoble-Alpes",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Auvergne-Rhône-Alpes",
+      "city": "Grenoble",
+      "start_date": "2026-11-11",
+      "end_date": "2026-11-11",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://salondulivredegrenoble.com"
+    },
+    {
       "id": "e42c704d-49f3-467d-b905-9fc64892241d",
       "title": "Dédicace : \"Jardins extraordinaires du Japon\" par Frédéric Soreau",
       "type": "Dédicace",
@@ -6994,13 +7554,27 @@
       "type": "Festival",
       "country_code": "CH",
       "region": "Fribourg",
-      "city": "Vidéos",
+      "city": "Bulle",
       "start_date": "2026-06-20",
       "end_date": "2026-06-21",
       "validated": true,
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.estivalesdulivre.ch/"
+    },
+    {
+      "id": "e4763a13-0a42-4c63-841a-1572802a6815",
+      "title": "L'auteur Aurélien Bellanger présente son roman « L'Architecte de Notre-Dame »",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-10-16",
+      "end_date": "2026-10-16",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "e4aadc7f-20f3-413c-acd9-451944569c60",
@@ -7185,6 +7759,20 @@
       "website": "https://mediatheque.bourgsaintmaurice.fr/"
     },
     {
+      "id": "ea4ae167-f76e-4cbd-8824-6a81cf31e262",
+      "title": "Rendez-vous littéraire avec Adeline Dieudonné - Les Passagers du livre",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Varilhes",
+      "start_date": "2026-11-03",
+      "end_date": "2026-11-03",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
+    },
+    {
       "id": "eaa3afba-442f-4c98-bda2-7ea23d3fdc00",
       "title": "Rencontres littéraires du Salon International du Livre de Montagne        | Auvergne-Rhône-Alpes livre et lecture",
       "type": "Salon",
@@ -7297,6 +7885,20 @@
       "website": "https://www.estivalesdulivre.ch/#"
     },
     {
+      "id": "ee1f1be2-87b2-48ee-8617-66c633ee3d0b",
+      "title": "Séance de dédicace avec Wendy Lecanu",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bourgogne-Franche-Comté",
+      "city": "Clamecy",
+      "start_date": "2026-10-28",
+      "end_date": "2026-10-28",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.facebook.com/LeMillefeuille58/"
+    },
+    {
       "id": "ee707f7a-68f9-4878-9505-4db9a483b33e",
       "title": "Dédicace à l'espace culturel de Hennebont ",
       "type": "Dédicace",
@@ -7379,6 +7981,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://mediatheque.chartres.fr/Default/doc/CALENDAR/1181/autour-de-la-revue-apulee-rencontre-avec-emmanuelle-favier-et-yahia-belaskri"
+    },
+    {
+      "id": "f080f805-3ecf-425c-b3a9-7c932298f045",
+      "title": "Salon du livre des autrices et des auteurs de Renage avec Alice Doublier",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Auvergne-Rhône-Alpes",
+      "city": "Renage",
+      "start_date": "2026-10-04",
+      "end_date": "2026-10-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.la-fee-verte.fr/"
     },
     {
       "id": "f12c95d9-6cab-4210-b25b-10aa3549dcff",
@@ -7539,7 +8155,7 @@
       "title": "Meet the author : Martine Delvaux",
       "type": "Dédicace",
       "country_code": "BE",
-      "region": "Wallonie",
+      "region": "Bruxelles-Capitale",
       "city": "Bruxelles",
       "start_date": "2026-09-22",
       "end_date": "2026-09-22",
@@ -7661,6 +8277,20 @@
       "website": "https://www.esperluete.fr/rencontres/45736/"
     },
     {
+      "id": "f7b14e3f-7270-41eb-999a-9c372ec09460",
+      "title": "Rencontre dédicace avec Anne-Lise Boutin, illustratrice",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Nouvelle-Aquitaine",
+      "city": "Saint-Laurent-Médoc",
+      "start_date": "2026-12-05",
+      "end_date": "2026-12-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://bibliotheque.medoc-cpi.fr/"
+    },
+    {
       "id": "f7d433e7-a5bd-496b-81aa-73116e2f21c3",
       "title": "Rencontre-dédicace avec Amandine Blaise : \"Des ailes de cire\"",
       "type": "Dédicace",
@@ -7689,6 +8319,20 @@
       "website": "https://openagenda.com/mediatheques-de-pessac/events/rencontre-avec-arttu-tuominen"
     },
     {
+      "id": "f8079d2b-d928-4830-8b1f-3715807707cf",
+      "title": "Rencontre, entretien et dédicace avec Hugo Boris",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Normandie",
+      "city": "Jullouville",
+      "start_date": "2026-10-18",
+      "end_date": "2026-10-18",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
+    },
+    {
       "id": "f8790660-fcc5-465a-b202-b7b6998c60cd",
       "title": "Dédicace Claire Dust",
       "type": "Dédicace",
@@ -7697,6 +8341,20 @@
       "city": "Dunkerque",
       "start_date": "2026-06-13",
       "end_date": "2026-06-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": ""
+    },
+    {
+      "id": "f8a314eb-c572-4fa5-81a1-04cfbcd1ed64",
+      "title": "Johana Gustawson en dédicace",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Normandie",
+      "city": "Saint-Étienne-du-Rouvray",
+      "start_date": "2026-10-13",
+      "end_date": "2026-10-13",
       "validated": true,
       "rejected": false,
       "registration_force_status": null,
@@ -7885,6 +8543,20 @@
       "website": "/fr/fiche/fetes-et-manifestations/salon-du-livre-uzel_TFOFMABRE022V54DUWX/"
     },
     {
+      "id": "fbefb41b-dfc7-4fc6-a464-87bbc52a7d6b",
+      "title": "12e Festival du livre jeunesse de Sainte Radegonde",
+      "type": "Festival",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Rodez",
+      "start_date": "2026-10-10",
+      "end_date": "2026-10-11",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.festivaldulivrejeunessesainteradegonde.fr/"
+    },
+    {
       "id": "fbf1d1eb-5301-4654-910d-a9a206c7f60d",
       "title": "Dédicaces Margareth Chatelain",
       "type": "Dédicace",
@@ -7967,6 +8639,34 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "http://bibliotheque.montchanin.fr"
+    },
+    {
+      "id": "ff8c6de4-f1d2-4a57-90d2-154b81120aa7",
+      "title": "Dédicace de Charlotte Bruno à l'Espace Culturel Leclerc de Quéven",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Quéven",
+      "start_date": "2026-11-21",
+      "end_date": "2026-11-21",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://linktr.ee/charlottebrunoautrice"
+    },
+    {
+      "id": "ffeea6a3-0bb8-44ba-9b89-21edcd86285c",
+      "title": "Table ronde autour de Florilangues",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Toulouse",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     }
   ]
 }

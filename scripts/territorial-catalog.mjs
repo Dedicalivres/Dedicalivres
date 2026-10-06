@@ -56,4 +56,7 @@ export async function fetchPublicEvents(config,request=fetch) {
  }
  throw Error('Catalogue incomplet');
 }
-export const eventHref = e => 'event.html?id='+encodeURIComponent(e.id);
+import canonicalMap from '../docs/territoires/event-canonical-map.json' with { type: 'json' };
+
+export const eventHref = e =>
+  canonicalMap[e.id] || ('event.html?id=' + encodeURIComponent(e.id));
