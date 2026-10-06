@@ -2,6 +2,12 @@ name: Publish validated events
 
 on:
   workflow_dispatch:
+    inputs:
+      preactivation_test:
+        description: "Run one isolated preactivation test while scheduled automation remains disabled"
+        required: false
+        default: false
+        type: boolean
 
   schedule:
     - cron: "*/5 * * * *"
@@ -20,7 +26,14 @@ jobs:
 
   publish:
 
-    if: ${{ vars.PUBLICATION_AUTOMATION_ENABLED == 'true' }}
+    if: >-
+      ${{
+        vars.PUBLICATION_AUTOMATION_ENABLED == 'true'
+        || (
+          github.event_name == 'workflow_dispatch'
+          && inputs.preactivation_test == true
+        )
+      }}
 
     runs-on: ubuntu-latest
 

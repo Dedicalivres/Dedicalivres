@@ -148,6 +148,21 @@ assert.match(
 
 assert.match(
   workflow,
+  /preactivation_test/
+);
+
+assert.match(
+  workflow,
+  /github\.event_name == 'workflow_dispatch'/
+);
+
+assert.match(
+  workflow,
+  /inputs\.preactivation_test == true/
+);
+
+assert.match(
+  workflow,
   /cancel-in-progress: false/
 );
 
