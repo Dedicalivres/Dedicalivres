@@ -167,6 +167,11 @@ assert.match(
 );
 
 assert.match(
+  workflow,
+  /PYTHONDONTWRITEBYTECODE:\s*"1"/
+);
+
+assert.match(
   worker,
   /PUBLICATION_PREACTIVATION_TEST/
 );
