@@ -172,6 +172,16 @@ assert.match(
 );
 
 assert.match(
+  workflow,
+  /PYTHONPYCACHEPREFIX/
+);
+
+assert.match(
+  workflow,
+  /runner\.temp.*dedicalivres-pycache/
+);
+
+assert.match(
   worker,
   /PUBLICATION_PREACTIVATION_TEST/
 );
