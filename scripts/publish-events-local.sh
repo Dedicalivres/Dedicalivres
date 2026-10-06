@@ -64,6 +64,7 @@ if [[ "$MODE" == "--check" ]]; then
   node scripts/test-event-canonical-client.mjs
   node scripts/test-static-agenda-previews.mjs
   node scripts/test-public-event-canonical-links.mjs
+  node scripts/test-event-legacy-compat.mjs
 
   echo
   echo "PASS CHECK : aucune publication effectuée."
@@ -188,6 +189,7 @@ node scripts/test-author-seo-pages.mjs
 node scripts/test-event-canonical-client.mjs
 node scripts/test-static-agenda-previews.mjs
 node scripts/test-public-event-canonical-links.mjs
+  node scripts/test-event-legacy-compat.mjs
 node --check event.js
 node --check authors-presence.js
 
