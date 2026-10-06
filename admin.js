@@ -111,6 +111,7 @@ const controlTypeList = document.getElementById("control-type-list");
 const controlSecurityGrid = document.getElementById("control-security-grid");
 
 let allEvents = [];
+let publicationJobsByEventId = new Map();
 let locationRows = [];
 let map = null;
 let markersLayer = null;
@@ -838,6 +839,7 @@ async function loadDashboard() {
   if (!(await ensureAdminSession())) return;
 
   await safeAdminStep("chargement événements", loadEvents);
+  await safeAdminStep("chargement publications événements", loadEventPublicationJobs);
   await safeAdminStep("chargement indicateur mise en avant", loadNewsletterCount);
   await safeAdminStep("chargement visites", loadVisitsCount);
   // V9.1 : chargement sobre des zones prioritaires.
@@ -937,6 +939,75 @@ async function loadEvents() {
 
   archiveEventsLoaded = includeArchives;
   allEvents = Array.isArray(data) ? data : [];
+}
+
+
+async function loadEventPublicationJobs() {
+  publicationJobsByEventId =
+    new Map();
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from(
+        "event_publication_jobs"
+      )
+      .select(
+        "id,event_id,reason,status,requested_at,started_at,finished_at,last_error,commit_sha"
+      )
+      .order(
+        "requested_at",
+        {
+          ascending: false
+        }
+      )
+      .limit(500);
+
+  if (error) {
+    const message =
+      String(
+        error.message
+        || ""
+      ).toLowerCase();
+
+    if (
+      message.includes(
+        "event_publication_jobs"
+      )
+      || message.includes(
+        "does not exist"
+      )
+    ) {
+      return;
+    }
+
+    throw error;
+  }
+
+  for (
+    const job
+    of Array.isArray(data)
+      ? data
+      : []
+  ) {
+    const id =
+      String(
+        job.event_id
+        || ""
+      );
+
+    if (
+      id
+      && !publicationJobsByEventId.has(id)
+    ) {
+      publicationJobsByEventId.set(
+        id,
+        job
+      );
+    }
+  }
 }
 
 async function handleArchiveFilterChange() {
@@ -2668,6 +2739,84 @@ function renderEvents() {
   bindEventActions();
 }
 
+
+function renderEventPublicationBadge(
+  event
+) {
+  if (
+    !event?.validated
+    || event?.rejected
+  ) {
+    return "";
+  }
+
+  const job =
+    publicationJobsByEventId.get(
+      String(
+        event.id
+      )
+    );
+
+  if (!job) {
+    return "";
+  }
+
+  const labels = {
+    PENDING:
+      "PUBLICATION EN ATTENTE",
+
+    RUNNING:
+      "PUBLICATION EN COURS",
+
+    SUCCESS:
+      "PUBLIÉ",
+
+    FAILED:
+      "PUBLICATION ÉCHEC",
+
+    BLOCKED:
+      "PUBLICATION BLOQUÉE · LEGACY"
+  };
+
+  const label =
+    labels[
+      job.status
+    ]
+    || "PUBLICATION";
+
+  const title =
+    (
+      job.status === "FAILED"
+      || job.status === "BLOCKED"
+    )
+      ? String(
+          job.last_error
+          || label
+        ).slice(
+          0,
+          300
+        )
+      : (
+          job.commit_sha
+            ? `Commit ${job.commit_sha}`
+            : label
+        );
+
+  return `
+    <span
+      class="badge publication-status publication-${escapeHtml(
+        String(
+          job.status
+          || ""
+        ).toLowerCase()
+      )}"
+      title="${escapeHtml(title)}"
+    >
+      ${escapeHtml(label)}
+    </span>
+  `;
+}
+
 function renderEventCard(event) {
   const registrationStatus = window.DEDICALIVRES_REGISTRATION?.getStatus(event);
   const imageUrl = getAdminExternalUrl(event.image_url);
@@ -2707,6 +2856,7 @@ function renderEventCard(event) {
           }
 
           ${event.validated ? `<span class="badge">VALIDÉ</span>` : ""}
+          ${renderEventPublicationBadge(event)}
 
           ${
             event.rejected
@@ -2923,6 +3073,47 @@ function fallbackCopyText(text) {
 
 /* ACTIONS */
 
+
+async function requestEventPublication(
+  id,
+  reason = "manual"
+) {
+  try {
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .functions
+        .invoke(
+          "event-publication-dispatch",
+          {
+            body: {
+              event_id: id,
+              reason
+            }
+          }
+        );
+
+    if (error) {
+      throw error;
+    }
+
+    return Boolean(
+      data?.dispatched
+    );
+
+  } catch (error) {
+    console.warn(
+      "Dispatch immédiat indisponible. "
+      + "Le job reste en attente du workflow de secours.",
+      error
+    );
+
+    return false;
+  }
+}
+
 async function validateEvent(id) {
   if (!(await ensureAdminSession())) return false;
   const event = allEvents.find((item) => String(item.id) === String(id));
@@ -2968,12 +3159,34 @@ async function validateEvent(id) {
     return false;
   }
 
+  const publicationDispatched =
+    await requestEventPublication(
+      id,
+      "validation"
+    );
+
   await loadDashboard();
+
   recordAdminAction(
-    validatedDespiteDuplicateAlert ? "Événement validé malgré alerte doublon" : "Événement validé",
+    validatedDespiteDuplicateAlert
+      ? "Événement validé malgré alerte doublon"
+      : "Événement validé",
     eventActionLabel(id)
   );
-  showToast(validatedDespiteDuplicateAlert ? "Événement validé après vérification du doublon" : "Événement validé");
+
+  if (publicationDispatched) {
+    showToast(
+      validatedDespiteDuplicateAlert
+        ? "Événement validé · publication lancée après contrôle doublon"
+        : "Événement validé · publication lancée"
+    );
+
+  } else {
+    showToast(
+      "Événement validé · publication mise en attente"
+    );
+  }
+
   return true;
 }
 
@@ -3080,9 +3293,34 @@ async function toggleFeatured(id) {
     return;
   }
 
+  let publicationDispatched =
+    true;
+
+  if (
+    event.validated
+    && !event.rejected
+  ) {
+    publicationDispatched =
+      await requestEventPublication(
+        id,
+        "edit"
+      );
+  }
+
   await loadDashboard();
-  recordAdminAction(event.featured ? "Mise en avant retirée" : "Mise en avant ajoutée", eventActionLabel(id));
-  showToast("Mise à jour");
+
+  recordAdminAction(
+    event.featured
+      ? "Mise en avant retirée"
+      : "Mise en avant ajoutée",
+    eventActionLabel(id)
+  );
+
+  showToast(
+    publicationDispatched
+      ? "Mise à jour · republication lancée"
+      : "Mise à jour · republication en attente"
+  );
 }
 
 
@@ -3990,6 +4228,19 @@ async function saveEdition() {
   const id = editId.value;
   if (!id) return;
 
+  const eventBeforeEdit =
+    allEvents.find(
+      (item) =>
+        String(item.id)
+        === String(id)
+    );
+
+  const wasPublicBeforeEdit =
+    Boolean(
+      eventBeforeEdit?.validated
+      && !eventBeforeEdit?.rejected
+    );
+
   const submitButton = saveEditBtn;
   if (submitButton) {
     submitButton.disabled = true;
@@ -4056,11 +4307,51 @@ async function saveEdition() {
 
     if (error) throw error;
 
-    selectedAdminImageFile = null;
+    let publicationDispatched =
+      true;
+
+    if (
+      wasPublicBeforeEdit
+    ) {
+      publicationDispatched =
+        await requestEventPublication(
+          id,
+          "edit"
+        );
+    }
+
+    selectedAdminImageFile =
+      null;
+
     closeEditModal();
+
     await loadDashboard();
-    recordAdminAction("Événement modifié", payload.title || "Sans titre");
-    showToast("Événement modifié");
+
+    recordAdminAction(
+      "Événement modifié",
+      payload.title
+      || "Sans titre"
+    );
+
+    if (
+      !wasPublicBeforeEdit
+    ) {
+      showToast(
+        "Événement modifié"
+      );
+
+    } else if (
+      publicationDispatched
+    ) {
+      showToast(
+        "Événement modifié · republication lancée"
+      );
+
+    } else {
+      showToast(
+        "Événement modifié · republication en attente"
+      );
+    }
   } catch (error) {
     console.error("Erreur édition admin :", error);
     showToast("Erreur édition");

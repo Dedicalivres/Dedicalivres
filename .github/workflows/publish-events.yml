@@ -1,0 +1,323 @@
+name: Publish validated events
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "*/5 * * * *"
+
+
+permissions:
+  contents: write
+
+
+concurrency:
+  group: dedicalivres-event-publication
+  cancel-in-progress: false
+
+
+jobs:
+
+  publish:
+
+    if: ${{ vars.PUBLICATION_AUTOMATION_ENABLED == 'true' }}
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 25
+
+
+    env:
+      SUPABASE_URL:
+        https://pwyetrqyiaxpzjrafpvb.supabase.co
+
+      SUPABASE_SECRET_KEY:
+        ${{ secrets.DEDICALIVRES_SUPABASE_SECRET_KEY }}
+
+
+    steps:
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+        with:
+          ref: main
+          fetch-depth: 0
+
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+
+        with:
+          node-version: "20"
+
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+
+        with:
+          python-version: "3.11"
+
+
+      - name: Claim publication jobs
+        id: claim
+
+        run: |
+          node \
+            scripts/publication-jobs.mjs \
+            claim
+
+
+      - name: Read public Supabase configuration
+        if: steps.claim.outputs.has_jobs == 'true'
+
+        run: |
+          node --input-type=module - <<'NODE'
+          import fs from "node:fs";
+
+          const text =
+            fs.readFileSync(
+              "config.js",
+              "utf8"
+            );
+
+          const url =
+            text.match(
+              /supabaseUrl\s*:\s*"([^"]+)"/
+            )?.[1];
+
+          const key =
+            text.match(
+              /supabaseAnonKey\s*:\s*"([^"]+)"/
+            )?.[1];
+
+          if (!url || !key) {
+            throw new Error(
+              "Configuration Supabase publique introuvable"
+            );
+          }
+
+          fs.appendFileSync(
+            process.env.GITHUB_ENV,
+            `DEDICALIVRES_SUPABASE_URL=${url}\n`
+          );
+
+          fs.appendFileSync(
+            process.env.GITHUB_ENV,
+            `DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY=${key}\n`
+          );
+          NODE
+
+
+      - name: Install publisher dependencies
+        if: steps.claim.outputs.has_jobs == 'true'
+
+        run: |
+          if [[ -s scripts/event-publisher/requirements.txt ]]
+          then
+            python -m pip install \
+              -r scripts/event-publisher/requirements.txt
+          fi
+
+
+      - name: Generate static publication
+        if: steps.claim.outputs.has_jobs == 'true'
+
+        env:
+          EVENT_PUBLISHER_EXPORT_DIR:
+            ${{ runner.temp }}/dedicalivres-site-seo
+
+        run: |
+          scripts/publish-events-cloud.sh
+
+
+      - name: Validate generated scope
+        if: steps.claim.outputs.has_jobs == 'true'
+
+        run: |
+          node \
+            scripts/check-publication-diff.mjs
+
+          git diff --check
+
+
+      - name: Commit and push publication
+        id: publish
+
+        if: steps.claim.outputs.has_jobs == 'true'
+
+        run: |
+          git config \
+            user.name \
+            "github-actions[bot]"
+
+          git config \
+            user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+
+          if \
+            git diff --quiet \
+            && [[ -z "$(git status --porcelain)" ]]
+          then
+            echo \
+              "changed=false" \
+              >> "$GITHUB_OUTPUT"
+
+            echo \
+              "sha=$(git rev-parse HEAD)" \
+              >> "$GITHUB_OUTPUT"
+
+            echo \
+              "Aucun changement statique nécessaire."
+
+            exit 0
+          fi
+
+
+          git add -A
+
+          git diff \
+            --cached \
+            --check
+
+
+          git commit \
+            -m "chore(publication): publish validated events"
+
+
+          git push \
+            origin \
+            HEAD:main
+
+
+          echo \
+            "changed=true" \
+            >> "$GITHUB_OUTPUT"
+
+          echo \
+            "sha=$(git rev-parse HEAD)" \
+            >> "$GITHUB_OUTPUT"
+
+
+      - name: Verify production deployment
+        if: steps.claim.outputs.has_jobs == 'true'
+
+        env:
+          PUBLICATION_SHA:
+            ${{ steps.publish.outputs.sha }}
+
+        run: |
+          set -euo pipefail
+
+          local_sitemap="$(
+            sha256sum sitemap-evenements.xml \
+              | awk '{print $1}'
+          )"
+
+          local_canonical="$(
+            sha256sum event-canonical.js \
+              | awk '{print $1}'
+          )"
+
+          local_home="$(
+            sha256sum index.html \
+              | awk '{print $1}'
+          )"
+
+          deployed=0
+
+          for attempt in $(seq 1 60)
+          do
+
+            cache="${PUBLICATION_SHA}-${attempt}"
+
+            curl \
+              -fsSL \
+              "https://dedicalivres.fr/sitemap-evenements.xml?publication=${cache}" \
+              -o /tmp/sitemap.xml \
+              || true
+
+            curl \
+              -fsSL \
+              "https://dedicalivres.fr/event-canonical.js?publication=${cache}" \
+              -o /tmp/event-canonical.js \
+              || true
+
+            curl \
+              -fsSL \
+              "https://dedicalivres.fr/?publication=${cache}" \
+              -o /tmp/index.html \
+              || true
+
+            remote_sitemap="$(
+              [[ -f /tmp/sitemap.xml ]] \
+                && sha256sum /tmp/sitemap.xml \
+                  | awk '{print $1}' \
+                || true
+            )"
+
+            remote_canonical="$(
+              [[ -f /tmp/event-canonical.js ]] \
+                && sha256sum /tmp/event-canonical.js \
+                  | awk '{print $1}' \
+                || true
+            )"
+
+            remote_home="$(
+              [[ -f /tmp/index.html ]] \
+                && sha256sum /tmp/index.html \
+                  | awk '{print $1}' \
+                || true
+            )"
+
+            if \
+              [[ "$remote_sitemap" == "$local_sitemap" ]] \
+              && [[ "$remote_canonical" == "$local_canonical" ]] \
+              && [[ "$remote_home" == "$local_home" ]]
+            then
+              echo "Production synchronisée."
+
+              deployed=1
+
+              break
+            fi
+
+            echo \
+              "Déploiement en attente : ${attempt}/60"
+
+            sleep 10
+          done
+
+          if [[ "$deployed" != "1" ]]
+          then
+            echo \
+              "STOP : production non synchronisée après 10 minutes."
+
+            exit 1
+          fi
+
+
+      - name: Mark jobs successful
+        if: success() && steps.claim.outputs.has_jobs == 'true'
+
+        run: |
+          node \
+            scripts/publication-jobs.mjs \
+            success \
+            "${{ steps.claim.outputs.batch_id }}" \
+            "${{ steps.publish.outputs.sha }}"
+
+
+      - name: Requeue or fail jobs
+        if: failure() && steps.claim.outputs.has_jobs == 'true'
+
+        env:
+          PUBLICATION_ERROR:
+            GitHub Actions publication failed
+
+        run: |
+          node \
+            scripts/publication-jobs.mjs \
+            fail \
+            "${{ steps.claim.outputs.batch_id }}"

@@ -13,8 +13,16 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 AUTO_ROOT="${AUTO_MATTE_ROOT:-/Users/leguillyjean-christophe/Documents/Projects/Auto-Matte}"
-GEN="$AUTO_ROOT/source/generer_pages_seo.py"
-EXPORT="$AUTO_ROOT/exports/site-seo"
+DEFAULT_LOCAL_GEN="$AUTO_ROOT/source/generer_pages_seo.py"
+BUNDLED_GEN="$ROOT/scripts/event-publisher/generate-events-cloud.py"
+
+GEN="${EVENT_PUBLISHER_GENERATOR:-$DEFAULT_LOCAL_GEN}"
+EXPORT="${EVENT_PUBLISHER_EXPORT_DIR:-$AUTO_ROOT/exports/site-seo}"
+
+if [[ "${EVENT_PUBLISHER_USE_BUNDLED:-0}" == "1" ]]; then
+  GEN="$BUNDLED_GEN"
+  export DEDICALIVRES_ALLOW_EXTERNAL_EXPORT=1
+fi
 
 cd "$ROOT"
 
@@ -24,6 +32,8 @@ echo "================================================"
 echo "MODE=$MODE"
 echo "ROOT=$ROOT"
 echo "AUTO_MATTE=$AUTO_ROOT"
+echo "GENERATOR=$GEN"
+echo "EXPORT=$EXPORT"
 
 if [[ ! -f "$GEN" ]]; then
   echo "STOP : générateur Auto-Matte introuvable."
