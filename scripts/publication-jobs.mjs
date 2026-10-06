@@ -625,7 +625,9 @@ async function fail() {
       );
 
     const retry =
-      attempts < 3;
+      PREACTIVATION_TEST
+        ? false
+        : attempts < 3;
 
 
     const payload = {
