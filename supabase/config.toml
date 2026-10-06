@@ -1,0 +1,2 @@
+[functions.event-publication-dispatch]
+verify_jwt = true

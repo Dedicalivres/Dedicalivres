@@ -46,8 +46,22 @@ const pages=fs.readdirSync('.').filter(f=>/^evenements-litteraires.*\.html$/.tes
  const h=fs.readFileSync(file,'utf8');return {file,region:h.match(/data-region="([^"]*)"/)?.[1]||null,country:h.match(/data-country-code="([^"]*)"/)?.[1]||null,city:h.match(/data-city="([^"]*)"/)?.[1]||null,canonical:h.match(/rel="canonical" href="([^"]*)"/)?.[1]||null};
 });
 // Keep the earlier historical collision audit; do not scan evenement/.
-const staticIdCollisions=read('docs/territoires/audit.json').staticIdCollisions;
-const audit={base:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),capturedAt:snapshot.capturedAt,today,total:snapshot.events.length,registryCountries:registry.map(c=>({code:c.code,name:c.name,type:c.subdivisionLabel,territories:c.territories.length})),territoryCounts:registry.flatMap(c=>c.territories.map(t=>({...t,country:c.code,count:snapshot.events.filter(e=>e.country_code===c.code&&e.region===t.label).length}))),pages,duplicateEvents:duplicateGroups(snapshot.events),staticIdCollisions,unknownTerritories:accepted.filter(e=>!territoryFor(e,registry)),notPublic:rejected,qualityIssues:issues,pilots:results.filter(p=>['FR-BRE','BE-WAL'].includes(p.id)),territorialPages:results};
+const previousAudit=read('docs/territoires/audit.json');
+const staticIdCollisions=previousAudit.staticIdCollisions;
+
+const currentBase=execFileSync(
+ 'git',
+ ['rev-parse','HEAD'],
+ {encoding:'utf8'}
+).trim();
+
+const auditBase=
+ previousAudit.capturedAt===snapshot.capturedAt
+ && previousAudit.base
+  ? previousAudit.base
+  : currentBase;
+
+const audit={base:auditBase,capturedAt:snapshot.capturedAt,today,total:snapshot.events.length,registryCountries:registry.map(c=>({code:c.code,name:c.name,type:c.subdivisionLabel,territories:c.territories.length})),territoryCounts:registry.flatMap(c=>c.territories.map(t=>({...t,country:c.code,count:snapshot.events.filter(e=>e.country_code===c.code&&e.region===t.label).length}))),pages,duplicateEvents:duplicateGroups(snapshot.events),staticIdCollisions,unknownTerritories:accepted.filter(e=>!territoryFor(e,registry)),notPublic:rejected,qualityIssues:issues,pilots:results.filter(p=>['FR-BRE','BE-WAL'].includes(p.id)),territorialPages:results};
 fs.writeFileSync('docs/territoires/audit.json',JSON.stringify(audit,null,2)+'\n');
 console.log(JSON.stringify(results.map(({label,total,upcoming,past,excluded})=>({label,total,upcoming,past,excluded})),null,2));
 
