@@ -75,6 +75,20 @@
     Autre: { className: "type-autre" }
   };
 
+  function eventDetailHref(id) {
+    const resolver =
+      window.DEDICALIVRES_EVENT_CANONICAL;
+
+    if (
+      resolver &&
+      typeof resolver.href === "function"
+    ) {
+      return resolver.href(id);
+    }
+
+    return `/event.html?id=${encodeURIComponent(id || "")}`;
+  }
+
   loadSeoEvents();
 
   window.addEventListener("dedicalivres:regional-selection", (event) => {
@@ -86,12 +100,14 @@
   async function loadSeoEvents() {
     if (!eventsContainer) return;
 
-    eventsContainer.innerHTML = `
-      <article class="empty-state">
-        <div class="loader"></div>
-        <p>Chargement des événements...</p>
-      </article>
-    `;
+    if (!eventsContainer.querySelector("[data-static-event-preview]")) {
+      eventsContainer.innerHTML = `
+        <article class="empty-state">
+          <div class="loader"></div>
+          <p>Chargement des événements...</p>
+        </article>
+      `;
+    }
 
     let response = await fetchSeoCatalog(PUBLIC_EVENT_COLUMNS);
 
@@ -450,7 +466,7 @@
           <div class="card-footer">
             <a
               class="card-link"
-              href="event.html?id=${encodeURIComponent(event.id)}"
+              href="${eventDetailHref(event.id)}"
             >
               Voir le détail
             </a>

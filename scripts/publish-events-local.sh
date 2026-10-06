@@ -61,6 +61,9 @@ if [[ "$MODE" == "--check" ]]; then
 
   node scripts/test-territorial-pages.mjs
   node scripts/test-author-seo-pages.mjs
+  node scripts/test-event-canonical-client.mjs
+  node scripts/test-static-agenda-previews.mjs
+  node scripts/test-public-event-canonical-links.mjs
 
   echo
   echo "PASS CHECK : aucune publication effectuée."
@@ -162,8 +165,16 @@ echo "=== CANONICAL MAP ==="
 node scripts/build-event-canonical-map.mjs
 
 echo
+echo "=== CLIENT CANONIQUE NAVIGATEUR ==="
+node scripts/build-event-canonical-client.mjs
+
+echo
 echo "=== PAGES TERRITORIALES ==="
 node scripts/build-territorial-pages.mjs
+
+echo
+echo "=== APERCUS STATIQUES AGENDA ==="
+node scripts/build-static-agenda-previews.mjs
 
 echo
 echo "=== PAGES AUTEURS ==="
@@ -174,6 +185,9 @@ echo "=== TESTS ==="
 
 node scripts/test-territorial-pages.mjs
 node scripts/test-author-seo-pages.mjs
+node scripts/test-event-canonical-client.mjs
+node scripts/test-static-agenda-previews.mjs
+node scripts/test-public-event-canonical-links.mjs
 node --check event.js
 node --check authors-presence.js
 

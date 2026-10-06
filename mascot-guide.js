@@ -415,7 +415,14 @@ body.querySelector(".mascot-guide-back")?.addEventListener("click", renderHome);
           const id = button.dataset.guideEventId;
           if (!id) return;
 
-          window.location.href = `event.html?id=${encodeURIComponent(id)}#authors-presence-section`;
+          const href =
+            window.DEDICALIVRES_EVENT_CANONICAL?.href?.(
+              id,
+              "#authors-presence-section"
+            ) ||
+            `/event.html?id=${encodeURIComponent(id)}#authors-presence-section`;
+
+          window.location.href = href;
         });
       });
     } catch (error) {
