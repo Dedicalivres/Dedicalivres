@@ -188,6 +188,26 @@ assert.match(
 
 assert.match(
   workflow,
+  /Enforce isolated preactivation no-op/
+);
+
+assert.match(
+  workflow,
+  /zéro diff généré/
+);
+
+assert.match(
+  workflow,
+  /env\.PUBLICATION_PREACTIVATION_TEST == 'true'/
+);
+
+assert.match(
+  worker,
+  /PREACTIVATION_TEST\s*\? false\s*:\s*attempts < 3/s
+);
+
+assert.match(
+  workflow,
   /cancel-in-progress: false/
 );
 

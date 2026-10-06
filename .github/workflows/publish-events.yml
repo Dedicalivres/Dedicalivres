@@ -47,6 +47,9 @@ jobs:
       SUPABASE_SECRET_KEY:
         ${{ secrets.DEDICALIVRES_SUPABASE_SECRET_KEY }}
 
+      PUBLICATION_PREACTIVATION_TEST:
+        ${{ vars.PUBLICATION_AUTOMATION_ENABLED != 'true' && github.event_name == 'workflow_dispatch' && inputs.preactivation_test == true }}
+
 
     steps:
 
@@ -74,9 +77,6 @@ jobs:
 
       - name: Claim publication jobs
         id: claim
-
-        env:
-          PUBLICATION_PREACTIVATION_TEST: ${{ vars.PUBLICATION_AUTOMATION_ENABLED != 'true' && github.event_name == 'workflow_dispatch' && inputs.preactivation_test == true }}
 
         run: |
           node \
@@ -155,6 +155,25 @@ jobs:
             scripts/check-publication-diff.mjs
 
           git diff --check
+
+
+      - name: Enforce isolated preactivation no-op
+        if: steps.claim.outputs.has_jobs == 'true' && env.PUBLICATION_PREACTIVATION_TEST == 'true'
+
+        run: |
+          set -euo pipefail
+
+          if             ! git diff --quiet             || [[ -n "$(git status --porcelain)" ]]
+          then
+            echo "STOP : le test de préactivation a généré des modifications."
+            echo "Aucun push ne sera autorisé."
+
+            git status --short
+
+            exit 1
+          fi
+
+          echo "PASS préactivation : zéro diff généré."
 
 
       - name: Commit and push publication
