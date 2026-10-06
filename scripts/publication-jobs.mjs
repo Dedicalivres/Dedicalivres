@@ -12,6 +12,11 @@ const SECRET_KEY =
   process.env.SUPABASE_SECRET_KEY;
 
 
+const PREACTIVATION_TEST =
+  process.env.PUBLICATION_PREACTIVATION_TEST
+  === "true";
+
+
 if (
   !SUPABASE_URL
   || !SECRET_KEY
@@ -139,6 +144,27 @@ function setOutput(
 }
 
 
+function publicationJobFilter(
+  status,
+) {
+  let path =
+    "event_publication_jobs"
+    + `?status=eq.${encodeURIComponent(status)}`;
+
+
+  if (
+    PREACTIVATION_TEST
+  ) {
+    path +=
+      "&reason=eq.manual"
+      + "&event_id=is.null";
+  }
+
+
+  return path;
+}
+
+
 async function patchJob(
   id,
   payload,
@@ -174,8 +200,9 @@ async function recoverStaleJobs() {
 
   const rows =
     await request(
-      "event_publication_jobs"
-      + "?status=eq.RUNNING"
+      publicationJobFilter(
+        "RUNNING"
+      )
       + `&started_at=lt.${encodeURIComponent(staleBefore)}`
       + "&select=id,attempt_count"
     );
@@ -304,8 +331,9 @@ async function claim() {
 
   const rows =
     await request(
-      "event_publication_jobs"
-      + "?status=eq.PENDING"
+      publicationJobFilter(
+        "PENDING"
+      )
       + "&select=id,event_id,reason,attempt_count,requested_at"
       + "&order=requested_at.asc"
       + "&limit=500"
@@ -341,6 +369,33 @@ async function claim() {
     );
 
     return;
+  }
+
+
+  if (
+    PREACTIVATION_TEST
+  ) {
+    const unsafeRows =
+      rows.filter(
+        (row) =>
+          row.event_id !== null
+          || row.reason !== "manual"
+      );
+
+
+    if (
+      unsafeRows.length
+    ) {
+      throw new Error(
+        "PREACTIVATION isolation violated: "
+        + "only manual jobs with event_id=null are allowed"
+      );
+    }
+
+
+    console.log(
+      `PREACTIVATION_TEST=true : ${rows.length} job(s) manuel(s) isolé(s)`
+    );
   }
 
 

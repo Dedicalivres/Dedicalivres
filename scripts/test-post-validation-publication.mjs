@@ -163,6 +163,31 @@ assert.match(
 
 assert.match(
   workflow,
+  /PUBLICATION_PREACTIVATION_TEST/
+);
+
+assert.match(
+  worker,
+  /PUBLICATION_PREACTIVATION_TEST/
+);
+
+assert.match(
+  worker,
+  /reason=eq\.manual/
+);
+
+assert.match(
+  worker,
+  /event_id=is\.null/
+);
+
+assert.match(
+  worker,
+  /only manual jobs with event_id=null are allowed/
+);
+
+assert.match(
+  workflow,
   /cancel-in-progress: false/
 );
 
