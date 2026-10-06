@@ -34,7 +34,10 @@
     { key: "closed", label: "Clôturées" }
   ];
   const params = new URLSearchParams(window.location.search);
-  const eventId = params.get("id");
+  const queryEventId = params.get("id");
+  const staticEventId = container.dataset.eventId || "";
+  const eventId = queryEventId || staticEventId;
+  const isStaticEventPage = Boolean(!queryEventId && staticEventId);
   let leafletAssetsPromise = null;
 
   if (!eventId) {
@@ -54,12 +57,18 @@
     const { data, error } = response;
 
     if (error || !data) {
-      container.innerHTML = `<div class="empty-state"><p>Impossible de charger cet événement.</p></div>`;
+      // Sur une fiche statique, conserver le contenu SEO déjà présent.
+      if (!isStaticEventPage) {
+        container.innerHTML = `<div class="empty-state"><p>Impossible de charger cet événement.</p></div>`;
+      }
       return;
     }
 
-    document.title = `${data.title || "Événement"} — Dédicalivres`;
-    document.querySelector('meta[name="description"]')?.setAttribute("content", `${data.title || "Événement littéraire"} à ${data.city || "proximité"} — informations, dates et lien officiel.`);
+    // La fiche statique possède déjà un title et une description SEO optimisés.
+    if (!isStaticEventPage) {
+      document.title = `${data.title || "Événement"} — Dédicalivres`;
+      document.querySelector('meta[name="description"]')?.setAttribute("content", `${data.title || "Événement littéraire"} à ${data.city || "proximité"} — informations, dates et lien officiel.`);
+    }
 
     const image = renderDetailImage(data.image_url, data.title || "Événement");
     const registrationStatus = window.DEDICALIVRES_REGISTRATION?.getStatus(data);
@@ -92,7 +101,7 @@
           ${data.website ? `<a class="btn-primary detail-button" href="${escapeAttribute(data.website)}" target="_blank" rel="noopener noreferrer">Site officiel</a>` : ""}
           <button id="detail-favorite-btn" class="btn-secondary detail-button favorite-toggle" type="button">♡ Ajouter aux favoris</button>
           <button id="detail-calendar-btn" class="btn-secondary detail-button" type="button">📅 Ajouter à mon agenda</button>
-          <a class="btn-secondary detail-button" href="index.html#agenda">Retour à l’agenda</a>
+          <a class="btn-secondary detail-button" href="/index.html#agenda">Retour à l’agenda</a>
         </div>
 
         ${Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng)) ? `
@@ -377,7 +386,19 @@
   }
 
   function buildEventDetailUrl(id) {
-    const url = new URL(window.location.pathname, window.location.origin);
+    const url = new URL(window.location.href);
+
+    // Une fiche statique partage directement son URL canonique.
+    if (/\/evenement\/[^/]+\.html$/.test(url.pathname)) {
+      url.search = "";
+      url.hash = "";
+      return url.toString();
+    }
+
+    // Compatibilité historique de /event.html?id=UUID.
+    url.pathname = "/event.html";
+    url.search = "";
+    url.hash = "";
     url.searchParams.set("id", String(id || ""));
     return url.toString();
   }
@@ -456,7 +477,7 @@
   }
 
   function downloadICS(event) {
-    const detailUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(event.id)}`;
+    const detailUrl = buildEventDetailUrl(event.id);
     const location = formatEventPlace(event);
     const start = toICSDate(event.start_date);
     const end = toICSDate(addOneDay(event.end_date || event.start_date));

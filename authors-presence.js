@@ -32,7 +32,10 @@
   }
 
   const params = new URLSearchParams(window.location.search);
-  const eventId = params.get("id");
+  const eventId =
+    params.get("id") ||
+    eventDetail?.dataset.eventId ||
+    "";
   const AUTHOR_PORTRAIT_FOLDER = "author-portraits";
   const AUTHOR_PORTRAIT_FALLBACK_FOLDER = "event-images";
   const MAX_AUTHOR_PORTRAIT_SIZE = 4 * 1024 * 1024;

@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {classify,qualify,territoryFor,validDate,duplicateGroups,fetchPublicEvents,normalize} from './territorial-catalog.mjs';
+
+const canonicalMap = JSON.parse(
+  fs.readFileSync('docs/territoires/event-canonical-map.json', 'utf8')
+);
 const registry=JSON.parse(fs.readFileSync('docs/territoires/referentiel.json'));
 const base={id:'a',title:'Livre',city:'Rennes',country_code:'FR',region:'Bretagne',validated:true,rejected:false,start_date:'2026-09-20',end_date:'2026-09-22'};
 assert.equal(classify(base,'2026-09-22'),'ongoing');
@@ -95,7 +99,16 @@ for(const p of audit.pilots){
  assert.equal(upcomingIds.length,p.upcoming);
  const dates=upcomingIds.map(id=>source.get(id).start_date);
  assert.deepEqual(dates,[...dates].sort());
- for(const id of ids){const e=source.get(id);assert.equal(e.country_code,p.code);assert.equal(e.region,p.label);assert(html.includes('event.html?id='+id));}
+ for(const id of ids){
+ const e=source.get(id);
+ assert.equal(e.country_code,p.code);
+ assert.equal(e.region,p.label);
+ assert(canonicalMap[id],`Canonical statique absent pour ${id}`);
+ assert(
+  html.includes(`href="${canonicalMap[id]}"`),
+  `Lien canonical statique absent pour ${id}: ${canonicalMap[id]}`
+ );
+}
  for(const m of html.matchAll(/href="([^"#]+)(?:#[^"]*)?"/g)){
   if(/^(https?:|mailto:)/.test(m[1]))continue;
   assert(fs.existsSync(m[1].split(/[?#]/)[0]),m[1]);
