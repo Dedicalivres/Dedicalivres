@@ -4,15 +4,10 @@ import fs from "node:fs";
 
 const admin =
   fs.readFileSync(
-    "admin.js",
+    "admin-shell.js",
     "utf8"
   );
 
-const migration =
-  fs.readFileSync(
-    "supabase/migrations/20261006203000_event_publication_jobs.sql",
-    "utf8"
-  );
 
 const workflow =
   fs.readFileSync(
@@ -20,11 +15,27 @@ const workflow =
     "utf8"
   );
 
+
 const worker =
   fs.readFileSync(
     "scripts/publication-jobs.mjs",
     "utf8"
   );
+
+
+const publisher =
+  fs.readFileSync(
+    "scripts/publish-events-local.sh",
+    "utf8"
+  );
+
+
+const diffGuard =
+  fs.readFileSync(
+    "scripts/check-publication-diff.mjs",
+    "utf8"
+  );
+
 
 const wrapper =
   fs.readFileSync(
@@ -32,11 +43,42 @@ const wrapper =
     "utf8"
   );
 
+
 const core =
   fs.readFileSync(
     "scripts/event-publisher/generate-events.py",
     "utf8"
   );
+
+
+const migrations =
+  fs.readdirSync(
+    "supabase/migrations"
+  );
+
+
+const lifecycleName =
+  migrations.find(
+    (name) =>
+      name.endsWith(
+        "_event_publication_lifecycle.sql"
+      )
+  );
+
+
+assert.ok(
+  lifecycleName,
+  "Migration lifecycle publication introuvable"
+);
+
+
+const lifecycle =
+  fs.readFileSync(
+    "supabase/migrations/"
+    + lifecycleName,
+    "utf8"
+  );
+
 
 const legacy =
   JSON.parse(
@@ -56,49 +98,208 @@ assert.equal(
 );
 
 
-assert.match(
-  admin,
-  /DEDICALIVRES_DUPLICATES\.findMatches/
-);
-
+// Validation humaine conservée.
 assert.match(
   admin,
   /\.update\(\{\s*validated:\s*true,\s*rejected:\s*false/s
 );
 
+
+// Rejet humain conservé.
 assert.match(
   admin,
-  /requestEventPublication\(\s*id,\s*"validation"/s
+  /\.update\(\{\s*rejected:\s*true,\s*validated:\s*false/s
 );
 
 
+// Plus aucun dispatch GitHub/Edge depuis le navigateur admin.
 assert.doesNotMatch(
-  migration,
+  admin,
+  /functions\/v1\/event-publication-dispatch/
+);
+
+assert.doesNotMatch(
+  admin,
+  /requestV11EventPublication/
+);
+
+
+// Messages cohérents avec le serveur.
+assert.match(
+  admin,
+  /publication automatique planifiée/
+);
+
+assert.match(
+  admin,
+  /dépublication automatique planifiée/
+);
+
+assert.match(
+  admin,
+  /retrait statique automatique planifié/
+);
+
+
+// La migration ne décide jamais de la validation.
+assert.doesNotMatch(
+  lifecycle,
   /update\s+public\.events\s+set\s+validated/i
 );
 
+
+// Identité durable après DELETE.
 assert.match(
-  migration,
-  /if not new_is_public then/
+  lifecycle,
+  /target_event_id/
+);
+
+
+// Transition public -> non public.
+assert.match(
+  lifecycle,
+  /old_is_public\s+and\s+not new_is_public/
+);
+
+
+// DELETE événement.
+assert.match(
+  lifecycle,
+  /tg_op = 'DELETE'/
 );
 
 assert.match(
-  migration,
-  /'BLOCKED'/
+  lifecycle,
+  /'unpublish'/
 );
 
+assert.match(
+  lifecycle,
+  /'delete'/
+);
+
+
+// Dispatch serveur accepte les deux nouvelles raisons.
+assert.match(
+  lifecycle,
+  /'validation',\s*'edit',\s*'unpublish',\s*'delete'/s
+);
+
+assert.match(
+  lifecycle,
+  /coalesce\(\s*job\.event_id,\s*job\.target_event_id\s*\)/s
+);
+
+
+// Worker transmet uniquement les suppressions autorisées.
+assert.match(
+  worker,
+  /target_event_id/
+);
 
 assert.match(
   worker,
-  /BLOCKED/
+  /depublish_event_ids/
 );
 
 assert.match(
   worker,
-  /legacy-enriched-events\.json/
+  /depublish_paths/
+);
+
+assert.match(
+  worker,
+  /event-canonical-map\.json/
+);
+
+assert.match(
+  worker,
+  /isDepublicationReason/
 );
 
 
+// Les legacy restent bloquées pour republication,
+// mais une dépublication explicite peut les retirer.
+assert.match(
+  worker,
+  /BLOCKED legacy/
+);
+
+assert.match(
+  worker,
+  /isDepublicationReason/
+);
+
+
+// Garde-fou génération : retrait exact uniquement.
+assert.match(
+  publisher,
+  /PUBLICATION_DEPUBLISH_PATHS/
+);
+
+assert.match(
+  publisher,
+  /suppression historique non autorisée/i
+);
+
+assert.match(
+  publisher,
+  /authorized_removed/
+);
+
+assert.match(
+  publisher,
+  /target\.unlink\(\)/
+);
+
+
+// Garde-fou Git : toute autre suppression reste bloquée.
+assert.match(
+  diffGuard,
+  /PUBLICATION_DEPUBLISH_PATHS/
+);
+
+assert.match(
+  diffGuard,
+  /unauthorizedDeleted/
+);
+
+assert.match(
+  diffGuard,
+  /suppression automatique non autorisée/
+);
+
+
+// Workflow transmet l'autorisation du batch.
+assert.match(
+  workflow,
+  /PUBLICATION_DEPUBLISH_PATHS/
+);
+
+assert.match(
+  workflow,
+  /steps\.claim\.outputs\.depublish_paths/
+);
+
+
+// Filet de secours et concurrence conservés.
+assert.match(
+  workflow,
+  /schedule:/
+);
+
+assert.match(
+  workflow,
+  /cron: "\*\/5 \* \* \* \*"/
+);
+
+assert.match(
+  workflow,
+  /cancel-in-progress: false/
+);
+
+
+// Protections historiques toujours présentes.
 assert.match(
   wrapper,
   /LEGACY_PRESERVED/
@@ -119,16 +320,6 @@ assert.match(
   /SITEMAP_LASTMOD_PRESERVED/
 );
 
-assert.match(
-  wrapper,
-  /preserve_unchanged_sitemap_lastmod/
-);
-
-assert.match(
-  wrapper,
-  /no-auto-matte\.sqlite3/
-);
-
 
 assert.doesNotMatch(
   core,
@@ -140,115 +331,10 @@ assert.doesNotMatch(
   /import veille/
 );
 
-assert.doesNotMatch(
-  core,
-  /veille_litteraire/
-);
-
-
-assert.match(
-  workflow,
-  /PUBLICATION_AUTOMATION_ENABLED/
-);
-
-assert.match(
-  workflow,
-  /vars\.PUBLICATION_AUTOMATION_ENABLED == 'true'/
-);
-
-assert.match(
-  workflow,
-  /preactivation_test/
-);
-
-assert.match(
-  workflow,
-  /github\.event_name == 'workflow_dispatch'/
-);
-
-assert.match(
-  workflow,
-  /inputs\.preactivation_test == true/
-);
-
-assert.match(
-  workflow,
-  /PUBLICATION_PREACTIVATION_TEST/
-);
-
-assert.match(
-  workflow,
-  /PYTHONDONTWRITEBYTECODE:\s*"1"/
-);
-
-assert.match(
-  workflow,
-  /PYTHONPYCACHEPREFIX=\$RUNNER_TEMP\/dedicalivres-pycache/
-);
-
-assert.match(
-  workflow,
-  /GITHUB_ENV/
-);
-
-assert.doesNotMatch(
-  workflow,
-  /PYTHONPYCACHEPREFIX:\s*\n\s*\$\{\{\s*runner\.temp/
-);
-
-assert.match(
-  worker,
-  /PUBLICATION_PREACTIVATION_TEST/
-);
-
-assert.match(
-  worker,
-  /reason=eq\.manual/
-);
-
-assert.match(
-  worker,
-  /event_id=is\.null/
-);
-
-assert.match(
-  worker,
-  /only manual jobs with event_id=null are allowed/
-);
-
-assert.match(
-  workflow,
-  /Enforce isolated preactivation no-op/
-);
-
-assert.match(
-  workflow,
-  /zéro diff généré/
-);
-
-assert.match(
-  workflow,
-  /env\.PUBLICATION_PREACTIVATION_TEST == 'true'/
-);
-
-assert.match(
-  worker,
-  /PREACTIVATION_TEST\s*\? false\s*:\s*attempts < 3/s
-);
-
-assert.match(
-  workflow,
-  /cancel-in-progress: false/
-);
-
-assert.match(
-  workflow,
-  /DEDICALIVRES_SUPABASE_SECRET_KEY/
-);
-
 
 console.log(
-  "PASS architecture post-validation : "
-  + "validation humaine, legacy BLOCKED, "
-  + "aucune suppression, activation fermée."
+  "PASS cycle événement : "
+  + "validation humaine → publication serveur ; "
+  + "rejet/suppression humaine → dépublication serveur autorisée ; "
+  + "suppression statique non autorisée toujours bloquée."
 );

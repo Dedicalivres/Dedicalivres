@@ -57,6 +57,64 @@ if (
 }
 
 
+let authorizedDeletedPaths;
+
+
+try {
+
+  const parsed =
+    JSON.parse(
+      process.env.PUBLICATION_DEPUBLISH_PATHS
+      || "[]"
+    );
+
+
+  if (!Array.isArray(parsed)) {
+    throw new Error(
+      "tableau JSON attendu"
+    );
+  }
+
+
+  authorizedDeletedPaths =
+    new Set(
+      parsed.map(
+        (value) =>
+          String(value)
+      )
+    );
+
+
+  for (
+    const path
+    of authorizedDeletedPaths
+  ) {
+    if (
+      !/^evenement\/[^/]+\.html$/.test(
+        path
+      )
+      || path === "evenement/index.html"
+    ) {
+      throw new Error(
+        "chemin non autorisé : "
+        + path
+      );
+    }
+  }
+
+} catch (
+  error
+) {
+
+  console.error(
+    "STOP : PUBLICATION_DEPUBLISH_PATHS invalide",
+    error
+  );
+
+  process.exit(1);
+}
+
+
 const changed =
   new Set([
     ...command([
@@ -80,16 +138,31 @@ const deleted =
   ]);
 
 
+const deletedSet =
+  new Set(
+    deleted
+  );
+
+
+const unauthorizedDeleted =
+  deleted.filter(
+    (path) =>
+      !authorizedDeletedPaths.has(
+        path
+      )
+  );
+
+
 if (
-  deleted.length
+  unauthorizedDeleted.length
 ) {
   console.error(
-    "STOP : suppression automatique détectée"
+    "STOP : suppression automatique non autorisée"
   );
 
   for (
     const path
-    of deleted
+    of unauthorizedDeleted
   ) {
     console.error(
       ` - ${path}`
@@ -107,6 +180,14 @@ const legacyChanged =
     (path) =>
       protectedPages.has(
         path
+      )
+      && !(
+        deletedSet.has(
+          path
+        )
+        && authorizedDeletedPaths.has(
+          path
+        )
       )
   );
 
@@ -232,5 +313,5 @@ console.log(
 );
 
 console.log(
-  "PASS suppressions : 0"
+  `PASS suppressions autorisées : ${deleted.length}`
 );

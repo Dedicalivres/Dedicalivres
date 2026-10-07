@@ -151,12 +151,19 @@ jobs:
           EVENT_PUBLISHER_EXPORT_DIR:
             ${{ runner.temp }}/dedicalivres-site-seo
 
+          PUBLICATION_DEPUBLISH_PATHS:
+            ${{ steps.claim.outputs.depublish_paths }}
+
         run: |
           scripts/publish-events-cloud.sh
 
 
       - name: Validate generated scope
         if: steps.claim.outputs.has_jobs == 'true'
+
+        env:
+          PUBLICATION_DEPUBLISH_PATHS:
+            ${{ steps.claim.outputs.depublish_paths }}
 
         run: |
           node \

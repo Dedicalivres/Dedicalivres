@@ -1803,119 +1803,6 @@
     }
   }
 
-  async function requestV11EventPublication(
-    eventId,
-    reason
-  ) {
-    const client =
-      context.getClient();
-
-    const config =
-      window.DEDICALIVRES_CONFIG
-      || {};
-
-    if (
-      !client
-      || !client.auth
-      || typeof client.auth.getSession !== "function"
-      || !config.supabaseUrl
-      || !config.supabaseAnonKey
-    ) {
-      console.warn(
-        "Dispatch publication V11 indisponible : configuration ou session incomplète."
-      );
-
-      return false;
-    }
-
-    try {
-      const {
-        data,
-        error
-      } =
-        await client.auth.getSession();
-
-      if (error) {
-        throw error;
-      }
-
-      const accessToken =
-        data?.session?.access_token
-        || "";
-
-      if (!accessToken) {
-        throw new Error(
-          "Session admin absente"
-        );
-      }
-
-      const response =
-        await fetch(
-          config.supabaseUrl
-          + "/functions/v1/event-publication-dispatch",
-          {
-            method:
-              "POST",
-
-            headers: {
-              Authorization:
-                "Bearer " + accessToken,
-
-              apikey:
-                config.supabaseAnonKey,
-
-              "Content-Type":
-                "application/json"
-            },
-
-            body:
-              JSON.stringify({
-                event_id:
-                  eventId,
-
-                reason:
-                  reason
-              })
-          }
-        );
-
-      let payload = {};
-
-      try {
-        payload =
-          await response.json();
-
-      } catch {
-        payload = {};
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          payload?.error
-          || (
-            "Dispatch HTTP "
-            + String(response.status)
-          )
-        );
-      }
-
-      return (
-        payload?.dispatched ===
-        true
-      );
-
-    } catch (error) {
-      console.warn(
-        "Dispatch publication V11 impossible. "
-        + "Le job reste dans la file de secours.",
-        error
-      );
-
-      return false;
-    }
-  }
-
-
   async function refreshV11AfterEventAction(id) {
     await context.refresh();
 
@@ -2015,16 +1902,8 @@
           throw response.error;
         }
 
-        const publicationDispatched =
-          await requestV11EventPublication(
-            event.id,
-            "validation"
-          );
-
         v11ActionMessage(
-          publicationDispatched
-            ? "Événement validé · publication lancée."
-            : "Événement validé · publication en attente."
+          "Événement validé · publication automatique planifiée."
         );
 
         await refreshV11AfterEventAction(
@@ -2057,7 +1936,10 @@
         }
 
         v11ActionMessage(
-          "Événement rejeté."
+          event.validated === true
+            && event.rejected !== true
+            ? "Événement rejeté · dépublication automatique planifiée."
+            : "Événement rejeté."
         );
 
         await refreshV11AfterEventAction(
@@ -2083,32 +1965,10 @@
           throw response.error;
         }
 
-        let publicationDispatched =
-          true;
-
-        if (
-          event.validated === true
-          && event.rejected !== true
-        ) {
-          publicationDispatched =
-            await requestV11EventPublication(
-              event.id,
-              "edit"
-            );
-        }
-
         v11ActionMessage(
-          publicationDispatched
-            ? (
-                nextValue
-                  ? "Événement mis en avant · republication lancée."
-                  : "Mise en avant retirée · republication lancée."
-              )
-            : (
-                nextValue
-                  ? "Événement mis en avant · republication en attente."
-                  : "Mise en avant retirée · republication en attente."
-              )
+          nextValue
+            ? "Événement mis en avant · republication automatique planifiée."
+            : "Mise en avant retirée · republication automatique planifiée."
         );
 
         await refreshV11AfterEventAction(
@@ -2717,7 +2577,9 @@
 
         if (eventDetail) eventDetail.hidden = true;
 
-        v11ActionMessage("Événement supprimé.");
+        v11ActionMessage(
+          "Événement supprimé · retrait statique automatique planifié."
+        );
         await context.refresh();
       } catch (error) {
         console.error("Suppression événement V11 impossible", error);
@@ -3364,24 +3226,11 @@
         editImage.value = payload.image_url || "";
       }
 
-      let publicationDispatched =
-        true;
-
-      if (
-        event.validated === true
-        && event.rejected !== true
-      ) {
-        publicationDispatched =
-          await requestV11EventPublication(
-            event.id,
-            "edit"
-          );
-      }
-
       v11ActionMessage(
-        publicationDispatched
-          ? "Événement modifié · republication lancée."
-          : "Événement modifié · republication en attente."
+        event.validated === true
+          && event.rejected !== true
+          ? "Événement modifié · republication automatique planifiée."
+          : "Événement modifié."
       );
 
       closeV11EventEditor();

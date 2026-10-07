@@ -41,6 +41,15 @@ const legacyEvents =
   || {};
 
 
+const canonicalMap =
+  JSON.parse(
+    fs.readFileSync(
+      "docs/territoires/event-canonical-map.json",
+      "utf8"
+    )
+  );
+
+
 if (
   Object.keys(
     legacyEvents
@@ -48,6 +57,28 @@ if (
 ) {
   throw new Error(
     "Le manifeste legacy doit contenir 282 événements"
+  );
+}
+
+
+
+function targetEventId(
+  row
+) {
+  return String(
+    row?.target_event_id
+    || row?.event_id
+    || ""
+  );
+}
+
+
+function isDepublicationReason(
+  reason
+) {
+  return (
+    reason === "unpublish"
+    || reason === "delete"
   );
 }
 
@@ -273,12 +304,24 @@ async function recoverStaleJobs() {
 async function blockLegacyJob(
   row
 ) {
+  if (
+    isDepublicationReason(
+      row.reason
+    )
+  ) {
+    return false;
+  }
+
+
+  const identifier =
+    targetEventId(
+      row
+    );
+
+
   const filename =
     legacyEvents[
-      String(
-        row.event_id
-        || ""
-      ).toLowerCase()
+      identifier.toLowerCase()
     ];
 
 
@@ -317,7 +360,7 @@ async function blockLegacyJob(
 
 
   console.log(
-    `BLOCKED legacy : ${row.event_id} -> ${filename}`
+    `BLOCKED legacy : ${identifier} -> ${filename}`
   );
 
 
@@ -329,12 +372,23 @@ async function claim() {
   await recoverStaleJobs();
 
 
+  setOutput(
+    "depublish_event_ids",
+    "[]"
+  );
+
+  setOutput(
+    "depublish_paths",
+    "[]"
+  );
+
+
   const rows =
     await request(
       publicationJobFilter(
         "PENDING"
       )
-      + "&select=id,event_id,reason,attempt_count,requested_at"
+      + "&select=id,event_id,target_event_id,reason,attempt_count,requested_at"
       + "&order=requested_at.asc"
       + "&limit=500"
     );
@@ -379,6 +433,7 @@ async function claim() {
       rows.filter(
         (row) =>
           row.event_id !== null
+          || row.target_event_id !== null
           || row.reason !== "manual"
       );
 
@@ -408,8 +463,7 @@ async function claim() {
     of rows
   ) {
     if (
-      row.event_id
-      && await blockLegacyJob(
+      await blockLegacyJob(
         row
       )
     ) {
@@ -456,6 +510,65 @@ async function claim() {
 
     return;
   }
+
+
+
+  const depublishEventIds =
+    [
+      ...new Set(
+        publishable
+          .filter(
+            (row) =>
+              isDepublicationReason(
+                row.reason
+              )
+          )
+          .map(
+            (row) =>
+              targetEventId(
+                row
+              )
+          )
+          .filter(Boolean)
+      ),
+    ];
+
+
+  const depublishPaths =
+    [
+      ...new Set(
+        depublishEventIds
+          .map(
+            (identifier) =>
+              canonicalMap[
+                identifier
+              ]
+          )
+          .filter(
+            (value) =>
+              typeof value === "string"
+              && value.startsWith(
+                "evenement/"
+              )
+          )
+      ),
+    ];
+
+
+  setOutput(
+    "depublish_event_ids",
+    JSON.stringify(
+      depublishEventIds
+    )
+  );
+
+
+  setOutput(
+    "depublish_paths",
+    JSON.stringify(
+      depublishPaths
+    )
+  );
 
 
   const batchId =
