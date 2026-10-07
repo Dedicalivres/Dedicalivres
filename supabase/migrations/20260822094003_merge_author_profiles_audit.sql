@@ -181,4 +181,4 @@ revoke all on function public.merge_author_profiles(uuid, uuid) from anon;
 grant execute on function public.merge_author_profiles(uuid, uuid) to authenticated;
 
 comment on function public.merge_author_profiles(uuid, uuid) is
-  'Fusion contrôlée et auditée de deux fiches auteurs. Sauvegarde les états initiaux avant réaffectation des présences et archivage logique de la fiche secondaire.';
+  'Fusion contrôlée et auditée de deux fiches auteurs. Sauvegarde les états initiaux avant réaffectation des présences et archivage logique de la fiche secondaire.';;

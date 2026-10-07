@@ -50,4 +50,4 @@ begin
       on delete restrict;
   end if;
 end
-$$;
+$$;;

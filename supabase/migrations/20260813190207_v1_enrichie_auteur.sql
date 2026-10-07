@@ -264,4 +264,4 @@ grant insert (
   book_or_publisher_url_type, publisher_name, rejected, author_portrait_url,
   author_portrait_storage_key, author_identity_key, participant_type,
   organization_name, contact_name, contact_email, presence_verified
-) on public.event_authors_presence to anon;
+) on public.event_authors_presence to anon;;

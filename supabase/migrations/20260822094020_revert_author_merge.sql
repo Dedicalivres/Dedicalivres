@@ -118,4 +118,4 @@ revoke all on function public.revert_author_merge(uuid) from anon;
 grant execute on function public.revert_author_merge(uuid) to authenticated;
 
 comment on function public.revert_author_merge(uuid) is
-  'Annule une fusion auteur auditée lorsque son état est encore cohérent. Restaure la fiche secondaire et les identités techniques exactes des présences sauvegardées.';
+  'Annule une fusion auteur auditée lorsque son état est encore cohérent. Restaure la fiche secondaire et les identités techniques exactes des présences sauvegardées.';;

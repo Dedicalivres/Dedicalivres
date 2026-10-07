@@ -75,4 +75,4 @@ comment on column public.author_merge_audit.presence_snapshot is
   'Tableau JSON contenant l’état exact des présences réaffectées avant la fusion.';
 
 comment on column public.author_merge_audit.reverted_at is
-  'Date d’un éventuel retour arrière de cette fusion.';
+  'Date d’un éventuel retour arrière de cette fusion.';;

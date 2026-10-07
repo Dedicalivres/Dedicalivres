@@ -61,4 +61,4 @@ where id = 'e98a8bf5-4a70-452d-bfa4-0d905e7ca530';
 update public.events
 set region = 'Auvergne-Rhône-Alpes'
 where id = '4821acd4-caad-4e61-9d2e-730887e6a60e'
-  and country_code = 'FR';
+  and country_code = 'FR';;

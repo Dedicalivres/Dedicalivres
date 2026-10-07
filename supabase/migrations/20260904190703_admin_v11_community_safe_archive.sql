@@ -1,18 +1,14 @@
 begin;
-
 alter table public.event_authors_presence
   add column if not exists archived_at timestamptz,
   add column if not exists archived_by uuid references auth.users(id) on delete set null,
   add column if not exists archive_reason text;
-
 alter table public.testimonials
   add column if not exists archived_at timestamptz,
   add column if not exists archived_by uuid references auth.users(id) on delete set null,
   add column if not exists archive_reason text;
-
 alter table public.event_authors_presence
   drop constraint if exists event_authors_presence_archive_state_check;
-
 alter table public.event_authors_presence
   add constraint event_authors_presence_archive_state_check
   check (
@@ -24,10 +20,8 @@ alter table public.event_authors_presence
       and char_length(trim(archive_reason)) between 3 and 500
     )
   );
-
 alter table public.testimonials
   drop constraint if exists testimonials_archive_state_check;
-
 alter table public.testimonials
   add constraint testimonials_archive_state_check
   check (
@@ -39,18 +33,14 @@ alter table public.testimonials
       and char_length(trim(archive_reason)) between 3 and 500
     )
   );
-
 create index if not exists event_authors_presence_active_idx
   on public.event_authors_presence (created_at desc)
   where archived_at is null;
-
 create index if not exists testimonials_active_idx
   on public.testimonials (created_at desc)
   where archived_at is null;
-
 drop policy if exists "Public can read validated author presences"
   on public.event_authors_presence;
-
 create policy "Public can read validated author presences"
   on public.event_authors_presence
   for select
@@ -60,10 +50,8 @@ create policy "Public can read validated author presences"
     and coalesce(rejected, false) = false
     and archived_at is null
   );
-
 drop policy if exists "Public can submit pending author presences"
   on public.event_authors_presence;
-
 create policy "Public can submit pending author presences"
   on public.event_authors_presence
   for insert
@@ -107,10 +95,8 @@ create policy "Public can submit pending author presences"
       )
     )
   );
-
 drop policy if exists "Public can read validated testimonials"
   on public.testimonials;
-
 create policy "Public can read validated testimonials"
   on public.testimonials
   for select
@@ -120,10 +106,8 @@ create policy "Public can read validated testimonials"
     and rejected = false
     and archived_at is null
   );
-
 drop policy if exists "Public can insert pending testimonials"
   on public.testimonials;
-
 create policy "Public can insert pending testimonials"
   on public.testimonials
   for insert
@@ -138,7 +122,6 @@ create policy "Public can insert pending testimonials"
     and archived_by is null
     and archive_reason is null
   );
-
 create or replace function public.archive_community_item(
   p_kind text,
   p_id uuid,
@@ -216,7 +199,6 @@ begin
   return query select v_kind, p_id, v_archived_at;
 end;
 $$;
-
 create or replace function public.restore_community_item(
   p_kind text,
   p_id uuid
@@ -268,23 +250,17 @@ begin
   return query select v_kind, p_id;
 end;
 $$;
-
 revoke all on function public.archive_community_item(text, uuid, text) from public;
 revoke all on function public.archive_community_item(text, uuid, text) from anon;
 grant execute on function public.archive_community_item(text, uuid, text) to authenticated;
-
 revoke all on function public.restore_community_item(text, uuid) from public;
 revoke all on function public.restore_community_item(text, uuid) from anon;
 grant execute on function public.restore_community_item(text, uuid) to authenticated;
-
 revoke delete on table public.event_authors_presence from authenticated;
 revoke delete on table public.testimonials from authenticated;
 revoke delete on table public.testimonials from anon;
-
 comment on function public.archive_community_item(text, uuid, text) is
   'Archive logiquement une présence ou un témoignage après contrôle administrateur. Aucune suppression physique.';
-
 comment on function public.restore_community_item(text, uuid) is
   'Restaure un objet Communauté archivé sans modifier son état de modération initial.';
-
 commit;

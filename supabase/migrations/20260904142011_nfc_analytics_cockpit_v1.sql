@@ -146,3 +146,4 @@ grant execute on function public.nfc_track_event(text,uuid,text,text,text,text,s
 
 comment on table public.nfc_events is 'Événements NFC minimisés sans télémétrie personnelle ou localisation précise.';
 commit;
+;

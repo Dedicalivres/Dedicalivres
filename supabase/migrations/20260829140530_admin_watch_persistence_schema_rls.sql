@@ -388,13 +388,4 @@ comment on column public.admin_event_watch_alerts.proof is
 comment on column public.admin_watch_transitions.metadata is
   'Compact structured transition metadata only; never store secrets or unbounded source payloads.';
 
-commit;
-
--- Rollback reference (manual, never run against production without review):
--- 1. Drop the ten RLS policies above.
--- 2. Drop the three triggers above.
--- 3. Drop private.audit_admin_watch_workflow() and private.touch_admin_watch_source().
--- 4. Drop public.admin_watch_transitions, then public.admin_event_watch_alerts,
---    public.admin_watch_candidates, and finally public.admin_watch_sources.
--- This rollback deliberately leaves public.events, public.admin_users, and
--- private.is_admin() untouched.
+commit;;
