@@ -10,10 +10,20 @@ alter table public.event_publication_jobs
   add column if not exists target_event_id uuid;
 
 
+alter table public.event_publication_jobs
+  add column if not exists dispatch_token uuid;
+
+
 comment on column
   public.event_publication_jobs.target_event_id
 is
   'Identifiant immuable de l événement concerné, conservé même après DELETE de events.';
+
+
+comment on column
+  public.event_publication_jobs.dispatch_token
+is
+  'Jeton serveur aléatoire par job pour authentifier le réveil Edge Function.';
 
 
 update public.event_publication_jobs
@@ -21,6 +31,14 @@ set target_event_id = event_id
 where
   target_event_id is null
   and event_id is not null;
+
+
+update public.event_publication_jobs
+set dispatch_token = gen_random_uuid()
+where
+  dispatch_token is null
+  and status = 'PENDING'
+  and target_event_id is not null;
 
 
 create index if not exists
@@ -234,6 +252,7 @@ begin
     public.event_publication_jobs (
       event_id,
       target_event_id,
+      dispatch_token,
       reason,
       status,
       requested_at,
@@ -243,6 +262,7 @@ begin
   values (
     live_event_id,
     target_id,
+    gen_random_uuid(),
     job_reason,
     'PENDING',
     now(),
@@ -258,6 +278,12 @@ begin
     set
       target_event_id =
         excluded.target_event_id,
+
+      dispatch_token =
+        excluded.dispatch_token,
+
+      dispatch_requested_at =
+        null,
 
       reason =
         excluded.reason,
@@ -390,6 +416,88 @@ grant execute
 
 
 create or replace function
+  public.claim_event_publication_dispatch(
+    p_job_id uuid,
+    p_dispatch_token uuid
+  )
+
+returns table (
+  event_id uuid,
+  reason text
+)
+
+language sql
+
+volatile
+
+security definer
+
+set search_path = public
+
+as $function$
+
+  update
+    public.event_publication_jobs as job
+
+  set
+    dispatch_requested_at =
+      now(),
+
+    dispatch_token =
+      null
+
+  where
+    job.id =
+      p_job_id
+
+    and job.dispatch_token =
+      p_dispatch_token
+
+    and job.status =
+      'PENDING'
+
+    and job.target_event_id
+      is not null
+
+    and job.reason in (
+      'validation',
+      'edit',
+      'unpublish',
+      'delete'
+    )
+
+    and coalesce(
+      job.attempt_count,
+      0
+    ) < 3
+
+    and job.dispatch_requested_at
+      is null
+
+  returning
+    coalesce(
+      job.event_id,
+      job.target_event_id
+    ) as event_id,
+
+    job.reason;
+
+$function$;
+
+
+revoke all
+  on function
+    public.claim_event_publication_dispatch(uuid, uuid)
+  from public, anon, authenticated;
+
+
+grant execute
+  on function
+    public.claim_event_publication_dispatch(uuid, uuid)
+  to service_role;
+
+
+create or replace function
   private.dispatch_pending_publication_job()
 
 returns trigger
@@ -411,6 +519,9 @@ begin
     new.status <> 'PENDING'
 
     or new.target_event_id
+      is null
+
+    or new.dispatch_token
       is null
 
     or new.reason not in (
@@ -450,7 +561,10 @@ begin
       body :=
         jsonb_build_object(
           'job_id',
-          new.id
+          new.id,
+
+          'dispatch_token',
+          new.dispatch_token
         ),
 
       headers :=

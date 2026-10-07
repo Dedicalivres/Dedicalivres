@@ -16,6 +16,20 @@ const workflow =
   );
 
 
+const edgeDispatch =
+  fs.readFileSync(
+    "supabase/functions/event-publication-dispatch/index.ts",
+    "utf8"
+  );
+
+
+const supabaseConfig =
+  fs.readFileSync(
+    "supabase/config.toml",
+    "utf8"
+  );
+
+
 const worker =
   fs.readFileSync(
     "scripts/publication-jobs.mjs",
@@ -188,6 +202,64 @@ assert.match(
 assert.match(
   lifecycle,
   /coalesce\(\s*job\.event_id,\s*job\.target_event_id\s*\)/s
+);
+
+
+// Compatibilité transitoire :
+// l'ancien RPC serveur reste présent.
+assert.match(
+  lifecycle,
+  /claim_event_publication_dispatch\(\s*p_job_id uuid\s*\)/s
+);
+
+
+// Nouveau canal authentifié par jeton aléatoire par job.
+assert.match(
+  lifecycle,
+  /dispatch_token/
+);
+
+assert.match(
+  lifecycle,
+  /gen_random_uuid\(\)/
+);
+
+assert.match(
+  lifecycle,
+  /p_dispatch_token/
+);
+
+assert.match(
+  lifecycle,
+  /job\.dispatch_token\s*=\s*p_dispatch_token/s
+);
+
+assert.match(
+  lifecycle,
+  /claim_event_publication_dispatch\(uuid, uuid\)/
+);
+
+assert.match(
+  edgeDispatch,
+  /dispatch_token/
+);
+
+assert.match(
+  edgeDispatch,
+  /p_dispatch_token/
+);
+
+assert.match(
+  edgeDispatch,
+  /invalid_dispatch_token/
+);
+
+
+// L'appel pg_net n'utilise pas le contrôle JWT de plateforme.
+// L'authentification est réalisée par le jeton serveur du job.
+assert.match(
+  supabaseConfig,
+  /verify_jwt\s*=\s*false/
 );
 
 

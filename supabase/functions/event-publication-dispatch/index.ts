@@ -82,6 +82,7 @@ async function claimJob(
   supabaseUrl: string,
   serviceKey: string,
   jobId: string,
+  dispatchToken: string,
 ) {
 
   const response =
@@ -108,6 +109,9 @@ async function claimJob(
           JSON.stringify({
             p_job_id:
               jobId,
+
+            p_dispatch_token:
+              dispatchToken,
           }),
       },
     );
@@ -283,6 +287,7 @@ Deno.serve(
 
     let body: {
       job_id?: string;
+      dispatch_token?: string;
     } = {};
 
 
@@ -309,12 +314,20 @@ Deno.serve(
         || "",
       );
 
+    const dispatchToken =
+      String(
+        body.dispatch_token
+        || "",
+      );
+
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 
     if (
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-        .test(
-          jobId,
-        )
+      !uuidPattern.test(
+        jobId,
+      )
     ) {
 
       return json(
@@ -323,6 +336,22 @@ Deno.serve(
             "invalid_job_id",
         },
         400,
+      );
+    }
+
+
+    if (
+      !uuidPattern.test(
+        dispatchToken,
+      )
+    ) {
+
+      return json(
+        {
+          error:
+            "invalid_dispatch_token",
+        },
+        401,
       );
     }
 
@@ -364,6 +393,7 @@ Deno.serve(
         supabaseUrl,
         serviceKey,
         jobId,
+        dispatchToken,
       );
 
 
