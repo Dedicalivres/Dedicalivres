@@ -4777,20 +4777,6 @@
       "website": "https://www.jardin-georgesdelaselle.bzh/"
     },
     {
-      "id": "8f340cb3-962a-4a35-b0b8-47a5e98b7c20",
-      "title": "Test cloud",
-      "type": "Dédicace",
-      "country_code": "FR",
-      "region": "Bretagne",
-      "city": "Lorient",
-      "start_date": "2026-10-08",
-      "end_date": "2026-10-08",
-      "validated": true,
-      "rejected": false,
-      "registration_force_status": null,
-      "website": "https://www.dedicalivres.fr"
-    },
-    {
       "id": "8fd93f9a-b7d7-49ce-a379-c3b0aa58a8a1",
       "title": "La Nuit de David : rencontre littéraire avec Abigail Assor",
       "type": "Dédicace",
