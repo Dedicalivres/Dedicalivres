@@ -193,6 +193,7 @@ async function releaseJob(
 
 async function dispatchGithub(
   githubToken: string,
+  preactivationTest: boolean,
 ) {
 
   for (
@@ -231,6 +232,17 @@ async function dispatchGithub(
             JSON.stringify({
               ref:
                 "main",
+
+              ...(
+                preactivationTest
+                  ? {
+                      inputs: {
+                        preactivation_test:
+                          "true",
+                      },
+                    }
+                  : {}
+              ),
             }),
         },
       );
@@ -418,6 +430,7 @@ Deno.serve(
     const dispatched =
       await dispatchGithub(
         githubToken,
+        job.reason === "manual",
       );
 
 

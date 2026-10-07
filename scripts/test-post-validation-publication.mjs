@@ -290,6 +290,33 @@ assert.match(
 );
 
 
+// Un canonical absent ou invalide bloque le job avant RUNNING.
+assert.match(
+  worker,
+  /\^evenement\\\/\[\^\/\]\+\\\.html\$/
+);
+
+assert.match(
+  worker,
+  /value === "evenement\/index\.html"/
+);
+
+assert.match(
+  worker,
+  /BLOCKED canonical/
+);
+
+assert.match(
+  worker,
+  /chemin canonical absent ou invalide pour target_event_id=/
+);
+
+assert.match(
+  worker,
+  /depublishEventIds\.length\s*!==\s*depublishPaths\.length/s
+);
+
+
 // Les legacy restent bloquées pour republication,
 // mais une dépublication explicite peut les retirer.
 assert.match(
@@ -351,6 +378,45 @@ assert.match(
 assert.match(
   workflow,
   /steps\.claim\.outputs\.depublish_paths/
+);
+
+
+// Le job manual isolé suit le canal serveur sécurisé complet.
+assert.match(
+  lifecycle,
+  /job\.reason = 'manual'[\s\S]*job\.event_id\s+is null[\s\S]*job\.target_event_id\s+is null/
+);
+
+assert.match(
+  lifecycle,
+  /new\.reason = 'manual'[\s\S]*new\.event_id\s+is null[\s\S]*new\.target_event_id\s+is null/
+);
+
+assert.doesNotMatch(
+  lifecycle.match(
+    /claim_event_publication_dispatch\(\s*p_job_id uuid\s*\)[\s\S]*?\$function\$;/
+  )?.[0] || "",
+  /'manual'/
+);
+
+assert.match(
+  edgeDispatch,
+  /job\.reason === "manual"/
+);
+
+assert.match(
+  edgeDispatch,
+  /preactivation_test:\s*"true"/
+);
+
+assert.match(
+  workflow,
+  /PUBLICATION_PREACTIVATION_TEST/
+);
+
+assert.match(
+  workflow,
+  /PASS préactivation : zéro diff généré\./
 );
 
 

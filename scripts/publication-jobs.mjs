@@ -83,6 +83,35 @@ function isDepublicationReason(
 }
 
 
+function canonicalDepublicationPath(
+  row
+) {
+  const identifier =
+    targetEventId(
+      row
+    );
+
+  const value =
+    canonicalMap[
+      identifier
+    ];
+
+
+  if (
+    typeof value !== "string"
+    || !/^evenement\/[^/]+\.html$/.test(
+      value
+    )
+    || value === "evenement/index.html"
+  ) {
+    return null;
+  }
+
+
+  return value;
+}
+
+
 function headers(
   extra = {},
 ) {
@@ -368,6 +397,68 @@ async function blockLegacyJob(
 }
 
 
+async function blockInvalidDepublicationJob(
+  row
+) {
+  if (
+    !isDepublicationReason(
+      row.reason
+    )
+  ) {
+    return false;
+  }
+
+
+  const identifier =
+    targetEventId(
+      row
+    );
+
+
+  if (
+    canonicalDepublicationPath(
+      row
+    )
+  ) {
+    return false;
+  }
+
+
+  await patchJob(
+    row.id,
+    {
+      status:
+        "BLOCKED",
+
+      started_at:
+        null,
+
+      finished_at:
+        new Date()
+          .toISOString(),
+
+      batch_id:
+        null,
+
+      commit_sha:
+        null,
+
+      last_error:
+        "Dépublication bloquée : chemin canonical absent ou invalide pour target_event_id="
+        + identifier,
+    },
+  );
+
+
+  console.log(
+    `BLOCKED canonical : ${identifier}`
+  );
+
+
+  return true;
+}
+
+
 async function claim() {
   await recoverStaleJobs();
 
@@ -463,6 +554,17 @@ async function claim() {
     of rows
   ) {
     if (
+      await blockInvalidDepublicationJob(
+        row
+      )
+    ) {
+      blockedCount += 1;
+
+      continue;
+    }
+
+
+    if (
       await blockLegacyJob(
         row
       )
@@ -540,19 +642,23 @@ async function claim() {
         depublishEventIds
           .map(
             (identifier) =>
-              canonicalMap[
-                identifier
-              ]
-          )
-          .filter(
-            (value) =>
-              typeof value === "string"
-              && value.startsWith(
-                "evenement/"
-              )
+              canonicalDepublicationPath({
+                target_event_id:
+                  identifier,
+              })
           )
       ),
     ];
+
+
+  if (
+    depublishEventIds.length
+    !== depublishPaths.length
+  ) {
+    throw new Error(
+      "STOP : incohérence entre événements et chemins de dépublication"
+    );
+  }
 
 
   setOutput(

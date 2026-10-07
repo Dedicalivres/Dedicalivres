@@ -456,14 +456,28 @@ as $function$
     and job.status =
       'PENDING'
 
-    and job.target_event_id
-      is not null
+    and (
+      (
+        job.target_event_id
+          is not null
 
-    and job.reason in (
-      'validation',
-      'edit',
-      'unpublish',
-      'delete'
+        and job.reason in (
+          'validation',
+          'edit',
+          'unpublish',
+          'delete'
+        )
+      )
+
+      or (
+        job.reason = 'manual'
+
+        and job.event_id
+          is null
+
+        and job.target_event_id
+          is null
+      )
     )
 
     and coalesce(
@@ -518,17 +532,31 @@ begin
   if
     new.status <> 'PENDING'
 
-    or new.target_event_id
-      is null
-
     or new.dispatch_token
       is null
 
-    or new.reason not in (
-      'validation',
-      'edit',
-      'unpublish',
-      'delete'
+    or not (
+      (
+        new.target_event_id
+          is not null
+
+        and new.reason in (
+          'validation',
+          'edit',
+          'unpublish',
+          'delete'
+        )
+      )
+
+      or (
+        new.reason = 'manual'
+
+        and new.event_id
+          is null
+
+        and new.target_event_id
+          is null
+      )
     )
 
     or coalesce(
