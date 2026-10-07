@@ -31,8 +31,24 @@ async function scenario({
   canonical,
   expectedStatus,
   expectedPath,
+  preactivation = false,
+  row = {
+    id:
+      "11111111-1111-4111-8111-111111111111",
+    event_id:
+      null,
+    target_event_id:
+      "22222222-2222-4222-8222-222222222222",
+    reason:
+      "delete",
+    attempt_count:
+      0,
+    requested_at:
+      "2026-10-07T00:00:00Z",
+  },
 }) {
   const patches = [];
+  const filters = [];
 
   const server =
     http.createServer(
@@ -52,22 +68,13 @@ async function scenario({
         }
 
         if (request.method === "GET") {
+          filters.push(
+            url.search
+          );
+
           response.end(
             JSON.stringify([
-              {
-                id:
-                  "11111111-1111-4111-8111-111111111111",
-                event_id:
-                  null,
-                target_event_id:
-                  "22222222-2222-4222-8222-222222222222",
-                reason:
-                  "delete",
-                attempt_count:
-                  0,
-                requested_at:
-                  "2026-10-07T00:00:00Z",
-              },
+              row,
             ])
           );
           return;
@@ -179,6 +186,10 @@ async function scenario({
             "test-secret",
           GITHUB_OUTPUT:
             output,
+          PUBLICATION_PREACTIVATION_TEST:
+            preactivation
+              ? "true"
+              : "false",
         },
       }
     );
@@ -191,6 +202,13 @@ async function scenario({
     assert.equal(
       patches[0].status,
       expectedStatus
+    );
+
+    assert.match(
+      filters[0],
+      preactivation
+        ? /reason=eq\.manual.*event_id=is\.null/
+        : /reason=neq\.manual/
     );
 
     const outputs =
@@ -206,7 +224,9 @@ async function scenario({
           `depublish_paths=.*${expectedPath.replace(".", "\\.")}`
         )
       );
-    } else {
+    } else if (
+      expectedStatus === "BLOCKED"
+    ) {
       assert.match(
         patches[0].last_error,
         /target_event_id=22222222-2222-4222-8222-222222222222/
@@ -262,7 +282,29 @@ await scenario({
     "evenement/page-test.html",
 });
 
+await scenario({
+  canonical: {},
+  expectedStatus:
+    "RUNNING",
+  preactivation:
+    true,
+  row: {
+    id:
+      "33333333-3333-4333-8333-333333333333",
+    event_id:
+      null,
+    target_event_id:
+      null,
+    reason:
+      "manual",
+    attempt_count:
+      0,
+    requested_at:
+      "2026-10-07T00:00:00Z",
+  },
+});
+
 
 console.log(
-  "PASS canonical dépublication : absent/invalide BLOCKED, valide RUNNING"
+  "PASS jobs publication : canonical sûr et manual isolé du mode normal"
 );

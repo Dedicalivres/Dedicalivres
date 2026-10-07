@@ -218,6 +218,10 @@ function publicationJobFilter(
     path +=
       "&reason=eq.manual"
       + "&event_id=is.null";
+
+  } else {
+    path +=
+      "&reason=neq.manual";
   }
 
 
