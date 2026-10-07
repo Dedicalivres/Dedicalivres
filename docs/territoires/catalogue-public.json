@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-06T16:04:16.461Z",
+  "capturedAt": "2026-10-07T15:32:11.348Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -4775,6 +4775,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.jardin-georgesdelaselle.bzh/"
+    },
+    {
+      "id": "8f340cb3-962a-4a35-b0b8-47a5e98b7c20",
+      "title": "Test cloud",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Lorient",
+      "start_date": "2026-10-08",
+      "end_date": "2026-10-08",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.dedicalivres.fr"
     },
     {
       "id": "8fd93f9a-b7d7-49ce-a379-c3b0aa58a8a1",
