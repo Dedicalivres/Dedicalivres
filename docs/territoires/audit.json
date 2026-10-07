@@ -1,8 +1,8 @@
 {
-  "base": "5f1f4400cf6d30b7717cd8463a2ce3f5e37be258",
-  "capturedAt": "2026-10-07T15:32:11.348Z",
+  "base": "263f5b8d93ceb396082073c8fa8ee87e0c09e57a",
+  "capturedAt": "2026-10-07T18:23:51.866Z",
   "today": "2026-10-07",
-  "total": 620,
+  "total": 621,
   "registryCountries": [
     {
       "code": "FR",
@@ -88,7 +88,7 @@
       "id": "FR-local-09",
       "label": "Normandie",
       "country": "FR",
-      "count": 40
+      "count": 41
     },
     {
       "id": "FR-local-10",
@@ -936,8 +936,8 @@
         "Provence-Alpes-Côte d’Azur"
       ],
       "editorial": "",
-      "total": 607,
-      "upcoming": 159,
+      "total": 608,
+      "upcoming": 160,
       "ongoing": 3,
       "past": 448,
       "undated": 0,
@@ -1536,6 +1536,7 @@
         "c856084b-7052-40a9-8fab-6e64a6a2ff13",
         "1ebc51fb-3934-4103-839d-1dc9cb4f6ab5",
         "dd8d6627-f236-4091-98ac-c72f9b1dddb5",
+        "e6f70814-10cf-4d9e-8e97-65835c148249",
         "1024f7e4-22ae-4660-8952-1e1b9ae1de48",
         "c3aafdda-11ca-4342-9686-6a5212e946c3",
         "08ee50b4-6fac-4e18-94f2-ffb500615b49",
@@ -2239,8 +2240,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Normandie</h2>\n    <p>La Normandie accueille de nombreux rendez-vous autour du livre, entre salons, festivals, librairies, médiathèques et rencontres culturelles. Dédicalivres centralise ces événements pour aider les lecteurs à découvrir les prochaines sorties littéraires régionales.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Normandie</h2>\n  <p>La région Normandie regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-rouen.html\">Rouen</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Normandie. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Normandie</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Normandie ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 40,
-      "upcoming": 11,
+      "total": 41,
+      "upcoming": 12,
       "ongoing": 0,
       "past": 29,
       "undated": 0,
@@ -2286,7 +2287,8 @@
         "70e011da-09ff-4d65-a5da-02c51d07f80b",
         "2d8f1a1f-6a67-4418-ad5e-fba954780d78",
         "c69b157c-bf2f-4ddf-affa-a57497d261c2",
-        "c856084b-7052-40a9-8fab-6e64a6a2ff13"
+        "c856084b-7052-40a9-8fab-6e64a6a2ff13",
+        "e6f70814-10cf-4d9e-8e97-65835c148249"
       ]
     },
     {

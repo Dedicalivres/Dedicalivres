@@ -622,7 +622,8 @@
   "433a1069-e745-4de8-bfc5-94ddbddb5b65": "evenement/salon-du-livre-thornslove-romance-sous-tous-ses-genres-louverne-433a1069-e745-4de8-bfc5-94ddbddb5b65.html",
   "5b4020e1-69ab-4752-bf70-6b68305a6be5": "evenement/salon-litteraire-berry-romance-bourges-5b4020e1-69ab-4752-bf70-6b68305a6be5.html",
   "b2bf907d-6b39-4c86-a38d-70cc73531da3": "evenement/myth-love-moulins-b2bf907d-6b39-4c86-a38d-70cc73531da3.html",
-  "8f340cb3-962a-4a35-b0b8-47a5e98b7c20": "evenement/test-cloud-lorient-8f340cb3-962a-4a35-b0b8-47a5e98b7c20.html"
+  "8f340cb3-962a-4a35-b0b8-47a5e98b7c20": "evenement/test-cloud-lorient-8f340cb3-962a-4a35-b0b8-47a5e98b7c20.html",
+  "e6f70814-10cf-4d9e-8e97-65835c148249": "evenement/medievalivres-salon-du-livre-medieval-et-fantastique-agneaux-e6f70814-10cf-4d9e-8e97-65835c148249.html"
 });
 
   function eventId(value) {

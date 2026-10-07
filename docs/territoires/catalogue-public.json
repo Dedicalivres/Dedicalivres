@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-07T15:32:11.348Z",
+  "capturedAt": "2026-10-07T18:23:51.866Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -7659,6 +7659,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.esperluete.fr/rencontres/46178/"
+    },
+    {
+      "id": "e6f70814-10cf-4d9e-8e97-65835c148249",
+      "title": "Médiévalivres, salon du livre médiéval et fantastique",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Normandie",
+      "city": "Agneaux",
+      "start_date": "2027-02-27",
+      "end_date": "2027-02-28",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://agneauxmedievales.fr"
     },
     {
       "id": "e7052295-d270-434a-9fee-9c08c199f006",
