@@ -182,6 +182,200 @@ def preserve_old_sitemap_urls(
     return len(missing)
 
 
+def preserve_unchanged_sitemap_lastmod(
+    generated_sitemap,
+    output_root,
+):
+    existing_sitemap = (
+        ROOT /
+        "sitemap-evenements.xml"
+    )
+
+    if (
+        not existing_sitemap.is_file()
+        or not generated_sitemap.is_file()
+    ):
+        return 0
+
+    old_text = (
+        existing_sitemap
+        .read_text(
+            encoding="utf-8"
+        )
+    )
+
+    new_text = (
+        generated_sitemap
+        .read_text(
+            encoding="utf-8"
+        )
+    )
+
+    block_pattern = re.compile(
+        r"<url>\s*.*?\s*</url>",
+        re.S,
+    )
+
+    loc_pattern = re.compile(
+        r"<loc>(.*?)</loc>",
+        re.S,
+    )
+
+    def blocks(text):
+        result = {}
+
+        for block in (
+            block_pattern.findall(
+                text
+            )
+        ):
+            match = (
+                loc_pattern.search(
+                    block
+                )
+            )
+
+            if match:
+                result[
+                    match.group(1)
+                    .strip()
+                ] = block
+
+        return result
+
+    old_blocks = blocks(
+        old_text
+    )
+
+    replacements = {}
+
+    marker = "/evenement/"
+
+    for block in (
+        block_pattern.findall(
+            new_text
+        )
+    ):
+        match = (
+            loc_pattern.search(
+                block
+            )
+        )
+
+        if not match:
+            continue
+
+        url = (
+            match.group(1)
+            .strip()
+        )
+
+        old_block = (
+            old_blocks.get(
+                url
+            )
+        )
+
+        if not old_block:
+            continue
+
+        if marker not in url:
+            continue
+
+        filename = (
+            url.split(
+                marker,
+                1
+            )[1]
+            .split(
+                "?",
+                1
+            )[0]
+            .split(
+                "#",
+                1
+            )[0]
+        )
+
+        if (
+            not filename
+            or "/" in filename
+            or "\\" in filename
+            or filename in {
+                ".",
+                "..",
+            }
+        ):
+            continue
+
+        current_page = (
+            ROOT /
+            "evenement" /
+            filename
+        )
+
+        generated_page = (
+            output_root /
+            "evenement" /
+            filename
+        )
+
+        if (
+            current_page.is_file()
+            and generated_page.is_file()
+            and sha256(
+                current_page
+            )
+            == sha256(
+                generated_page
+            )
+        ):
+            replacements[
+                url
+            ] = old_block
+
+    if not replacements:
+        return 0
+
+    def replace_block(match):
+        block = match.group(0)
+
+        loc = (
+            loc_pattern.search(
+                block
+            )
+        )
+
+        if not loc:
+            return block
+
+        url = (
+            loc.group(1)
+            .strip()
+        )
+
+        return replacements.get(
+            url,
+            block,
+        )
+
+    stabilized = (
+        block_pattern.sub(
+            replace_block,
+            new_text,
+        )
+    )
+
+    generated_sitemap.write_text(
+        stabilized,
+        encoding="utf-8",
+    )
+
+    return len(
+        replacements
+    )
+
+
 def preserve_pages(
     output_root,
 ):
@@ -413,6 +607,14 @@ def main():
         output_root
     )
 
+    sitemap_lastmod_preserved = (
+        preserve_unchanged_sitemap_lastmod(
+            output_root /
+            "sitemap-evenements.xml",
+            output_root,
+        )
+    )
+
     print(
         f"LEGACY_PRESERVED={legacy_count}"
     )
@@ -424,6 +626,11 @@ def main():
     print(
         "SITEMAP_URLS_PRESERVED="
         f"{sitemap_preserved}"
+    )
+
+    print(
+        "SITEMAP_LASTMOD_PRESERVED="
+        f"{sitemap_lastmod_preserved}"
     )
 
     return 0

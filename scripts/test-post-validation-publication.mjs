@@ -116,6 +116,16 @@ assert.match(
 
 assert.match(
   wrapper,
+  /SITEMAP_LASTMOD_PRESERVED/
+);
+
+assert.match(
+  wrapper,
+  /preserve_unchanged_sitemap_lastmod/
+);
+
+assert.match(
+  wrapper,
   /no-auto-matte\.sqlite3/
 );
 
