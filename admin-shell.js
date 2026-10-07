@@ -1803,6 +1803,66 @@
     }
   }
 
+  async function requestV11EventPublication(
+    eventId,
+    reason
+  ) {
+    const client =
+      context.getClient();
+
+    if (
+      !client
+      || !client.functions
+      || typeof client.functions.invoke !== "function"
+    ) {
+      console.warn(
+        "Dispatch publication V11 indisponible : client Supabase incomplet."
+      );
+
+      return false;
+    }
+
+    try {
+      const {
+        data,
+        error
+      } =
+        await client
+          .functions
+          .invoke(
+            "event-publication-dispatch",
+            {
+              body: {
+                event_id:
+                  eventId,
+
+                reason:
+                  reason
+              }
+            }
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      return (
+        data?.dispatched ===
+        true
+      );
+
+    } catch (error) {
+      console.warn(
+        "Dispatch publication V11 indisponible. "
+        + "Le job reste dans la file de secours.",
+        error
+      );
+
+      return false;
+    }
+  }
+
+
   async function refreshV11AfterEventAction(id) {
     await context.refresh();
 
@@ -1902,8 +1962,16 @@
           throw response.error;
         }
 
+        const publicationDispatched =
+          await requestV11EventPublication(
+            event.id,
+            "validation"
+          );
+
         v11ActionMessage(
-          "Événement validé."
+          publicationDispatched
+            ? "Événement validé · publication lancée."
+            : "Événement validé · publication en attente."
         );
 
         await refreshV11AfterEventAction(
@@ -1962,10 +2030,32 @@
           throw response.error;
         }
 
+        let publicationDispatched =
+          true;
+
+        if (
+          event.validated === true
+          && event.rejected !== true
+        ) {
+          publicationDispatched =
+            await requestV11EventPublication(
+              event.id,
+              "edit"
+            );
+        }
+
         v11ActionMessage(
-          nextValue
-            ? "Événement mis en avant."
-            : "Mise en avant retirée."
+          publicationDispatched
+            ? (
+                nextValue
+                  ? "Événement mis en avant · republication lancée."
+                  : "Mise en avant retirée · republication lancée."
+              )
+            : (
+                nextValue
+                  ? "Événement mis en avant · republication en attente."
+                  : "Mise en avant retirée · republication en attente."
+              )
         );
 
         await refreshV11AfterEventAction(
@@ -3221,8 +3311,24 @@
         editImage.value = payload.image_url || "";
       }
 
+      let publicationDispatched =
+        true;
+
+      if (
+        event.validated === true
+        && event.rejected !== true
+      ) {
+        publicationDispatched =
+          await requestV11EventPublication(
+            event.id,
+            "edit"
+          );
+      }
+
       v11ActionMessage(
-        "Événement modifié."
+        publicationDispatched
+          ? "Événement modifié · republication lancée."
+          : "Événement modifié · republication en attente."
       );
 
       closeV11EventEditor();
