@@ -1,6 +1,23 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
+const builder =
+  fs.readFileSync(
+    "scripts/build-static-agenda-previews.mjs",
+    "utf8"
+  );
+
+assert.match(
+  builder,
+  /new Date\(\s*snapshot\.capturedAt\s*\)/
+);
+
+assert.doesNotMatch(
+  builder,
+  /\.format\(new Date\(\)\)/
+);
+
+
 const targets = [
   ["home", "index.html", "results-count", "app.js"],
   ["salons", "salons-du-livre.html", "seo-count", "seo-pages.js"],

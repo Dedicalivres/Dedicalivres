@@ -18,10 +18,25 @@ const events = Array.isArray(snapshot.events)
   ? snapshot.events
   : [];
 
+const capturedAt =
+  new Date(
+    snapshot.capturedAt
+  );
+
+if (
+  Number.isNaN(
+    capturedAt.getTime()
+  )
+) {
+  throw new Error(
+    "capturedAt invalide dans le snapshot public"
+  );
+}
+
 const today = new Intl.DateTimeFormat(
   "sv-SE",
   { timeZone: "Europe/Paris" }
-).format(new Date());
+).format(capturedAt);
 
 const clean = value => String(value || "").trim();
 
