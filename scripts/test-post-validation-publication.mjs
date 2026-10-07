@@ -173,12 +173,17 @@ assert.match(
 
 assert.match(
   workflow,
-  /PYTHONPYCACHEPREFIX/
+  /PYTHONPYCACHEPREFIX=\$RUNNER_TEMP\/dedicalivres-pycache/
 );
 
 assert.match(
   workflow,
-  /runner\.temp.*dedicalivres-pycache/
+  /GITHUB_ENV/
+);
+
+assert.doesNotMatch(
+  workflow,
+  /PYTHONPYCACHEPREFIX:\s*\n\s*\$\{\{\s*runner\.temp/
 );
 
 assert.match(
