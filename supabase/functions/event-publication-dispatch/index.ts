@@ -4,43 +4,8 @@ const REPOSITORY =
 const WORKFLOW =
   "publish-events.yml";
 
-const ALLOWED_ORIGINS =
-  new Set([
-    "https://dedicalivres.fr",
-    "https://www.dedicalivres.fr",
-  ]);
-
-
-function corsHeaders(
-  req: Request,
-) {
-  const origin =
-    req.headers.get("Origin")
-    || "";
-
-  return {
-    "Access-Control-Allow-Origin":
-      ALLOWED_ORIGINS.has(origin)
-        ? origin
-        : "https://dedicalivres.fr",
-
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type",
-
-    "Access-Control-Allow-Methods":
-      "POST, OPTIONS",
-
-    "Content-Type":
-      "application/json",
-
-    "Vary":
-      "Origin",
-  };
-}
-
 
 function json(
-  req: Request,
   body: unknown,
   status = 200,
 ) {
@@ -48,214 +13,197 @@ function json(
     JSON.stringify(body),
     {
       status,
-      headers:
-        corsHeaders(req),
+
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
     },
   );
 }
 
 
-Deno.serve(
-  async (
-    req: Request,
-  ) => {
+function getServiceKey() {
+
+  const legacy =
+    Deno.env.get(
+      "SUPABASE_SERVICE_ROLE_KEY",
+    )
+    || "";
+
+  if (legacy) {
+    return legacy;
+  }
+
+
+  try {
+
+    const parsed =
+      JSON.parse(
+        Deno.env.get(
+          "SUPABASE_SECRET_KEYS",
+        )
+        || "{}",
+      );
+
+    const defaultKey =
+      parsed?.default;
 
     if (
-      req.method === "OPTIONS"
+      typeof defaultKey === "string"
+      && defaultKey
     ) {
-      return new Response(
-        "ok",
-        {
-          headers:
-            corsHeaders(req),
-        },
-      );
+      return defaultKey;
     }
 
 
-    if (
-      req.method !== "POST"
-    ) {
-      return json(
-        req,
-        {
-          error:
-            "method_not_allowed",
+    const first =
+      Object.values(parsed)
+        .find(
+          (value) =>
+            typeof value === "string"
+            && value.length > 0
+        );
+
+    return (
+      typeof first === "string"
+        ? first
+        : ""
+    );
+
+  } catch {
+
+    return "";
+  }
+}
+
+
+async function claimJob(
+  supabaseUrl: string,
+  serviceKey: string,
+  jobId: string,
+) {
+
+  const response =
+    await fetch(
+      supabaseUrl
+      + "/rest/v1/rpc/claim_event_publication_dispatch",
+      {
+        method:
+          "POST",
+
+        headers: {
+          apikey:
+            serviceKey,
+
+          Authorization:
+            "Bearer "
+            + serviceKey,
+
+          "Content-Type":
+            "application/json",
         },
-        405,
-      );
-    }
+
+        body:
+          JSON.stringify({
+            p_job_id:
+              jobId,
+          }),
+      },
+    );
 
 
-    const authorization =
-      req.headers.get(
-        "Authorization",
-      )
-      || "";
+  if (!response.ok) {
 
-    const apikey =
-      req.headers.get(
-        "apikey",
-      )
-      || "";
+    console.error(
+      "claim publication dispatch failed",
+      response.status,
+    );
 
-    const supabaseUrl =
-      Deno.env.get(
-        "SUPABASE_URL",
-      )
-      || "";
+    return null;
+  }
 
 
-    if (
-      !authorization.startsWith(
-        "Bearer "
-      )
-      || !apikey
-      || !supabaseUrl
-    ) {
-      return json(
-        req,
-        {
-          error:
-            "authentication_required",
+  const rows =
+    await response.json();
+
+
+  if (
+    !Array.isArray(rows)
+    || rows.length !== 1
+  ) {
+    return null;
+  }
+
+
+  return rows[0];
+}
+
+
+async function releaseJob(
+  supabaseUrl: string,
+  serviceKey: string,
+  jobId: string,
+) {
+
+  try {
+
+    await fetch(
+      supabaseUrl
+      + "/rest/v1/rpc/release_event_publication_dispatch",
+      {
+        method:
+          "POST",
+
+        headers: {
+          apikey:
+            serviceKey,
+
+          Authorization:
+            "Bearer "
+            + serviceKey,
+
+          "Content-Type":
+            "application/json",
         },
-        401,
-      );
-    }
+
+        body:
+          JSON.stringify({
+            p_job_id:
+              jobId,
+          }),
+      },
+    );
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "release publication dispatch failed",
+      error,
+    );
+  }
+}
 
 
-    const userResponse =
-      await fetch(
-        `${supabaseUrl}/auth/v1/user`,
-        {
-          headers: {
-            apikey,
+async function dispatchGithub(
+  githubToken: string,
+) {
 
-            Authorization:
-              authorization,
-          },
-        },
-      );
-
-
-    if (!userResponse.ok) {
-      return json(
-        req,
-        {
-          error:
-            "invalid_session",
-        },
-        401,
-      );
-    }
-
-
-    const user =
-      await userResponse.json();
-
-
-    if (!user?.id) {
-      return json(
-        req,
-        {
-          error:
-            "invalid_session",
-        },
-        401,
-      );
-    }
-
-
-    const adminResponse =
-      await fetch(
-        `${supabaseUrl}/rest/v1/admin_users`
-        + `?user_id=eq.${encodeURIComponent(user.id)}`
-        + "&select=user_id"
-        + "&limit=1",
-        {
-          headers: {
-            apikey,
-
-            Authorization:
-              authorization,
-
-            Accept:
-              "application/json",
-          },
-        },
-      );
-
-
-    if (!adminResponse.ok) {
-      return json(
-        req,
-        {
-          error:
-            "admin_check_failed",
-        },
-        500,
-      );
-    }
-
-
-    const admins =
-      await adminResponse.json();
-
-
-    if (
-      !Array.isArray(admins)
-      || admins.length !== 1
-    ) {
-      return json(
-        req,
-        {
-          error:
-            "admin_required",
-        },
-        403,
-      );
-    }
-
-
-    let body: {
-      event_id?: string;
-      reason?: string;
-    } = {};
-
-
-    try {
-      body =
-        await req.json();
-
-    } catch {
-      body = {};
-    }
-
-
-    const githubToken =
-      Deno.env.get(
-        "GITHUB_DISPATCH_TOKEN",
-      );
-
-
-    if (!githubToken) {
-      return json(
-        req,
-        {
-          error:
-            "dispatch_not_configured",
-
-          queued:
-            true,
-        },
-        503,
-      );
-    }
-
+  for (
+    let attempt = 1;
+    attempt <= 2;
+    attempt += 1
+  ) {
 
     const response =
       await fetch(
-        `https://api.github.com/repos/${REPOSITORY}/actions/workflows/${WORKFLOW}/dispatches`,
+        "https://api.github.com/repos/"
+        + REPOSITORY
+        + "/actions/workflows/"
+        + WORKFLOW
+        + "/dispatches",
         {
           method:
             "POST",
@@ -265,7 +213,8 @@ Deno.serve(
               "application/vnd.github+json",
 
             Authorization:
-              `Bearer ${githubToken}`,
+              "Bearer "
+              + githubToken,
 
             "X-GitHub-Api-Version":
               "2022-11-28",
@@ -283,26 +232,184 @@ Deno.serve(
       );
 
 
-    if (!response.ok) {
-      console.error(
-        "GitHub dispatch failed",
-        response.status,
-        (
-          await response.text()
-        ).slice(
-          0,
-          500,
-        ),
+    if (response.ok) {
+      return true;
+    }
+
+
+    console.error(
+      "GitHub dispatch failed",
+      response.status,
+      "attempt",
+      attempt,
+    );
+
+
+    if (attempt < 2) {
+
+      await new Promise(
+        (resolve) =>
+          setTimeout(
+            resolve,
+            1000,
+          ),
       );
+    }
+  }
+
+
+  return false;
+}
+
+
+Deno.serve(
+  async (
+    req: Request,
+  ) => {
+
+    if (
+      req.method !== "POST"
+    ) {
 
       return json(
-        req,
         {
           error:
-            "github_dispatch_failed",
+            "method_not_allowed",
+        },
+        405,
+      );
+    }
 
+
+    let body: {
+      job_id?: string;
+    } = {};
+
+
+    try {
+
+      body =
+        await req.json();
+
+    } catch {
+
+      return json(
+        {
+          error:
+            "invalid_json",
+        },
+        400,
+      );
+    }
+
+
+    const jobId =
+      String(
+        body.job_id
+        || "",
+      );
+
+
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        .test(
+          jobId,
+        )
+    ) {
+
+      return json(
+        {
+          error:
+            "invalid_job_id",
+        },
+        400,
+      );
+    }
+
+
+    const supabaseUrl =
+      Deno.env.get(
+        "SUPABASE_URL",
+      )
+      || "";
+
+    const serviceKey =
+      getServiceKey();
+
+    const githubToken =
+      Deno.env.get(
+        "GITHUB_DISPATCH_TOKEN",
+      )
+      || "";
+
+
+    if (
+      !supabaseUrl
+      || !serviceKey
+      || !githubToken
+    ) {
+
+      return json(
+        {
+          error:
+            "server_configuration_missing",
+        },
+        503,
+      );
+    }
+
+
+    const job =
+      await claimJob(
+        supabaseUrl,
+        serviceKey,
+        jobId,
+      );
+
+
+    if (!job) {
+
+      return json(
+        {
           queued:
             true,
+
+          dispatched:
+            false,
+
+          reason:
+            "job_not_dispatchable",
+        },
+        200,
+      );
+    }
+
+
+    const dispatched =
+      await dispatchGithub(
+        githubToken,
+      );
+
+
+    if (!dispatched) {
+
+      await releaseJob(
+        supabaseUrl,
+        serviceKey,
+        jobId,
+      );
+
+
+      return json(
+        {
+          queued:
+            true,
+
+          dispatched:
+            false,
+
+          error:
+            "github_dispatch_failed",
         },
         502,
       );
@@ -310,7 +417,6 @@ Deno.serve(
 
 
     return json(
-      req,
       {
         queued:
           true,
@@ -318,13 +424,14 @@ Deno.serve(
         dispatched:
           true,
 
+        job_id:
+          jobId,
+
         event_id:
-          body.event_id
-          || null,
+          job.event_id,
 
         reason:
-          body.reason
-          || null,
+          job.reason,
       },
       202,
     );
