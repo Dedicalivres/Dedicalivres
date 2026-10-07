@@ -1810,13 +1810,19 @@
     const client =
       context.getClient();
 
+    const config =
+      window.DEDICALIVRES_CONFIG
+      || {};
+
     if (
       !client
-      || !client.functions
-      || typeof client.functions.invoke !== "function"
+      || !client.auth
+      || typeof client.auth.getSession !== "function"
+      || !config.supabaseUrl
+      || !config.supabaseAnonKey
     ) {
       console.warn(
-        "Dispatch publication V11 indisponible : client Supabase incomplet."
+        "Dispatch publication V11 indisponible : configuration ou session incomplète."
       );
 
       return false;
@@ -1827,33 +1833,80 @@
         data,
         error
       } =
-        await client
-          .functions
-          .invoke(
-            "event-publication-dispatch",
-            {
-              body: {
-                event_id:
-                  eventId,
-
-                reason:
-                  reason
-              }
-            }
-          );
+        await client.auth.getSession();
 
       if (error) {
         throw error;
       }
 
+      const accessToken =
+        data?.session?.access_token
+        || "";
+
+      if (!accessToken) {
+        throw new Error(
+          "Session admin absente"
+        );
+      }
+
+      const response =
+        await fetch(
+          config.supabaseUrl
+          + "/functions/v1/event-publication-dispatch",
+          {
+            method:
+              "POST",
+
+            headers: {
+              Authorization:
+                "Bearer " + accessToken,
+
+              apikey:
+                config.supabaseAnonKey,
+
+              "Content-Type":
+                "application/json"
+            },
+
+            body:
+              JSON.stringify({
+                event_id:
+                  eventId,
+
+                reason:
+                  reason
+              })
+          }
+        );
+
+      let payload = {};
+
+      try {
+        payload =
+          await response.json();
+
+      } catch {
+        payload = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.error
+          || (
+            "Dispatch HTTP "
+            + String(response.status)
+          )
+        );
+      }
+
       return (
-        data?.dispatched ===
+        payload?.dispatched ===
         true
       );
 
     } catch (error) {
       console.warn(
-        "Dispatch publication V11 indisponible. "
+        "Dispatch publication V11 impossible. "
         + "Le job reste dans la file de secours.",
         error
       );
