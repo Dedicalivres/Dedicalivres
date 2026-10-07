@@ -45,4 +45,4 @@ end
 $$;
 
 create index if not exists authors_merged_into_idx
-  on public.authors (merged_into);
+  on public.authors (merged_into);;

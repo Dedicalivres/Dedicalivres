@@ -161,3 +161,4 @@ commit;
 
 -- Rollback reference (manual, after reverting the application code):
 -- drop function if exists public.submit_admin_watch_candidate(uuid, bigint);
+;

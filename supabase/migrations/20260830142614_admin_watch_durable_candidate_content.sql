@@ -1,5 +1,3 @@
-begin;
-
 alter table public.admin_watch_candidates
   add column type text,
   add column end_date date,
@@ -19,17 +17,4 @@ comment on column public.admin_watch_candidates.end_date is
 comment on column public.admin_watch_candidates.country is
   'Human-reviewable event country; nullable while the candidate remains in review.';
 comment on column public.admin_watch_candidates.description is
-  'Bounded candidate description only; never store full fetched pages or HTML captures.';
-
-commit;
-
--- Rollback reference (manual, only after application code rollback and data review):
--- alter table public.admin_watch_candidates
---   drop column image_url,
---   drop column official_url,
---   drop column description,
---   drop column address,
---   drop column venue,
---   drop column country,
---   drop column end_date,
---   drop column type;
+  'Bounded candidate description only; never store full fetched pages or HTML captures.';;

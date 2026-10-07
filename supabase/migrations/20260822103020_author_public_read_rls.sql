@@ -9,4 +9,4 @@ using (
   validated = true
   and published = true
   and merged_into is null
-);
+);;

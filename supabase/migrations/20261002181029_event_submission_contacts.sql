@@ -147,3 +147,4 @@ revoke all on function public.submit_event_with_contact(jsonb, text, text) from 
 grant execute on function public.submit_event_with_contact(jsonb, text, text) to anon, authenticated;
 
 commit;
+;

@@ -32,8 +32,6 @@ begin
 end
 $$;
 
--- Fail closed: les décisions V1 stockées dans le navigateur ne constituent pas
--- une preuve serveur. Toute fiche doit être revue après cette migration.
 update public.authors
 set
   published = false,
@@ -132,7 +130,6 @@ using (
   and merged_into is null
 );
 
--- Les champs de décision et les identifiants admin restent inaccessibles à anon.
 revoke select on public.authors from anon;
 grant select (
   id, pseudo, slug, website, bio, avatar_url, location, shop_url,
@@ -144,4 +141,4 @@ comment on column public.authors.editorial_status is
 comment on column public.authors.editorial_review is
   'Décisions internes persistées, dont ambiguïtés et rapprochements ignorés.';
 
-commit;
+commit;;

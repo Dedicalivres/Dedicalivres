@@ -54,105 +54,77 @@ create table if not exists public.event_publication_jobs (
   last_error text
 );
 
-
 comment on table public.event_publication_jobs is
   'File technique de publication statique. '
   'La décision events.validated reste humaine.';
 
-
 alter table public.event_publication_jobs
   enable row level security;
-
 
 drop policy if exists
   "Admins can read event publication jobs"
   on public.event_publication_jobs;
 
-
 create policy
   "Admins can read event publication jobs"
-
   on public.event_publication_jobs
-
   for select
-
   to authenticated
-
   using (
     private.is_admin()
   );
-
 
 revoke all
   on public.event_publication_jobs
   from anon;
 
-
 revoke insert, update, delete
   on public.event_publication_jobs
   from authenticated;
-
 
 grant select
   on public.event_publication_jobs
   to authenticated;
 
-
 grant all
   on public.event_publication_jobs
   to service_role;
 
-
 create index if not exists
   event_publication_jobs_status_requested_idx
-
   on public.event_publication_jobs (
     status,
     requested_at
   );
 
-
 create index if not exists
   event_publication_jobs_event_idx
-
   on public.event_publication_jobs (
     event_id,
     requested_at desc
   );
 
-
 create unique index if not exists
   event_publication_jobs_one_pending_per_event_idx
-
   on public.event_publication_jobs (
     event_id
   )
-
   where
     event_id is not null
     and status = 'PENDING';
 
-
 create or replace function
   private.queue_event_publication_job()
-
 returns trigger
-
 language plpgsql
-
 security definer
-
 set search_path = public, private, auth
-
 as $function$
-
 declare
   old_is_public boolean := false;
   new_is_public boolean := false;
   job_reason text := null;
-
 begin
-
   new_is_public :=
     coalesce(
       new.validated,
@@ -163,9 +135,7 @@ begin
       false
     );
 
-
   if tg_op = 'UPDATE' then
-
     old_is_public :=
       coalesce(
         old.validated,
@@ -175,23 +145,17 @@ begin
         old.rejected,
         false
       );
-
   end if;
-
 
   if not new_is_public then
     return new;
   end if;
 
-
   if
     tg_op = 'INSERT'
     or not old_is_public
-
   then
-
     job_reason := 'validation';
-
 
   elsif (
     new.title,
@@ -217,9 +181,7 @@ begin
     new.registration_note,
     new.registration_force_status
   )
-
   is distinct from
-
   (
     old.title,
     old.type,
@@ -244,18 +206,13 @@ begin
     old.registration_note,
     old.registration_force_status
   )
-
   then
-
     job_reason := 'edit';
-
   end if;
-
 
   if job_reason is null then
     return new;
   end if;
-
 
   insert into public.event_publication_jobs (
     event_id,
@@ -264,7 +221,6 @@ begin
     requested_at,
     requested_by
   )
-
   values (
     new.id,
     job_reason,
@@ -272,56 +228,40 @@ begin
     now(),
     auth.uid()
   )
-
   on conflict (event_id)
-
     where
       event_id is not null
       and status = 'PENDING'
-
   do update
-
     set
       reason =
         excluded.reason,
-
       requested_at =
         excluded.requested_at,
-
       requested_by =
         coalesce(
           excluded.requested_by,
           public.event_publication_jobs.requested_by
         ),
-
       last_error =
         null;
 
-
   return new;
-
 end;
-
 $function$;
-
 
 revoke all
   on function private.queue_event_publication_job()
   from public;
 
-
 drop trigger if exists
   events_queue_static_publication
   on public.events;
 
-
 create trigger
   events_queue_static_publication
-
 after insert or update
 on public.events
-
 for each row
-
 execute function
-  private.queue_event_publication_job();
+  private.queue_event_publication_job();;

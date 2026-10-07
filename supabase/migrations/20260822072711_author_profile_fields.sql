@@ -32,4 +32,4 @@ comment on column public.authors.shop_url is
 comment on column public.authors.profile_type is
   'Type de profil auteur : author, artist_author ou hybrid.';
 
-commit;
+commit;;

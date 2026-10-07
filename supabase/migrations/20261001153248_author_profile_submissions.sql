@@ -296,3 +296,4 @@ commit;
 -- drop table if exists public.author_profile_submissions;
 -- revoke select (updated_at) on public.authors from anon;
 -- commit;
+;
