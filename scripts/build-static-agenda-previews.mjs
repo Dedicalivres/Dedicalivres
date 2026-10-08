@@ -168,6 +168,70 @@ function selectEvents(types) {
     .slice(0, 12);
 }
 
+const normalizeCity = value =>
+  clean(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("fr");
+
+function cityEvents(city) {
+  return events.filter(
+    event =>
+      event.validated === true &&
+      event.rejected === false &&
+      normalizeCity(event.city) ===
+        normalizeCity(city)
+  );
+}
+
+function citySelection(rows) {
+  const future = rows
+    .filter(upcoming)
+    .sort((a, b) => {
+      const da = clean(
+        a.start_date || "9999-12-31"
+      );
+      const db = clean(
+        b.start_date || "9999-12-31"
+      );
+      return da.localeCompare(db) ||
+        clean(a.title).localeCompare(
+          clean(b.title),
+          "fr"
+        );
+    });
+
+  if (future.length) {
+    return {
+      mode: "upcoming",
+      rows: future.slice(0, 12)
+    };
+  }
+
+  if (rows.length) {
+    return {
+      mode: "archive",
+      rows: [...rows]
+        .sort((a, b) => {
+          const da = clean(
+            a.end_date || a.start_date
+          );
+          const db = clean(
+            b.end_date || b.start_date
+          );
+          return db.localeCompare(da) ||
+            clean(a.title).localeCompare(
+              clean(b.title),
+              "fr"
+            );
+        })
+        .slice(0, 6)
+    };
+  }
+
+  return { mode: "empty", rows: [] };
+}
+
 function typeClass(type) {
   return {
     Salon: "type-salon",
@@ -303,5 +367,76 @@ ${end}`;
 
   console.log(
     `PASS ${target.file} : ${rows.length} liens statiques`
+  );
+}
+
+const cityPages = fs.readdirSync(".")
+  .filter(
+    file =>
+      /^evenements-litteraires-.*\.html$/.test(
+        file
+      )
+  )
+  .map(file => ({
+    file,
+    html: fs.readFileSync(file, "utf8")
+  }))
+  .filter(page => /data-city="[^"]+"/.test(page.html))
+  .sort((a, b) => a.file.localeCompare(b.file));
+
+if (cityPages.length !== 20) {
+  throw new Error(
+    `20 pages ville attendues, ${cityPages.length} trouvées`
+  );
+}
+
+for (const page of cityPages) {
+  const city = page.html.match(
+    /data-city="([^"]+)"/
+  )[1];
+  const allRows = cityEvents(city);
+  const selected = citySelection(allRows);
+  const key = page.file
+    .replace(/^evenements-litteraires-/, "")
+    .replace(/\.html$/, "");
+  const start =
+    `<!-- STATIC-EVENT-PREVIEW:city-${key}:START -->`;
+  const end =
+    `<!-- STATIC-EVENT-PREVIEW:city-${key}:END -->`;
+  const content = selected.mode === "empty"
+    ? `<article class="empty-state" data-static-event-preview="true">
+  <p>Aucun événement actuellement référencé à ${escapeHtml(city)}.</p>
+  <p><a href="soumettre.html">Proposer un événement</a></p>
+</article>`
+    : `${selected.mode === "archive" ? '<p class="static-event-preview-label">Événements récemment référencés</p>\n' : ""}${selected.rows.map(card).join("\n")}`;
+  const block =
+`${start}
+<div id="seo-events" class="events-grid">
+${content}
+</div>
+${end}`;
+  const markers = new RegExp(
+    `<!-- STATIC-EVENT-PREVIEW:city-${key}:START -->[\\s\\S]*?<!-- STATIC-EVENT-PREVIEW:city-${key}:END -->`
+  );
+  let html = page.html;
+
+  if (markers.test(html)) {
+    html = html.replace(markers, block);
+  } else {
+    const emptyGrid =
+      /<div\b[^>]*\bid="seo-events"[^>]*>\s*<\/div>/;
+
+    if (!emptyGrid.test(html)) {
+      throw new Error(
+        `Grille ville introuvable : ${page.file}`
+      );
+    }
+
+    html = html.replace(emptyGrid, block);
+  }
+
+  fs.writeFileSync(page.file, html);
+  console.log(
+    `PASS ${page.file} : ${allRows.length} public(s), ${selected.rows.length} carte(s), mode ${selected.mode}`
   );
 }
