@@ -152,9 +152,24 @@ assert.match(migration, /grant insert on public\.crawler_visits to anon, authent
 assert.match(migration, /grant select on public\.crawler_visits to authenticated/);
 assert.match(migration, /for insert\s+to anon, authenticated\s+with check/s);
 assert.match(migration, /origin_table is null\s+and origin_id is null/s);
+assert.match(migration, /origin_table is not null\s+and origin_id is not null/s);
 assert.match(migration, /create unique index crawler_visits_origin_unique_idx/);
 assert.match(migration, /using \(\(select private\.is_admin\(\)\)\)/);
 assert.doesNotMatch(migration, /grant (?:update|delete|truncate)/i);
 assert.doesNotMatch(migration, /security definer/i);
+
+const validOriginPair = (originTable, originId) => (
+  (originTable === null && originId === null)
+  || (
+    originTable !== null
+    && originId !== null
+    && ["site_visits", "event_visits", "visits"].includes(originTable)
+    && originId.trim().length > 0
+  )
+);
+assert.equal(validOriginPair(null, null), true);
+assert.equal(validOriginPair("site_visits", "visit-1"), true);
+assert.equal(validOriginPair("site_visits", null), false);
+assert.equal(validOriginPair(null, "visit-1"), false);
 
 console.log("PASS tracking crawlers : compteur séparé, humains et NFC préservés");

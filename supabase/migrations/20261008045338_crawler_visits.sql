@@ -30,7 +30,9 @@ create table public.crawler_visits (
     check (
       (origin_table is null and origin_id is null)
       or (
-        origin_table in ('site_visits', 'event_visits', 'visits')
+        origin_table is not null
+        and origin_id is not null
+        and origin_table in ('site_visits', 'event_visits', 'visits')
         and char_length(trim(origin_id)) > 0
       )
     )
