@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {classify,qualify,territoryFor,validDate,duplicateGroups,fetchPublicEvents,normalize} from './territorial-catalog.mjs';
+import {territories} from './territorial-directory.mjs';
 
 const canonicalMap = JSON.parse(
   fs.readFileSync('docs/territoires/event-canonical-map.json', 'utf8')
@@ -25,6 +26,17 @@ assert.equal(qualify([base,{...base,id:'b'}],registry,{},'2026-09-22').accepted.
 assert.equal(qualify([{...base,rejected:true}],registry,{},'2026-09-22').accepted.length,0);
 assert.equal(normalize('Événement'),normalize('Evenement'));
 const snapshot=JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json'));
+const sitemap=fs.readFileSync('sitemap.xml','utf8');
+const sitemapEntries=[...sitemap.matchAll(/<url>\s*<loc>([^<]+)<\/loc>\s*(?:<lastmod>([^<]+)<\/lastmod>\s*)?(?:<priority>([^<]+)<\/priority>\s*)?<\/url>/g)].map(match=>({loc:match[1],lastmod:match[2],priority:match[3]}));
+const sitemapLocs=sitemapEntries.map(entry=>entry.loc);
+const expectedTerritorialLastmod=snapshot.capturedAt.slice(0,10);
+assert.equal(territories.length,21,'21 territoires attendus');
+for(const p of territories){
+ const matches=sitemapEntries.filter(entry=>entry.loc===p.canonical);
+ assert.equal(matches.length,1,`${p.canonical}: présence unique dans sitemap.xml`);
+ assert.equal(matches[0].lastmod,expectedTerritorialLastmod,`${p.canonical}: lastmod du snapshot`);
+}
+assert.equal(new Set(sitemapLocs).size,sitemapLocs.length,'Aucun doublon <loc> dans sitemap.xml');
 const audit=JSON.parse(fs.readFileSync('docs/territoires/audit.json'));
 const source=new Map(snapshot.events.map(e=>[e.id,e]));
 const countryLocation=p=>({FR:'en France',BE:'en Belgique',CH:'en Suisse',LU:'au Luxembourg',MC:'à Monaco'}[p.code]||`en ${p.country}`);
