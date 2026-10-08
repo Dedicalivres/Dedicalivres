@@ -11,6 +11,7 @@
   "use strict";
 
   window.DEDICALIVRES_TRACKING = {
+    isAutomatedAgent,
     normalizePath,
     getTrackedPath,
     getEventId
@@ -34,10 +35,52 @@
   const trackedPath = getTrackedPath();
   const eventId = getEventId();
 
-  if (eventId) trackEventVisit(eventId, trackedPath);
-  else trackSiteVisit(trackedPath);
+  if (!isAutomatedAgent(navigator.userAgent)) {
+    if (eventId) trackEventVisit(eventId, trackedPath);
+    else trackSiteVisit(trackedPath);
+  }
   trackNfcArrival();
   installNfcActivationTracking();
+
+  function isAutomatedAgent(userAgent) {
+    const value = String(userAgent || "").toLowerCase();
+    const markers = [
+      "meta-webindexer",
+      "meta-externalagent",
+      "facebookexternalhit",
+      "googlebot",
+      "adsbot-google",
+      "bingbot",
+      "bingpreview",
+      "duckduckbot",
+      "yandexbot",
+      "baiduspider",
+      "ahrefsbot",
+      "semrushbot",
+      "mj12bot",
+      "dotbot",
+      "petalbot",
+      "applebot",
+      "gptbot",
+      "oai-searchbot",
+      "chatgpt-user",
+      "claudebot",
+      "claude-searchbot",
+      "claude-user",
+      "bytespider",
+      "perplexitybot",
+      "amazonbot",
+      "qwantbot",
+      "certsignalbot",
+      "linkedinbot",
+      "twitterbot",
+      "hubspot crawler",
+      "crawler",
+      "spider"
+    ];
+
+    return markers.some((marker) => value.includes(marker));
+  }
 
   async function trackSiteVisit(path) {
     try {
