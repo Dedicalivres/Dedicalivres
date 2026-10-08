@@ -63,10 +63,24 @@ for(const p of audit.territorialPages){
  const structured=JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
  assert.equal(structured['@type'],'CollectionPage');
  assert.equal(structured.url,p.canonical);
+ assert.equal(structured.dateModified,snapshot.capturedAt.slice(0,10));
  assert.equal(structured.isPartOf?.name,'Dédicalivres');
  assert.equal(structured.about?.name,p.label);
  if(p.kind==='region')assert.equal(structured.about?.containedInPlace?.name,p.country);
- assert.equal(structured.breadcrumb?.itemListElement?.at(-1)?.item,p.canonical);
+ const breadcrumbs=structured.breadcrumb?.itemListElement;
+ assert.equal(breadcrumbs?.at(-1)?.item,p.canonical);
+ if(p.kind==='country'){
+  assert.equal(breadcrumbs.length,1);
+  assert.equal(breadcrumbs[0].item,p.canonical);
+ }else{
+  const countryTerritory=territories.find(candidate=>candidate.kind==='country'&&candidate.code===p.code);
+  assert(countryTerritory,`${p.label}: territoire pays absent`);
+  assert.equal(breadcrumbs.length,2);
+  assert.equal(breadcrumbs[0].name,p.country);
+  assert.equal(breadcrumbs[0].item,countryTerritory.canonical);
+  assert(!breadcrumbs[0].item.endsWith('.html'));
+  assert.equal(breadcrumbs[1].item,p.canonical);
+ }
  if(p.kind==='region')assert(html.includes(`href="${p.countryUrl}"`));
  assert(html.includes('href="index.html#agenda"'));
  const intro=html.match(/<section class="territory-hero">[\s\S]*?<h1>[^<]+<\/h1><p>([^<]+)<\/p>/)[1];
