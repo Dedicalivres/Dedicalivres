@@ -11,6 +11,8 @@
   "use strict";
 
   window.DEDICALIVRES_TRACKING = {
+    classifyAutomatedAgent,
+    isAutomatedAgent,
     normalizePath,
     getTrackedPath,
     getEventId
@@ -33,11 +35,90 @@
 
   const trackedPath = getTrackedPath();
   const eventId = getEventId();
+  const crawler = classifyAutomatedAgent(navigator.userAgent);
 
-  if (eventId) trackEventVisit(eventId, trackedPath);
-  else trackSiteVisit(trackedPath);
+  if (crawler) {
+    trackCrawlerVisit(crawler, eventId, trackedPath);
+  } else {
+    if (eventId) trackEventVisit(eventId, trackedPath);
+    else trackSiteVisit(trackedPath);
+  }
   trackNfcArrival();
   installNfcActivationTracking();
+
+  function isAutomatedAgent(userAgent) {
+    return Boolean(classifyAutomatedAgent(userAgent));
+  }
+
+  function classifyAutomatedAgent(userAgent) {
+    const value = String(userAgent || "").toLowerCase();
+    const agents = [
+      ["meta-webindexer", "social", "Meta"],
+      ["meta-externalagent", "social", "Meta"],
+      ["facebookexternalhit", "social", "Meta"],
+      ["googlebot", "search", "Google"],
+      ["adsbot-google", "search", "Google"],
+      ["bingbot", "search", "Bing"],
+      ["bingpreview", "search", "Bing"],
+      ["duckduckbot", "search", "DuckDuckGo"],
+      ["yandexbot", "search", "Yandex"],
+      ["baiduspider", "search", "Baidu"],
+      ["petalbot", "search", "Petal"],
+      ["applebot", "search", "Apple"],
+      ["qwantbot", "search", "Qwant"],
+      ["gptbot", "ai", "OpenAI"],
+      ["oai-searchbot", "ai", "OpenAI"],
+      ["chatgpt-user", "ai", "OpenAI"],
+      ["claudebot", "ai", "Anthropic"],
+      ["claude-searchbot", "ai", "Anthropic"],
+      ["claude-user", "ai", "Anthropic"],
+      ["perplexitybot", "ai", "Perplexity"],
+      ["bytespider", "ai", "ByteDance"],
+      ["amazonbot", "ai", "Amazon"],
+      ["ahrefsbot", "seo", "Ahrefs"],
+      ["semrushbot", "seo", "Semrush"],
+      ["mj12bot", "seo", "Majestic"],
+      ["dotbot", "seo", "DotBot"],
+      ["certsignalbot", "seo", "CertSignal"],
+      ["hubspot crawler", "seo", "HubSpot"],
+      ["linkedinbot", "social", "LinkedIn"],
+      ["twitterbot", "social", "Twitter"],
+      ["crawler", "other", "Other"],
+      ["spider", "other", "Other"]
+    ];
+
+    const match = agents.find(([marker]) => value.includes(marker));
+    return match
+      ? { agent: match[0], category: match[1], family: match[2] }
+      : null;
+  }
+
+  async function trackCrawlerVisit(crawler, eventId, path) {
+    try {
+      const key = `dedicalivres_crawler_visit_${crawler.agent}_${path}`;
+
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+
+      const { error } = await client.from("crawler_visits").insert([
+        {
+          visit_kind: eventId ? "event" : "site",
+          event_id: eventId || null,
+          page: document.title || null,
+          path,
+          referrer: document.referrer || null,
+          user_agent: navigator.userAgent,
+          crawler_category: crawler.category,
+          crawler_family: crawler.family,
+          crawler_agent: crawler.agent
+        }
+      ]);
+
+      if (error) throw error;
+    } catch (error) {
+      console.warn("Tracking crawler non enregistré :", error);
+    }
+  }
 
   async function trackSiteVisit(path) {
     try {
