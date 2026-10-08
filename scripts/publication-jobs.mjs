@@ -41,6 +41,15 @@ const legacyEvents =
   || {};
 
 
+const canonicalMap =
+  JSON.parse(
+    fs.readFileSync(
+      "docs/territoires/event-canonical-map.json",
+      "utf8"
+    )
+  );
+
+
 if (
   Object.keys(
     legacyEvents
@@ -49,6 +58,57 @@ if (
   throw new Error(
     "Le manifeste legacy doit contenir 282 événements"
   );
+}
+
+
+
+function targetEventId(
+  row
+) {
+  return String(
+    row?.target_event_id
+    || row?.event_id
+    || ""
+  );
+}
+
+
+function isDepublicationReason(
+  reason
+) {
+  return (
+    reason === "unpublish"
+    || reason === "delete"
+  );
+}
+
+
+function canonicalDepublicationPath(
+  row
+) {
+  const identifier =
+    targetEventId(
+      row
+    );
+
+  const value =
+    canonicalMap[
+      identifier
+    ];
+
+
+  if (
+    typeof value !== "string"
+    || !/^evenement\/[^/]+\.html$/.test(
+      value
+    )
+    || value === "evenement/index.html"
+  ) {
+    return null;
+  }
+
+
+  return value;
 }
 
 
@@ -158,6 +218,10 @@ function publicationJobFilter(
     path +=
       "&reason=eq.manual"
       + "&event_id=is.null";
+
+  } else {
+    path +=
+      "&reason=neq.manual";
   }
 
 
@@ -273,12 +337,24 @@ async function recoverStaleJobs() {
 async function blockLegacyJob(
   row
 ) {
+  if (
+    isDepublicationReason(
+      row.reason
+    )
+  ) {
+    return false;
+  }
+
+
+  const identifier =
+    targetEventId(
+      row
+    );
+
+
   const filename =
     legacyEvents[
-      String(
-        row.event_id
-        || ""
-      ).toLowerCase()
+      identifier.toLowerCase()
     ];
 
 
@@ -317,7 +393,69 @@ async function blockLegacyJob(
 
 
   console.log(
-    `BLOCKED legacy : ${row.event_id} -> ${filename}`
+    `BLOCKED legacy : ${identifier} -> ${filename}`
+  );
+
+
+  return true;
+}
+
+
+async function blockInvalidDepublicationJob(
+  row
+) {
+  if (
+    !isDepublicationReason(
+      row.reason
+    )
+  ) {
+    return false;
+  }
+
+
+  const identifier =
+    targetEventId(
+      row
+    );
+
+
+  if (
+    canonicalDepublicationPath(
+      row
+    )
+  ) {
+    return false;
+  }
+
+
+  await patchJob(
+    row.id,
+    {
+      status:
+        "BLOCKED",
+
+      started_at:
+        null,
+
+      finished_at:
+        new Date()
+          .toISOString(),
+
+      batch_id:
+        null,
+
+      commit_sha:
+        null,
+
+      last_error:
+        "Dépublication bloquée : chemin canonical absent ou invalide pour target_event_id="
+        + identifier,
+    },
+  );
+
+
+  console.log(
+    `BLOCKED canonical : ${identifier}`
   );
 
 
@@ -329,12 +467,23 @@ async function claim() {
   await recoverStaleJobs();
 
 
+  setOutput(
+    "depublish_event_ids",
+    "[]"
+  );
+
+  setOutput(
+    "depublish_paths",
+    "[]"
+  );
+
+
   const rows =
     await request(
       publicationJobFilter(
         "PENDING"
       )
-      + "&select=id,event_id,reason,attempt_count,requested_at"
+      + "&select=id,event_id,target_event_id,reason,attempt_count,requested_at"
       + "&order=requested_at.asc"
       + "&limit=500"
     );
@@ -379,6 +528,7 @@ async function claim() {
       rows.filter(
         (row) =>
           row.event_id !== null
+          || row.target_event_id !== null
           || row.reason !== "manual"
       );
 
@@ -408,8 +558,18 @@ async function claim() {
     of rows
   ) {
     if (
-      row.event_id
-      && await blockLegacyJob(
+      await blockInvalidDepublicationJob(
+        row
+      )
+    ) {
+      blockedCount += 1;
+
+      continue;
+    }
+
+
+    if (
+      await blockLegacyJob(
         row
       )
     ) {
@@ -456,6 +616,69 @@ async function claim() {
 
     return;
   }
+
+
+
+  const depublishEventIds =
+    [
+      ...new Set(
+        publishable
+          .filter(
+            (row) =>
+              isDepublicationReason(
+                row.reason
+              )
+          )
+          .map(
+            (row) =>
+              targetEventId(
+                row
+              )
+          )
+          .filter(Boolean)
+      ),
+    ];
+
+
+  const depublishPaths =
+    [
+      ...new Set(
+        depublishEventIds
+          .map(
+            (identifier) =>
+              canonicalDepublicationPath({
+                target_event_id:
+                  identifier,
+              })
+          )
+      ),
+    ];
+
+
+  if (
+    depublishEventIds.length
+    !== depublishPaths.length
+  ) {
+    throw new Error(
+      "STOP : incohérence entre événements et chemins de dépublication"
+    );
+  }
+
+
+  setOutput(
+    "depublish_event_ids",
+    JSON.stringify(
+      depublishEventIds
+    )
+  );
+
+
+  setOutput(
+    "depublish_paths",
+    JSON.stringify(
+      depublishPaths
+    )
+  );
 
 
   const batchId =

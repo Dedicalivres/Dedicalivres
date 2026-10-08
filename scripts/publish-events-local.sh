@@ -101,13 +101,54 @@ fi
 echo
 echo "=== GARDE-FOU URL HISTORIQUES ==="
 
-python3 - "$ROOT" "$EXPORT" <<'PY'
+python3 - \
+  "$ROOT" \
+  "$EXPORT" \
+  "${PUBLICATION_DEPUBLISH_PATHS:-[]}" <<'PY'
 from pathlib import Path
+import json
 import sys
 import xml.etree.ElementTree as ET
 
 root = Path(sys.argv[1])
 export = Path(sys.argv[2])
+
+try:
+    raw_authorized = json.loads(
+        sys.argv[3] or "[]"
+    )
+except json.JSONDecodeError as exc:
+    raise SystemExit(
+        "STOP : PUBLICATION_DEPUBLISH_PATHS invalide."
+    ) from exc
+
+if not isinstance(raw_authorized, list):
+    raise SystemExit(
+        "STOP : PUBLICATION_DEPUBLISH_PATHS doit être un tableau JSON."
+    )
+
+authorized_names = set()
+
+for value in raw_authorized:
+    path = Path(
+        str(value)
+    )
+
+    if (
+        len(path.parts) != 2
+        or path.parts[0] != "evenement"
+        or path.suffix != ".html"
+        or path.name == "index.html"
+    ):
+        raise SystemExit(
+            "STOP : chemin de dépublication non autorisé : "
+            + str(value)
+        )
+
+    authorized_names.add(
+        path.name
+    )
+
 
 def pages(directory):
     return {
@@ -116,46 +157,142 @@ def pages(directory):
         if p.name != "index.html"
     }
 
-old = pages(root / "evenement")
-new = pages(export / "evenement")
 
-added = sorted(new - old)
-removed = sorted(old - new)
+old = pages(
+    root / "evenement"
+)
 
-print("Pages actuelles :", len(old))
-print("Pages générées :", len(new))
-print("Ajouts :", len(added))
-print("Suppressions / changements d'URL :", len(removed))
+new = pages(
+    export / "evenement"
+)
+
+added = sorted(
+    new - old
+)
+
+removed = sorted(
+    old - new
+)
+
+unauthorized = [
+    name
+    for name in removed
+    if name not in authorized_names
+]
+
+authorized_removed = [
+    name
+    for name in removed
+    if name in authorized_names
+]
+
+
+print(
+    "Pages actuelles :",
+    len(old)
+)
+
+print(
+    "Pages générées :",
+    len(new)
+)
+
+print(
+    "Ajouts :",
+    len(added)
+)
+
+print(
+    "Suppressions détectées :",
+    len(removed)
+)
+
+print(
+    "Suppressions autorisées :",
+    len(authorized_removed)
+)
+
 
 if added:
     for name in added[:20]:
-        print("  +", name)
+        print(
+            "  +",
+            name
+        )
 
-if removed:
-    for name in removed[:20]:
-        print("  -", name)
+
+if unauthorized:
+    for name in unauthorized[:20]:
+        print(
+            "  !",
+            name
+        )
 
     raise SystemExit(
-        "STOP : aucune suppression ou perte d'URL historique automatique autorisée."
+        "STOP : suppression historique non autorisée."
     )
 
-sitemap = export / "sitemap-evenements.xml"
 
-tree = ET.parse(sitemap)
-ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+if authorized_removed:
+    for name in authorized_removed:
+        print(
+            "  - autorisé :",
+            name
+        )
 
-entries = tree.findall(".//s:url", ns)
 
-print("Sitemap :", len(entries))
+sitemap = (
+    export
+    / "sitemap-evenements.xml"
+)
+
+tree = ET.parse(
+    sitemap
+)
+
+ns = {
+    "s":
+      "http://www.sitemaps.org/schemas/sitemap/0.9"
+}
+
+entries = tree.findall(
+    ".//s:url",
+    ns
+)
+
+
+print(
+    "Sitemap :",
+    len(entries)
+)
+
 
 if len(entries) != len(new) + 1:
     raise SystemExit(
         "STOP : sitemap et corpus généré non alignés."
     )
 
-print("PASS garde-fou")
-PY
 
+for name in authorized_removed:
+    target = (
+        root
+        / "evenement"
+        / name
+    )
+
+    if not target.exists():
+        raise SystemExit(
+            "STOP : page autorisée introuvable avant retrait : "
+            + name
+        )
+
+    target.unlink()
+
+
+print(
+    "PASS garde-fou historique"
+)
+PY
 echo
 echo "=== COPIE VERS LE WORKTREE ==="
 

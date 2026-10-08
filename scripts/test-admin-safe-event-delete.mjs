@@ -145,7 +145,11 @@ assert.equal(await first, "done");
 // 9. Le succès retire localement la fiche puis recharge les compteurs serveur.
 assert.ok(shellSource.includes("const remainingEvents = (state.events || []).filter"));
 assert.ok(shellSource.includes("renderEvents(remainingEvents, state.status)"));
-assert.ok(shellSource.includes('v11ActionMessage("Événement supprimé.")'));
+assert.ok(
+  shellSource.includes(
+    '"Événement supprimé · retrait statique automatique planifié."'
+  )
+);
 assert.ok(shellSource.includes("await context.refresh()"));
 
 // 10. La zone est distincte de l’image et le module ne touche jamais au Storage.
