@@ -67,3 +67,22 @@ console.log(JSON.stringify(results.map(({label,total,upcoming,past,excluded})=>(
 
 const index=fs.readFileSync('index.html','utf8');
 fs.writeFileSync('index.html',index.replace(/<section id="territoires-pilotes"[\s\S]*?<\/section>/,`<section id="territoires-pilotes" class="container seo-text-block" aria-labelledby="territoires-pilotes-title"><h2 id="territoires-pilotes-title">Explorer les régions</h2><p>Pour naviguer par région, sélectionnez d’abord le pays concerné.</p><nav aria-label="Agendas par pays"><p>${countryLinks()}</p></nav></section>`));
+
+const sitemapPath='sitemap.xml';
+const sitemapDate=snapshot.capturedAt.slice(0,10);
+let sitemap=fs.readFileSync(sitemapPath,'utf8');
+for(const p of territories){
+ const escaped=p.canonical.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const entryPattern=new RegExp(`<url>\\s*<loc>${escaped}<\\/loc>[\\s\\S]*?<\\/url>`);
+ const entry=sitemap.match(entryPattern)?.[0];
+ if(entry){
+  const updated=entry.replace(/<lastmod>[^<]*<\/lastmod>/,`<lastmod>${sitemapDate}</lastmod>`);
+  if(updated===entry&&!entry.includes(`<lastmod>${sitemapDate}</lastmod>`))throw new Error(`Entrée territoriale sans lastmod: ${p.canonical}`);
+  sitemap=sitemap.replace(entry,updated);
+ }else{
+  const priority=p.kind==='country'?'0.80':'0.75';
+  const added=`  <url>\n    <loc>${p.canonical}</loc>\n    <lastmod>${sitemapDate}</lastmod>\n    <priority>${priority}</priority>\n  </url>\n`;
+  sitemap=sitemap.replace('</urlset>',`${added}</urlset>`);
+ }
+}
+fs.writeFileSync(sitemapPath,sitemap);
