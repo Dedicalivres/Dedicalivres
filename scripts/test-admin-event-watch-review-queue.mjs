@@ -175,8 +175,8 @@ assert.ok(
 
 assert.equal(
   (source.match(/\.from\("events"\)\.insert\(/g) || []).length,
-  1,
-  "Le pack Event Watch ne doit ajouter aucune écriture Supabase"
+  0,
+  "Le pack Event Watch ne doit contenir aucun insert direct Supabase"
 );
 
 assert.ok(

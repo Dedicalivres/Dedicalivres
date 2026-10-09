@@ -6,7 +6,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const adminContext = fs.readFileSync("admin-context.js", "utf8");
 const adminShell = fs.readFileSync("admin-shell.js", "utf8");
 const migration = fs.readFileSync(
-  "supabase/migrations/20261002170132_event_submission_contacts.sql",
+  "supabase/migrations/20261002181029_event_submission_contacts.sql",
   "utf8"
 );
 
