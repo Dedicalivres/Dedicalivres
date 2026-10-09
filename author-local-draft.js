@@ -6,6 +6,11 @@
   const SAFE_FIELDS = new Set(["pseudo", "bio", "location", "profile_type", "website", "shop_url", "publication_mode", "author_profile_url_type", "book_or_publisher_url_type", "publisher_name"]);
   const SAFE_PUBLISHER_FIELDS = new Set(["organization_name", "organization_website"]);
   const FORMS = new Set(["author-profile-submission-form", "author-presence-form", "submission-form"]);
+  const REUSABLE_FORM_FIELDS = Object.freeze({
+    "author-profile-submission-form": new Set(["pseudo", "bio", "location", "profile_type", "website", "shop_url"]),
+    "author-presence-form": new Set(["pseudo", "author_profile_url", "book_or_publisher_url", "publication_mode", "author_profile_url_type", "book_or_publisher_url_type", "publisher_name", "organization_name", "organization_website"]),
+    "submission-form": new Set(["author_pseudo", "author_profile_url"])
+  });
 
   function resolveStorage(storage) {
     if (storage) return storage;
@@ -105,6 +110,9 @@
     return ((field.name === "profile_type" || field.name === "participant_type") && field.value === "author")
       || (field.name === "publication_mode" && field.value === "unknown");
   }
+  function shouldSave(form, field) {
+    return Boolean(field?.name && REUSABLE_FORM_FIELDS[form.id]?.has(field.name));
+  }
   function fill(form, name, nextValue) {
     if (!nextValue) return false;
     const field = form.elements.namedItem(name);
@@ -114,18 +122,26 @@
     field.dispatchEvent(new Event("change", { bubbles: true }));
     return true;
   }
-  function apply(form, record) {
+  function selectPresenceType(form, nextValue) {
+    const field = form.elements.namedItem("participant_type");
+    if (!field || field.value === nextValue) return;
+    field.value = nextValue;
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  function apply(form, record, identity = "author") {
     if (!record) return 0;
     let count = 0;
     const put = (name, entry) => { if (fill(form, name, entry)) count += 1; };
     if (form.id === "author-profile-submission-form") {
       ["pseudo", "bio", "location", "profile_type", "website", "shop_url"].forEach((name) => put(name, record.fields[name]));
     } else if (form.id === "author-presence-form") {
-      if (value(form, "participant_type") === "publisher") {
+      if (identity === "publisher") {
+        selectPresenceType(form, "publisher");
         put("organization_name", record.publisher.organization_name);
         put("organization_website", record.publisher.organization_website);
       } else {
-        put("pseudo", record.fields.pseudo); put("participant_type", record.fields.profile_type);
+        selectPresenceType(form, record.fields.profile_type || "author");
+        put("pseudo", record.fields.pseudo);
         put("author_profile_url", record.fields.website); put("book_or_publisher_url", record.fields.shop_url);
         put("publication_mode", record.fields.publication_mode); put("author_profile_url_type", record.fields.author_profile_url_type);
         put("book_or_publisher_url_type", record.fields.book_or_publisher_url_type); put("publisher_name", record.fields.publisher_name);
@@ -144,15 +160,27 @@
     box.innerHTML = `<legend>Mes informations auteur sur cet appareil</legend>
       <label><input type="checkbox" data-author-memory-consent> Conserver mes informations réutilisables dans ce navigateur</label>
       <p>Appareil personnel uniquement. Aucun fichier, consentement légal, contact privé, token ou donnée propre à un événement n’est mémorisé.</p>
-      <div class="local-author-draft-actions" hidden><button type="button" data-author-reuse>Réutiliser mes informations</button><button type="button" data-author-skip>Continuer sans récupération</button></div>
+      <div class="local-author-draft-actions" hidden><button type="button" data-author-reuse="author">Réutiliser mes informations auteur</button><button type="button" data-author-reuse="publisher" hidden>Réutiliser mes informations éditeur</button><button type="button" data-author-skip>Continuer sans récupération</button></div>
       <button type="button" data-author-forget>Effacer les informations sauvegardées</button><p data-author-memory-feedback role="status"></p>`;
     const intro = form.id === "submission-form" ? form.querySelector("#dedicace-author-fields .submission-author-intro") : null;
     if (intro) intro.insertAdjacentElement("afterend", box); else form.prepend(box);
     const toggle = box.querySelector("[data-author-memory-consent]");
     const actions = box.querySelector(".local-author-draft-actions");
+    const reuseAuthor = box.querySelector('[data-author-reuse="author"]');
+    const reusePublisher = box.querySelector('[data-author-reuse="publisher"]');
     const feedback = box.querySelector("[data-author-memory-feedback]");
     let record = read(storage);
-    if (record) { toggle.checked = true; actions.hidden = false; feedback.textContent = "Des informations compatibles sont disponibles."; }
+    function refreshState(nextRecord, message = "Des informations compatibles sont disponibles.") {
+      record = nextRecord;
+      const hasAuthor = Boolean(record && Object.keys(record.fields).length);
+      const hasPublisher = Boolean(record && form.id === "author-presence-form" && Object.keys(record.publisher).length);
+      toggle.checked = Boolean(record);
+      reuseAuthor.hidden = !hasAuthor;
+      reusePublisher.hidden = !hasPublisher;
+      actions.hidden = !hasAuthor && !hasPublisher;
+      feedback.textContent = record ? message : "Aucune information réutilisable n’est sauvegardée.";
+    }
+    if (record) refreshState(record);
     function save() {
       if (!toggle.checked) return;
       try { record = write(storage, read(storage), collect(form)); feedback.textContent = "Informations réutilisables enregistrées."; }
@@ -166,20 +194,24 @@
       } catch (_) { feedback.textContent = "Impossible d’effacer le stockage de ce navigateur."; }
     }
     toggle.addEventListener("change", () => toggle.checked ? save() : clear());
-    box.querySelector("[data-author-reuse]").addEventListener("click", () => {
-      const applied = apply(form, read(storage)); actions.hidden = true;
+    box.querySelectorAll("[data-author-reuse]").forEach((button) => button.addEventListener("click", () => {
+      const applied = apply(form, read(storage), button.dataset.authorReuse); actions.hidden = true;
       feedback.textContent = applied ? `${applied} information${applied > 1 ? "s" : ""} récupérée${applied > 1 ? "s" : ""}.` : "Aucun champ vide compatible à compléter.";
-    });
+    }));
     box.querySelector("[data-author-skip]").addEventListener("click", () => { actions.hidden = true; feedback.textContent = "Récupération ignorée. Vos champs actuels sont conservés."; });
     box.querySelector("[data-author-forget]").addEventListener("click", clear);
-    form.addEventListener("input", (event) => { if (!event.target.closest?.(".local-author-draft")) save(); });
-    form.addEventListener("change", (event) => { if (!event.target.closest?.(".local-author-draft")) save(); });
+    form.addEventListener("input", (event) => { if (shouldSave(form, event.target)) save(); });
+    form.addEventListener("change", (event) => { if (shouldSave(form, event.target)) save(); });
+    form.addEventListener("reset", () => {
+      const sync = () => refreshState(read(storage), "Informations sauvegardées disponibles après la réinitialisation.");
+      if (typeof root.setTimeout === "function") root.setTimeout(sync, 0); else sync();
+    });
     root.addEventListener?.("storage", (event) => { if (event.key === KEY && event.newValue === null) clear(); });
   }
   function scan() {
     document.querySelectorAll("#author-presence-form, #submission-form, #author-profile-submission-form").forEach((form) => bind(form));
   }
-  root.DEDICALIVRES_AUTHOR_DRAFT = Object.freeze({ VERSION, KEY, LEGACY_KEYS, parseRecord, migrateLegacy, collect, apply, read, write, bind });
+  root.DEDICALIVRES_AUTHOR_DRAFT = Object.freeze({ VERSION, KEY, LEGACY_KEYS, parseRecord, migrateLegacy, collect, apply, read, write, shouldSave, bind });
   if (!root.document) return;
   scan();
   new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });

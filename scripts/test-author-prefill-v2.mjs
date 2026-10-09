@@ -51,7 +51,7 @@ const presence = makeForm("author-presence-form", {
   book_or_publisher_url: "", publication_mode: "unknown",
   author_profile_url_type: "", book_or_publisher_url_type: "", publisher_name: ""
 });
-assert.ok(api.apply(presence, migrated) >= 3, "fiche auteur vers présence");
+assert.ok(api.apply(presence, migrated, "author") >= 2, "fiche auteur vers présence");
 assert.equal(presence.fields.pseudo.value, "Auteure Test");
 assert.equal(presence.fields.participant_type.value, "artist_author");
 assert.equal(presence.fields.author_profile_url.value, "https://example.test");
@@ -75,10 +75,39 @@ assert.equal(publisherData.publisher.contact_name, undefined);
 assert.equal(publisherData.publisher.contact_email, undefined);
 assert.equal(publisherData.fields.pseudo, undefined, "éditeur séparé de l’identité auteur");
 
+const publisherMemory = new Map();
+const publisherStorage = {
+  getItem: (key) => publisherMemory.get(key) ?? null,
+  setItem: (key, entry) => publisherMemory.set(key, entry),
+  removeItem: (key) => publisherMemory.delete(key)
+};
+api.write(publisherStorage, null, publisherData);
+const publisherReload = makeForm("author-presence-form", {
+  participant_type: "author", organization_name: "", organization_website: "",
+  pseudo: "", author_profile_url: "", book_or_publisher_url: "", publication_mode: "unknown",
+  author_profile_url_type: "", book_or_publisher_url_type: "", publisher_name: ""
+});
+assert.equal(api.apply(publisherReload, api.read(publisherStorage), "publisher"), 2, "récupération éditeur explicite après rechargement");
+assert.equal(publisherReload.fields.participant_type.value, "publisher");
+assert.equal(publisherReload.fields.organization_name.value, "Maison Test");
+assert.equal(publisherReload.fields.organization_website.value, "https://publisher.test");
+assert.equal(publisherReload.fields.contact_email, undefined, "aucun contact privé restauré");
+
+const modes = makeForm("author-profile-submission-form", {
+  request_type: "modify", target_author_id: "uuid", legal_accept: "on", pseudo: "Auteure Test",
+  bio: "", location: "", profile_type: "author", website: "", shop_url: ""
+});
+assert.equal(api.shouldSave(modes, modes.fields.request_type), false, "le changement create/modify ne sauvegarde pas");
+assert.equal(api.shouldSave(modes, modes.fields.target_author_id), false, "la sélection d’une fiche ne sauvegarde pas");
+assert.equal(api.shouldSave(modes, modes.fields.legal_accept), false, "le consentement légal ne sauvegarde pas");
+assert.equal(api.shouldSave(modes, modes.fields.pseudo), true, "un champ auteur réutilisable sauvegarde");
+
 const blocked = { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } };
 assert.equal(api.read(blocked), null, "navigation privée ou stockage indisponible");
 assert.match(source, /function resolveStorage\(storage\)/);
 assert.match(source, /storage unavailable/);
+assert.match(source, /form\.addEventListener\("reset"/);
+assert.match(source, /Informations sauvegardées disponibles après la réinitialisation/);
 
 const contribution = fs.readFileSync("author-contribute.js", "utf8");
 assert.match(contribution, /const authorsPromise = loadAuthors\(\)/);

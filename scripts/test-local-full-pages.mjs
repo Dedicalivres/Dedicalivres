@@ -83,7 +83,7 @@ try {
   await detail.fill('[name=contact_email]', 'test@example.test');
   await detail.reload();
   await detail.locator('.local-author-draft').waitFor();
-  await detail.locator('[data-author-reuse]').click();
+  await detail.locator('[data-author-reuse="publisher"]').click();
   assert.equal(await detail.locator('[name=participant_type]').inputValue(), 'publisher');
   assert.equal(await detail.locator('[name=organization_name]').inputValue(), 'Éditions Démonstration');
   assert.equal(await detail.locator('[name=contact_email]').inputValue(), '');
@@ -119,7 +119,7 @@ try {
   await submit.reload();
   await submit.locator('.local-author-draft').waitFor();
   assert.equal(await submit.locator('[name=author_pseudo]').inputValue(), '');
-  await submit.locator('[data-author-reuse]').click();
+  await submit.locator('[data-author-reuse="author"]').click();
   assert.equal(await submit.locator('[name=author_pseudo]').inputValue(), 'Auteur de démonstration');
   assert.equal(await submit.locator('[name=legal_accept]').isChecked(), false);
   await submit.locator('.local-author-draft').screenshot({ path: path.join(output, engine + '-auteur.png') });

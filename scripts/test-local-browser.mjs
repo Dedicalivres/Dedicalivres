@@ -31,6 +31,9 @@ try {
   assert.equal(draft.fields.pseudo, 'Auteur test');
   assert.equal(draft.fields.legal_accept, undefined);
   assert.equal(draft.fields.author_portrait, undefined);
+  await page.locator('#author-presence-form').evaluate(form => form.reset());
+  await page.waitForFunction(() => document.querySelector('[data-author-memory-consent]')?.checked === true);
+  assert.equal(await page.locator('[data-author-reuse="author"]').isVisible(), true);
   await page.reload();
   await page.evaluate(() => {
     const form = document.createElement('form'); form.id = 'submission-form';
@@ -38,7 +41,7 @@ try {
     document.body.append(form);
   });
   await page.addScriptTag({ path: new URL('../author-local-draft.js', import.meta.url).pathname });
-  await page.locator('#submission-form [data-author-reuse]').click();
+  await page.locator('#submission-form [data-author-reuse="author"]').click();
   assert.equal(await page.locator('[name=author_pseudo]').inputValue(), 'Saisie conservée');
   page.on('dialog', dialog => dialog.accept());
   await page.locator('#submission-form [data-author-forget]').click();
