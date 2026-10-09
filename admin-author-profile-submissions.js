@@ -11,6 +11,8 @@
   let initialized = false;
   let submissions = [];
   let authorsById = new Map();
+  let createMatchesBySubmissionId = new Map();
+  const decisionsInFlight = new Set();
 
   window.addEventListener("dedicalivres:admin-authenticated", init);
   window.addEventListener("dedicalivres:admin-dashboard-refreshed", refresh);
@@ -67,19 +69,33 @@
 
   async function loadTargetAuthors() {
     const ids = [...new Set(submissions.map((row) => row.target_author_id).filter(Boolean))];
+    const slugs = [...new Set(submissions
+      .filter((row) => row.request_type === "create")
+      .map((row) => row.payload?.slug)
+      .filter(Boolean))];
     authorsById = new Map();
-    if (!ids.length) return;
+    createMatchesBySubmissionId = new Map();
+    const authors = [];
 
-    const response = await client
-      .from("authors")
-      .select("id,pseudo,slug,website,bio,avatar_url,location,shop_url,profile_type,updated_at")
-      .in("id", ids);
+    for (const [field, values] of [["id", ids], ["slug", slugs]]) {
+      if (!values.length) continue;
+      const response = await client
+        .from("authors")
+        .select("id,pseudo,slug,website,bio,avatar_url,location,shop_url,profile_type,updated_at")
+        .in(field, values);
 
-    if (response.error) {
-      setFeedback("Impossible de charger les fiches actuelles.", true);
-      return;
+      if (response.error) {
+        setFeedback("Impossible de charger les fiches actuelles.", true);
+        return;
+      }
+      authors.push(...(response.data || []));
     }
-    (response.data || []).forEach((author) => authorsById.set(String(author.id), author));
+
+    authors.forEach((author) => authorsById.set(String(author.id), author));
+    submissions.forEach((submission) => {
+      const match = core.findStrongExistingAuthorMatch(submission, [...authorsById.values()]);
+      if (match) createMatchesBySubmissionId.set(String(submission.id), match);
+    });
   }
 
   function render() {
@@ -94,9 +110,10 @@
     }
 
     list.innerHTML = submissions.map((submission) => {
+      const strongMatch = createMatchesBySubmissionId.get(String(submission.id)) || null;
       const author = submission.target_author_id
         ? authorsById.get(String(submission.target_author_id)) || null
-        : null;
+        : strongMatch;
       const comparison = core.compareSubmission(submission, author);
       const conflict = submission.request_type === "modify" && (
         !author || String(author.updated_at || "") !== String(submission.base_author_updated_at || "")
@@ -111,12 +128,14 @@
             </div>
             <span class="author-request-status is-pending">en attente</span>
           </div>
+          ${strongMatch ? `<p class="priority-empty">Une fiche auteur existante semble correspondre à cette soumission : ${escapeHtml(strongMatch.pseudo)} (${escapeHtml(strongMatch.slug)}).</p>` : ""}
           ${conflict ? `<p class="priority-empty">La fiche a changé depuis la proposition : nouvelle comparaison requise avant approbation.</p>` : ""}
           <div class="author-request-grid">
             ${comparison.map(renderComparison).join("")}
           </div>
           <div class="author-request-actions">
-            <button type="button" class="cyber-btn-primary" data-profile-submission-action="approve" ${conflict ? "disabled" : ""}>APPROUVER</button>
+            ${strongMatch ? `<button type="button" class="cyber-btn-primary" data-profile-submission-action="attach">RATTACHER À CETTE FICHE</button>` : ""}
+            <button type="button" class="cyber-btn-primary" data-profile-submission-action="approve" ${conflict || strongMatch ? "disabled" : ""}>APPROUVER</button>
             <button type="button" class="cyber-btn-danger" data-profile-submission-action="reject">REJETER</button>
           </div>
         </article>
@@ -165,6 +184,14 @@
     const submission = submissions.find((row) => row.id === id);
     if (!submission) return;
 
+    if (action === "attach") {
+      const match = createMatchesBySubmissionId.get(String(id));
+      if (!match) return;
+      if (!window.confirm(`Rattacher explicitement cette proposition à ${match.pseudo} (${match.slug}) ?`)) return;
+      await attachSubmission(button, submission, match);
+      return;
+    }
+
     if (action === "approve") {
       if (!window.confirm("Appliquer explicitement cette proposition à la fiche auteur ?")) return;
       await runDecision(button, "approve_author_profile_submission", { p_submission_id: id });
@@ -178,17 +205,72 @@
     });
   }
 
-  async function runDecision(button, functionName, args) {
-    button.disabled = true;
-    setFeedback("Traitement…", false);
-    const response = await client.rpc(functionName, args);
-    if (response.error) {
-      button.disabled = false;
-      setFeedback(response.error.message || "Décision impossible.", true);
-      return;
+  async function attachSubmission(button, submission, author) {
+    const submissionId = String(submission.id || "");
+    if (!submissionId || decisionsInFlight.has(submissionId)) return;
+    decisionsInFlight.add(submissionId);
+    const card = button.closest("[data-author-profile-submission]");
+    const actionButtons = [...(card?.querySelectorAll("[data-profile-submission-action]") || [])];
+    actionButtons.forEach((actionButton) => { actionButton.disabled = true; });
+    setFeedback("Rattachement…", false);
+    try {
+      const payload = { ...(submission.payload || {}) };
+      delete payload.slug;
+      const response = await client
+        .from("author_profile_submissions")
+        .update({
+          request_type: "modify",
+          target_author_id: author.id,
+          base_author_updated_at: author.updated_at,
+          payload
+        })
+        .eq("id", submissionId)
+        .eq("status", "pending")
+        .eq("request_type", "create")
+        .is("target_author_id", null)
+        .select("id,request_type,target_author_id")
+        .maybeSingle();
+      if (response.error) throw response.error;
+      if (!response.data || String(response.data.target_author_id) !== String(author.id)) {
+        throw new Error("La soumission n’a pas été rattachée.");
+      }
+      setFeedback("Soumission rattachée. Vérifie la comparaison avant approbation.", false);
+      await refresh();
+    } catch (error) {
+      setFeedback(error?.message || "Rattachement impossible.", true);
+    } finally {
+      decisionsInFlight.delete(submissionId);
+      actionButtons.forEach((actionButton) => { actionButton.disabled = false; });
     }
-    setFeedback("Décision enregistrée. Le workflow éditorial existant reste requis.", false);
-    await refresh();
+  }
+
+  async function runDecision(button, functionName, args) {
+    const submissionId = String(args?.p_submission_id || "");
+    if (!submissionId || decisionsInFlight.has(submissionId)) return;
+    decisionsInFlight.add(submissionId);
+    const card = button.closest("[data-author-profile-submission]");
+    const actionButtons = [...(card?.querySelectorAll("[data-profile-submission-action]") || [])];
+    actionButtons.forEach((actionButton) => { actionButton.disabled = true; });
+    setFeedback("Traitement…", false);
+    try {
+      const response = await client.rpc(functionName, args);
+      if (response.error) {
+        setFeedback(response.error.message || "Décision impossible.", true);
+        return;
+      }
+      setFeedback(
+        functionName === "approve_author_profile_submission"
+          ? "Fiche approuvée et publiée dans le catalogue public. La page statique sera créée lors de la prochaine génération auteurs."
+          : "Proposition rejetée sans publication.",
+        false
+      );
+      await refresh();
+    } catch (error) {
+      setFeedback(error?.message || "Décision impossible.", true);
+    } finally {
+      decisionsInFlight.delete(submissionId);
+      actionButtons.forEach((actionButton) => { actionButton.disabled = false; });
+    }
   }
 
   function setFeedback(message, error) {

@@ -147,11 +147,28 @@
     return rows;
   }
 
+  function findStrongExistingAuthorMatch(submission, authors = []) {
+    if (submission?.request_type !== "create") return null;
+    const payload = submission?.payload || {};
+    const slug = cleanText(payload.slug);
+    const pseudo = cleanText(payload.pseudo).toLowerCase();
+    const website = comparableField("website", payload.website);
+    if (!slug || !pseudo || !website) return null;
+
+    const matches = authors.filter((author) => (
+      cleanText(author?.slug) === slug &&
+      cleanText(author?.pseudo).toLowerCase() === pseudo &&
+      comparableField("website", author?.website) === website
+    ));
+    return matches.length === 1 ? matches[0] : null;
+  }
+
   const api = {
     EDITABLE_FIELDS,
     PROFILE_TYPES: [...PROFILE_TYPES],
     buildSubmission,
     compareSubmission,
+    findStrongExistingAuthorMatch,
     slugify
   };
 
