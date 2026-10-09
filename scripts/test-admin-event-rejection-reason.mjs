@@ -116,7 +116,7 @@ assert.equal(v11ConcurrentCalls.length, 1, "V11 bloque une seconde décision sim
 finishV11({ data: true, error: null });
 await firstV11;
 
-const reasonSource = section(classic, "async function showEventRejectionReason(id) {", "\nasync function toggleFeatured");
+const reasonSource = section(classic, "async function showEventRejectionReason(id) {", "\nasync function showEventModerationHistory");
 const reasonAlerts = [];
 const showReason = vm.runInNewContext(`(${reasonSource.trim()})`, {
   ensureAdminSession: async () => true,
