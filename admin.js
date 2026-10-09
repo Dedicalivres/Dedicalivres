@@ -111,6 +111,7 @@ const controlTypeList = document.getElementById("control-type-list");
 const controlSecurityGrid = document.getElementById("control-security-grid");
 
 let allEvents = [];
+const eventRejectionsInFlight = new Set();
 let publicationJobsByEventId = new Map();
 let locationRows = [];
 let map = null;
@@ -2888,6 +2889,7 @@ function renderEventCard(event) {
         <button class="event-action social-copy" data-action="instagram-pack" data-id="${event.id}" type="button" title="Préparer trois visuels Instagram">▣ <span>Insta</span></button>
         ${isPending ? `<button class="event-action validate" data-action="validate" data-id="${event.id}" type="button" title="Valider">✔ <span>Valider</span></button>` : ""}
         ${isPending ? `<button class="event-action reject" data-action="reject" data-id="${event.id}" type="button" title="Refuser">✖ <span>Refuser</span></button>` : ""}
+        ${event.rejected ? `<button class="event-action view" data-action="rejection-reason" data-id="${event.id}" type="button">Motif du rejet</button>` : ""}
         <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button" title="${event.featured ? "Retirer la mise en avant" : "Mettre en avant"}">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
         <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button" title="Modifier">✎ <span>Modifier</span></button>
         <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer" title="Voir la fiche">↗ <span>Voir</span></a>
@@ -2934,6 +2936,7 @@ function bindEventActions(root = document) {
 
       if (action === "validate") decisionMade = await validateEvent(id);
       if (action === "reject") decisionMade = await rejectEvent(id);
+      if (action === "rejection-reason") await showEventRejectionReason(id);
       if (action === "featured") await toggleFeatured(id);
       if (action === "edit") openEditModal(id);
       if (action === "copy-social") await copySocialPost(id);
@@ -3249,30 +3252,51 @@ function openDuplicateValidationDialog(event, matches) {
 }
 
 async function rejectEvent(id) {
-  if (!(await ensureAdminSession())) return false;
-  const event = allEvents.find((item) => String(item.id) === String(id));
-  const confirmed = window.confirm(
-    `Rejeter cet événement ?\n\n${event?.title || "Sans titre"}\n\nLa fiche restera dans l’administration.`
-  );
-  if (!confirmed) return false;
+  if (eventRejectionsInFlight.has(String(id))) return false;
+  eventRejectionsInFlight.add(String(id));
+  try {
+    if (!(await ensureAdminSession())) return false;
+    const event = allEvents.find((item) => String(item.id) === String(id));
+    if (!event || event.rejected) return false;
+    const answer = window.prompt(`Motif du rejet de « ${event.title || "Sans titre"} » (1 à 500 caractères) :`);
+    if (answer === null) return false;
+    const reason = answer.trim();
+    if (!reason || reason.length > 500) {
+      showToast("Motif obligatoire : 1 à 500 caractères.");
+      return false;
+    }
 
-  const { error } = await supabaseClient
-    .from("events")
-    .update({
-      rejected: true,
-      validated: false
-    })
-    .eq("id", id);
+    const { error } = await supabaseClient.rpc("reject_event_with_reason", {
+      p_event_id: id,
+      p_reason: reason
+    });
+    if (error) {
+      showToast("Erreur rejet : " + (error.message || "Supabase indisponible"));
+      return false;
+    }
 
-  if (error) {
-    showToast("Erreur rejet");
+    await loadDashboard();
+    recordAdminAction("Événement refusé", event.title || eventActionLabel(id));
+    showToast("Événement rejeté");
+    return true;
+  } catch (error) {
+    showToast("Erreur rejet : " + (error?.message || "Supabase indisponible"));
     return false;
+  } finally {
+    eventRejectionsInFlight.delete(String(id));
   }
+}
 
-  await loadDashboard();
-  recordAdminAction("Événement refusé", event?.title || eventActionLabel(id));
-  showToast("Événement rejeté");
-  return true;
+async function showEventRejectionReason(id) {
+  if (!(await ensureAdminSession())) return;
+  try {
+    const { data, error } = await supabaseClient.rpc("get_event_rejection_reason", { p_event_id: id });
+    if (error) throw error;
+    const decision = data?.[0];
+    window.alert(decision?.reason ? `Dernier motif de rejet :\n\n${decision.reason}` : "Aucun motif enregistré pour cet ancien rejet.");
+  } catch (error) {
+    showToast("Motif indisponible : " + (error?.message || "Erreur Supabase"));
+  }
 }
 
 async function toggleFeatured(id) {

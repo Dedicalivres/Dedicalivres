@@ -119,10 +119,10 @@ assert.match(
 );
 
 
-// Rejet humain conservé.
+// Rejet humain atomique : le trigger de dépublication voit la même transition events.
 assert.match(
   admin,
-  /\.update\(\{\s*rejected:\s*true,\s*validated:\s*false/s
+  /\.rpc\("reject_event_with_reason",\s*\{\s*p_event_id:\s*event\.id,\s*p_reason:\s*reason/s
 );
 
 
