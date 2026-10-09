@@ -155,7 +155,11 @@ assert.doesNotMatch(publicPage, /facebook\.com/i);
 assert.match(publicPage, /name="request_type" value="create" checked/);
 assert.match(publicPage, /name="request_type" value="modify"/);
 assert.match(publicPage, /name="legal_accept" type="checkbox" required/);
-assert.match(publicPage, /author-local-draft\.js\?v=3/);
+assert.match(publicPage, /author-local-draft\.js\?v=4/);
+assert.match(publicPage, /id="author-load-selected"/);
+assert.match(publicScript, /const authorsPromise = loadAuthors\(\)/);
+assert.match(publicScript, /await authorsPromise/);
+assert.match(publicScript, /Récupérez d’abord les données publiques/);
 assert.match(publicScript, /body\.append\("folder", "author-portraits"\)/);
 assert.match(publicScript, /4 \* 1024 \* 1024/);
 assert.match(publicScript, /author_profile_submissions/);
@@ -180,9 +184,11 @@ for (const page of [adminHtml, adminV11Html]) {
   assert.ok(page.indexOf("author-contribution-core.js") < page.indexOf("admin-author-profile-submissions.js"));
 }
 assert.match(localDraft, /#author-profile-submission-form/);
-assert.match(localDraft, /form\.id === 'author-profile-submission-form'/);
-assert.match(localDraft, /Retrouver mes informations sur cet appareil/);
-assert.match(localDraft, /Effacer les informations mémorisées/);
+assert.match(localDraft, /form\.id === "author-profile-submission-form"/);
+assert.match(localDraft, /Mes informations auteur sur cet appareil/);
+assert.match(localDraft, /Réutiliser mes informations/);
+assert.match(localDraft, /Continuer sans récupération/);
+assert.match(localDraft, /Effacer les informations sauvegardées/);
 assert.match(hardening, /create policy "Admins can manage authors"[\s\S]*?for all\s+to authenticated/);
 assert.doesNotMatch(hardening, /on public\.authors\s+for update\s+to anon/i);
 

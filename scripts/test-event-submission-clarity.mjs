@@ -13,8 +13,8 @@ assert.ok(
   "Le message de modération doit précéder les champs événement"
 );
 
-assert.match(draft, /form\.id === 'submission-form'[\s\S]*?#dedicace-author-fields/);
-assert.match(draft, /submissionAuthorIntro\.insertAdjacentElement\('afterend', box\)/);
+assert.match(draft, /form\.id === "submission-form"[\s\S]*?#dedicace-author-fields/);
+assert.match(draft, /intro\.insertAdjacentElement\("afterend", box\)/);
 assert.match(app, /const isDedicace = submissionTypeSelect\.value === "Dédicace";[\s\S]*?dedicaceAuthorFields\.hidden = !isDedicace/);
 assert.ok(
   html.indexOf('id="dedicace-author-fields"') > html.indexOf('name="start_date"'),

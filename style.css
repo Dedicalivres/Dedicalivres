@@ -6274,6 +6274,29 @@ body.submit-page .submit-hero .category-kicker {
   cursor: pointer;
 }
 
+.local-author-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem;
+  margin: .75rem 0;
+}
+
+.local-author-draft-actions[hidden] {
+  display: none;
+}
+
+.local-author-draft-actions button,
+.local-author-draft [data-author-forget] {
+  min-height: 44px;
+}
+
+@media (max-width: 640px) {
+  .local-author-draft-actions button,
+  .local-author-draft [data-author-forget] {
+    width: 100%;
+  }
+}
+
 @media (max-width: 640px) {
   .author-contribution-progress {
     display: grid;
