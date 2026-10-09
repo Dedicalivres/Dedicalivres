@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const source = fs.readFileSync(path.join(root, "author-publication.js"), "utf8");
 const migration = fs.readFileSync(
-  path.join(root, "supabase/migrations/20260902161258_author_editorial_status_publication_v2.sql"),
+  path.join(root, "supabase/migrations/20260902171156_author_editorial_status_publication_v2.sql"),
   "utf8"
 );
 const adminSource = fs.readFileSync(path.join(root, "admin-shell.js"), "utf8");

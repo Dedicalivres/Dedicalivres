@@ -12,7 +12,11 @@ vm.runInContext(urlSource, context);
 vm.runInContext(coreSource, context);
 const core = context.DEDICALIVRES_AUTHOR_CONTRIBUTION;
 const migration = fs.readFileSync(
-  path.join(root, "supabase/migrations/20261001053324_author_profile_submissions.sql"),
+  path.join(root, "supabase/migrations/20261001153248_author_profile_submissions.sql"),
+  "utf8"
+);
+const approvalMigration = fs.readFileSync(
+  path.join(root, "supabase/migrations/20261009052049_author_profile_submission_approval_publish.sql"),
   "utf8"
 );
 const publicPage = fs.readFileSync(path.join(root, "author-contribute.html"), "utf8");
@@ -56,6 +60,22 @@ assert.equal(creation.payload.slug, "elise-test");
 assert.equal(creation.payload.validated, undefined);
 assert.equal(creation.payload.published, undefined);
 assert.equal(creation.proposed_avatar_url, "https://images.example/new.jpg");
+
+assert.equal(
+  core.findStrongExistingAuthorMatch(creation, [{
+    id: "existing",
+    pseudo: "Élise Test",
+    slug: "elise-test",
+    website: "https://example.org/"
+  }])?.id,
+  "existing"
+);
+assert.equal(core.findStrongExistingAuthorMatch(creation, [{
+  id: "different",
+  pseudo: "Élise Test",
+  slug: "elise-test",
+  website: "https://different.example"
+}]), null);
 
 const modification = core.buildSubmission({
   mode: "modify",
@@ -107,6 +127,17 @@ assert.match(migration, /status = 'approved' and target_author_id is not null/);
 assert.match(migration, /current_author\.updated_at is distinct from submission\.base_author_updated_at/);
 assert.match(migration, /validated,\s*updated_at[\s\S]*?false,\s*now\(\)/);
 assert.match(migration, /revoke all on function public\.approve_author_profile_submission\(uuid\) from public, anon/);
+assert.match(approvalMigration, /for update/);
+assert.match(approvalMigration, /status <> 'pending'/);
+assert.match(approvalMigration, /pg_advisory_xact_lock/);
+assert.match(approvalMigration, /candidate_slug := left\(base_slug,[\s\S]*?suffix::text/);
+assert.match(approvalMigration, /validated = true/);
+assert.match(approvalMigration, /publication_ready = true/);
+assert.match(approvalMigration, /editorial_status = 'READY'/);
+assert.match(approvalMigration, /published = true/);
+assert.match(approvalMigration, /current_author\.updated_at is distinct from submission\.base_author_updated_at/);
+assert.match(approvalMigration, /proposed_avatar_url is not null then submission\.proposed_avatar_url else avatar_url/);
+assert.match(approvalMigration, /status = 'approved'/);
 
 const rejectFunction = migration.match(/create or replace function public\.reject_author_profile_submission[\s\S]*?\$\$;/)?.[0] || "";
 assert.ok(rejectFunction);
@@ -136,9 +167,16 @@ assert.match(adminScript, />APPROUVER</);
 assert.match(adminScript, />REJETER</);
 assert.match(adminScript, /approve_author_profile_submission/);
 assert.match(adminScript, /reject_author_profile_submission/);
+assert.match(adminScript, /decisionsInFlight\.has\(submissionId\)/);
+assert.match(adminScript, /querySelectorAll\("\[data-profile-submission-action\]"\)/);
+assert.match(adminScript, /prochaine génération auteurs/);
+assert.match(adminScript, /Une fiche auteur existante semble correspondre à cette soumission/);
+assert.match(adminScript, />RATTACHER À CETTE FICHE</);
+assert.match(adminScript, /request_type: "modify"/);
+assert.match(adminScript, /delete payload\.slug/);
 for (const page of [adminHtml, adminV11Html]) {
-  assert.match(page, /author-contribution-core\.js\?v=1/);
-  assert.match(page, /admin-author-profile-submissions\.js\?v=1/);
+  assert.match(page, /author-contribution-core\.js\?v=2/);
+  assert.match(page, /admin-author-profile-submissions\.js\?v=3/);
   assert.ok(page.indexOf("author-contribution-core.js") < page.indexOf("admin-author-profile-submissions.js"));
 }
 assert.match(localDraft, /#author-profile-submission-form/);
