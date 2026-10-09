@@ -1824,6 +1824,21 @@
     }
   }
 
+  function validateV11EventPublicationPayload(event) {
+    const missing = [];
+
+    if (!String(event?.title || "").trim()) missing.push("titre");
+    if (!String(event?.start_date || "").trim()) missing.push("date de début");
+    if (!String(event?.city || "").trim()) missing.push("ville");
+    if (!String(event?.country_code || "").trim()) missing.push("pays");
+
+    if (missing.length) {
+      throw new Error(
+        "Champs indispensables manquants : " + missing.join(", ") + "."
+      );
+    }
+  }
+
   async function runV11EventAction(action) {
     if (v11EventActionRunning) return;
 
@@ -1854,6 +1869,21 @@
 
     try {
       if (action === "validate") {
+        try {
+          validateV11EventPublicationPayload(event);
+        } catch (error) {
+          window.alert(
+            "FICHE À CORRIGER AVANT VALIDATION\n\n" +
+            (error?.message || "Informations indispensables manquantes.")
+          );
+
+          v11ActionMessage(
+            "Validation bloquée : fiche incomplète."
+          );
+
+          return;
+        }
+
         try {
           if (
             event.registration_enabled ===
@@ -3132,6 +3162,13 @@
     try {
       payload =
         buildV11EventEditPayload();
+
+      if (
+        event.validated === true &&
+        event.rejected !== true
+      ) {
+        validateV11EventPublicationPayload(payload);
+      }
     } catch (error) {
       window.alert(
         error?.message ||

@@ -110,8 +110,8 @@ assert.ok(
 
 assert.equal(
   (source.match(/\.from\("events"\)\.insert\(/g) || []).length,
-  1,
-  "Le pack ne doit ajouter aucun insert Supabase"
+  0,
+  "Le pack ne doit contenir aucun insert direct Supabase"
 );
 
 console.log("ADMIN_WATCH_QUALITY_PACK_OK");
