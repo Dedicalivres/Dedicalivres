@@ -9,6 +9,10 @@ const migration = fs.readFileSync(
   "supabase/migrations/20261002181029_event_submission_contacts.sql",
   "utf8"
 );
+const atomicMigration = fs.readFileSync(
+  "supabase/migrations/20261009143100_atomic_event_author_submission.sql",
+  "utf8"
+);
 
 const contactIndex = html.indexOf('class="submission-contact-panel"');
 assert.ok(contactIndex > html.indexOf('id="image-preview"'));
@@ -20,6 +24,9 @@ assert.match(html, /ne sont jamais affichées publiquement/);
 assert.match(app, /isValidEmail\(submitterEmail\)/);
 assert.match(app, /\.rpc\("submit_event_with_contact"/);
 assert.doesNotMatch(app, /from\("event_submission_contacts"\)\s*\.insert/);
+assert.doesNotMatch(app, /from\("event_authors_presence"\)\s*\.insert/);
+assert.match(app, /\{ \.\.\.payload, author_presence: authorPresencePayload \}/);
+assert.match(app, /Aucun événement ni contact n’a été conservé/);
 
 assert.match(adminContext, /from\("event_submission_contacts"\)/);
 assert.match(adminContext, /submitter_name, submitter_email/);
@@ -34,6 +41,10 @@ assert.match(migration, /security definer/);
 assert.match(migration, /revoke all on function public\.submit_event_with_contact[\s\S]*from public/);
 assert.match(migration, /grant execute on function public\.submit_event_with_contact[\s\S]*to anon, authenticated/);
 assert.match(migration, /insert into public\.events[\s\S]*insert into public\.event_submission_contacts/);
+assert.match(atomicMigration, /'author_presence'/);
+assert.match(atomicMigration, /insert into public\.events[\s\S]*insert into public\.event_submission_contacts[\s\S]*insert into public\.event_authors_presence/);
+assert.match(atomicMigration, /'event_submission'[\s\S]*'author'[\s\S]*false,[\s\S]*false,[\s\S]*false/);
+assert.doesNotMatch(atomicMigration, /update\s+public\.event_authors_presence/i);
 
 for (const publicFile of [
   "event.js",
