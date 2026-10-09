@@ -180,7 +180,7 @@ assert.match(adminScript, /request_type: "modify"/);
 assert.match(adminScript, /delete payload\.slug/);
 for (const page of [adminHtml, adminV11Html]) {
   assert.match(page, /author-contribution-core\.js\?v=2/);
-  assert.match(page, /admin-author-profile-submissions\.js\?v=3/);
+  assert.match(page, /admin-author-profile-submissions\.js\?v=4/);
   assert.ok(page.indexOf("author-contribution-core.js") < page.indexOf("admin-author-profile-submissions.js"));
 }
 assert.match(localDraft, /#author-profile-submission-form/);

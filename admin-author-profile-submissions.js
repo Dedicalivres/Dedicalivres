@@ -182,7 +182,7 @@
 
     const action = button.dataset.profileSubmissionAction;
     const submission = submissions.find((row) => row.id === id);
-    if (!submission) return;
+    if (!submission || decisionsInFlight.has(String(id))) return;
 
     if (action === "attach") {
       const match = createMatchesBySubmissionId.get(String(id));
@@ -198,10 +198,16 @@
       return;
     }
 
-    if (!window.confirm("Rejeter cette proposition sans modifier la fiche auteur ?")) return;
+    const answer = window.prompt("Motif du rejet (obligatoire, 500 caractères maximum) :");
+    if (answer === null) return;
+    const reason = answer.trim();
+    if (!reason || reason.length > 500) {
+      setFeedback("Le motif du rejet doit contenir entre 1 et 500 caractères.", true);
+      return;
+    }
     await runDecision(button, "reject_author_profile_submission", {
       p_submission_id: id,
-      p_reason: null
+      p_reason: reason
     });
   }
 
