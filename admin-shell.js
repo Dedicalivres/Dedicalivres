@@ -1609,6 +1609,27 @@
       eventDetailContent.appendChild(row);
     });
 
+    if (event.rejected === true) {
+      const reasonButton = document.createElement("button");
+      reasonButton.type = "button";
+      reasonButton.textContent = "Voir le dernier motif de rejet";
+      reasonButton.addEventListener("click", async function () {
+        reasonButton.disabled = true;
+        try {
+          const response = await context.getClient().rpc("get_event_rejection_reason", { p_event_id: event.id });
+          if (response.error) throw response.error;
+          window.alert(response.data?.[0]?.reason
+            ? "Dernier motif de rejet :\n\n" + response.data[0].reason
+            : "Aucun motif enregistré pour cet ancien rejet.");
+        } catch (error) {
+          window.alert("Motif indisponible.\n\n" + (error?.message || "Erreur Supabase"));
+        } finally {
+          reasonButton.disabled = false;
+        }
+      });
+      eventDetailContent.appendChild(reasonButton);
+    }
+
     if (eventPublicLink) {
       eventPublicLink.href =
         "event.html?id=" +
@@ -1944,22 +1965,20 @@
       }
 
       if (action === "reject") {
-        const confirmed =
-          window.confirm(
-            "Rejeter cet événement ?\n\n"
-            + (event.title || "Sans titre")
-          );
+        const answer = window.prompt(
+          "Motif du rejet de « " + (event.title || "Sans titre") + " » (1 à 500 caractères) :"
+        );
+        if (answer === null) return;
+        const reason = answer.trim();
+        if (!reason || reason.length > 500) {
+          window.alert("Motif obligatoire : 1 à 500 caractères.");
+          return;
+        }
 
-        if (!confirmed) return;
-
-        const response =
-          await client
-            .from("events")
-            .update({
-              rejected: true,
-              validated: false
-            })
-            .eq("id", event.id);
+        const response = await client.rpc("reject_event_with_reason", {
+          p_event_id: event.id,
+          p_reason: reason
+        });
 
         if (response.error) {
           throw response.error;

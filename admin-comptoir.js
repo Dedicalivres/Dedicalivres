@@ -276,14 +276,20 @@
       if (tab) tab.click();
       return;
     }
-    if (act === "no" && !window.confirm("Rejeter cet \u00e9l\u00e9ment ?")) return;
+    if (kind !== "event" && act === "no" && !window.confirm("Rejeter cet \u00e9l\u00e9ment ?")) return;
 
     row.style.opacity = ".45";
 
-    if (kind === "event" && typeof window.validateEvent === "function" && typeof window.rejectEvent === "function") {
+    if (kind === "event") {
+      if (typeof window.validateEvent !== "function" || typeof window.rejectEvent !== "function") {
+        row.style.opacity = "1";
+        if (typeof window.showToast === "function") window.showToast("Modération événement indisponible");
+        return;
+      }
       /* on r\u00e9utilise la logique compl\u00e8te d'admin.js (session, toast, refresh) */
-      (act === "ok" ? window.validateEvent(id) : window.rejectEvent(id));
-      setTimeout(loadComptoir, 900);
+      Promise.resolve(act === "ok" ? window.validateEvent(id) : window.rejectEvent(id))
+        .then(function (decided) { if (decided) loadComptoir(); else row.style.opacity = "1"; })
+        .catch(function () { row.style.opacity = "1"; });
       return;
     }
 
