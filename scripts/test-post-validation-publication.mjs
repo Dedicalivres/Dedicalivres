@@ -289,6 +289,11 @@ assert.match(
   /isDepublicationReason/
 );
 
+assert.match(
+  worker,
+  /row\.reason === "edit"[\s\S]*canonicalDepublicationPath\(row\) !== null/
+);
+
 
 // Un canonical absent ou invalide bloque le job avant RUNNING.
 assert.match(
@@ -351,6 +356,21 @@ assert.match(
   /target\.unlink\(\)/
 );
 
+assert.match(
+  publisher,
+  /PUBLICATION_DEPUBLISH_EVENT_IDS/
+);
+
+assert.match(
+  publisher,
+  /event-pages-manifest\.json/
+);
+
+assert.match(
+  publisher,
+  /ancienne fiche retirée sans remplacement canonique valide/
+);
+
 
 // Garde-fou Git : toute autre suppression reste bloquée.
 assert.match(
@@ -378,6 +398,11 @@ assert.match(
 assert.match(
   workflow,
   /steps\.claim\.outputs\.depublish_paths/
+);
+
+assert.match(
+  workflow,
+  /steps\.claim\.outputs\.depublish_event_ids/
 );
 
 

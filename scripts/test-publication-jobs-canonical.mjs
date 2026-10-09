@@ -283,6 +283,51 @@ await scenario({
 });
 
 await scenario({
+  canonical: {
+    "22222222-2222-4222-8222-222222222222":
+      "evenement/page-avant-modification.html",
+  },
+  expectedStatus:
+    "RUNNING",
+  expectedPath:
+    "evenement/page-avant-modification.html",
+  row: {
+    id:
+      "44444444-4444-4444-8444-444444444444",
+    event_id:
+      "22222222-2222-4222-8222-222222222222",
+    target_event_id:
+      "22222222-2222-4222-8222-222222222222",
+    reason:
+      "edit",
+    attempt_count:
+      0,
+    requested_at:
+      "2026-10-09T00:00:00Z",
+  },
+});
+
+await scenario({
+  canonical: {},
+  expectedStatus:
+    "RUNNING",
+  row: {
+    id:
+      "55555555-5555-4555-8555-555555555555",
+    event_id:
+      "22222222-2222-4222-8222-222222222222",
+    target_event_id:
+      "22222222-2222-4222-8222-222222222222",
+    reason:
+      "edit",
+    attempt_count:
+      0,
+    requested_at:
+      "2026-10-09T00:00:01Z",
+  },
+});
+
+await scenario({
   canonical: {},
   expectedStatus:
     "RUNNING",

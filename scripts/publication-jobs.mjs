@@ -83,6 +83,19 @@ function isDepublicationReason(
 }
 
 
+function shouldAuthorizeCanonicalRemoval(
+  row
+) {
+  return (
+    isDepublicationReason(row.reason)
+    || (
+      row.reason === "edit"
+      && canonicalDepublicationPath(row) !== null
+    )
+  );
+}
+
+
 function canonicalDepublicationPath(
   row
 ) {
@@ -625,9 +638,7 @@ async function claim() {
         publishable
           .filter(
             (row) =>
-              isDepublicationReason(
-                row.reason
-              )
+              shouldAuthorizeCanonicalRemoval(row)
           )
           .map(
             (row) =>
