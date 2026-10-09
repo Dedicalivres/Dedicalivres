@@ -127,7 +127,7 @@
     document.getElementById('local-clear').onclick = () => {
       if (!root.confirm('Effacer les favoris, critères et informations auteur mémorisés dans ce navigateur ?')) return;
       try {
-        [KEY, 'dedicalivres_favorites', 'dedicalivres_author_draft_v1_author-presence-form', 'dedicalivres_author_draft_v1_submission-form'].forEach(key => storage.removeItem(key));
+        [KEY, 'dedicalivres_favorites', 'dedicalivres_author_profile_v2', 'dedicalivres_author_draft_v1_author-profile-submission-form', 'dedicalivres_author_draft_v1_author-presence-form', 'dedicalivres_author_draft_v1_submission-form'].forEach(key => storage.removeItem(key));
         root.dispatchEvent(new StorageEvent('storage', { key: 'dedicalivres_favorites' }));
         status('Favoris, critères et informations auteur mémorisés effacés.'); render();
       } catch (_) { status('Effacement incomplet : le stockage est indisponible.'); }

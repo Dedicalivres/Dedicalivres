@@ -4,6 +4,7 @@
   const form = document.getElementById("author-profile-submission-form");
   const target = document.getElementById("author-target");
   const targetWrap = document.getElementById("author-target-wrap");
+  const loadSelectedButton = document.getElementById("author-load-selected");
   const photoInput = document.getElementById("author-contribution-photo");
   const preview = document.getElementById("author-contribution-preview");
   const feedback = document.getElementById("author-contribution-feedback");
@@ -12,6 +13,10 @@
   const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
   const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
   let authors = [];
+  let authorsLoaded = false;
+  let selectedLoadedId = "";
+  let previousMode = "create";
+  const modeSnapshots = { create: null, modify: null };
   let previewObjectUrl = "";
 
   if (!form || !target || !config || !window.supabase || !core) return;
@@ -20,15 +25,23 @@
     (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
     window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
-  loadAuthors();
   syncMode();
+  const authorsPromise = loadAuthors();
 
   form.addEventListener("change", (event) => {
-    if (event.target.name === "request_type") syncMode();
-    if (event.target === target) applySelectedAuthor();
+    if (event.target.name === "request_type") {
+      modeSnapshots[previousMode] = captureAuthorFields();
+      previousMode = currentMode();
+      syncMode();
+    }
+    if (event.target === target) {
+      selectedLoadedId = "";
+      loadSelectedButton.hidden = !target.value;
+    }
     if (event.target === photoInput) previewSelectedPhoto();
   });
   form.addEventListener("submit", submitContribution);
+  loadSelectedButton?.addEventListener("click", loadSelectedAuthorExplicitly);
 
   async function loadAuthors() {
     const response = await client
@@ -42,12 +55,14 @@
     }
 
     authors = Array.isArray(response.data) ? response.data : [];
+    authorsLoaded = true;
     authors.forEach((author) => {
       const option = document.createElement("option");
       option.value = author.id;
       option.textContent = author.pseudo || author.slug;
       target.appendChild(option);
     });
+    window.dispatchEvent(new CustomEvent("dedicalivres:authors-loaded"));
   }
 
   function currentMode() {
@@ -62,10 +77,30 @@
     target.required = modifying;
     if (!modifying) {
       target.value = "";
-      clearAuthorFields();
+      selectedLoadedId = "";
+      loadSelectedButton.hidden = true;
+      restoreAuthorFields(modeSnapshots.create);
     } else {
-      applySelectedAuthor();
+      loadSelectedButton.hidden = !target.value;
+      restoreAuthorFields(modeSnapshots.modify);
     }
+  }
+
+  function captureAuthorFields() {
+    return Object.fromEntries(
+      ["pseudo", "bio", "location", "website", "shop_url", "profile_type"].map((name) => [
+        name,
+        form.elements.namedItem(name)?.value || ""
+      ])
+    );
+  }
+
+  function restoreAuthorFields(snapshot) {
+    if (!snapshot) return;
+    Object.entries(snapshot).forEach(([name, entry]) => {
+      const field = form.elements.namedItem(name);
+      if (field) field.value = entry;
+    });
   }
 
   function selectedAuthor() {
@@ -79,6 +114,21 @@
     });
     form.elements.namedItem("profile_type").value = "author";
     renderPreview("");
+  }
+
+  async function loadSelectedAuthorExplicitly() {
+    await authorsPromise;
+    if (!authorsLoaded || !selectedAuthor()) {
+      setFeedback("Sélectionnez une fiche auteur publiée.", "error");
+      return;
+    }
+    const hasInput = ["pseudo", "bio", "location", "website", "shop_url"]
+      .some((name) => Boolean(form.elements.namedItem(name)?.value.trim()));
+    if (hasInput && !window.confirm("Remplacer la saisie actuelle par les données publiques de cette fiche ?")) return;
+    applySelectedAuthor();
+    selectedLoadedId = String(target.value);
+    modeSnapshots.modify = captureAuthorFields();
+    setFeedback("Données publiques récupérées. Vous pouvez les modifier avant l’envoi.", "");
   }
 
   function applySelectedAuthor() {
@@ -145,6 +195,9 @@
       const currentAuthor = mode === "modify" ? selectedAuthor() : null;
       if (mode === "modify" && !currentAuthor) {
         throw new Error("Sélectionnez une fiche auteur existante.");
+      }
+      if (mode === "modify" && selectedLoadedId !== String(currentAuthor.id)) {
+        throw new Error("Récupérez d’abord les données publiques de la fiche sélectionnée.");
       }
 
       const input = {

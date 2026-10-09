@@ -388,7 +388,7 @@ def page_event(ev, base_url):
     parts.append('<script src="/geography.js?v=v1-francophone-20260620-map-authors"></script>')
     parts.append('<script src="/tracking-v4.js?v=p1-static-1"></script>')
     parts.append('<script src="/event.js?v=static-canonical-1"></script>')
-    parts.append('<script src="/author-local-draft.js?v=1"></script>')
+    parts.append('<script src="/author-local-draft.js?v=4"></script>')
     parts.append('<script src="/url-normalizer.js?v=1"></script>')
     parts.append('<script src="/authors-presence.js?v=static-canonical-1"></script>')
     parts.append('<script src="/ludique.js?v=ludique-21" defer></script>')

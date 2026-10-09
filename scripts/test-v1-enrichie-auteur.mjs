@@ -47,7 +47,8 @@ assert.match(presenceSource, /if \(response\.error && isMissingColumnError\(resp
 assert.match(presenceSource, /if \(legacyError\) throw legacyError;/);
 
 const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
-assert.match(appSource, /if \(authorPresenceError && isMissingColumnError\(authorPresenceError\)\)/);
+assert.match(appSource, /author_presence: authorPresencePayload/);
+assert.doesNotMatch(appSource, /from\("event_authors_presence"\)\s*\.insert/);
 assert.match(appSource, /function centerMapOnGlobalView\(\)/);
 assert.match(appSource, /renderFilteredEvents\(\);\s*centerMapOnGlobalView\(\);/);
 assert.match(appSource, /function initSubmissionDateFields\(options = \{\}\)/);

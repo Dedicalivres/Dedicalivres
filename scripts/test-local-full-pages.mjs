@@ -83,9 +83,10 @@ try {
   await detail.fill('[name=contact_email]', 'test@example.test');
   await detail.reload();
   await detail.locator('.local-author-draft').waitFor();
+  await detail.locator('[data-author-reuse]').click();
   assert.equal(await detail.locator('[name=participant_type]').inputValue(), 'publisher');
   assert.equal(await detail.locator('[name=organization_name]').inputValue(), 'Éditions Démonstration');
-  assert.equal(await detail.locator('[name=contact_email]').inputValue(), 'test@example.test');
+  assert.equal(await detail.locator('[name=contact_email]').inputValue(), '');
   assert.equal(await detail.locator('#publisher-presence-fields').isVisible(), true);
   assert.equal(await detail.locator('[name=legal_accept]').isChecked(), false);
   catalog = [base, { ...base, id: '2', title: 'Nouvelle rencontre littéraire à Rennes' }, { ...base, id: '3', country_code: 'BE' }];
@@ -108,7 +109,7 @@ try {
   await home.click('#local-clear');
   await detail.waitForFunction(() => document.querySelector('.local-author-draft input')?.checked === false);
   await detail.fill('[name=organization_name]', 'Saisie après effacement');
-  assert.equal(await detail.evaluate(() => localStorage.getItem('dedicalivres_author_draft_v1_author-presence-form')), null);
+  assert.equal(await detail.evaluate(() => localStorage.getItem('dedicalivres_author_profile_v2')), null);
   const submit = await context.newPage();
   await submit.goto('http://local.test/soumettre.html');
   await submit.locator('.local-author-draft').waitFor();
@@ -117,9 +118,11 @@ try {
   await submit.fill('[name=author_pseudo]', 'Auteur de démonstration');
   await submit.reload();
   await submit.locator('.local-author-draft').waitFor();
+  assert.equal(await submit.locator('[name=author_pseudo]').inputValue(), '');
+  await submit.locator('[data-author-reuse]').click();
   assert.equal(await submit.locator('[name=author_pseudo]').inputValue(), 'Auteur de démonstration');
   assert.equal(await submit.locator('[name=legal_accept]').isChecked(), false);
   await submit.locator('.local-author-draft').screenshot({ path: path.join(output, engine + '-auteur.png') });
   assert.deepEqual(errors, []);
-  console.log('PASS ' + engine + ': full pages/CSS, legacy favorites, multi-tab delete, new visit, acknowledgement, real publisher/author restoration, consent excluded. Screenshots: ' + output);
+  console.log('PASS ' + engine + ': full pages/CSS, multi-tab delete, explicit publisher/author reuse, private contacts and consent excluded. Screenshots: ' + output);
 } finally { await browser.close(); }

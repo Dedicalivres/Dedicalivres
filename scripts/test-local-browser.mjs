@@ -24,16 +24,25 @@ try {
     form.innerHTML = '<input name="pseudo"><input name="legal_accept" type="checkbox"><input name="author_portrait" type="file">'; document.body.append(form);
   });
   await page.addScriptTag({ path: new URL('../author-local-draft.js', import.meta.url).pathname });
-  await page.locator('#author-presence-form fieldset input').check();
+  await page.locator('#author-presence-form [data-author-memory-consent]').check();
   await page.locator('[name=pseudo]').fill('Auteur test');
-  const draft = await page.evaluate(() => JSON.parse(localStorage.getItem('dedicalivres_author_draft_v1_author-presence-form')));
+  const draft = await page.evaluate(() => JSON.parse(localStorage.getItem('dedicalivres_author_profile_v2')));
+  assert.equal(draft.version, 2);
   assert.equal(draft.fields.pseudo, 'Auteur test');
   assert.equal(draft.fields.legal_accept, undefined);
   assert.equal(draft.fields.author_portrait, undefined);
+  await page.reload();
+  await page.evaluate(() => {
+    const form = document.createElement('form'); form.id = 'submission-form';
+    form.innerHTML = '<div id="dedicace-author-fields"><p class="submission-author-intro"></p><input name="author_pseudo" value="Saisie conservée"><input name="author_profile_url"></div>';
+    document.body.append(form);
+  });
+  await page.addScriptTag({ path: new URL('../author-local-draft.js', import.meta.url).pathname });
+  await page.locator('#submission-form [data-author-reuse]').click();
+  assert.equal(await page.locator('[name=author_pseudo]').inputValue(), 'Saisie conservée');
   page.on('dialog', dialog => dialog.accept());
-  await page.locator('#local-discoveries summary').click();
-  await page.click('#local-clear');
-  assert.equal(await page.evaluate(() => localStorage.getItem('dedicalivres_author_draft_v1_author-presence-form')), null);
+  await page.locator('#submission-form [data-author-forget]').click();
+  assert.equal(await page.evaluate(() => localStorage.getItem('dedicalivres_author_profile_v2')), null);
   assert.deepEqual(errors, []);
-  console.log('PASS Chromium mobile: criteria, escaped content, acknowledgement, author opt-in, exclusions, deletion, no JS errors');
+  console.log('PASS Chromium mobile: criteria, author V2 opt-in, explicit reuse, preserved input, exclusions, deletion, no JS errors');
 } finally { await browser.close(); }

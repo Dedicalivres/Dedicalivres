@@ -1,71 +1,186 @@
-(function () {
-  'use strict';
-  // Only reusable author information; never consent, files, tokens or event dates.
-  const allowed = ['pseudo', 'author_pseudo', 'participant_type', 'publication_mode', 'author_profile_url', 'author_profile_url_type', 'book_or_publisher_url', 'book_or_publisher_url_type', 'publisher_name', 'organization_name', 'organization_website', 'contact_name', 'contact_email'];
-  const profileAllowed = ['bio', 'location', 'website', 'shop_url', 'profile_type'];
-  function bind(form) {
-    if (form.dataset.localDraft) return;
-    form.dataset.localDraft = 'true';
-    const isProfileForm = form.id === 'author-profile-submission-form';
-    const storedFields = isProfileForm ? ['request_type', ...allowed, ...profileAllowed] : allowed;
-    const key = 'dedicalivres_author_draft_v1_' + form.id;
-    const box = document.createElement('fieldset'); box.className = isProfileForm ? 'local-author-draft local-author-draft-compact' : 'local-author-draft';
-    const legend = document.createElement('legend'); legend.textContent = isProfileForm ? 'Retrouver mes informations sur cet appareil' : 'Retrouver mes informations auteur'; box.append(legend);
-    const label = document.createElement('label');
-    const toggle = document.createElement('input'); toggle.type = 'checkbox'; toggle.defaultChecked = false;
-    label.append(toggle, ' Conserver mes informations auteur dans ce navigateur'); box.append(label);
-    const info = document.createElement('p'); info.textContent = 'Sur un appareil personnel uniquement. Les coordonnées restent accessibles aux utilisateurs de ce navigateur. Photos et consentement ne sont pas conservés. Les informations sont transmises au site uniquement lorsque vous envoyez le formulaire.'; box.append(info);
-    const feedback = document.createElement('p'); feedback.setAttribute('role', 'status'); box.append(feedback);
-    const forget = document.createElement('button'); forget.type = 'button'; forget.textContent = isProfileForm ? 'Effacer les informations mémorisées' : 'Effacer les informations auteur mémorisées'; box.append(forget);
-    const submissionAuthorFields = form.id === 'submission-form'
-      ? form.querySelector('#dedicace-author-fields')
-      : null;
-    const submissionAuthorIntro = submissionAuthorFields?.querySelector('.submission-author-intro');
-    if (submissionAuthorIntro) submissionAuthorIntro.insertAdjacentElement('afterend', box);
-    else form.prepend(box);
+(function exposeAuthorLocalProfile(root) {
+  "use strict";
+  const VERSION = 2;
+  const KEY = "dedicalivres_author_profile_v2";
+  const LEGACY_KEYS = ["dedicalivres_author_draft_v1_author-profile-submission-form", "dedicalivres_author_draft_v1_author-presence-form", "dedicalivres_author_draft_v1_submission-form"];
+  const SAFE_FIELDS = new Set(["pseudo", "bio", "location", "profile_type", "website", "shop_url", "publication_mode", "author_profile_url_type", "book_or_publisher_url_type", "publisher_name"]);
+  const SAFE_PUBLISHER_FIELDS = new Set(["organization_name", "organization_website"]);
+  const FORMS = new Set(["author-profile-submission-form", "author-presence-form", "submission-form"]);
+
+  function resolveStorage(storage) {
+    if (storage) return storage;
+    try { return root.localStorage; }
+    catch (_) { return { getItem() { return null; }, setItem() { throw new Error("storage unavailable"); }, removeItem() { throw new Error("storage unavailable"); } }; }
+  }
+
+  function value(form, name) {
+    const field = form?.elements?.namedItem(name);
+    return field && typeof field.value === "string" ? field.value.trim() : "";
+  }
+  function cleanObject(input, allowed) {
+    const output = {};
+    if (!input || typeof input !== "object") return output;
+    allowed.forEach((name) => {
+      if (typeof input[name] !== "string") return;
+      const cleaned = input[name].trim().slice(0, name === "bio" ? 5000 : 1000);
+      if (cleaned) output[name] = cleaned;
+    });
+    return output;
+  }
+  function parseRecord(raw) {
     try {
-      const saved = JSON.parse(localStorage.getItem(key));
-      if (saved?.version === 1 && saved.fields && typeof saved.fields === 'object') {
-        toggle.checked = true;
-        toggle.defaultChecked = true;
-        storedFields.forEach(name => {
-          const field = form.elements.namedItem(name);
-          if (field && typeof saved.fields[name] === 'string') {
-            field.value = saved.fields[name].slice(0, name === 'bio' ? 5000 : 1000);
-            if (typeof field.dispatchEvent === 'function') {
-              field.dispatchEvent(new Event('change', { bubbles: true }));
-            } else {
-              const selected = Array.from(field).find(item => item.checked);
-              selected?.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          }
-        });
-        feedback.textContent = 'Informations auteur restaurées depuis ce navigateur.';
+      const parsed = JSON.parse(raw || "null");
+      if (parsed?.version !== VERSION) return null;
+      const fields = cleanObject(parsed.fields, SAFE_FIELDS);
+      const publisher = cleanObject(parsed.publisher, SAFE_PUBLISHER_FIELDS);
+      if (!Object.keys(fields).length && !Object.keys(publisher).length) return null;
+      return { version: VERSION, fields, publisher, updatedAt: parsed.updatedAt || "" };
+    } catch (_) { return null; }
+  }
+  function legacyToShared(key, fields) {
+    if (!fields || typeof fields !== "object") return { fields: {}, publisher: {} };
+    if (key.includes("author-profile-submission-form")) return { fields: cleanObject(fields, SAFE_FIELDS), publisher: {} };
+    if (key.includes("author-presence-form")) {
+      if (fields.participant_type === "publisher") {
+        return { fields: {}, publisher: cleanObject(fields, SAFE_PUBLISHER_FIELDS) };
       }
-    } catch (_) { feedback.textContent = 'Le stockage local est indisponible ou illisible.'; }
-    function clear() {
-      try { localStorage.removeItem(key); toggle.checked = false; toggle.defaultChecked = false; feedback.textContent = 'Informations mémorisées effacées. La saisie actuelle reste dans le formulaire.'; }
-      catch (_) { feedback.textContent = 'Impossible d’effacer le stockage de ce navigateur.'; }
+      return { fields: cleanObject({
+        pseudo: fields.pseudo, profile_type: fields.participant_type,
+        website: fields.author_profile_url, shop_url: fields.book_or_publisher_url,
+        publication_mode: fields.publication_mode,
+        author_profile_url_type: fields.author_profile_url_type,
+        book_or_publisher_url_type: fields.book_or_publisher_url_type,
+        publisher_name: fields.publisher_name
+      }, SAFE_FIELDS), publisher: {} };
     }
+    return { fields: cleanObject({ pseudo: fields.author_pseudo, website: fields.author_profile_url }, SAFE_FIELDS), publisher: {} };
+  }
+  function migrateLegacy(storage) {
+    const merged = { fields: {}, publisher: {} };
+    const migratedKeys = [];
+    for (const key of LEGACY_KEYS) {
+      let parsed;
+      try { parsed = JSON.parse(storage.getItem(key) || "null"); } catch (_) { parsed = null; }
+      if (parsed?.version !== 1 || !parsed.fields) continue;
+      const mapped = legacyToShared(key, parsed.fields);
+      Object.entries(mapped.fields).forEach(([name, entry]) => { if (!merged.fields[name]) merged.fields[name] = entry; });
+      Object.entries(mapped.publisher).forEach(([name, entry]) => { if (!merged.publisher[name]) merged.publisher[name] = entry; });
+      migratedKeys.push(key);
+    }
+    if (!Object.keys(merged.fields).length && !Object.keys(merged.publisher).length) return null;
+    const record = { version: VERSION, ...merged, updatedAt: new Date().toISOString() };
+    storage.setItem(KEY, JSON.stringify(record));
+    migratedKeys.forEach((key) => storage.removeItem(key));
+    return record;
+  }
+  function read(storage) {
+    storage = resolveStorage(storage);
+    try { return parseRecord(storage.getItem(KEY)) || migrateLegacy(storage); }
+    catch (_) { return null; }
+  }
+  function collect(form) {
+    if (form.id === "author-profile-submission-form") return { fields: cleanObject({
+      pseudo: value(form, "pseudo"), bio: value(form, "bio"), location: value(form, "location"),
+      profile_type: value(form, "profile_type"), website: value(form, "website"), shop_url: value(form, "shop_url")
+    }, SAFE_FIELDS), publisher: {} };
+    if (form.id === "author-presence-form") {
+      if (value(form, "participant_type") === "publisher") return { fields: {}, publisher: cleanObject({
+        organization_name: value(form, "organization_name"), organization_website: value(form, "organization_website")
+      }, SAFE_PUBLISHER_FIELDS) };
+      return { fields: cleanObject({
+        pseudo: value(form, "pseudo"), profile_type: value(form, "participant_type"),
+        website: value(form, "author_profile_url"), shop_url: value(form, "book_or_publisher_url"),
+        publication_mode: value(form, "publication_mode"), author_profile_url_type: value(form, "author_profile_url_type"),
+        book_or_publisher_url_type: value(form, "book_or_publisher_url_type"), publisher_name: value(form, "publisher_name")
+      }, SAFE_FIELDS), publisher: {} };
+    }
+    return { fields: cleanObject({ pseudo: value(form, "author_pseudo"), website: value(form, "author_profile_url") }, SAFE_FIELDS), publisher: {} };
+  }
+  function write(storage, current, next) {
+    const record = { version: VERSION, fields: { ...(current?.fields || {}), ...next.fields }, publisher: { ...(current?.publisher || {}), ...next.publisher }, updatedAt: new Date().toISOString() };
+    storage.setItem(KEY, JSON.stringify(record));
+    return record;
+  }
+  function canReplaceDefault(field) {
+    return ((field.name === "profile_type" || field.name === "participant_type") && field.value === "author")
+      || (field.name === "publication_mode" && field.value === "unknown");
+  }
+  function fill(form, name, nextValue) {
+    if (!nextValue) return false;
+    const field = form.elements.namedItem(name);
+    if (!field || typeof field.value !== "string") return false;
+    if (field.value.trim() && !canReplaceDefault(field)) return false;
+    field.value = nextValue;
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+  function apply(form, record) {
+    if (!record) return 0;
+    let count = 0;
+    const put = (name, entry) => { if (fill(form, name, entry)) count += 1; };
+    if (form.id === "author-profile-submission-form") {
+      ["pseudo", "bio", "location", "profile_type", "website", "shop_url"].forEach((name) => put(name, record.fields[name]));
+    } else if (form.id === "author-presence-form") {
+      if (value(form, "participant_type") === "publisher") {
+        put("organization_name", record.publisher.organization_name);
+        put("organization_website", record.publisher.organization_website);
+      } else {
+        put("pseudo", record.fields.pseudo); put("participant_type", record.fields.profile_type);
+        put("author_profile_url", record.fields.website); put("book_or_publisher_url", record.fields.shop_url);
+        put("publication_mode", record.fields.publication_mode); put("author_profile_url_type", record.fields.author_profile_url_type);
+        put("book_or_publisher_url_type", record.fields.book_or_publisher_url_type); put("publisher_name", record.fields.publisher_name);
+      }
+    } else {
+      put("author_pseudo", record.fields.pseudo); put("author_profile_url", record.fields.website);
+    }
+    return count;
+  }
+  function bind(form, storage) {
+    if (!FORMS.has(form.id) || form.dataset.localDraft) return;
+    storage = resolveStorage(storage);
+    form.dataset.localDraft = "v2";
+    const box = document.createElement("fieldset");
+    box.className = `local-author-draft${form.id === "author-profile-submission-form" ? " local-author-draft-compact" : ""}`;
+    box.innerHTML = `<legend>Mes informations auteur sur cet appareil</legend>
+      <label><input type="checkbox" data-author-memory-consent> Conserver mes informations réutilisables dans ce navigateur</label>
+      <p>Appareil personnel uniquement. Aucun fichier, consentement légal, contact privé, token ou donnée propre à un événement n’est mémorisé.</p>
+      <div class="local-author-draft-actions" hidden><button type="button" data-author-reuse>Réutiliser mes informations</button><button type="button" data-author-skip>Continuer sans récupération</button></div>
+      <button type="button" data-author-forget>Effacer les informations sauvegardées</button><p data-author-memory-feedback role="status"></p>`;
+    const intro = form.id === "submission-form" ? form.querySelector("#dedicace-author-fields .submission-author-intro") : null;
+    if (intro) intro.insertAdjacentElement("afterend", box); else form.prepend(box);
+    const toggle = box.querySelector("[data-author-memory-consent]");
+    const actions = box.querySelector(".local-author-draft-actions");
+    const feedback = box.querySelector("[data-author-memory-feedback]");
+    let record = read(storage);
+    if (record) { toggle.checked = true; actions.hidden = false; feedback.textContent = "Des informations compatibles sont disponibles."; }
     function save() {
       if (!toggle.checked) return;
-      const fields = {};
-      storedFields.forEach(name => { const field = form.elements.namedItem(name); if (field && typeof field.value === 'string') fields[name] = field.value.slice(0, name === 'bio' ? 5000 : 1000); });
-      try { localStorage.setItem(key, JSON.stringify({ version: 1, fields })); toggle.defaultChecked = true; feedback.textContent = 'Informations auteur enregistrées dans ce navigateur.'; }
-      catch (_) { feedback.textContent = 'Enregistrement impossible. Votre saisie reste disponible sur cette page.'; }
+      try { record = write(storage, read(storage), collect(form)); feedback.textContent = "Informations réutilisables enregistrées."; }
+      catch (_) { feedback.textContent = "Stockage local indisponible. Votre saisie reste dans cette page."; }
     }
-    toggle.onchange = () => toggle.checked ? save() : clear();
-    forget.onclick = clear;
-    window.addEventListener('storage', event => {
-      if ((event.key === key && event.newValue === null) || event.key === null) {
-        toggle.checked = false; toggle.defaultChecked = false;
-        feedback.textContent = 'Mémorisation désactivée : les données ont été effacées dans un autre onglet. Votre saisie actuelle est conservée.';
-      }
+    function clear() {
+      try {
+        storage.removeItem(KEY); LEGACY_KEYS.forEach((key) => storage.removeItem(key)); record = null;
+        toggle.checked = false; actions.hidden = true;
+        feedback.textContent = "Informations sauvegardées effacées. La saisie actuelle est conservée.";
+      } catch (_) { feedback.textContent = "Impossible d’effacer le stockage de ce navigateur."; }
+    }
+    toggle.addEventListener("change", () => toggle.checked ? save() : clear());
+    box.querySelector("[data-author-reuse]").addEventListener("click", () => {
+      const applied = apply(form, read(storage)); actions.hidden = true;
+      feedback.textContent = applied ? `${applied} information${applied > 1 ? "s" : ""} récupérée${applied > 1 ? "s" : ""}.` : "Aucun champ vide compatible à compléter.";
     });
-    form.addEventListener('input', event => { if (storedFields.includes(event.target.name)) save(); });
-    form.addEventListener('change', event => { if (storedFields.includes(event.target.name)) save(); });
+    box.querySelector("[data-author-skip]").addEventListener("click", () => { actions.hidden = true; feedback.textContent = "Récupération ignorée. Vos champs actuels sont conservés."; });
+    box.querySelector("[data-author-forget]").addEventListener("click", clear);
+    form.addEventListener("input", (event) => { if (!event.target.closest?.(".local-author-draft")) save(); });
+    form.addEventListener("change", (event) => { if (!event.target.closest?.(".local-author-draft")) save(); });
+    root.addEventListener?.("storage", (event) => { if (event.key === KEY && event.newValue === null) clear(); });
   }
-  function scan() { document.querySelectorAll('#author-presence-form, #submission-form, #author-profile-submission-form').forEach(bind); }
+  function scan() {
+    document.querySelectorAll("#author-presence-form, #submission-form, #author-profile-submission-form").forEach((form) => bind(form));
+  }
+  root.DEDICALIVRES_AUTHOR_DRAFT = Object.freeze({ VERSION, KEY, LEGACY_KEYS, parseRecord, migrateLegacy, collect, apply, read, write, bind });
+  if (!root.document) return;
   scan();
   new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
-})();
+})(typeof window !== "undefined" ? window : globalThis);
