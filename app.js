@@ -1874,55 +1874,30 @@
 
       const authorPresencePayload = await buildSubmittedAuthorPresencePayload(formData, payload);
 
+      const atomicSubmissionPayload = authorPresencePayload
+        ? { ...payload, author_presence: authorPresencePayload }
+        : payload;
+
       const { error } = await supabaseClient.rpc("submit_event_with_contact", {
-        p_event: payload,
+        p_event: atomicSubmissionPayload,
         p_submitter_name: submitterName || null,
         p_submitter_email: submitterEmail
       });
 
-      if (error) throw error;
-
-      let authorPresenceWarning = "";
-
-      if (authorPresencePayload) {
-        const { error: authorPresenceError } = await supabaseClient
-          .from("event_authors_presence")
-          .insert([authorPresencePayload]);
-
-        if (authorPresenceError && isMissingColumnError(authorPresenceError)) {
-          console.warn("Présence auteur non jointe à la soumission :", authorPresenceError);
-
-          const legacyPayload = {
-            event_id: eventId,
-            pseudo: authorPresencePayload.pseudo,
-            website: authorPresencePayload.author_profile_url || payload.website || "https://dedicalivres.fr/",
-            validated: false,
-            rejected: false
-          };
-
-          const { error: legacyAuthorPresenceError } = await supabaseClient
-            .from("event_authors_presence")
-            .insert([legacyPayload]);
-
-          if (legacyAuthorPresenceError) {
-            console.warn("Fallback présence auteur impossible :", legacyAuthorPresenceError);
-            authorPresenceWarning = " La fiche événement est transmise, mais la présence auteur devra être ajoutée ou corrigée en modération.";
-          }
-        } else if (authorPresenceError) {
-          console.warn("Présence auteur non jointe à la soumission :", authorPresenceError);
-          authorPresenceWarning = " La fiche événement est transmise, mais la présence auteur devra être ajoutée ou corrigée en modération.";
-        }
+      if (error) {
+        console.error("Soumission atomique refusée :", error);
+        throw new Error("La soumission complète n’a pas pu être enregistrée. Aucun événement ni contact n’a été conservé. Réessayez plus tard.");
       }
 
       if (keepFieldsForNextEvent) {
         prepareNextMultipleEvent();
         setFormFeedback(
-          `Votre événement a bien été transmis.${authorPresenceWarning} Les informations sont conservées : indiquez les nouvelles dates puis envoyez l’événement suivant.`,
+          "Votre événement a bien été transmis. Les informations sont conservées : indiquez les nouvelles dates puis envoyez l’événement suivant.",
           "success"
         );
       } else {
         resetSubmissionForm();
-        setFormFeedback(`Votre événement a bien été transmis.${authorPresenceWarning}`, "success");
+        setFormFeedback("Votre événement a bien été transmis.", "success");
       }
     } catch (error) {
       console.error(error);
@@ -2168,7 +2143,6 @@
     }
 
     return {
-      event_id: eventPayload.id,
       pseudo,
       author_slug: authorIdentityKey || null,
       author_identity_key: authorIdentityKey || null,
@@ -2180,10 +2154,7 @@
       book_or_publisher_url_type: null,
       publisher_name: null,
       author_portrait_url: authorPortraitUrl,
-      author_portrait_storage_key: authorPortraitStorageKey,
-      source: "event_submission",
-      validated: false,
-      rejected: false
+      author_portrait_storage_key: authorPortraitStorageKey
     };
   }
 
