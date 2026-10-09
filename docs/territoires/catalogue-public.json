@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-07T18:23:51.866Z",
+  "capturedAt": "2026-10-09T08:48:06.247Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -2143,6 +2143,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "3d509e99-5e2d-478d-9300-f86ba6c478f6",
+      "title": "Dédicace Dylan Heskin - Cultura Brest",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Brest",
+      "start_date": "2026-10-24",
+      "end_date": "2026-10-24",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://dylanheskin.com/"
     },
     {
       "id": "3d55067a-0024-4386-8cd9-5c194c7a67c0",
@@ -8121,6 +8135,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://quefaire.net/charente_maritime/saint_denis_d_oleron/dedicace_rencontre_avec_fabien_combes_444142516.htm"
+    },
+    {
+      "id": "f2df9ae0-6164-440e-8b67-1adafff70182",
+      "title": "Dédicace Dylan Heskin - Espace Culturel E. Leclerc Quéven",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Quéven",
+      "start_date": "2026-10-17",
+      "end_date": "2026-10-17",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://dylanheskin.com/"
     },
     {
       "id": "f3412280-b2d6-44a1-9398-a633c2a57b3f",
