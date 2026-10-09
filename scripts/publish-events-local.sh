@@ -104,7 +104,8 @@ echo "=== GARDE-FOU URL HISTORIQUES ==="
 python3 - \
   "$ROOT" \
   "$EXPORT" \
-  "${PUBLICATION_DEPUBLISH_PATHS:-[]}" <<'PY'
+  "${PUBLICATION_DEPUBLISH_PATHS:-[]}" \
+  "${PUBLICATION_DEPUBLISH_EVENT_IDS:-[]}" <<'PY'
 from pathlib import Path
 import json
 import sys
@@ -129,7 +130,28 @@ if not isinstance(raw_authorized, list):
 
 authorized_names = set()
 
-for value in raw_authorized:
+try:
+    raw_event_ids = json.loads(
+        sys.argv[4] or "[]"
+    )
+except json.JSONDecodeError as exc:
+    raise SystemExit(
+        "STOP : PUBLICATION_DEPUBLISH_EVENT_IDS invalide."
+    ) from exc
+
+if not isinstance(raw_event_ids, list):
+    raise SystemExit(
+        "STOP : PUBLICATION_DEPUBLISH_EVENT_IDS doit être un tableau JSON."
+    )
+
+if len(raw_event_ids) != len(raw_authorized):
+    raise SystemExit(
+        "STOP : événements et chemins de nettoyage non alignés."
+    )
+
+authorized_event_by_name = {}
+
+for event_id, value in zip(raw_event_ids, raw_authorized):
     path = Path(
         str(value)
     )
@@ -148,6 +170,8 @@ for value in raw_authorized:
     authorized_names.add(
         path.name
     )
+
+    authorized_event_by_name[path.name] = str(event_id)
 
 
 def pages(directory):
@@ -238,6 +262,36 @@ if authorized_removed:
         print(
             "  - autorisé :",
             name
+        )
+
+
+manifest_path = (
+    export
+    / "event-pages-manifest.json"
+)
+
+try:
+    manifest_events = json.loads(
+        manifest_path.read_text(encoding="utf-8")
+    ).get("events", {})
+except (OSError, json.JSONDecodeError, AttributeError) as exc:
+    raise SystemExit(
+        "STOP : manifeste événement généré invalide."
+    ) from exc
+
+for name in authorized_removed:
+    event_id = authorized_event_by_name[name]
+    replacement_slug = manifest_events.get(event_id)
+
+    if replacement_slug is None:
+        continue
+
+    replacement_name = str(replacement_slug) + ".html"
+
+    if replacement_name == name or replacement_name not in new:
+        raise SystemExit(
+            "STOP : ancienne fiche retirée sans remplacement canonique valide : "
+            + name
         )
 
 

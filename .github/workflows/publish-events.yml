@@ -154,6 +154,9 @@ jobs:
           PUBLICATION_DEPUBLISH_PATHS:
             ${{ steps.claim.outputs.depublish_paths }}
 
+          PUBLICATION_DEPUBLISH_EVENT_IDS:
+            ${{ steps.claim.outputs.depublish_event_ids }}
+
         run: |
           scripts/publish-events-cloud.sh
 
