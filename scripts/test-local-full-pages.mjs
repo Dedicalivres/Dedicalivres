@@ -112,11 +112,12 @@ try {
   assert.equal(await detail.evaluate(() => localStorage.getItem('dedicalivres_author_profile_v2')), null);
   const submit = await context.newPage();
   await submit.goto('http://local.test/soumettre.html');
-  await submit.locator('.local-author-draft').waitFor();
   await submit.selectOption('#event-type-submit', 'Dédicace');
+  await submit.locator('.local-author-draft').waitFor();
   await submit.locator('.local-author-draft input').check();
   await submit.fill('[name=author_pseudo]', 'Auteur de démonstration');
   await submit.reload();
+  await submit.selectOption('#event-type-submit', 'Dédicace');
   await submit.locator('.local-author-draft').waitFor();
   assert.equal(await submit.locator('[name=author_pseudo]').inputValue(), '');
   await submit.locator('[data-author-reuse="author"]').click();
