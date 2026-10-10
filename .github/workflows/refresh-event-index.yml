@@ -1,5 +1,8 @@
 name: Refresh event index
 
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+
 on:
   schedule:
     - cron: '30 2 * * *'
