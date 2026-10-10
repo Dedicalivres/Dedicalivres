@@ -81,6 +81,13 @@
   let map;
   let markersLayer;
   let allEvents = [];
+  let searchableText = new WeakMap();
+  let catalogVersion = 0;
+  let searchRenderTimer = null;
+  let lastRenderedFilterKey = "";
+  let calendarBaseKey = "";
+  let calendarBaseEvents = [];
+  let calendarRenderKey = "";
   let markerByEventId = {};
   let mapFloatingPanel = null;
   let cityAutocompleteTimer = null;
@@ -255,7 +262,10 @@
       renderFilteredEvents();
     });
 
-    searchInput?.addEventListener("input", renderFilteredEvents);
+    searchInput?.addEventListener("input", () => {
+      window.clearTimeout(searchRenderTimer);
+      searchRenderTimer = window.setTimeout(renderFilteredEvents, 200);
+    });
 
     bindCityAutocomplete();
   }
@@ -673,6 +683,9 @@
     }
 
     allEvents = Array.isArray(data) ? data : [];
+    searchableText = new WeakMap();
+    allEvents.forEach((event) => searchableText.set(event, eventSearchText(event)));
+    catalogVersion += 1;
     // Retain countries present in the catalog even outside the predefined regions.
     if (countryFilter && geo) {
       const known = new Set(Array.from(countryFilter.options, option => option.value));
@@ -697,6 +710,17 @@
   }
 
   function renderFilteredEvents() {
+    window.clearTimeout(searchRenderTimer);
+    searchRenderTimer = null;
+    const filtersKey = JSON.stringify([
+      catalogVersion, normalize(searchInput?.value || ""), countryFilter?.value || "",
+      regionFilter?.value || "", typeFilter?.value || "", dateFilter?.value || "",
+      selectedCalendarDate, document.body.dataset.agendaMode || "global",
+      userPosition?.lat ?? null, userPosition?.lng ?? null, locationRadiusKm,
+      toDateKey(new Date())
+    ]);
+    if (filtersKey === lastRenderedFilterKey) return;
+    lastRenderedFilterKey = filtersKey;
     const globallyFiltered = filterEvents(allEvents);
     const filtered = userPosition
       ? findEventsWithinRadius(userPosition, globallyFiltered, locationRadiusKm)
@@ -736,16 +760,7 @@
         return false;
       }
 
-      const haystack = normalize([
-        event.title,
-        event.city,
-        event.region,
-        geo?.getCountryName(event.country_code),
-        event.description,
-        event.type
-      ].join(" "));
-
-      if (search && !haystack.includes(search)) return false;
+      if (search && !(searchableText.get(event) ?? eventSearchText(event)).includes(search)) return false;
       if (country && geo?.getCountryCode(event) !== geo.normalizeCountryCode(country)) return false;
       if (region && normalize(event.region) !== normalize(region)) return false;
       if (type && event.type !== type) return false;
@@ -754,6 +769,13 @@
 
       return true;
     });
+  }
+
+  function eventSearchText(event) {
+    return normalize([
+      event.title, event.city, event.region, geo?.getCountryName(event.country_code),
+      event.description, event.type
+    ].join(" "));
   }
 
   function matchesDate(event, selectedDate) {
@@ -805,11 +827,23 @@
     const monthStart = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const leadingDays = (monthStart.getDay() + 6) % 7;
-    const baseEvents = filterEvents(allEvents, {
-      includeMonth: false,
-      includeCalendarDate: false
-    }).filter((event) => !isPastEvent(event));
     const todayKey = toDateKey(new Date());
+    const baseKey = JSON.stringify([
+      catalogVersion, normalize(searchInput?.value || ""), countryFilter?.value || "",
+      regionFilter?.value || "", typeFilter?.value || "",
+      document.body.dataset.agendaMode || "global", todayKey
+    ]);
+    if (baseKey !== calendarBaseKey) {
+      calendarBaseEvents = filterEvents(allEvents, {
+        includeMonth: false,
+        includeCalendarDate: false
+      }).filter((event) => !isPastEvent(event));
+      calendarBaseKey = baseKey;
+    }
+    const baseEvents = calendarBaseEvents;
+    const renderKey = JSON.stringify([baseKey, year, month, selectedCalendarDate]);
+    if (renderKey === calendarRenderKey) return;
+    calendarRenderKey = renderKey;
     const cells = [];
 
     calendarMonthLabel.textContent = new Intl.DateTimeFormat("fr-FR", {
