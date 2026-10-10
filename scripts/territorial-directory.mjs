@@ -157,6 +157,7 @@ export const territories = [
     "canonical": "https://dedicalivres.fr/evenements-litteraires-bretagne",
     "creation": "Date de création publique non établie. Page présente dans le dépôt depuis le 27 avril 2026.",
     "image": "https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev/event-images/2026/09/1790175488170-ec149276-cbbd-4a3b-bbf8-36d470890eb6.png",
+    "imageWebp": "images/territories/bretagne-banner-768.webp 768w, images/territories/bretagne-banner-1280.webp 1280w, images/territories/bretagne-banner-2172.webp 2172w",
     "imageWidth": 2172,
     "imageHeight": 724,
     "editorial": ""
