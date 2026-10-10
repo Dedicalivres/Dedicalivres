@@ -396,9 +396,25 @@ def page_event(ev, base_url):
     parts.append('</body></html>')
     return '\n'.join(parts)
 
-def page_index(evs, base_url):
-    parts = ['<!doctype html><html lang="fr"><head><meta charset="utf-8">', '<meta name="viewport" content="width=device-width,initial-scale=1">', f'<title>Agenda littéraire — salons, festivals et dédicaces | {MARQUE}</title>', '<meta name="description" content="Tous les salons du livre, festivals littéraires et dédicaces à venir en France, Belgique, Suisse, Luxembourg et Monaco.">', f'<link rel="canonical" href="{esc(base_url)}/evenement/index.html">', f'<meta name="theme-color" content="{COULEUR}">', f'<style>{CSS}</style></head><body>', f'<header class="site"><a href="{esc(base_url)}/">{MARQUE}</a></header>', '<div class="wrap">', '<h1>Agenda littéraire francophone</h1>', f'<p>{len(evs)} rendez-vous à venir : salons, festivals et dédicaces en France, Belgique, Suisse, Luxembourg et Monaco.</p>']
-    for ev in evs:
+def index_status(ev, today):
+    try:
+        start = dt.date.fromisoformat(iso_date(ev['date_debut']))
+        end = dt.date.fromisoformat(iso_date(ev['date_fin']) or start.isoformat())
+    except ValueError:
+        return 'invalid'
+    if end < start:
+        return 'invalid'
+    if end < today:
+        return 'past'
+    return 'ongoing' if start <= today else 'future'
+
+def page_index(evs, base_url, today=None):
+    today = today or dt.date.today()
+    ongoing = [ev for ev in evs if index_status(ev, today) == 'ongoing']
+    future = [ev for ev in evs if index_status(ev, today) == 'future']
+    listed = ongoing + future
+    parts = ['<!doctype html><html lang="fr"><head><meta charset="utf-8">', '<meta name="viewport" content="width=device-width,initial-scale=1">', f'<title>Agenda littéraire — salons, festivals et dédicaces | {MARQUE}</title>', '<meta name="description" content="Tous les salons du livre, festivals littéraires et dédicaces à venir en France, Belgique, Suisse, Luxembourg et Monaco.">', f'<link rel="canonical" href="{esc(base_url)}/evenement/index.html">', f'<meta name="theme-color" content="{COULEUR}">', f'<style>{CSS}</style></head><body>', f'<header class="site"><a href="{esc(base_url)}/">{MARQUE}</a></header>', '<div class="wrap">', '<h1>Agenda littéraire francophone</h1>', f'<p>{len(listed)} rendez-vous à venir ou en cours ({len(ongoing)} en cours, {len(future)} à venir) : salons, festivals et dédicaces en France, Belgique, Suisse, Luxembourg et Monaco.</p>']
+    for ev in listed:
         lieu = ', '.join([p for p in (ev['ville'], ev['departement']) if p]) or ev['pays']
         when = date_fr(iso_date(ev['date_debut'])) if iso_date(ev['date_debut']) else ''
         parts.append(f'''<a class="card" href="{esc(ev['_slug'])}.html"><div class="t">{esc(ev['titre'])}</div><div class="s">{esc(ev.get('type') or deduire_type(ev['titre']))} · {esc(lieu)}{(' · ' + esc(when) if when else '')}</div></a>''')
