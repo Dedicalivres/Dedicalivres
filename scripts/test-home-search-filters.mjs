@@ -32,6 +32,7 @@ function setup(){
   renderEvents:rows=>{writes.events++;writes.upcoming=rows.map(e=>e.id);},
   renderPastEvents:rows=>{writes.past++;writes.pastIds=rows.map(e=>e.id);},
   renderMapMarkers:()=>{writes.map++;},
+  syncAgendaUrl:()=>{},
   parseLocalDate:value=>value?new Date(`${value}T00:00:00`):null,
   getEventsForCalendarDate:()=>[],getCalendarSummary:()=>'',getCalendarDots:()=>'',
   formatDate:value=>value,escapeAttribute:value=>value,escapeHtml:value=>value,
