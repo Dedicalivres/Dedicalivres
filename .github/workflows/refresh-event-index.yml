@@ -1,0 +1,45 @@
+name: Refresh event index
+
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dedicalivres-event-publication
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Refresh from published Event pages
+        run: python3 scripts/event-publisher/refresh-index.py
+
+      - name: Commit only a changed index
+        shell: bash
+        run: |
+          set -euo pipefail
+          changes="$(git status --porcelain)"
+          if [[ -z "$changes" ]]; then
+            echo 'Index inchangé : aucun commit.'
+            exit 0
+          fi
+          if [[ "$changes" != ' M evenement/index.html' ]]; then
+            echo "STOP : fichiers hors index modifiés : $changes" >&2
+            exit 1
+          fi
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- evenement/index.html
+          git commit -m 'chore(catalogue): refresh current events index'
+          git push origin HEAD:main
