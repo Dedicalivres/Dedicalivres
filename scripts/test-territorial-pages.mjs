@@ -44,8 +44,9 @@ const titles=new Set(),descriptions=new Set(),canonicals=new Set(),intros=new Se
 for(const p of audit.territorialPages){
  const html=fs.readFileSync(p.file,'utf8');
  const ids=[...html.matchAll(/<li data-event-id="([^"]+)"/g)].map(m=>m[1]);
- assert.deepEqual([...ids].sort(),[...p.ids].sort(),`${p.label}: événements`);
- assert.equal(new Set(ids).size,p.total,`${p.label}: événements uniques`);
+ const expectedIds=p.id==='FR'?p.ids.filter(id=>classify(source.get(id),expectedTerritorialLastmod)!=='past'):p.ids;
+ assert.deepEqual([...ids].sort(),[...expectedIds].sort(),`${p.label}: événements`);
+ assert.equal(new Set(ids).size,expectedIds.length,`${p.label}: événements uniques`);
  const title=html.match(/<title>([^<]+)<\/title>/)[1];
  const expectedTitle=p.kind==='country'?`Événements littéraires ${countryLocation(p)} — Dédicalivres`:`Événements littéraires en ${p.label}, ${p.country} — Dédicalivres`;
  assert.equal(title,expectedTitle);

@@ -23,7 +23,7 @@ function navigation(p){
 }
 
 
-export function renderTerritory({p,events,registry,verified={},capturedAt,live=false}){
+export function renderTerritory({p,events,registry,verified={},capturedAt,live=false,archivePageCount}){
  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris'}).format(new Date(capturedAt));
  const {accepted}=qualify(events,registry,[],today);
 function item(e){
@@ -41,7 +41,22 @@ function list(rows){return rows.length?`<ul class="territory-list">${rows.map(it
  const undated=rows.filter(e=>['undated','invalid'].includes(e.status));
  const cancelled=rows.filter(e=>e.status==='registration-cancelled');
  const years=[...new Set(past.map(e=>e.start_date.slice(0,4)))].sort().reverse();
+ const archiveRows=p.id==='FR'?[...past].reverse():[];
+ const archiveTotal=Math.ceil(archiveRows.length/50);
+ const archiveCount=archivePageCount??archiveTotal;
+ const archiveFile=n=>`evenements-litteraires-france-archives-${n}.html`;
+ const archivePages=p.id==='FR'&&!live?Array.from({length:archiveTotal},(_,index)=>{
+  const number=index+1;
+  const slice=archiveRows.slice(index*50,number*50);
+  const main=`<main id="archive-content" class="container seo-content" data-archive-page="${number}">
+ <nav class="territory-breadcrumb" aria-label="Fil d’Ariane"><a href="index.html">Accueil</a><span aria-hidden="true">›</span><a href="evenements-litteraires-france.html">France</a><span aria-hidden="true">›</span><span aria-current="page">Archives ${number}</span></nav>
+ <h1>Archives des événements littéraires en France — page ${number}</h1><p>Archives du catalogue France, capture du <time datetime="${capturedAt}">${date(today)}</time>. Page ${number} sur ${archiveTotal}.</p>
+ <section id="archives" aria-labelledby="archive-title"><h2 id="archive-title">Événements passés</h2>${list(slice)}</section>
+ <nav aria-label="Pagination des archives"><p>${number>1?`<a href="${archiveFile(number-1)}">Archives précédentes</a> · `:''}<a href="evenements-litteraires-france.html">Retour à l’agenda France</a>${number<archiveTotal?` · <a href="${archiveFile(number+1)}">Archives suivantes</a>`:''}</p></nav></main>`;
+  return {file:archiveFile(number),main,ids:slice.map(e=>e.id)};
+ }):[];
  const stats={total:rows.length,upcoming:future.length,ongoing:future.filter(e=>e.status==='ongoing').length,past:past.length,undated:undated.length,cancelled:cancelled.length,excluded:0};
+ const scopeNote=p.id==='FR'?'Ce total comprend les événements affichés ici et les archives réparties sur les pages liées ci-dessus. Les pages d’archives correspondent à la capture statique indiquée ; une actualisation avec JavaScript peut afficher des compteurs plus récents. Les contrôles de qualité ne retirent aucune annonce publique.':'Ce total correspond exactement aux événements listés sur cette page : à venir ou en cours, passés, sans date et avec inscriptions annulées. Il ne représente pas tous les événements du territoire. Toutes les annonces publiques rattachées à ce territoire dans le catalogue sont reprises ; les contrôles de qualité ne les retirent pas.';
  const main=`<main id="territory-content" class="container seo-content" data-territory-id="${p.id}" data-as-of="${today}">
  <nav class="territory-breadcrumb" aria-label="Fil d’Ariane"><a href="index.html">Accueil</a><span aria-hidden="true">›</span>${p.kind==='region'?`<a href="${p.countryUrl}">${p.country}</a><span aria-hidden="true">›</span>`:''}<span aria-current="page">${p.label}</span></nav>
  ${p.image?`<img class="territory-banner" src="${esc(p.image)}" width="${p.imageWidth}" height="${p.imageHeight}" alt="${esc(p.country)} · ${esc(p.label)}" fetchpriority="high">`:''}
@@ -52,10 +67,10 @@ function list(rows){return rows.length?`<ul class="territory-list">${rows.map(it
  <dl class="territory-stats"><div><dt>Événements référencés ici</dt><dd data-count="total">${stats.total}</dd></div><div><dt>À venir ou en cours</dt><dd data-count="upcoming">${stats.upcoming}</dd></div><div><dt>Dont en cours</dt><dd data-count="ongoing">${stats.ongoing}</dd></div><div><dt>Événements passés</dt><dd data-count="past">${stats.past}</dd></div></dl>
  <nav class="territory-jumps" aria-label="Sections du catalogue"><a href="#a-venir">À venir et en cours</a><a href="#archives">Archives</a><a href="#perimetre">Périmètre et dates</a><a href="index.html#territoires-pilotes">Explorer les pays</a></nav>
  <section id="a-venir" aria-labelledby="upcoming-title"><h2 id="upcoming-title">À venir et en cours</h2>${list(future)}</section>
- <section id="archives" aria-labelledby="archive-title"><h2 id="archive-title">Archives</h2>${years.length?years.map(year=>`<h3>${year}</h3>${list(past.filter(e=>e.start_date.startsWith(year)).reverse())}`).join('\n'):'<p>Aucune archive référencée.</p>'}</section>
+ <section id="archives" aria-labelledby="archive-title"${p.id==='FR'?` data-archive-pages="${archiveCount}"`:''}><h2 id="archive-title">Archives</h2>${p.id==='FR'?archiveCount?`<p>${stats.past} événements passés. <a href="${archiveFile(1)}">Consulter les archives France (page 1 sur ${archiveCount})</a>.</p>`:'<p>Aucune archive référencée.</p>':years.length?years.map(year=>`<h3>${year}</h3>${list(past.filter(e=>e.start_date.startsWith(year)).reverse())}`).join('\n'):'<p>Aucune archive référencée.</p>'}</section>
  <section id="sans-date"><h2>Dates à confirmer (${stats.undated})</h2>${list(undated)}</section>
  <section id="annules"><h2>Inscriptions annulées (${stats.cancelled})</h2>${list(cancelled)}</section>
- <aside id="perimetre" class="territory-note"><h2>Comprendre ce catalogue</h2><p>Ce total correspond exactement aux événements listés sur cette page : à venir ou en cours, passés, sans date et avec inscriptions annulées. Il ne représente pas tous les événements du territoire. Toutes les annonces publiques rattachées à ce territoire dans le catalogue sont reprises ; les contrôles de qualité ne les retirent pas.</p><p>Classement arrêté au ${date(today)}. Un événement reste en cours jusqu’à sa date de fin incluse ; sans date de fin, sa date de début sert de dernier jour. Les inscriptions signalées comme annulées sont isolées. L’annulation de l’événement lui-même n’est pas renseignée par cet extrait : aucun statut « confirmé » n’est déduit de cette absence. Le lieu précis est affiché lorsqu’une source organisatrice a pu être vérifiée ; il n’est pas fourni par cet extrait public. Consultez la fiche et le site de l’organisateur avant de vous déplacer.</p><p>La date d’actualisation correspond à la capture du catalogue, pas à une modification de chaque événement. Avec JavaScript, le catalogue public est relu à l’ouverture et peut être actualisé avec le bouton ci-dessus. Sans JavaScript, les données datées ci-dessus restent consultables. Les listes et les compteurs restent consultables sans JavaScript ; les favoris et les choix d’agenda existants se trouvent sur la fiche de l’événement et nécessitent JavaScript.</p></aside>
+ <aside id="perimetre" class="territory-note"><h2>Comprendre ce catalogue</h2><p>${scopeNote}</p><p>Classement arrêté au ${date(today)}. Un événement reste en cours jusqu’à sa date de fin incluse ; sans date de fin, sa date de début sert de dernier jour. Les inscriptions signalées comme annulées sont isolées. L’annulation de l’événement lui-même n’est pas renseignée par cet extrait : aucun statut « confirmé » n’est déduit de cette absence. Le lieu précis est affiché lorsqu’une source organisatrice a pu être vérifiée ; il n’est pas fourni par cet extrait public. Consultez la fiche et le site de l’organisateur avant de vous déplacer.</p><p>La date d’actualisation correspond à la capture du catalogue, pas à une modification de chaque événement. Avec JavaScript, le catalogue public est relu à l’ouverture et peut être actualisé avec le bouton ci-dessus. Sans JavaScript, les données datées ci-dessus restent consultables. Les listes et les compteurs restent consultables sans JavaScript ; les favoris et les choix d’agenda existants se trouvent sur la fiche de l’événement et nécessitent JavaScript.</p></aside>
  <p><a href="index.html#territoires-pilotes">Explorer les régions</a> · <a href="soumettre.html">Proposer un événement</a></p></main>`;
- return {main,stats,rows};
+ return {main,stats,rows,archivePages};
 }

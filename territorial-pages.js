@@ -2,6 +2,7 @@ import {fetchPublicEvents} from './scripts/territorial-catalog.mjs';
 import {territories,renderTerritory} from './scripts/territorial-render.mjs';
 
 const pilot=territories.find(p=>p.id===document.getElementById('territory-content')?.dataset.territoryId);
+const archivePageCount=Number(document.querySelector('#archives')?.dataset.archivePages||0);
 let loading=false;
 let resources;
 function bindRefresh(){
@@ -23,7 +24,7 @@ async function refresh(restoreFocus=false){
   ]);
   resources=assets;
   const capturedAt=new Date().toISOString();
-  const {main,stats}=renderTerritory({p:pilot,events,registry:assets[0],verified:assets[1],capturedAt,live:true});
+  const {main,stats}=renderTerritory({p:pilot,events,registry:assets[0],verified:assets[1],capturedAt,live:true,archivePageCount});
   // Only swap after complete, validated pagination and successful rendering.
   document.getElementById('territory-content').outerHTML=main;
   document.querySelector('meta[name="description"]')?.setAttribute('content',`${stats.total} événements littéraires référencés en ${pilot.label}, ${pilot.country}. Catalogue public actualisé.`);
