@@ -81,6 +81,7 @@
   let map;
   let markersLayer;
   let allEvents = [];
+  let restoringUrlFilters = false;
   let lastUpcomingCardsHtml = null;
   let lastPastCardsHtml = null;
   let searchableText = new WeakMap();
@@ -268,6 +269,15 @@
       window.clearTimeout(searchRenderTimer);
       searchRenderTimer = window.setTimeout(renderFilteredEvents, 200);
     });
+    window.addEventListener("popstate", () => {
+      restoreAgendaFilters();
+      if (!catalogVersion) return;
+      restoringUrlFilters = true;
+      try {
+        renderFilteredEvents();
+        renderAgendaCalendar();
+      } finally { restoringUrlFilters = false; }
+    });
 
     bindCityAutocomplete();
   }
@@ -394,6 +404,59 @@
 
     if (Array.from(regionFilter.options).some((option) => option.value === selectedRegion)) {
       regionFilter.value = selectedRegion;
+    }
+  }
+
+  function restoreAgendaFilters() {
+    const params = new URLSearchParams(window.location.search || "");
+    const hasOption = (select, value) => Array.from(select?.options || [])
+      .some((option) => option.value === value);
+    if (searchInput) searchInput.value = params.get("q") || "";
+    if (countryFilter) {
+      const requestedCountry = (params.get("country") || "").trim().toUpperCase();
+      const country = /^[A-Z]{2}$/.test(requestedCountry) ? requestedCountry : "";
+      countryFilter.value = hasOption(countryFilter, country) ? country : "";
+      if (regionFilter) regionFilter.value = "";
+      populateAgendaRegionFilter();
+    }
+    if (regionFilter) {
+      const region = params.get("region") || "";
+      const option = Array.from(regionFilter.options).find((item) => item.value === region);
+      regionFilter.value = option && (!countryFilter?.value || option.dataset.countryCode === countryFilter.value || !option.dataset.countryCode)
+        ? region : "";
+    }
+    if (typeFilter) {
+      const type = params.get("type") || "";
+      typeFilter.value = hasOption(typeFilter, type) ? type : "";
+    }
+    const month = params.get("month") || "";
+    if (dateFilter) dateFilter.value = /^\d{4}-(0[1-9]|1[0-2])$/.test(month) && hasOption(dateFilter, month) ? month : "";
+    const dateKey = params.get("date") || "";
+    const date = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(dateKey)
+      ? parseLocalDate(dateKey) : null;
+    selectedCalendarDate = date && toDateKey(date) === dateKey ? dateKey : "";
+    if (selectedCalendarDate && dateFilter) {
+      const dateMonth = dateKey.slice(0, 7);
+      dateFilter.value = hasOption(dateFilter, dateMonth) ? dateMonth : "";
+    }
+    calendarCursor = selectedCalendarDate
+      ? new Date(date.getFullYear(), date.getMonth(), 1)
+      : dateFilter?.value ? new Date(`${dateFilter.value}-01T00:00:00`)
+        : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  }
+
+  function syncAgendaUrl() {
+    if (restoringUrlFilters) return;
+    const url = new URL(window.location.href);
+    for (const key of ["country", "region", "type", "month", "date", "q"]) url.searchParams.delete(key);
+    const values = {
+      country: countryFilter?.value, region: regionFilter?.value, type: typeFilter?.value,
+      month: dateFilter?.value, date: selectedCalendarDate, q: searchInput?.value
+    };
+    for (const [key, value] of Object.entries(values)) if (value) url.searchParams.set(key, value);
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+      window.history.replaceState(window.history.state, "", next);
     }
   }
 
@@ -706,6 +769,7 @@
         populateAgendaRegionFilter();
       }
     }
+    restoreAgendaFilters();
     window.dispatchEvent(new CustomEvent('dedicalivres:catalog-loaded', { detail: allEvents.filter(event => !isPastEvent(event)).map(event => ({ ...event, country_code: geo?.getCountryCode(event) || event.country_code })) }));
     renderFilteredEvents();
     renderSavedFavorites();
@@ -714,6 +778,7 @@
   function renderFilteredEvents() {
     window.clearTimeout(searchRenderTimer);
     searchRenderTimer = null;
+    syncAgendaUrl();
     const filtersKey = JSON.stringify([
       catalogVersion, normalize(searchInput?.value || ""), countryFilter?.value || "",
       regionFilter?.value || "", typeFilter?.value || "", dateFilter?.value || "",
