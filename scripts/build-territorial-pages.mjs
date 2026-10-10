@@ -29,9 +29,10 @@ const {accepted,rejected}=qualify(snapshot.events,registry,observations,today);
 // Reuse the existing regional page shell (header, footer, site styles and navigation).
 const base=fs.readFileSync('evenements-litteraires-bretagne.html','utf8');
 const results=[];
+const archiveFiles=new Map();
 const selected=process.argv.includes('--sample')?territories.filter(p=>p.kind==='country'||['FR-BRE','BE-WAL','CH-local-24'].includes(p.id)):territories;
 for(const p of selected){
- const {main,stats,rows}=renderTerritory({p,events:snapshot.events,registry,verified,capturedAt:snapshot.capturedAt});
+ const {main,stats,rows,archivePages}=renderTerritory({p,events:snapshot.events,registry,verified,capturedAt:snapshot.capturedAt});
  let html=base.replace('href="index.html?country=FR#agenda">France</a>', 'href="evenements-litteraires-france.html">France</a>').replace(/<main[\s\S]*?<\/main>/,main)
  .replace(/<title>[\s\S]*?<\/title>/,`<title>${seoTitle(p)}</title>`)
  .replace(/<meta name="description"[^>]*>/,`<meta name="description" content="${seoDescription(p)}" />`)
@@ -45,9 +46,29 @@ for(const p of selected){
  html=html.replace(/<script[^>]*src="territorial-pages.js"[^>]*><\/script>/g,'').replace('</body>','<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="config.js?v=territorial-live-1"></script>\n<script src="tracking-v4.js?v=p1-static-1"></script>\n<script type="module" src="territorial-pages.js"></script>\n</body>');
  html=html.replace(/[ \t]+$/gm,'').replace(/\n{3,}/g,'\n\n');
  fs.writeFileSync(p.file,html);
+ for(const archive of archivePages){
+  const canonical=`https://dedicalivres.fr/${archive.file}`;
+  const title=`Archives des événements littéraires en France — page ${archive.file.match(/\d+(?=\.html$)/)[0]} | Dédicalivres`;
+  const description=`Archives des salons du livre, festivals, dédicaces et rencontres littéraires en France. ${title}`;
+  const structured={'@context':'https://schema.org','@type':'CollectionPage',name:title,description,url:canonical,inLanguage:'fr-FR',dateModified:modifiedOn,isPartOf:{'@type':'WebSite',name:'Dédicalivres',url:'https://dedicalivres.fr/'}};
+  const archiveHtml=html.replace(/<main[\s\S]*?<\/main>/,archive.main)
+   .replace(/<title>[\s\S]*?<\/title>/,`<title>${title}</title>`)
+   .replace(/<meta name="description"[^>]*>/,`<meta name="description" content="${description}" />`)
+   .replace(/<link rel="canonical"[^>]*>/,`<link rel="canonical" href="${canonical}" />`)
+   .replace(/<meta property="og:title"[^>]*>/,`<meta property="og:title" content="${title}" />`)
+   .replace(/<meta property="og:description"[^>]*>/,`<meta property="og:description" content="${description}" />`)
+   .replace(/<meta property="og:url"[^>]*>/,`<meta property="og:url" content="${canonical}" />`)
+   .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/,`<script type="application/ld+json">${JSON.stringify(structured)}</script>`)
+   .replace(/<script[^>]*src="territorial-pages\.js"[^>]*><\/script>\n?/g,'');
+  fs.writeFileSync(archive.file,archiveHtml);
+  archiveFiles.set(archive.file,canonical);
+ }
  results.push({...p,...stats,ids:rows.map(e=>e.id)});
 }
-const pages=fs.readdirSync('.').filter(f=>/^evenements-litteraires.*\.html$/.test(f)).map(file=>{
+for(const file of fs.readdirSync('.').filter(f=>/^evenements-litteraires-france-archives-\d+\.html$/.test(f))){
+ if(!archiveFiles.has(file))fs.unlinkSync(file);
+}
+const pages=fs.readdirSync('.').filter(f=>/^evenements-litteraires.*\.html$/.test(f)&&!/^evenements-litteraires-france-archives-\d+\.html$/.test(f)).map(file=>{
  const h=fs.readFileSync(file,'utf8');return {file,region:h.match(/data-region="([^"]*)"/)?.[1]||null,country:h.match(/data-country-code="([^"]*)"/)?.[1]||null,city:h.match(/data-city="([^"]*)"/)?.[1]||null,canonical:h.match(/rel="canonical" href="([^"]*)"/)?.[1]||null};
 });
 // Keep the earlier historical collision audit; do not scan evenement/.
@@ -89,5 +110,10 @@ for(const p of territories){
   const added=`  <url>\n    <loc>${p.canonical}</loc>\n    <lastmod>${sitemapDate}</lastmod>\n    <priority>${priority}</priority>\n  </url>\n`;
   sitemap=sitemap.replace('</urlset>',`${added}</urlset>`);
  }
+}
+// Replace only generated France archive entries; no other sitemap URL changes.
+sitemap=sitemap.replace(/  <url>\s*<loc>https:\/\/dedicalivres\.fr\/evenements-litteraires-france-archives-\d+\.html<\/loc>[\s\S]*?<\/url>\n/g,'');
+for(const canonical of archiveFiles.values()){
+ sitemap=sitemap.replace('</urlset>',`  <url>\n    <loc>${canonical}</loc>\n    <lastmod>${sitemapDate}</lastmod>\n    <priority>0.70</priority>\n  </url>\n</urlset>`);
 }
 fs.writeFileSync(sitemapPath,sitemap);
