@@ -59,7 +59,7 @@ for(const p of selected){
    .replace(/<meta property="og:description"[^>]*>/,`<meta property="og:description" content="${description}" />`)
    .replace(/<meta property="og:url"[^>]*>/,`<meta property="og:url" content="${canonical}" />`)
    .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/,`<script type="application/ld+json">${JSON.stringify(structured)}</script>`)
-   .replace(/<script[^>]*src="(?:territorial-pages\.js|config\.js[^" ]*|https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@2)"[^>]*><\/script>\n?/g,'');
+   .replace(/<script[^>]*src="territorial-pages\.js"[^>]*><\/script>\n?/g,'');
   fs.writeFileSync(archive.file,archiveHtml);
   archiveFiles.set(archive.file,canonical);
  }

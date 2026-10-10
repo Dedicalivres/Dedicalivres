@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {territories,renderTerritory} from './territorial-render.mjs';
 
 const read=path=>JSON.parse(fs.readFileSync(path,'utf8'));
@@ -32,7 +33,12 @@ for(const [index,page] of archivePages.entries()){
  assert.equal((html.match(/rel="canonical"/g)||[]).length,1);
  assert.equal((sitemap.match(new RegExp(`<loc>${canonical}</loc>`,'g'))||[]).length,1);
  assert(html.includes('name="viewport"'));
- assert(!html.includes('src="territorial-pages.js"'));
+ const scripts=[...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map(match=>match[1]);
+ const supabase=scripts.indexOf('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
+ assert(supabase>=0);
+ assert.equal(scripts[supabase+1],'config.js?v=territorial-live-1');
+ assert.equal(scripts[supabase+2],'tracking-v4.js?v=p1-static-1');
+ assert(!scripts.includes('territorial-pages.js'));
  assert(html.includes('href="evenements-litteraires-france.html"'));
  if(index>0)assert(html.includes(`href="${archivePages[index-1].file}"`));
  if(index<archivePages.length-1)assert(html.includes(`href="${archivePages[index+1].file}"`));
@@ -45,6 +51,21 @@ assert.equal(all.length,past.length);
 assert.equal(new Set(all).size,past.length);
 assert.deepEqual([...all].sort(),[...past].sort());
 assert.equal((sitemap.match(/<loc>https:\/\/dedicalivres\.fr\/evenements-litteraires-france-archives-\d+\.html<\/loc>/g)||[]).length,archivePages.length);
+
+let visits=0;
+const client={from:table=>({insert:async()=>{assert.equal(table,'site_visits');visits++;return {error:null};}})};
+const store=new Map();
+const browser={
+ window:{supabase:{createClient:()=>client},localStorage:{getItem:()=>null},innerWidth:390},
+ document:{title:'Archives France',referrer:'',body:{matches:()=>true,dataset:{}},querySelector:()=>({href:`https://dedicalivres.fr/${archivePages[0].file}`})},
+ location:{pathname:`/${archivePages[0].file}`,origin:'https://dedicalivres.fr',search:''},
+ navigator:{userAgent:'Test Browser'},
+ sessionStorage:{getItem:key=>store.get(key)||null,setItem:(key,value)=>store.set(key,value)},
+ console:{warn:message=>{throw Error(message);}},URL,URLSearchParams
+};
+vm.runInNewContext(fs.readFileSync('config.js','utf8'),browser);
+vm.runInNewContext(fs.readFileSync('tracking-v4.js','utf8'),browser);
+assert.equal(visits,1,'Tracking non initialisé sur une page archives');
 
 const future=rows.find(e=>e.status==='future');
 assert(future);
