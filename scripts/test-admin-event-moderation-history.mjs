@@ -46,7 +46,7 @@ assert.match(v11, /get_event_rejection_reason/, "lecture du dernier motif conser
 assert.match(classic, /get_event_rejection_reason/, "lecture du dernier motif conservée");
 assert.match(classic, /\.slice\(0, 20\)/, "historique local conservé");
 for (const page of ["admin.html", "admin-v11.html"]) {
-  assert.match(fs.readFileSync(page, "utf8"), /admin-shell\.js\?v=event-moderation-history-1/);
+  assert.match(fs.readFileSync(page, "utf8"), /admin-shell\.js\?v=event-text-quality-p1-4-1/);
 }
 
 assert.match(migration, /create table private\.event_moderation_history/);

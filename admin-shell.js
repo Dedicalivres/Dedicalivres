@@ -7,6 +7,9 @@
   const eventDeletion =
     window.DEDICALIVRES_EVENT_DELETION;
 
+  const eventTextQuality =
+    window.DEDICALIVRES_EVENT_TEXT_QUALITY;
+
   const authorPublication =
     window.DEDICALIVRES_AUTHOR_PUBLICATION;
 
@@ -1037,6 +1040,12 @@
           }
         }
 
+        if (quality === "text-issue") {
+          if (!eventTextQuality?.summarize(event).hasIssues) {
+            return false;
+          }
+        }
+
         if (quality === "soon") {
           if (!upcoming) return false;
 
@@ -1146,6 +1155,25 @@
         "Mis en avant";
 
       top.appendChild(featured);
+    }
+
+    const textQuality =
+      eventTextQuality?.summarize(event);
+
+    if (textQuality?.hasIssues) {
+      const textFlag =
+        document.createElement("span");
+
+      textFlag.className =
+        "v11-mini-flag is-warning";
+
+      textFlag.textContent =
+        "Texte à contrôler";
+
+      textFlag.title =
+        textQuality.fields.join(", ");
+
+      top.appendChild(textFlag);
     }
 
     const title =
@@ -1507,18 +1535,44 @@
           : "Absentes"
       ],
       [
-        "Statut",
+        "Publication",
         event.rejected === true
           ? "Rejeté"
           : event.validated === true
             ? "Validé"
             : "À vérifier"
       ],
+      [
+        "Complétude",
+        (() => {
+          try {
+            validateV11EventPublicationPayload(event);
+            return "Complète";
+          } catch {
+            return "Incomplète";
+          }
+        })()
+      ],
       ["Mise en avant", event.featured === true ? "Oui" : "Non"],
-      ["Vérifié", event.verified === true ? "Oui" : "Non"],
+      ["Vérification humaine", event.verified === true ? "Vérifiée" : "Non vérifiée"],
       ["Contact proposant — nom/structure", event.submitter_name],
       ["Contact proposant — e-mail", event.submitter_email, "email"]
     ];
+
+    const textQuality =
+      eventTextQuality?.summarize(event);
+
+    if (textQuality?.hasIssues) {
+      rows.splice(11, 0, [
+        "Qualité du texte",
+        "Texte à contrôler — " + textQuality.fields.join(", ")
+      ]);
+    } else {
+      rows.splice(11, 0, [
+        "Qualité du texte",
+        "Aucune anomalie détectée"
+      ]);
+    }
 
     if (
       event.type === "Salon" ||
