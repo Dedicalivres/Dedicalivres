@@ -1,11 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {execFileSync} from 'node:child_process';
-import {performance} from 'node:perf_hooks';
 
-const before=execFileSync('git',['show','origin/main:app.js'],{encoding:'utf8'});
-const after=fs.readFileSync('app.js','utf8');
+const source=fs.readFileSync('app.js','utf8');
 const events=[
  {id:'1',title:'Été du livre',city:'Paris',region:'Île-de-France',country_code:'FR',description:'Salon littéraire',type:'Salon',start_date:'2099-06-10',end_date:'2099-06-11'},
  {id:'2',title:'Dédicace Élodie',city:'Lyon',region:'Auvergne-Rhône-Alpes',country_code:'FR',description:'Rencontre',type:'Dédicace',start_date:'2099-07-01'},
@@ -13,7 +10,7 @@ const events=[
  {id:'4',title:'Festival du livre',city:'Namur',region:'Wallonie',country_code:'BE',description:'Festival',type:'Festival',start_date:'2099-08-01'}
 ];
 
-function setup(source){
+function setup(){
  const listeners={};const timers=new Map();let timerId=0;
  const searchInput={value:'',addEventListener:(name,fn)=>{listeners[name]=fn;}};
  const countryFilter={value:''},regionFilter={value:''},typeFilter={value:''},dateFilter={value:''};
@@ -48,7 +45,7 @@ function setup(source){
   if(options?.includeMonth===false)writes.calendarCorpus++;
   return filter(rows,options);
  };
- if(source===after)events.forEach(event=>context.searchableText.set(event,context.eventSearchText(event)));
+ events.forEach(event=>context.searchableText.set(event,context.eventSearchText(event)));
  const listener=source.match(/searchInput\?\.addEventListener\("input", (?:renderFilteredEvents|\(\) => \{[\s\S]*?\n    \})\);/)?.[0];
  assert(listener,'Recherche : écouteur introuvable');
  vm.runInContext(listener,context);
@@ -56,36 +53,38 @@ function setup(source){
   flush:()=>{const callbacks=[...timers.values()];timers.clear();callbacks.forEach(fn=>fn());},pending:()=>timers.size};
 }
 
-const old=setup(before),updated=setup(after);
-for(const env of [old,updated])env.context.renderFilteredEvents();
-assert.deepEqual(updated.writes.upcoming,old.writes.upcoming);
-assert.deepEqual(updated.writes.pastIds,old.writes.pastIds);
-const initialOld=old.writes.events,initialNew=updated.writes.events;
+const updated=setup();
+updated.context.renderFilteredEvents();
+assert.deepEqual(updated.writes.upcoming,['1','2','4']);
+assert.deepEqual(updated.writes.pastIds,['3']);
+const initialRenders=updated.writes.events;
 for(const value of ['e','et','ete']){
- old.searchInput.value=value;old.listeners.input();
  updated.searchInput.value=value;updated.listeners.input();
 }
-assert.equal(old.writes.events-initialOld,3);
-assert.equal(updated.writes.events-initialNew,0);
+assert.equal(updated.writes.events-initialRenders,0);
 assert.equal(updated.pending(),1);
 updated.flush();
-assert.equal(updated.writes.events-initialNew,1);
-const rapidBefore=old.writes.events-initialOld;
-assert.deepEqual(updated.writes.upcoming,old.writes.upcoming);
-assert.deepEqual(updated.writes.pastIds,old.writes.pastIds);
+assert.equal(updated.writes.events-initialRenders,1,'Trois frappes rapides : un seul rendu');
+assert.deepEqual(updated.writes.upcoming,['1']);
+assert.deepEqual(updated.writes.pastIds,[]);
 
-for(const query of ['', 'inexistant', 'ÉTÉ', 'ete']){
- old.searchInput.value=query;updated.searchInput.value=query;
- old.context.renderFilteredEvents();updated.context.renderFilteredEvents();
- assert.deepEqual(updated.writes.upcoming,old.writes.upcoming,query);
- assert.deepEqual(updated.writes.pastIds,old.writes.pastIds,query);
+for(const [query,upcoming,past] of [
+ ['', ['1','2','4'], ['3']],
+ ['inexistant', [], []],
+ ['ÉTÉ', ['1'], []],
+ ['ete', ['1'], []]
+]){
+ updated.searchInput.value=query;
+ updated.context.renderFilteredEvents();
+ assert.deepEqual(updated.writes.upcoming,upcoming,query);
+ assert.deepEqual(updated.writes.pastIds,past,query);
 }
-old.searchInput.value='livre';updated.searchInput.value='livre';
-old.countryFilter.value='FR';updated.countryFilter.value='FR';
-old.typeFilter.value='Salon';updated.typeFilter.value='Salon';
-old.context.renderFilteredEvents();updated.context.renderFilteredEvents();
-assert.deepEqual(updated.writes.upcoming,old.writes.upcoming);
-assert.deepEqual(updated.writes.pastIds,old.writes.pastIds);
+updated.searchInput.value='livre';
+updated.countryFilter.value='FR';
+updated.typeFilter.value='Salon';
+updated.context.renderFilteredEvents();
+assert.deepEqual(updated.writes.upcoming,['1']);
+assert.deepEqual(updated.writes.pastIds,[]);
 
 updated.searchInput.value='dedicace';updated.listeners.input();
 assert.equal(updated.pending(),1);
@@ -100,10 +99,6 @@ assert.equal(updated.writes.events,same,'Rendu identique évité');
 
 const corpusBefore=updated.writes.calendarCorpus;
 const firstCalendar=updated.writes.calendar;
-const oldCorpus=old.writes.calendarCorpus;
-old.context.calendarCursor=new Date(2099,6,1);
-old.context.renderAgendaCalendar();
-assert.equal(old.writes.calendarCorpus,oldCorpus+1,'Calendrier initial : nouveau filtrage');
 updated.context.calendarCursor=new Date(2099,6,1);
 updated.context.renderAgendaCalendar();
 assert.equal(updated.writes.calendar,firstCalendar+1);
@@ -111,7 +106,7 @@ updated.context.renderAgendaCalendar();
 assert.equal(updated.writes.calendar,firstCalendar+1,'Calendrier identique évité');
 assert.equal(updated.writes.calendarCorpus,corpusBefore);
 
-const markerSource=after.slice(after.indexOf('  function renderMapMarkers('),after.indexOf('  function ensureMapFloatingPanel('));
+const markerSource=source.slice(source.indexOf('  function renderMapMarkers('),source.indexOf('  function ensureMapFloatingPanel('));
 let markerCreates=0,layerClears=0;
 const mapContext=vm.createContext({
  pendingMapEvents:[],map:null,markersLayer:null,markerByEventId:{},
@@ -130,18 +125,4 @@ assert.equal(layerClears,1);
 assert.equal(markerCreates,1,'Carte active : marqueur mis à jour');
 assert(mapContext.markerByEventId['map-1']);
 
-const fixture=JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json','utf8')).events;
-function timing(source){
- const env=setup(source);
- env.context.allEvents=fixture;
- if(source===after)fixture.forEach(event=>env.context.searchableText.set(event,env.context.eventSearchText(event)));
- env.searchInput.value='salon';
- const samples=[];
- for(let run=0;run<30;run++){
-  const start=performance.now();env.context.filterEvents(fixture);samples.push(performance.now()-start);
- }
- samples.sort((a,b)=>a-b);
- return samples[15].toFixed(3);
-}
-console.log(`PASS recherche : saisie rapide ${rapidBefore} rendus avant, 1 après debounce ; résultats et ordre identiques`);
-console.log(`Mesure filtrage, même capture ${fixture.length} événements, médiane 30 passes : ${timing(before)} ms avant / ${timing(after)} ms après`);
+console.log('PASS recherche : debounce 200 ms, filtres, ordre, calendrier et marqueurs');
