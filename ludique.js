@@ -11,7 +11,6 @@
        bookLoader: true,     // n°7 feuilletage (chargements)
        stamp: true,          // n°8 tampon ex-libris (favoris)
        highlighter: true,    // n°9 surligneur (compteur)
-       inkReveal: true,      // n°12 encre qui révèle (sections)
        tickerCountries: true, // ruban pays cliquable
        tickerEvents: true     // ruban événements à 8 jours
      };
@@ -76,7 +75,6 @@
     injectFloatingPages();   // n°10
     injectInkSignature();    // n°5
     injectTicker();          // rubans pays + événements à 8 jours
-    setupInkReveal();        // n°12
     setupRise();             // pages intérieures
     setupBookLoaders();      // n°7
     setupStamp();            // n°8
@@ -472,31 +470,6 @@
       '<a href="#agenda" style="font-style:italic">Sous 8 jours :</a><em>✦</em>' + items
     );
     afterEl.insertAdjacentElement("afterend", ticker);
-  }
-
-  /* =========================================================
-     N°12 — L'ENCRE QUI RÉVÈLE : le voile violet se résorbe
-     à l'entrée de chaque section dans l'écran.
-  ========================================================= */
-  function setupInkReveal() {
-    if (!opt("inkReveal") || reduceMotion || !("IntersectionObserver" in window)) return;
-    var targets = document.querySelectorAll(
-      ".home-magazine-card, .agenda-calendar-panel, .agenda-map-panel-block, " +
-      ".saved-events-section, .past-events-section, .site-footer-card"
-    );
-    if (!targets.length) return;
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (en.isIntersecting) {
-          en.target.classList.add("lud-visible");
-          io.unobserve(en.target);
-        }
-      });
-    }, { threshold: 0.12 });
-    targets.forEach(function (t) {
-      t.classList.add("lud-inkreveal");
-      io.observe(t);
-    });
   }
 
   /* =========================================================

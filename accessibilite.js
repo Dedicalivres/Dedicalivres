@@ -29,6 +29,13 @@
     root.classList.toggle("a11y-daltonien", state.daltonien);
     root.classList.toggle("a11y-dyslexie", state.dyslexie);
     root.classList.toggle("a11y-soir", state.soir);
+    if (state.soir) {
+      var darkLogo = document.querySelector(".brand-logo--sombre[data-src]");
+      if (darkLogo) {
+        darkLogo.src = darkLogo.dataset.src;
+        darkLogo.removeAttribute("data-src");
+      }
+    }
     root.dataset.ambiance = state.ambiance;
     window.dispatchEvent(new CustomEvent("dedicalivres:ambiance", { detail: { ambiance: state.ambiance } }));
   }

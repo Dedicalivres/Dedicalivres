@@ -565,10 +565,10 @@
       await initMap();
       renderMapMarkers(pendingMapEvents.length ? pendingMapEvents : filterEvents(allEvents));
 
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         map?.invalidateSize();
         installMapPremiumToolbarCleanupSafe();
-      }, 180);
+      });
     } catch (error) {
       console.warn("Carte en direct indisponible :", error);
     }

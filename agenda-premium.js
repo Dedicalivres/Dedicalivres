@@ -1,8 +1,6 @@
 /* =========================================================
    DÉDICALIVRES — AGENDA & CARTE PREMIUM (script léger)
-   Deux rôles seulement :
-   1. Halo lumineux qui suit la souris sur l'écrin violet
-   2. Entrée en scène de l'écrin au scroll
+   Halo lumineux qui suit la souris sur l'écrin violet.
    Ne touche ni à app.js, ni à Leaflet, ni à la mascotte.
 ========================================================= */
 (function () {
@@ -34,22 +32,5 @@
       });
     }
 
-    /* --- 2. Révélation au scroll --- */
-    if (!reduceMotion && "IntersectionObserver" in window) {
-      showcase.classList.add("lud-reveal");
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (en) {
-          if (en.isIntersecting) {
-            en.target.classList.add("lud-visible");
-            io.unobserve(en.target);
-            /* Leaflet recalcule sa taille après l'animation d'entrée */
-            setTimeout(function () {
-              window.dispatchEvent(new Event("resize"));
-            }, 950);
-          }
-        });
-      }, { threshold: 0.12 });
-      io.observe(showcase);
-    }
   });
 })();
