@@ -81,6 +81,8 @@
   let map;
   let markersLayer;
   let allEvents = [];
+  let lastUpcomingCardsHtml = null;
+  let lastPastCardsHtml = null;
   let searchableText = new WeakMap();
   let catalogVersion = 0;
   let searchRenderTimer = null;
@@ -1074,19 +1076,23 @@
       }`;
 
     if (!events.length) {
-      eventsGrid.innerHTML = `
+      const html = `
         <article class="empty-state">
           Aucun événement à venir pour cette recherche.
           ${pastCount ? "Des événements passés restent disponibles dans la sous-section ci-dessous." : ""}
         </article>
       `;
+      if (html !== lastUpcomingCardsHtml) eventsGrid.innerHTML = html;
+      lastUpcomingCardsHtml = html;
       window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered", {
         detail: { count: 0 }
       }));
       return;
     }
 
-    eventsGrid.innerHTML = events.map((event) => renderEventCard(event)).join("");
+    const html = events.map((event) => renderEventCard(event)).join("");
+    if (html !== lastUpcomingCardsHtml) eventsGrid.innerHTML = html;
+    lastUpcomingCardsHtml = html;
     refreshFavoriteButtons();
     window.dispatchEvent(new CustomEvent("dedicalivres:cards-rendered", {
       detail: { count: events.length }
@@ -1103,13 +1109,16 @@
     pastEventsSection.hidden = !events.length;
 
     if (!events.length) {
-      pastEventsGrid.innerHTML = "";
+      if (lastPastCardsHtml !== "") pastEventsGrid.innerHTML = "";
+      lastPastCardsHtml = "";
       return;
     }
 
-    pastEventsGrid.innerHTML = events
+    const html = events
       .map((event) => renderEventCard(event, { isPast: true }))
       .join("");
+    if (html !== lastPastCardsHtml) pastEventsGrid.innerHTML = html;
+    lastPastCardsHtml = html;
   }
 
   function renderEventCard(event, options = {}) {
