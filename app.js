@@ -91,6 +91,7 @@
   let userMarker = null;
   let pendingMapEvents = [];
   let leafletAssetsPromise = null;
+  let mapInitPromise = null;
   let selectedCalendarDate = "";
   let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const eventImageUploadCache = new Map();
@@ -161,7 +162,15 @@
       mobileMapToggle.setAttribute("aria-controls", "map-panel");
     }
 
-    requestMapRender();
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && mapPanel.classList.contains("is-open")) {
+          observer.disconnect();
+          requestMapRender();
+        }
+      });
+      observer.observe(mapPanel);
+    }
   }
 
   function bindEvents() {
@@ -399,7 +408,7 @@
     if (mapPanel.classList.contains("is-open")) {
       mobileMapToggle.textContent = "Fermer la carte en direct";
       mobileMapToggle.setAttribute("aria-expanded", "true");
-      requestMapRender(filterEvents(allEvents));
+      requestMapRender();
     } else {
       mobileMapToggle.textContent = "Carte en direct";
       mobileMapToggle.setAttribute("aria-expanded", "false");
@@ -503,20 +512,25 @@
       return Promise.resolve();
     }
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = href;
       link.crossOrigin = "";
       link.onload = resolve;
-      link.onerror = resolve;
+      link.onerror = () => {
+        link.remove();
+        reject(new Error("Feuille Leaflet indisponible"));
+      };
       document.head.appendChild(link);
     });
   }
 
   function loadScriptOnce(src) {
-    if (document.querySelector(`script[src="${src}"]`)) {
-      return window.L ? Promise.resolve() : new Promise((resolve) => setTimeout(resolve, 240));
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      if (window.L) return Promise.resolve();
+      existing.remove();
     }
 
     return new Promise((resolve, reject) => {
@@ -524,19 +538,28 @@
       script.src = src;
       script.crossOrigin = "";
       script.onload = resolve;
-      script.onerror = reject;
+      script.onerror = () => {
+        script.remove();
+        reject(new Error("Script Leaflet indisponible"));
+      };
       document.head.appendChild(script);
     });
   }
 
   function ensureLeafletAssets() {
-    if (window.L) return Promise.resolve();
+    if (window.L) return loadStylesheetOnce(LEAFLET_CSS_URL);
 
     if (!leafletAssetsPromise) {
-      leafletAssetsPromise = Promise.all([
+      leafletAssetsPromise = Promise.allSettled([
         loadStylesheetOnce(LEAFLET_CSS_URL),
         loadScriptOnce(LEAFLET_JS_URL)
-      ]).then(() => undefined);
+      ]).then((results) => {
+        const failed = results.find((result) => result.status === "rejected");
+        if (failed) throw failed.reason;
+      }).catch((error) => {
+        leafletAssetsPromise = null;
+        throw error;
+      });
     }
 
     return leafletAssetsPromise;
@@ -563,7 +586,8 @@
 
     try {
       await initMap();
-      renderMapMarkers(pendingMapEvents.length ? pendingMapEvents : filterEvents(allEvents));
+      if (!map) throw new Error("Carte indisponible");
+      renderMapMarkers(pendingMapEvents);
 
       requestAnimationFrame(() => {
         map?.invalidateSize();
@@ -571,6 +595,8 @@
       });
     } catch (error) {
       console.warn("Carte en direct indisponible :", error);
+      const mapElement = document.getElementById("map");
+      if (!map && mapElement) mapElement.textContent = "Carte indisponible. Fermez puis rouvrez-la pour réessayer.";
     }
   }
 
@@ -580,28 +606,27 @@
     if (!mapElement) return null;
     if (map) return map;
 
-    await ensureLeafletAssets();
+    if (!mapInitPromise) {
+      mapInitPromise = (async () => {
+        await ensureLeafletAssets();
+        if (!window.L) throw new Error("Leaflet indisponible");
 
-    if (!window.L) return null;
-
-    mapElement.innerHTML = "";
-
-    const mapView = geo?.getMapView(countryFilter?.value || "") || {
-      center: [47.2, 5.1],
-      zoom: 5
-    };
-
-    map = L.map("map").setView(mapView.center, mapView.zoom);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(map);
-
-    markersLayer = L.layerGroup().addTo(map);
-    ensureMapFloatingPanel();
-    installMapPremiumToolbarCleanupSafe();
-
-    return map;
+        mapElement.innerHTML = "";
+        const mapView = geo?.getMapView(countryFilter?.value || "") || {
+          center: [47.2, 5.1],
+          zoom: 5
+        };
+        map = L.map("map").setView(mapView.center, mapView.zoom);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors"
+        }).addTo(map);
+        markersLayer = L.layerGroup().addTo(map);
+        ensureMapFloatingPanel();
+        installMapPremiumToolbarCleanupSafe();
+        return map;
+      })().finally(() => { mapInitPromise = null; });
+    }
+    return mapInitPromise;
   }
 
   async function fetchPublicCatalog(columns) {
@@ -1360,13 +1385,7 @@
   function renderMapMarkers(events) {
     pendingMapEvents = Array.isArray(events) ? events : [];
 
-    if (!map || !markersLayer) {
-      if (mapPanel?.classList.contains("is-open")) {
-        requestMapRender(pendingMapEvents);
-      }
-
-      return;
-    }
+    if (!map || !markersLayer) return;
 
     markersLayer.clearLayers();
     markerByEventId = {};
@@ -3087,7 +3106,7 @@
     }
 
     if (!map) {
-      await requestMapRender(filterEvents(allEvents));
+      await requestMapRender();
     }
 
     if (!map || !window.L) {
