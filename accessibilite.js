@@ -100,24 +100,28 @@
     /* Entr\u00e9e \u00ab Confort \u00bb dans le menu du header ; le bouton
        flottant ne sert que de repli si le header est absent. */
     var nav = document.querySelector(".header nav");
+    var navBtn = nav && nav.querySelector(".a11y-nav-btn");
     if (nav) {
       panel.classList.add("a11y-panel--nav");
-      var navBtn = document.createElement("button");
-      navBtn.type = "button";
-      navBtn.className = "a11y-nav-btn";
+      if (!navBtn) {
+        navBtn = document.createElement("button");
+        navBtn.type = "button";
+        navBtn.className = "a11y-nav-btn";
+        navBtn.setAttribute("aria-label", "Options d’accessibilit\u00e9 et d’ambiance");
+        navBtn.innerHTML =
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+          '<circle cx="12" cy="4.4" r="2.1"/>' +
+          '<path d="M12 7.2c-2.8 0-5.2-.5-6.9-1l-.5 1.9c1.5.5 3.4.9 5.4 1v3.2l-2.5 7.2 1.9.7 2.3-6.4h.6l2.3 6.4 1.9-.7-2.5-7.2V9.1c2-.1 3.9-.5 5.4-1l-.5-1.9c-1.7.5-4.1 1-6.9 1z"/></svg>' +
+          '<span>Confort</span>';
+        var submit = nav.querySelector(".nav-submit-link");
+        nav.insertBefore(navBtn, submit || null);
+      }
+      navBtn.disabled = false;
       navBtn.setAttribute("aria-expanded", "false");
       navBtn.setAttribute("aria-controls", "a11y-menu");
-      navBtn.innerHTML =
-        '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
-        '<circle cx="12" cy="4.4" r="2.1"/>' +
-        '<path d="M12 7.2c-2.8 0-5.2-.5-6.9-1l-.5 1.9c1.5.5 3.4.9 5.4 1v3.2l-2.5 7.2 1.9.7 2.3-6.4h.6l2.3 6.4 1.9-.7-2.5-7.2V9.1c2-.1 3.9-.5 5.4-1l-.5-1.9c-1.7.5-4.1 1-6.9 1z"/></svg>' +
-        '<span>Confort</span>';
-      var submit = nav.querySelector(".nav-submit-link");
-      nav.insertBefore(navBtn, submit || null);
       navBtn.addEventListener("click", function (e) {
         e.stopPropagation();
         flip();
-        navBtn.setAttribute("aria-expanded", panel.classList.contains("is-open") ? "true" : "false");
       });
     }
 
@@ -153,6 +157,7 @@
     function setOpen(open) {
       panel.classList.toggle("is-open", open);
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      if (navBtn) navBtn.setAttribute("aria-expanded", open ? "true" : "false");
 
     }
     function flip() { setOpen(!panel.classList.contains("is-open")); }
@@ -164,7 +169,7 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && panel.classList.contains("is-open")) {
         setOpen(false);
-        toggle.focus();
+        (navBtn || toggle).focus();
       }
     });
 
