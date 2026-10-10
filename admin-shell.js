@@ -1609,6 +1609,30 @@
       eventDetailContent.appendChild(row);
     });
 
+    const historyButton = document.createElement("button");
+    historyButton.type = "button";
+    historyButton.textContent = "Historique des décisions";
+    historyButton.addEventListener("click", async function () {
+      historyButton.disabled = true;
+      try {
+        const response = await context.getClient().rpc("get_event_moderation_history", { p_event_id: event.id });
+        if (response.error) throw response.error;
+        const decisions = Array.isArray(response.data) ? response.data : [];
+        window.alert(decisions.length ? decisions.map((row) =>
+          (row.decision === "reject" ? "Rejet" : "Validation") + " · " + new Date(row.decided_at).toLocaleString("fr-FR") + "\n" +
+          "Admin : " + row.admin_id + "\n" +
+          "Statut : " + (row.old_validated ? "validé" : row.old_rejected ? "rejeté" : "en attente") +
+          " → " + (row.new_validated ? "validé" : "rejeté") +
+          (row.reason ? "\nMotif privé : " + row.reason : "")
+        ).join("\n\n") : "Aucune décision enregistrée depuis l’activation du journal.");
+      } catch (error) {
+        window.alert("Historique indisponible.\n\n" + (error?.message || "Erreur Supabase"));
+      } finally {
+        historyButton.disabled = false;
+      }
+    });
+    eventDetailContent.appendChild(historyButton);
+
     if (event.rejected === true) {
       const reasonButton = document.createElement("button");
       reasonButton.type = "button";

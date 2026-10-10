@@ -2890,6 +2890,7 @@ function renderEventCard(event) {
         ${isPending ? `<button class="event-action validate" data-action="validate" data-id="${event.id}" type="button" title="Valider">✔ <span>Valider</span></button>` : ""}
         ${isPending ? `<button class="event-action reject" data-action="reject" data-id="${event.id}" type="button" title="Refuser">✖ <span>Refuser</span></button>` : ""}
         ${event.rejected ? `<button class="event-action view" data-action="rejection-reason" data-id="${event.id}" type="button">Motif du rejet</button>` : ""}
+        <button class="event-action view" data-action="moderation-history" data-id="${event.id}" type="button">Historique des décisions</button>
         <button class="event-action featured" data-action="featured" data-id="${event.id}" type="button" title="${event.featured ? "Retirer la mise en avant" : "Mettre en avant"}">★ <span>${event.featured ? "Retirer" : "Avant"}</span></button>
         <button class="event-action edit" data-action="edit" data-id="${event.id}" type="button" title="Modifier">✎ <span>Modifier</span></button>
         <a class="event-action view" href="event.html?id=${encodeURIComponent(event.id)}" target="_blank" rel="noopener noreferrer" title="Voir la fiche">↗ <span>Voir</span></a>
@@ -2937,6 +2938,7 @@ function bindEventActions(root = document) {
       if (action === "validate") decisionMade = await validateEvent(id);
       if (action === "reject") decisionMade = await rejectEvent(id);
       if (action === "rejection-reason") await showEventRejectionReason(id);
+      if (action === "moderation-history") await showEventModerationHistory(id);
       if (action === "featured") await toggleFeatured(id);
       if (action === "edit") openEditModal(id);
       if (action === "copy-social") await copySocialPost(id);
@@ -3296,6 +3298,23 @@ async function showEventRejectionReason(id) {
     window.alert(decision?.reason ? `Dernier motif de rejet :\n\n${decision.reason}` : "Aucun motif enregistré pour cet ancien rejet.");
   } catch (error) {
     showToast("Motif indisponible : " + (error?.message || "Erreur Supabase"));
+  }
+}
+
+async function showEventModerationHistory(id) {
+  if (!(await ensureAdminSession())) return;
+  try {
+    const { data, error } = await supabaseClient.rpc("get_event_moderation_history", { p_event_id: id });
+    if (error) throw error;
+    const rows = Array.isArray(data) ? data : [];
+    window.alert(rows.length ? rows.map((row) =>
+      `${row.decision === "reject" ? "Rejet" : "Validation"} · ${new Date(row.decided_at).toLocaleString("fr-FR")}\n` +
+      `Admin : ${row.admin_id}\n` +
+      `Statut : ${row.old_validated ? "validé" : row.old_rejected ? "rejeté" : "en attente"} → ${row.new_validated ? "validé" : "rejeté"}` +
+      (row.reason ? `\nMotif privé : ${row.reason}` : "")
+    ).join("\n\n") : "Aucune décision enregistrée depuis l’activation du journal.");
+  } catch (error) {
+    showToast("Historique indisponible : " + (error?.message || "Erreur Supabase"));
   }
 }
 
