@@ -307,23 +307,6 @@
   background:#3a1c71; color:#fff; transform: translateY(-2px);
 }
 
-/* ---------- 7. Entrée en scène de l'écrin ---------- */
-.agenda-discovery-showcase.lud-reveal{ opacity:0; transform: translateY(46px) scale(.985) }
-.agenda-discovery-showcase.lud-reveal.lud-visible{
-  opacity:1; transform:none;
-  transition: opacity .9s ease, transform .9s cubic-bezier(.34,1.56,.64,1);
-}
-.agenda-discovery-showcase.lud-visible .agenda-calendar-panel{
-  animation: lud-panel-in .8s cubic-bezier(.34,1.56,.64,1) .15s both;
-}
-.agenda-discovery-showcase.lud-visible .agenda-map-panel-block{
-  animation: lud-panel-in .8s cubic-bezier(.34,1.56,.64,1) .3s both;
-}
-@keyframes lud-panel-in{
-  from{ opacity:0; transform:translateY(26px) }
-  to{ opacity:1; transform:none }
-}
-
 /* ---------- 8. Mobile ---------- */
 @media (max-width: 780px){
   .agenda-discovery-showcase{ border-radius: 26px; padding: 14px }
@@ -337,10 +320,5 @@
   .agenda-discovery-showcase .calendar-day-count,
   .agenda-discovery-showcase .event-marker-v5 span::after,
   .agenda-discovery-showcase .legend-dot{ animation:none !important }
-  .agenda-discovery-showcase.lud-reveal,
-  .agenda-discovery-showcase .agenda-calendar-panel,
-  .agenda-discovery-showcase .agenda-map-panel-block{
-    opacity:1 !important; transform:none !important; animation:none !important;
-  }
   .agenda-discovery-showcase .lud-spotlight{ display:none }
 }

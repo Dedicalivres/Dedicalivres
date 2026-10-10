@@ -210,22 +210,6 @@
 .lud-hl.lud-sweep::before{ animation: lud-hl-sweep .7s ease-out forwards }
 @keyframes lud-hl-sweep{ to{ transform:scaleX(1) } }
 
-/* =========================================================
-   N°12 — L'ENCRE QUI RÉVÈLE (apparition des sections)
-   Remplace le fondu : un voile d'encre violette se résorbe.
-========================================================= */
-.lud-inkreveal{ position:relative }
-.lud-inkreveal::after{
-  content:""; position:absolute; inset:0; z-index:20;
-  background:
-    radial-gradient(circle at 32% 24%, #4a2590, #3a1c71 55%, #2c1257);
-  border-radius:inherit;
-  clip-path:circle(142% at 50% 42%);
-  transition: clip-path 1s var(--lud-page);
-  pointer-events:none;
-}
-.lud-inkreveal.lud-visible::after{ clip-path:circle(0% at 50% 42%) }
-
 /* ---------- Rubans défilants cliquables ---------- */
 .lud-ticker{
   background:#3a1c71; color:#fff; overflow:hidden; padding:11px 0;
@@ -322,7 +306,6 @@
   .lud-ink-underline path, .lud-stamp,
   .past-events-section[open] .event-card{ animation:none !important }
   .lud-ink-underline path{ stroke-dashoffset:0 }
-  .lud-inkreveal::after{ display:none }
   .event-card, .event-card::after{ transition:none !important }
   .association-hero-copy,.association-hero-territories,.association-hero-brand{ animation:none !important; opacity:1 }
 }
