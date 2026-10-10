@@ -244,6 +244,9 @@
   margin:0 0 46px;
   box-shadow:0 14px 34px rgba(255,107,53,.3);
 }
+@media (min-width:681px){
+  .lud-ticker,.lud-ticker-events{width:calc(100% - 32px);margin-inline:auto}
+}
 .lud-ticker-events .lud-ticker-track{ animation-duration:36s; animation-direction:reverse }
 .lud-ticker-events em{ color:#3a1c71 }
 .lud-ticker-events a:hover,
