@@ -1770,6 +1770,11 @@ function getEventQualityIssues(event) {
   if (!event?.website) add("important", "Source officielle manquante");
   if (description.length < 120) add("improvement", "Description à renforcer");
 
+  const textQuality = window.DEDICALIVRES_EVENT_TEXT_QUALITY?.summarize(event);
+  if (textQuality?.hasIssues) {
+    add("important", `Texte à contrôler — ${textQuality.fields.join(", ")}`);
+  }
+
   return issues;
 }
 
