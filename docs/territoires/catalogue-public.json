@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-09T08:48:06.247Z",
+  "capturedAt": "2026-10-10T18:47:07.271Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -7505,6 +7505,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.dordogne-perigord-tourisme.fr/offres/salon-du-livre-sourzac-fr-3241302/"
+    },
+    {
+      "id": "e319b179-8986-4543-9ace-215839fbe46e",
+      "title": "Oasis Littéraire - Salon de la culture littéraire indépendante",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Occitanie",
+      "city": "Escalquens",
+      "start_date": "2026-11-07",
+      "end_date": "2026-11-07",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://oasislitteraire.com"
     },
     {
       "id": "e327b15a-b537-473c-be33-e1d924154bbb",
