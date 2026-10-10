@@ -1,0 +1,34 @@
+<section class="a11y-showcase" aria-label="Confort de lecture et ambiance">
+  <div class="a11y-showcase-head">
+    <h2>Un site confortable pour chaque lecteur</h2>
+    <p>Choisissez votre confort : le réglage s’applique immédiatement, partout sur le site, et sera retenu pour vos prochaines visites.</p>
+  </div>
+  <div class="a11y-showcase-grid">
+    <button type="button" class="a11y-card" data-mode="daltonien" aria-pressed="false" disabled>
+      <span class="a11y-card-preview" aria-hidden="true"><i style="background:#0072B2"></i><i style="background:#E69F00"></i><i style="background:#CC79A7"></i><i style="background:#009E73"></i></span>
+      <strong>Confort daltonien</strong>
+      <small>Palette Okabe-Ito : les types d’événements restent distinguables dans toutes les formes de daltonisme.</small>
+      <span class="a11y-card-state"></span>
+    </button>
+    <button type="button" class="a11y-card" data-mode="dyslexie" aria-pressed="false" disabled>
+      <span class="a11y-card-preview a11y-prev-dys" aria-hidden="true">Aa Bb Cc</span>
+      <strong>Confort dyslexie</strong>
+      <small>Police dédiée, lettres espacées, textes immobiles et jamais justifiés.</small>
+      <span class="a11y-card-state"></span>
+    </button>
+    <button type="button" class="a11y-card" data-mode="soir" aria-pressed="false" disabled>
+      <span class="a11y-card-preview a11y-prev-soir" aria-hidden="true"><b></b><i></i><i></i></span>
+      <strong>Mode soir</strong>
+      <small>Papier encre et texte crème pour lire sans éblouir, à la lampe de chevet.</small>
+      <span class="a11y-card-state"></span>
+    </button>
+    <div class="a11y-card a11y-card--amb">
+      <strong>Ambiance de fond</strong>
+      <div class="a11y-amb-choices">
+        <button type="button" class="a11y-amb" data-ambiance="aquarelle" aria-pressed="false" disabled><span class="a11y-card-preview a11y-prev-aqua" aria-hidden="true"></span>Aquarelle</button>
+        <button type="button" class="a11y-amb" data-ambiance="papier" aria-pressed="false" disabled><span class="a11y-card-preview a11y-prev-papier" aria-hidden="true"></span>Papier à lettres</button>
+      </div>
+    </div>
+  </div>
+  <noscript><p>Activez JavaScript pour utiliser les réglages de confort.</p></noscript>
+</section>
