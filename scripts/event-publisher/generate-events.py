@@ -321,6 +321,8 @@ def jsonld_breadcrumb(ev, base_url, url):
     return json.dumps({'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': items}, ensure_ascii=False)
 CSS = f'\n:root{{--brand:{COULEUR};--ink:#1c1430;--muted:#5b5470;--line:#e7e1f0;--bg:#faf9fc}}\n*{{box-sizing:border-box}}\nbody{{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;\ncolor:var(--ink);background:var(--bg);line-height:1.6}}\na{{color:var(--brand)}}\nheader.site{{background:var(--brand);color:#fff;padding:14px 20px}}\nheader.site a{{color:#fff;text-decoration:none;font-weight:700}}\n.wrap{{max-width:760px;margin:0 auto;padding:24px 20px 60px}}\n.crumb{{font-size:13px;color:var(--muted);margin:6px 0 18px}}\n.crumb a{{color:var(--muted)}}\nh1{{font-size:28px;line-height:1.25;margin:.2em 0 .4em}}\n.badge{{display:inline-block;background:#efe9f8;color:var(--brand);border-radius:999px;\npadding:3px 12px;font-size:13px;font-weight:600}}\n.meta{{margin:18px 0;padding:16px 18px;background:#fff;border:1px solid var(--line);border-radius:12px}}\n.meta div{{margin:4px 0}}\n.meta b{{color:var(--muted);font-weight:600;display:inline-block;min-width:90px}}\n.affiche{{max-width:100%;border-radius:12px;margin:18px 0;border:1px solid var(--line)}}\n.cta{{display:inline-block;background:var(--brand);color:#fff;text-decoration:none;\npadding:11px 20px;border-radius:10px;font-weight:600;margin-top:10px}}\n.desc{{margin:18px 0}}\nfooter{{border-top:1px solid var(--line);margin-top:40px;padding-top:18px;\nfont-size:13px;color:var(--muted)}}\n.card{{display:block;background:#fff;border:1px solid var(--line);border-radius:12px;\npadding:14px 16px;margin:10px 0;text-decoration:none;color:var(--ink)}}\n.card:hover{{border-color:var(--brand)}}\n.card .t{{font-weight:700}}.card .s{{color:var(--muted);font-size:14px}}\n'
 
+A11Y_SHOWCASE_HTML = Path(__file__).with_name('a11y-showcase.html').read_text(encoding='utf-8')
+
 def page_event(ev, base_url):
     url = f"{base_url}/evenement/{ev['_slug']}.html"
     typ = ev.get('type') or deduire_type(ev['titre'])
@@ -378,6 +380,7 @@ def page_event(ev, base_url):
     if ev['site']:
         parts.append(f'''<a class="cta" href="{esc(ev['site'])}" rel="noopener" target="_blank">Site officiel de l'événement</a>''')
     parts.append('</article>')
+    parts.append(A11Y_SHOWCASE_HTML)
     parts.append('<footer>')
     if ev['source']:
         parts.append(f'''Source : <a href="{esc(ev['source'])}" rel="nofollow noopener" target="_blank">{esc(ev['source'][:60])}</a><br>''')
@@ -392,7 +395,7 @@ def page_event(ev, base_url):
     parts.append('<script src="/url-normalizer.js?v=1"></script>')
     parts.append('<script src="/authors-presence.js?v=static-canonical-1"></script>')
     parts.append('<script src="/ludique.js?v=ludique-21" defer></script>')
-    parts.append('<script src="/accessibilite.js?v=a11y-7" defer></script>')
+    parts.append('<script src="/accessibilite.js?v=a11y-8-static-showcase" defer></script>')
     parts.append('</body></html>')
     return '\n'.join(parts)
 

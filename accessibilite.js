@@ -198,12 +198,14 @@
   ========================================================= */
   document.addEventListener("DOMContentLoaded", function () {
     var footer = document.querySelector(".site-footer") || document.querySelector("footer");
-    if (!footer || document.querySelector(".a11y-showcase")) return;
+    var sec = document.querySelector(".a11y-showcase");
+    if (!footer && !sec) return;
 
-    var sec = document.createElement("section");
-    sec.className = "a11y-showcase";
-    sec.setAttribute("aria-label", "Confort de lecture et ambiance");
-    sec.innerHTML =
+    if (!sec) {
+      sec = document.createElement("section");
+      sec.className = "a11y-showcase";
+      sec.setAttribute("aria-label", "Confort de lecture et ambiance");
+      sec.innerHTML =
       '<div class="a11y-showcase-head">' +
         '<h2>Un site confortable pour chaque lecteur</h2>' +
         '<p>Choisissez votre confort : le r\u00e9glage s\u2019applique imm\u00e9diatement, ' +
@@ -246,7 +248,11 @@
         '</div>' +
 
       '</div>';
-    footer.parentNode.insertBefore(sec, footer);
+      footer.parentNode.insertBefore(sec, footer);
+    }
+    sec.querySelectorAll("button[disabled]").forEach(function (button) {
+      button.disabled = false;
+    });
 
     function refreshShowcase() {
       sec.querySelectorAll(".a11y-card[data-mode]").forEach(function (c) {
