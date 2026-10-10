@@ -5,7 +5,9 @@ import vm from 'node:vm';
 const source = fs.readFileSync('app.js', 'utf8');
 const urlCode = source.slice(source.indexOf('  function restoreAgendaFilters()'), source.indexOf('  function populateSubmissionRegion()'));
 const renderCode = source.slice(source.indexOf('  function renderFilteredEvents()'), source.indexOf('  function filterEvents('));
+const calendarCode = source.slice(source.indexOf('  function renderAgendaCalendar()'), source.indexOf('  function getEventsForCalendarDate('));
 const popCode = source.slice(source.indexOf('    window.addEventListener("popstate"'), source.indexOf('    bindCityAutocomplete();'));
+const nextCode = source.slice(source.indexOf('    calendarNextButton?.addEventListener('), source.indexOf('    calendarClearButton?.addEventListener('));
 const resetCode = source.slice(source.indexOf('  function resetFilters()'), source.indexOf('  function setLoadingState()'));
 assert(urlCode.includes('function syncAgendaUrl()') && renderCode.includes('syncAgendaUrl()'));
 
@@ -32,6 +34,9 @@ const typeFilter = select(['', 'Salon', 'Festival', 'Dédicace', 'Autre']);
 const dateFilter = select(['', '2026-11', '2026-12']);
 const searchInput = { value: '' };
 const renders = { events: 0, past: 0, map: 0, calendar: 0 };
+const calendarGrid = { set innerHTML(value) { renders.calendar++; this.html = value; } };
+const calendarMonthLabel = { textContent: '' };
+const calendarNextButton = { addEventListener(name, listener) { listeners.next = listener; } };
 const context = vm.createContext({
   window: {
     location, history: { state: { safe: true }, replaceState(state, title, path) {
@@ -41,6 +46,7 @@ const context = vm.createContext({
     clearTimeout() {}, addEventListener(name, listener) { listeners[name] = listener; }
   },
   URL, URLSearchParams, countryFilter, regionFilter, typeFilter, dateFilter, searchInput,
+  calendarGrid, calendarMonthLabel, calendarNextButton,
   geo: { normalizeCountryCode: value => value.toUpperCase() },
   populateAgendaRegionFilter() {
     regionFilter.options = countryFilter.value === 'FR'
@@ -54,6 +60,7 @@ const context = vm.createContext({
   toDateKey: date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-'),
   selectedCalendarDate: '', calendarCursor: new Date(2026, 9, 1), restoringUrlFilters: false,
   catalogVersion: 1, searchRenderTimer: null, lastRenderedFilterKey: '', allEvents: [],
+  calendarBaseKey: '', calendarBaseEvents: [], calendarRenderKey: '',
   userPosition: null, locationRadiusKm: 25, DEFAULT_LOCATION_RADIUS_KM: 25,
   locationRadiusSelect: { value: '25' }, userMarker: null, map: null,
   locateMeButton: { textContent: '' }, setLocateStatus: () => {}, centerMapOnGlobalView: () => {},
@@ -63,9 +70,11 @@ const context = vm.createContext({
   findEventsWithinRadius: (position, events) => events,
   isPastEvent: () => false, renderEvents: () => renders.events++,
   renderPastEvents: () => renders.past++, renderMapMarkers: () => renders.map++,
-  renderAgendaCalendar: () => renders.calendar++, JSON, Date
+  getEventsForCalendarDate: () => [], getCalendarSummary: () => '', getCalendarDots: () => '',
+  formatDate: value => value, escapeAttribute: value => value, escapeHtml: value => value,
+  updateCalendarSelection: () => {}, JSON, Date, Intl
 });
-vm.runInContext(`${urlCode}\n${renderCode}\n${resetCode}\n${popCode}`, context);
+vm.runInContext(`${urlCode}\n${renderCode}\n${calendarCode}\n${resetCode}\n${popCode}\n${nextCode}`, context);
 
 context.restoreAgendaFilters(); context.renderFilteredEvents();
 assert.equal(countryFilter.value, '');
@@ -100,7 +109,7 @@ assert.equal(new URL(href).searchParams.has('lat'), false);
 assert.equal(new URL(href).searchParams.has('lng'), false);
 assert.equal(new URL(href).searchParams.get('source'), 'lettre');
 
-href = 'https://www.dedicalivres.fr/?source=lettre&country=BE&region=Wallonie#agenda';
+href = 'https://www.dedicalivres.fr/?source=lettre&country=BE&region=Wallonie&month=2026-11#agenda';
 const beforePop = replaces.length;
 listeners.popstate();
 assert.equal(replaces.length, beforePop, 'popstate ne réécrit pas l’historique');
@@ -108,6 +117,17 @@ assert.deepEqual([countryFilter.value, regionFilter.value, searchInput.value, co
 const beforeRepeat = renders.events;
 listeners.popstate();
 assert.equal(renders.events, beforeRepeat, 'popstate identique évité');
+
+context.calendarCursor = new Date(2026, 11, 1);
+context.renderAgendaCalendar();
+assert(calendarMonthLabel.textContent.includes('décembre'));
+const beforeSameFilterPop = renders.events;
+listeners.popstate();
+assert.equal(renders.events, beforeSameFilterPop, 'Même filtre : liste non recalculée');
+assert.equal(context.calendarCursor.getMonth(), 10, 'Retour au mois de l’URL');
+assert(calendarMonthLabel.textContent.includes('novembre'), 'Calendrier visible synchronisé après popstate');
+listeners.next();
+assert(calendarMonthLabel.textContent.includes('décembre'), 'Flèche suivante fonctionnelle');
 
 context.resetFilters();
 assert.equal(new URL(href).searchParams.get('source'), 'lettre');

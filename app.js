@@ -273,7 +273,10 @@
       restoreAgendaFilters();
       if (!catalogVersion) return;
       restoringUrlFilters = true;
-      try { renderFilteredEvents(); } finally { restoringUrlFilters = false; }
+      try {
+        renderFilteredEvents();
+        renderAgendaCalendar();
+      } finally { restoringUrlFilters = false; }
     });
 
     bindCityAutocomplete();
