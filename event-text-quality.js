@@ -13,7 +13,7 @@
     region: "région"
   };
   const CERTAIN_MOJIBAKE = /(?:Ã(?:©|¨|ª|«|®|¯|´|µ|¶|·|¸|¹|º|»|¼|½|¾)|Â(?:©|®|°|±|²|³|´|µ|·)|â(?:€™|€œ|€|€“|€”|€¦|€¢)|ðŸ|ÃƒÂ)/u;
-  const HTML_ENTITY = /&(?:amp|quot|apos|nbsp|lt|gt|#(?:\d{2,6}|x[0-9a-f]{2,6}));/iu;
+  const HTML_ENTITY = /&(?:amp|quot|apos|nbsp|lt|gt|eacute|egrave|agrave|ccedil|rsquo|hellip|#(?:\d{2,6}|x[0-9a-f]{2,6}));/iu;
   const HTML_TAG = /<\/?(?:a|b|br|div|em|i|li|ol|p|span|strong|ul)(?:\s[^<>]*)?>/iu;
   const TRUNCATED = /(?:\.{3}|…|\[…\])\s*$/u;
 

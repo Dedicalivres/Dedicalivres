@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-10T06:06:05.055Z",
+  "generatedAt": "2026-10-10T06:11:45.348Z",
   "source": "Supabase public read-only API; validated=true; rejected=false",
   "examined": 622,
   "suspiciousEvents": 52,
@@ -204,7 +204,7 @@
       "field": "description",
       "classification": "probable",
       "code": "html-entity",
-      "excerpt": "eacute;cents de Pascal Quignard par&nbsp;Danielle M&eacute;rope-Garden",
+      "excerpt": "Il n&rsquo;y a pas de place pour la mort et autres textes r&eacute;cen",
       "canonicalUrl": "https://dedicalivres.fr/evenement/sieste-litteraire-du-bleuet-banon-4303.html",
       "sourceUrl": "https://www.facebook.com/arl.provencealpescotedazur/",
       "origin": "supabase-et-html-statique-et-site-servi",
