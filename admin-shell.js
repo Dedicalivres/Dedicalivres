@@ -10,6 +10,12 @@
   const eventTextQuality =
     window.DEDICALIVRES_EVENT_TEXT_QUALITY;
 
+  const eventBulkPreview =
+    window.DEDICALIVRES_EVENT_BULK_PREVIEW;
+
+  const eventBulkSelection =
+    eventBulkPreview?.createSelectionController();
+
   const authorPublication =
     window.DEDICALIVRES_AUTHOR_PUBLICATION;
 
@@ -76,6 +82,36 @@
 
   const eventsDebug =
     document.getElementById("v11-events-debug");
+
+  const eventBulkSelectionSummary =
+    document.getElementById("v11-bulk-selection-summary");
+
+  const eventBulkSelectVisible =
+    document.getElementById("v11-bulk-select-visible");
+
+  const eventBulkClear =
+    document.getElementById("v11-bulk-clear");
+
+  const eventBulkPreviewValidate =
+    document.getElementById("v11-bulk-preview-validate");
+
+  const eventBulkPreviewReject =
+    document.getElementById("v11-bulk-preview-reject");
+
+  const eventBulkPreviewPanel =
+    document.getElementById("v11-bulk-preview-panel");
+
+  const eventBulkPreviewTitle =
+    document.getElementById("v11-bulk-preview-title");
+
+  const eventBulkPreviewStatus =
+    document.getElementById("v11-bulk-preview-status");
+
+  const eventBulkPreviewList =
+    document.getElementById("v11-bulk-preview-list");
+
+  const eventBulkPreviewClose =
+    document.getElementById("v11-bulk-preview-close");
 
   const currentDateLabel =
     document.getElementById(
@@ -1210,6 +1246,35 @@
 
     side.className =
       "v11-real-event-side";
+
+    if (eventBulkSelection) {
+      const selectLabel =
+        document.createElement("label");
+
+      selectLabel.className =
+        "v11-event-select";
+
+      const checkbox =
+        document.createElement("input");
+
+      checkbox.type = "checkbox";
+      checkbox.checked =
+        eventBulkSelection.has(event.id);
+      checkbox.dataset.eventBulkSelect =
+        String(event.id);
+      checkbox.setAttribute(
+        "aria-label",
+        "Sélectionner " + (event.title || "cet événement")
+      );
+
+      const selectText =
+        document.createElement("span");
+
+      selectText.textContent = "Sélectionner";
+      selectLabel.appendChild(checkbox);
+      selectLabel.appendChild(selectText);
+      side.appendChild(selectLabel);
+    }
 
     const statusBadge =
       document.createElement("span");
@@ -3398,6 +3463,110 @@
     }
   }
 
+  function updateV11BulkSelectionControls() {
+    if (!eventBulkSelection) return;
+    const count = eventBulkSelection.size();
+    if (eventBulkSelectionSummary) {
+      eventBulkSelectionSummary.textContent =
+        count + " événement" + (count > 1 ? "s" : "") +
+        " sélectionné" + (count > 1 ? "s" : "") +
+        " sur " + eventBulkSelection.limit + ".";
+    }
+    [eventBulkPreviewValidate, eventBulkPreviewReject, eventBulkClear]
+      .forEach((button) => {
+        if (button) button.disabled = count === 0;
+      });
+  }
+
+  function closeV11BulkPreview() {
+    if (eventBulkPreviewPanel) eventBulkPreviewPanel.hidden = true;
+  }
+
+  function createV11BulkPreviewItem(result) {
+    const article = document.createElement("article");
+    article.className = "v11-bulk-preview-item";
+
+    const header = document.createElement("header");
+    const title = document.createElement("strong");
+    title.textContent = result.title || "Événement indisponible";
+    const outcome = document.createElement("span");
+    outcome.className = "v11-bulk-result is-" + result.status;
+    outcome.textContent = result.status === "ready" ? "Prêt" : result.status === "review" ? "À vérifier" : "Bloqué";
+    header.appendChild(title);
+    header.appendChild(outcome);
+    article.appendChild(header);
+
+    const details = document.createElement("dl");
+    [
+      ["Statut actuel", result.currentStatus],
+      ["Complétude", result.completeness],
+      ["Doublons", result.duplicates],
+      ["Qualité textuelle", result.textQuality],
+      ["Vérification humaine", result.humanVerification],
+      ["Résultat attendu", result.expected],
+      ["Raisons", result.reasons?.length ? result.reasons.join(" · ") : "Aucun blocage détecté"]
+    ].forEach(([label, value]) => {
+      if (value == null) return;
+      const wrapper = document.createElement("div");
+      const term = document.createElement("dt");
+      const description = document.createElement("dd");
+      term.textContent = label;
+      description.textContent = value;
+      wrapper.appendChild(term);
+      wrapper.appendChild(description);
+      details.appendChild(wrapper);
+    });
+    article.appendChild(details);
+    return article;
+  }
+
+  function renderV11BulkPreview(action) {
+    if (!eventBulkPreview || !eventBulkSelection || !eventBulkPreviewPanel || !eventBulkPreviewList) return;
+    const state = context.getState();
+    const events = state.events || [];
+    const byId = new Map(events.map((event) => [String(event.id), event]));
+    const results = eventBulkSelection.ids().map((id) =>
+      eventBulkPreview.inspectEvent(byId.get(id), action, events, {
+        validatePublication: validateV11EventPublicationPayload,
+        validateRegistration: validateV11RegistrationPayload,
+        duplicates: window.DEDICALIVRES_DUPLICATES,
+        textQuality: eventTextQuality
+      })
+    );
+
+    eventBulkSelection.capturePreview(events);
+    eventBulkPreviewList.replaceChildren(
+      ...results.map(createV11BulkPreviewItem)
+    );
+    const counts = results.reduce((total, result) => {
+      total[result.status] += 1;
+      return total;
+    }, { ready: 0, review: 0, blocked: 0 });
+
+    if (eventBulkPreviewTitle) {
+      eventBulkPreviewTitle.textContent = action === "validate" ? "Prévisualisation de la validation" : "Prévisualisation du rejet";
+    }
+    if (eventBulkPreviewStatus) {
+      eventBulkPreviewStatus.classList.remove("is-stale");
+      eventBulkPreviewStatus.textContent =
+        counts.ready + " prêt(s) · " + counts.review + " à vérifier · " + counts.blocked +
+        " bloqué(s). Aucune modification ne sera exécutée dans ce lot.";
+    }
+    eventBulkPreviewPanel.hidden = false;
+    eventBulkPreviewPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function markV11BulkPreviewStale(events) {
+    if (!eventBulkSelection?.reconcile(events) || !eventBulkPreviewStatus) return;
+    eventBulkPreviewStatus.classList.add("is-stale");
+    eventBulkPreviewStatus.textContent =
+      "Aperçu invalidé : les données sélectionnées ont changé. Relancez la prévisualisation avant toute décision.";
+    eventBulkPreviewList?.querySelectorAll(".v11-bulk-result").forEach((node) => {
+      node.className = "v11-bulk-result is-blocked";
+      node.textContent = "Bloqué · aperçu obsolète";
+    });
+  }
+
 function renderEvents(events, status) {
     if (!eventsList) return;
 
@@ -3430,6 +3599,8 @@ function renderEvents(events, status) {
     const filtered =
       getFilteredEvents(events);
 
+    markV11BulkPreviewStale(events);
+
     eventsList.replaceChildren();
 
     filtered
@@ -3449,7 +3620,42 @@ function renderEvents(events, status) {
       eventsEmpty.hidden =
         filtered.length !== 0;
     }
+
+    updateV11BulkSelectionControls();
   }
+
+  document.addEventListener("change", (changeEvent) => {
+    const checkbox = changeEvent.target.closest("[data-event-bulk-select]");
+    if (!checkbox || !eventBulkSelection) return;
+    const result = eventBulkSelection.toggle(checkbox.dataset.eventBulkSelect, checkbox.checked);
+    if (result.limitReached) {
+      checkbox.checked = false;
+      v11ActionMessage("Sélection limitée à 20 événements.");
+    }
+    closeV11BulkPreview();
+    updateV11BulkSelectionControls();
+  });
+
+  eventBulkSelectVisible?.addEventListener("click", () => {
+    if (!eventBulkSelection) return;
+    const state = context.getState();
+    const visibleIds = getFilteredEvents(state.events || []).slice(0, 150).map((event) => event.id);
+    const result = eventBulkSelection.selectMany(visibleIds);
+    if (result.limitReached) v11ActionMessage("20 événements maximum : les résultats suivants n’ont pas été sélectionnés.");
+    closeV11BulkPreview();
+    renderEvents(state.events || [], state.status);
+  });
+
+  eventBulkClear?.addEventListener("click", () => {
+    eventBulkSelection?.clear();
+    closeV11BulkPreview();
+    const state = context.getState();
+    renderEvents(state.events || [], state.status);
+  });
+
+  eventBulkPreviewValidate?.addEventListener("click", () => renderV11BulkPreview("validate"));
+  eventBulkPreviewReject?.addEventListener("click", () => renderV11BulkPreview("reject"));
+  eventBulkPreviewClose?.addEventListener("click", closeV11BulkPreview);
 
 
   const priorityList =
