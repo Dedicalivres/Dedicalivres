@@ -8,6 +8,11 @@ on:
         required: false
         default: false
         type: boolean
+      recover_failed_p0:
+        description: "One recovery attempt for the two named P0 publication jobs"
+        required: false
+        default: false
+        type: boolean
 
   schedule:
     - cron: "*/5 * * * *"
@@ -28,10 +33,17 @@ jobs:
 
     if: >-
       ${{
-        vars.PUBLICATION_AUTOMATION_ENABLED == 'true'
+        (vars.PUBLICATION_AUTOMATION_ENABLED == 'true' && inputs.recover_failed_p0 != true)
         || (
           github.event_name == 'workflow_dispatch'
           && inputs.preactivation_test == true
+          && inputs.recover_failed_p0 != true
+        )
+        || (
+          github.event_name == 'workflow_dispatch'
+          && vars.PUBLICATION_AUTOMATION_ENABLED == 'false'
+          && inputs.recover_failed_p0 == true
+          && inputs.preactivation_test != true
         )
       }}
 
@@ -48,7 +60,13 @@ jobs:
         ${{ secrets.DEDICALIVRES_SUPABASE_SECRET_KEY }}
 
       PUBLICATION_PREACTIVATION_TEST:
-        ${{ vars.PUBLICATION_AUTOMATION_ENABLED != 'true' && github.event_name == 'workflow_dispatch' && inputs.preactivation_test == true }}
+        ${{ vars.PUBLICATION_AUTOMATION_ENABLED != 'true' && github.event_name == 'workflow_dispatch' && inputs.preactivation_test == true && inputs.recover_failed_p0 != true }}
+
+      PUBLICATION_P0_RECOVERY:
+        ${{ vars.PUBLICATION_AUTOMATION_ENABLED == 'false' && github.event_name == 'workflow_dispatch' && inputs.recover_failed_p0 == true && inputs.preactivation_test != true }}
+
+      PUBLICATION_AUTOMATION_ENABLED:
+        ${{ vars.PUBLICATION_AUTOMATION_ENABLED }}
 
       PYTHONDONTWRITEBYTECODE: "1"
 
@@ -173,6 +191,16 @@ jobs:
             scripts/check-publication-diff.mjs
 
           git diff --check
+
+
+      - name: Recheck P0 recovery event states
+        if: steps.claim.outputs.has_jobs == 'true' && env.PUBLICATION_P0_RECOVERY == 'true'
+
+        run: |
+          node \
+            scripts/publication-jobs.mjs \
+            verify-recovery \
+            "${{ steps.claim.outputs.batch_id }}"
 
 
       - name: Enforce isolated preactivation no-op

@@ -129,6 +129,56 @@ const changed =
     ]),
   ]);
 
+if (process.env.PUBLICATION_P0_RECOVERY === "true") {
+  const allowedIds = new Set([
+    "c69b157c-bf2f-4ddf-affa-a57497d261c2",
+    "14b81335-1dab-4f6d-9667-5e88675c6f98",
+  ]);
+  const mapPath = "docs/territoires/event-canonical-map.json";
+  const before = JSON.parse(execFileSync("git", ["show", `HEAD:${mapPath}`], { encoding: "utf8" }));
+  const after = JSON.parse(fs.readFileSync(mapPath, "utf8"));
+  const allowedPages = new Set([...allowedIds].flatMap((id) =>
+    [before[id], after[id]].filter(Boolean)));
+  const otherPages = [...changed].filter((path) =>
+    path.startsWith("evenement/")
+    && path !== "evenement/index.html"
+    && !allowedPages.has(path));
+  if (otherPages.length) {
+    console.error("STOP : fiche hors des deux événements P0 modifiée", otherPages);
+    process.exit(1);
+  }
+
+  const indexPath = "evenement/index.html";
+  const pascal = before["c69b157c-bf2f-4ddf-affa-a57497d261c2"]?.replace("evenement/", "");
+  const seclin = after["14b81335-1dab-4f6d-9667-5e88675c6f98"]?.replace("evenement/", "");
+  const cardLinks = (html) => [...html.matchAll(/<a\s+class="card"\s+href="([^"]+\.html)"/g)]
+    .map((match) => match[1]);
+  const previousLinks = cardLinks(execFileSync("git", ["show", `HEAD:${indexPath}`], { encoding: "utf8" }));
+  const currentLinks = cardLinks(fs.readFileSync(indexPath, "utf8"));
+  const previous = new Set(previousLinks);
+  const current = new Set(currentLinks);
+  const otherPrevious = [...previous].filter((link) => link !== pascal && link !== seclin);
+  const otherCurrent = [...current].filter((link) => link !== pascal && link !== seclin);
+  if (!changed.has(indexPath) || !pascal || !seclin
+      || !previous.has(pascal) || previous.has(seclin)
+      || current.has(pascal) || !current.has(seclin)
+      || previous.size !== previousLinks.length || current.size !== currentLinks.length
+      || otherPrevious.length !== otherCurrent.length
+      || otherPrevious.some((link) => !otherCurrent.includes(link))) {
+    console.error("STOP : index P0 incohérent ou autre référence modifiée");
+    process.exit(1);
+  }
+
+  if (changed.has(mapPath)) {
+    const otherIds = new Set([...Object.keys(before), ...Object.keys(after)]);
+    for (const id of allowedIds) otherIds.delete(id);
+    if ([...otherIds].some((id) => before[id] !== after[id])) {
+      console.error("STOP : autre canonical modifié pendant la reprise P0");
+      process.exit(1);
+    }
+  }
+}
+
 
 const progressiveManifestPath =
   "scripts/event-publisher/progressive-events.json";
