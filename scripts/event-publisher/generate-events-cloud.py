@@ -44,6 +44,63 @@ def progressive_event_ids(path=None):
     return ids
 
 
+def authorized_pilot_depublications(selected):
+    try:
+        ids = json.loads(os.environ.get("PUBLICATION_DEPUBLISH_EVENT_IDS") or "[]")
+        paths = json.loads(os.environ.get("PUBLICATION_DEPUBLISH_PATHS") or "[]")
+    except ValueError as exc:
+        raise RuntimeError("autorisation de dépublication invalide") from exc
+    if not isinstance(ids, list) or not isinstance(paths, list) or len(ids) != len(paths):
+        raise RuntimeError("IDs et chemins de dépublication non alignés")
+    selected_ids = set(selected)
+    if not selected_ids.intersection(ids):
+        return set()
+    try:
+        canonical = json.loads((ROOT / "docs/territoires/event-canonical-map.json").read_text(encoding="utf-8"))
+        legacy = json.loads(MANIFEST.read_text(encoding="utf-8"))["events"]
+    except (OSError, ValueError, KeyError) as exc:
+        raise RuntimeError("preuve canonique ou legacy indisponible") from exc
+    authorized = set()
+    for event_id, path in zip(ids, paths):
+        if event_id not in selected_ids:
+            continue
+        if event_id in authorized or event_id in legacy or canonical.get(event_id) != path:
+            raise RuntimeError("pilote dépublié : identité canonique invalide")
+        if not isinstance(path, str) or not re.fullmatch(r"evenement/[^/]+\.html", path):
+            raise RuntimeError("pilote dépublié : chemin canonique invalide")
+        page = ROOT / path
+        if not page.is_file():
+            raise RuntimeError("pilote dépublié : fiche canonique absente")
+        html = page.read_text(encoding="utf-8")
+        match = re.search(r'data-event-id="([^"]+)"', html)
+        if match is None or match.group(1) != event_id:
+            raise RuntimeError("pilote dépublié : ID de la fiche incohérent")
+        authorized.add(event_id)
+    return authorized
+
+
+def retire_depublished_pilots(selected, authorized, output_root):
+    if not authorized:
+        return
+    try:
+        generated = json.loads((output_root / "event-pages-manifest.json").read_text(encoding="utf-8"))["events"]
+    except (OSError, ValueError, KeyError) as exc:
+        raise RuntimeError("manifeste des fiches générées indisponible") from exc
+    if not isinstance(generated, dict):
+        raise RuntimeError("manifeste des fiches générées invalide")
+    retired = authorized - set(generated)
+    if not retired:
+        return
+    current = progressive_event_ids()
+    if current != selected:
+        raise RuntimeError("manifeste progressif modifié pendant la génération")
+    remaining = [event_id for event_id in selected if event_id not in retired]
+    temporary = PROGRESSIVE_MANIFEST.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps({"event_ids": remaining}, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(PROGRESSIVE_MANIFEST)
+    print(f"PILOTES_RETIRES={len(retired)}")
+
+
 def sha256(path):
     h = hashlib.sha256()
 
@@ -521,8 +578,12 @@ def main():
         sys.argv[1:]
     )
 
-    for event_id in progressive_event_ids():
+    selected = progressive_event_ids()
+    authorized = authorized_pilot_depublications(selected)
+    for event_id in selected:
         argv.extend(["--progressive-event-id", event_id])
+    for event_id in sorted(authorized):
+        argv.extend(["--authorized-depublication-event-id", event_id])
 
     output_value = (
         argument_value(
@@ -623,6 +684,7 @@ def main():
         )
         != "1"
     ):
+        retire_depublished_pilots(selected, authorized, output_root)
         return 0
 
     (
@@ -640,6 +702,8 @@ def main():
             output_root,
         )
     )
+
+    retire_depublished_pilots(selected, authorized, output_root)
 
     print(
         f"LEGACY_PRESERVED={legacy_count}"

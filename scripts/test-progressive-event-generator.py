@@ -83,6 +83,12 @@ with tempfile.TemporaryDirectory() as directory:
     else:
         raise AssertionError("legacy ID accepted")
     try:
+        module.generer_sortie_atomique([*events, legacy_event], output, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids={legacy_id}, authorized_depublication_ids={legacy_id})
+    except module.GenerationSeoError:
+        pass
+    else:
+        raise AssertionError("authorized legacy ID accepted")
+    try:
         module.generer_sortie_atomique(events, output, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids={"not-an-event"})
     except module.GenerationSeoError:
         pass
@@ -170,6 +176,76 @@ with tempfile.TemporaryDirectory() as directory:
     protected = json.loads((PUBLISHER / "legacy-enriched-events.json").read_text(encoding="utf-8"))["events"]
     for filename in protected.values():
         assert (output / "evenement" / filename).read_bytes() == (ROOT / "evenement" / filename).read_bytes()
+
+    # Un pilote retiré du catalogue ne doit pas bloquer une autre publication.
+    third = {**pilot[1], "id": "00000000-0000-0000-0000-000000000003", "_slug": "third-event"}
+    remaining = [pilot[1], third]
+    for reason in ("rejet", "suppression"):
+        with tempfile.TemporaryDirectory() as lifecycle_dir:
+            lifecycle = Path(lifecycle_dir) / "site"
+            module.generer_sortie_atomique(pilot, lifecycle, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids=selected)
+            try:
+                module.generer_sortie_atomique(remaining, lifecycle, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids=selected)
+            except module.GenerationSeoError:
+                pass
+            else:
+                raise AssertionError(f"{reason}: blocage initial non reproduit")
+            report = module.generer_sortie_atomique(remaining, lifecycle, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids=selected, authorized_depublication_ids={selected[0]})
+            assert report["created_pages"] and report["removed_pages"] == [f"pilot-{selected[0]}.html"]
+            assert not (lifecycle / "evenement" / f"pilot-{selected[0]}.html").exists()
+            assert 'data-detail-version="progressive-1"' in (lifecycle / "evenement" / f"pilot-{selected[1]}.html").read_text()
+            assert (lifecycle / "evenement" / "third-event.html").exists()
+            module.generer_sortie_atomique(remaining, lifecycle, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids={selected[1]})
+            try:
+                module.generer_sortie_atomique(remaining, lifecycle, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids={selected[0]})
+            except module.GenerationSeoError:
+                pass
+            else:
+                raise AssertionError("ID inconnu accepté sans job autorisé")
+
+    with tempfile.TemporaryDirectory() as lifecycle_dir:
+        fixture_root = Path(lifecycle_dir)
+        (fixture_root / "evenement").mkdir()
+        (fixture_root / "docs/territoires").mkdir(parents=True)
+        pilot_path = f"evenement/pilot-{selected[0]}.html"
+        (fixture_root / pilot_path).write_text(f'<article id="event-detail" data-event-id="{selected[0]}"></article>')
+        (fixture_root / "docs/territoires/event-canonical-map.json").write_text(json.dumps({selected[0]: pilot_path}))
+        manifest = fixture_root / "progressive-events.json"
+        manifest.write_text(json.dumps({"event_ids": selected}))
+        environment = {"PUBLICATION_DEPUBLISH_EVENT_IDS": json.dumps([selected[0]]), "PUBLICATION_DEPUBLISH_PATHS": json.dumps([pilot_path])}
+        with patch.object(cloud, "ROOT", fixture_root), patch.object(cloud, "PROGRESSIVE_MANIFEST", manifest), patch.dict(cloud.os.environ, environment):
+            assert cloud.authorized_pilot_depublications(selected) == {selected[0]}
+            output_manifest = fixture_root / "event-pages-manifest.json"
+            output_manifest.write_text(json.dumps({"events": {selected[0]: "pilot-first", selected[1]: "pilot-second"}}))
+            cloud.retire_depublished_pilots(selected, {selected[0]}, fixture_root)
+            assert cloud.progressive_event_ids() == selected  # un job edit ne retire pas un pilote encore public
+            output_manifest.write_text(json.dumps({"events": {selected[1]: "pilot-second", third["id"]: "third-event"}}))
+            with patch.object(cloud.subprocess, "run", return_value=types.SimpleNamespace(returncode=0)) as runner:
+                with patch.object(sys, "argv", ["generate-events-cloud.py", "--sortie", str(fixture_root), "--dry-run"]):
+                    assert cloud.main() == 0
+                    assert cloud.progressive_event_ids() == selected
+                with patch.object(sys, "argv", ["generate-events-cloud.py", "--sortie", str(fixture_root)]), patch.dict(cloud.os.environ, {"EVENT_PUBLISHER_PRESERVE_LEGACY": "0"}):
+                    assert cloud.main() == 0
+                assert "--authorized-depublication-event-id" in runner.call_args.args[0]
+                assert cloud.progressive_event_ids() == [selected[1]]
+            manifest.write_text(json.dumps({"event_ids": selected}))
+            cloud.retire_depublished_pilots(selected, {selected[0]}, fixture_root)
+            assert cloud.progressive_event_ids() == [selected[1]]
+            for bad_path in ("evenement/unknown.html", "../outside.html"):
+                with patch.dict(cloud.os.environ, {"PUBLICATION_DEPUBLISH_PATHS": json.dumps([bad_path])}):
+                    try:
+                        cloud.authorized_pilot_depublications(selected)
+                    except RuntimeError:
+                        pass
+                    else:
+                        raise AssertionError("mauvaise preuve de dépublication acceptée")
+            with patch.dict(cloud.os.environ, {"PUBLICATION_DEPUBLISH_EVENT_IDS": json.dumps(["00000000-0000-0000-0000-000000000099"])}):
+                try:
+                    cloud.authorized_pilot_depublications(["00000000-0000-0000-0000-000000000099"])
+                except RuntimeError:
+                    pass
+                else:
+                    raise AssertionError("ID inconnu accepté comme ancien pilote")
     module.generer_sortie_atomique(pilot, output, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids=selected)
     assert cloud.preserve_pages(output)[0] == 282
     original_pages = {path.name for path in (ROOT / "evenement").glob("*.html") if path.name != "index.html"}

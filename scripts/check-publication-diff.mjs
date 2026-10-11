@@ -130,6 +130,34 @@ const changed =
   ]);
 
 
+const progressiveManifestPath =
+  "scripts/event-publisher/progressive-events.json";
+
+if (changed.has(progressiveManifestPath)) {
+  try {
+    const before = JSON.parse(execFileSync(
+      "git", ["show", `HEAD:${progressiveManifestPath}`], { encoding: "utf8" }
+    ));
+    const after = JSON.parse(fs.readFileSync(progressiveManifestPath, "utf8"));
+    const canonicalBefore = JSON.parse(execFileSync(
+      "git", ["show", "HEAD:docs/territoires/event-canonical-map.json"], { encoding: "utf8" }
+    ));
+    if (!Array.isArray(before.event_ids) || !Array.isArray(after.event_ids)
+        || Object.keys(before).join() !== "event_ids"
+        || Object.keys(after).join() !== "event_ids"
+        || after.event_ids.length > 2 || new Set(after.event_ids).size !== after.event_ids.length
+        || after.event_ids.some((id) => !before.event_ids.includes(id))
+        || before.event_ids.filter((id) => !after.event_ids.includes(id))
+          .some((id) => !authorizedDeletedPaths.has(canonicalBefore[id]))) {
+      throw new Error("retrait progressif non autorisé");
+    }
+  } catch (error) {
+    console.error("STOP : manifeste progressif modifié hors dépublication autorisée", error);
+    process.exit(1);
+  }
+}
+
+
 const deleted =
   command([
     "diff",
@@ -260,6 +288,7 @@ function allowed(
     "salons-du-livre.html",
     "dedicaces.html",
     "event-canonical.js",
+    progressiveManifestPath,
   ]).has(path);
 }
 
