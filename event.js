@@ -79,6 +79,8 @@
     const registrationStatus = window.DEDICALIVRES_REGISTRATION?.getStatus(data);
     const registrationModule = renderRegistrationModule(data, registrationStatus);
     const primaryActions = renderPrimaryActions(data, registrationStatus);
+    const hasCoordinates = Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng)) &&
+      (!isProgressiveStaticPage || (data.lat != null && data.lng != null));
 
     const detailHtml = `
       ${image}
@@ -109,7 +111,7 @@
           <a class="btn-secondary detail-button" href="/index.html#agenda">Retour à l’agenda</a>
         </div>
 
-        ${data.lat != null && data.lng != null && Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng)) ? `
+        ${hasCoordinates ? `
               <div class="detail-map-block">
                 <h2>Localisation</h2>
                 <p>Repérez rapidement le lieu de cet événement littéraire.</p>
@@ -127,7 +129,7 @@
 
     bindDetailActions(data);
 
-    if (data.lat != null && data.lng != null && Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng))) {
+    if (hasCoordinates) {
       initDetailMap(data);
     }
   }
