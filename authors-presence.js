@@ -84,6 +84,10 @@
         Aucune présence n’a encore été déclarée sur Dédicalivres pour cet événement.
       </p>
 
+      <p id="authors-presence-error" class="author-presence-empty" role="status" aria-live="polite" hidden>
+        Impossible de charger les présences pour le moment. Réessayez plus tard.
+      </p>
+
       <form id="author-presence-form" class="author-presence-form">
         <h3>Vous participez à cet événement ?</h3>
 
@@ -379,10 +383,13 @@
   async function loadAuthorsPresence(event) {
     const list = document.getElementById("authors-presence-list");
     const empty = document.getElementById("authors-presence-empty");
+    const errorMessage = document.getElementById("authors-presence-error");
     const valueBox = document.getElementById("authors-presence-value-box");
     const counts = document.getElementById("authors-presence-counts");
 
     if (!list || !empty) return [];
+
+    if (errorMessage) errorMessage.hidden = true;
 
     const selectExtended = [
       "id",
@@ -423,6 +430,11 @@
 
     if (response.error) {
       console.error("Erreur chargement auteurs présents :", response.error);
+      list.innerHTML = "";
+      empty.hidden = true;
+      if (errorMessage) errorMessage.hidden = false;
+      if (valueBox) valueBox.hidden = true;
+      if (counts) counts.hidden = true;
       return [];
     }
 
@@ -624,7 +636,7 @@
       const sameAs = [
         participant.author_profile_url || participant.website || "",
         participant.participant_type === "publisher" ? "" : participant.book_or_publisher_url || ""
-      ].filter(isValidUrl);
+      ].filter((url) => url && isValidUrl(url));
 
       const performer = {
         "@type": participant.participant_type === "publisher" ? "Organization" : "Person",
@@ -642,12 +654,37 @@
 
     if (!performers.length) return;
 
+    // La fiche statique possède déjà un Event JSON-LD : enrichir cet objet
+    // plutôt que publier un second événement avec une autre identité.
+    if (eventDetail?.dataset.eventId) {
+      const canonical = document.querySelector('link[rel="canonical"]')?.href;
+      const existing = [...document.querySelectorAll('script[type="application/ld+json"]')]
+        .map((script) => {
+          try {
+            return { script, schema: JSON.parse(script.textContent) };
+          } catch {
+            return null;
+          }
+        })
+        .find((item) => item?.schema?.["@type"] === "Event" && item.schema.url === canonical);
+
+      // Ne pas créer de deuxième Event si le schéma statique est absent ou incohérent.
+      if (!existing) return;
+
+      existing.schema["@id"] = `${canonical}#event`;
+      existing.schema.performer = performers;
+      existing.script.textContent = JSON.stringify(existing.schema, null, 2);
+      document.getElementById("authors-presence-jsonld")?.remove();
+      return;
+    }
+
+    const eventUrl = window.location.href.split("#")[0];
     const schema = {
       "@context": "https://schema.org",
       "@type": "Event",
-      "@id": `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(eventId)}#event`,
+      "@id": `${eventUrl}#event`,
       "name": event.title || "Événement littéraire",
-      "url": window.location.href.split("#")[0],
+      "url": eventUrl,
       "performer": performers
     };
 
