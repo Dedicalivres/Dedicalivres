@@ -392,7 +392,7 @@ def page_event(ev, base_url, *, progressive=False):
             parts.append(f'''<a class="btn-primary detail-button" href="{esc(ev['site'])}" rel="noopener noreferrer" target="_blank">Site officiel</a>''')
         parts.append('<button id="detail-favorite-btn" class="btn-secondary detail-button favorite-toggle" type="button" disabled>♡ Ajouter aux favoris</button>')
         parts.append('<button id="detail-calendar-btn" class="btn-secondary detail-button" type="button" disabled>📅 Ajouter à mon agenda</button>')
-        parts.append('<a class="btn-secondary detail-button" href="index.html#agenda">Retour à l’agenda</a>')
+        parts.append('<a class="btn-secondary detail-button" href="/index.html#agenda">Retour à l’agenda</a>')
         parts.append('</div></div>')
     else:
         parts.append(f'<span class="badge">{esc(typ)}</span>')

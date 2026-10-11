@@ -38,6 +38,7 @@ for current in events:
     assert 'class="detail-body"' not in old
     assert '/event.js?v=static-canonical-1' in old
     assert 'data-detail-version=' not in old
+    assert 'href="/index.html#agenda"' not in old
     new = module.page_event(current, base_url, progressive=True)
     for marker in ('class="detail-body"', 'class="detail-title"',
                    'class="detail-primary-actions"', 'detail-secondary-actions',
@@ -46,6 +47,8 @@ for current in events:
     assert new.count('class="a11y-showcase"') == 1
     assert new.count('type="application/ld+json"') == 2
     assert '/event.js?v=progressive-static-1' in new
+    assert 'href="/index.html#agenda"' in new
+    assert 'href="index.html#agenda"' not in new
     assert 'data-detail-version="progressive-1"' in new
     assert ('class="detail-image-frame"' in new) == bool(current['affiche'])
     assert ('class="detail-image detail-image-placeholder"' in new) == (not current['affiche'])

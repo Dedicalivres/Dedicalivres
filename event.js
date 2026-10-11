@@ -79,8 +79,9 @@
     const registrationStatus = window.DEDICALIVRES_REGISTRATION?.getStatus(data);
     const registrationModule = renderRegistrationModule(data, registrationStatus);
     const primaryActions = renderPrimaryActions(data, registrationStatus);
-    const hasCoordinates = Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng)) &&
-      (!isProgressiveStaticPage || (data.lat != null && data.lng != null));
+    const hasCoordinates = isProgressiveStaticPage
+      ? isValidProgressiveCoordinate(data.lat, -90, 90) && isValidProgressiveCoordinate(data.lng, -180, 180)
+      : Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng));
 
     const detailHtml = `
       ${image}
@@ -132,6 +133,13 @@
     if (hasCoordinates) {
       initDetailMap(data);
     }
+  }
+
+  function isValidProgressiveCoordinate(value, min, max) {
+    if (typeof value !== "number" && typeof value !== "string") return false;
+    if (typeof value === "string" && !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim())) return false;
+    const number = Number(value);
+    return Number.isFinite(number) && number >= min && number <= max;
   }
 
   function updateProgressiveDetail(html) {
