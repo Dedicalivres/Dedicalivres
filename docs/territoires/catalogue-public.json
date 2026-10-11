@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-10T18:47:07.271Z",
+  "capturedAt": "2026-10-11T13:13:07.689Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -771,6 +771,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.canalbd.net/bd-flash-chartres/"
+    },
+    {
+      "id": "14b81335-1dab-4f6d-9667-5e88675c6f98",
+      "title": "Rencontre littéraire et séance de dédicaces à Seclin",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Hauts-de-France",
+      "city": "Seclin",
+      "start_date": "2026-10-24",
+      "end_date": "2026-10-24",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.camille-lemaire-auteur.com"
     },
     {
       "id": "14d987d0-90fe-45cf-8f0f-3233c8c77c4c",
