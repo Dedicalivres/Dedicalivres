@@ -323,7 +323,7 @@ CSS = f'\n:root{{--brand:{COULEUR};--ink:#1c1430;--muted:#5b5470;--line:#e7e1f0;
 
 A11Y_SHOWCASE_HTML = Path(__file__).with_name('a11y-showcase.html').read_text(encoding='utf-8')
 
-def page_event(ev, base_url):
+def page_event(ev, base_url, *, progressive=False):
     url = f"{base_url}/evenement/{ev['_slug']}.html"
     typ = ev.get('type') or deduire_type(ev['titre'])
     debut = iso_date(ev['date_debut'])
@@ -358,27 +358,63 @@ def page_event(ev, base_url):
     parts.append(f'<header class="site"><a href="{esc(base_url)}/">{MARQUE}</a></header>')
     parts.append('<div class="wrap">')
     parts.append(f'''<nav class="crumb"><a href="{esc(base_url)}/">Accueil</a> › <a href="index.html">Agenda</a> › {esc(ev['titre'])}</nav>''')
-    parts.append(f'''<article id="event-detail" class="event-detail" data-event-id="{esc(ev['id'])}">''')
-    parts.append(f'<span class="badge">{esc(typ)}</span>')
-    parts.append(f"<h1>{esc(ev['titre'])}</h1>")
-    parts.append('<div class="meta">')
-    if when:
-        parts.append(f'<div><b>Dates</b> {esc(when)}</div>')
-    if lieu_txt:
-        parts.append(f'<div><b>Lieu</b> {esc(lieu_txt)}</div>')
-    if ev['adresse']:
-        parts.append(f"<div><b>Adresse</b> {esc(ev['adresse'])}{(', ' + esc(ev['code_postal']) if ev['code_postal'] else '')}</div>")
-    if ev['pays']:
-        parts.append(f"<div><b>Pays</b> {esc(ev['pays'])}</div>")
-    if ev['auteurs']:
-        parts.append(f"<div><b>Auteurs</b> {esc(ev['auteurs'])}</div>")
-    parts.append('</div>')
-    if ev['affiche']:
-        parts.append(f'''<img class="affiche" src="{esc(ev['affiche'])}" alt="Affiche : {esc(ev['titre'])}" loading="lazy">''')
-    if ev['description']:
-        parts.append(f"""<div class="desc">{esc(ev['description'])}</div>""")
-    if ev['site']:
-        parts.append(f'''<a class="cta" href="{esc(ev['site'])}" rel="noopener" target="_blank">Site officiel de l'événement</a>''')
+    detail_version = ' data-detail-version="progressive-1"' if progressive else ''
+    parts.append(f'''<article id="event-detail" class="event-detail" data-event-id="{esc(ev['id'])}"{detail_version}>''')
+    if progressive:
+        if ev['affiche']:
+            parts.append('<figure class="detail-image-frame">')
+            parts.append(f'''<img class="detail-image-background" src="{esc(ev['affiche'])}" alt="" aria-hidden="true">''')
+            parts.append(f'''<img class="detail-image" src="{esc(ev['affiche'])}" alt="Affiche : {esc(ev['titre'])}">''')
+            parts.append('</figure>')
+        else:
+            parts.append('<div class="detail-image detail-image-placeholder"></div>')
+        parts.append('<div class="detail-body">')
+        parts.append(f'<div class="card-tags"><span class="badge">{esc(typ)}</span></div>')
+        parts.append(f'<h1 class="detail-title">{esc(ev["titre"])}</h1>')
+        parts.append('<div class="detail-meta detail-info-grid">')
+        if when:
+            parts.append(f'<p>📅 <strong>Date :</strong> {esc(when)}</p>')
+        parts.append(f'<p>📍 <strong>Lieu :</strong> {esc(lieu_txt or "Non précisé")}</p>')
+        if ev['adresse']:
+            parts.append(f'<p data-static-detail="address"><strong>Adresse :</strong> {esc(ev["adresse"])}{(", " + esc(ev["code_postal"]) if ev["code_postal"] else "")}</p>')
+        if ev['auteurs']:
+            parts.append(f'<p data-static-detail="authors"><strong>Auteurs :</strong> {esc(ev["auteurs"])}</p>')
+        parts.append('</div>')
+        if ev['description']:
+            parts.append(f'<div class="detail-description">{esc(ev["description"])}</div>')
+        parts.append('<div class="detail-primary-actions" aria-label="Actions principales">')
+        parts.append('<a id="detail-presence-cta" class="btn-primary detail-primary-button" href="#authors-presence-section">Indiquer ma présence</a>')
+        parts.append('<button id="detail-share-btn" class="btn-secondary detail-primary-button" type="button" disabled>Partager</button>')
+        parts.append('<p id="detail-share-feedback" class="detail-share-feedback" role="status" aria-live="polite"></p>')
+        parts.append('</div>')
+        parts.append('<div class="detail-actions detail-secondary-actions" aria-label="Autres actions">')
+        if ev['site']:
+            parts.append(f'''<a class="btn-primary detail-button" href="{esc(ev['site'])}" rel="noopener noreferrer" target="_blank">Site officiel</a>''')
+        parts.append('<button id="detail-favorite-btn" class="btn-secondary detail-button favorite-toggle" type="button" disabled>♡ Ajouter aux favoris</button>')
+        parts.append('<button id="detail-calendar-btn" class="btn-secondary detail-button" type="button" disabled>📅 Ajouter à mon agenda</button>')
+        parts.append('<a class="btn-secondary detail-button" href="/index.html#agenda">Retour à l’agenda</a>')
+        parts.append('</div></div>')
+    else:
+        parts.append(f'<span class="badge">{esc(typ)}</span>')
+        parts.append(f"<h1>{esc(ev['titre'])}</h1>")
+        parts.append('<div class="meta">')
+        if when:
+            parts.append(f'<div><b>Dates</b> {esc(when)}</div>')
+        if lieu_txt:
+            parts.append(f'<div><b>Lieu</b> {esc(lieu_txt)}</div>')
+        if ev['adresse']:
+            parts.append(f"<div><b>Adresse</b> {esc(ev['adresse'])}{(', ' + esc(ev['code_postal']) if ev['code_postal'] else '')}</div>")
+        if ev['pays']:
+            parts.append(f"<div><b>Pays</b> {esc(ev['pays'])}</div>")
+        if ev['auteurs']:
+            parts.append(f"<div><b>Auteurs</b> {esc(ev['auteurs'])}</div>")
+        parts.append('</div>')
+        if ev['affiche']:
+            parts.append(f'''<img class="affiche" src="{esc(ev['affiche'])}" alt="Affiche : {esc(ev['titre'])}" loading="lazy">''')
+        if ev['description']:
+            parts.append(f"""<div class="desc">{esc(ev['description'])}</div>""")
+        if ev['site']:
+            parts.append(f'''<a class="cta" href="{esc(ev['site'])}" rel="noopener" target="_blank">Site officiel de l'événement</a>''')
     parts.append('</article>')
     parts.append(A11Y_SHOWCASE_HTML)
     parts.append('<footer>')
@@ -390,7 +426,7 @@ def page_event(ev, base_url):
     parts.append('<script src="/config.js?v=shared-client-1"></script>')
     parts.append('<script src="/geography.js?v=v1-francophone-20260620-map-authors"></script>')
     parts.append('<script src="/tracking-v4.js?v=p1-static-1"></script>')
-    parts.append('<script src="/event.js?v=static-canonical-1"></script>')
+    parts.append(f'<script src="/event.js?v={"progressive-static-1" if progressive else "static-canonical-1"}"></script>')
     parts.append('<script src="/author-local-draft.js?v=4"></script>')
     parts.append('<script src="/url-normalizer.js?v=1"></script>')
     parts.append('<script src="/authors-presence.js?v=static-canonical-1"></script>')
@@ -657,7 +693,19 @@ def _validate_staged(events, staged_root, base_url, sitemap_name, preserved_befo
     if _non_event_inventory(root) != preserved_before:
         raise GenerationSeoError('un fichier hors corpus événement a été modifié')
 
-def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=False):
+def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=False, progressive_event_ids=frozenset()):
+    progressive_event_ids = frozenset(progressive_event_ids)
+    if progressive_event_ids:
+        unknown = progressive_event_ids - {str(event['id']) for event in events}
+        if unknown:
+            raise GenerationSeoError(f'identifiants progressifs absents du catalogue public : {sorted(unknown)}')
+        legacy_path = Path(__file__).resolve().parent / 'legacy-enriched-events.json'
+        try:
+            legacy_ids = set(json.loads(legacy_path.read_text(encoding='utf-8'))['events'])
+        except (OSError, ValueError, KeyError) as exc:
+            raise GenerationSeoError('manifeste legacy indisponible ou invalide') from exc
+        if progressive_event_ids & legacy_ids:
+            raise GenerationSeoError('une fiche legacy ne peut pas utiliser le rendu progressif')
     output = Path(output).resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     preserved_before = _non_event_inventory(output)
@@ -672,7 +720,9 @@ def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=F
         for old_page in event_root.glob('*.html'):
             old_page.unlink()
         for event in events:
-            (event_root / f"{event['_slug']}.html").write_text(page_event(event, base_url), encoding='utf-8')
+            (event_root / f"{event['_slug']}.html").write_text(
+                page_event(event, base_url, progressive=str(event['id']) in progressive_event_ids), encoding='utf-8'
+            )
         (event_root / 'index.html').write_text(page_index(events, base_url), encoding='utf-8')
         (staging / sitemap_name).write_text(sitemap(events, base_url), encoding='utf-8')
         manifest = {'version': 1, 'source': 'supabase.events', 'events': {str(event['id']): event['_slug'] for event in events}}
@@ -724,6 +774,7 @@ def main():
     ap.add_argument('--sitemap-name', default='sitemap-evenements.xml', choices=('sitemap-evenements.xml',))
     ap.add_argument('--base-url', default='https://dedicalivres.fr')
     ap.add_argument('--dry-run', action='store_true', help='valider sans remplacer la sortie locale')
+    ap.add_argument('--progressive-event-id', action='append', default=[], help='activer le nouveau HTML uniquement pour cet ID public non legacy ; option absente par défaut')
     args = ap.parse_args()
     expected_output = (project_root / 'exports' / 'site-seo').resolve()
     output = Path(args.sortie).expanduser().resolve()
@@ -737,7 +788,7 @@ def main():
         static_slugs = appliquer_slugs_statiques_existants(events, args.existing_event_pages) if args.existing_event_pages else 0
         attribuer_slugs(events)
         events.sort(key=lambda event: (iso_date(event['date_debut']) or '9999', str(event['id'])))
-        report = generer_sortie_atomique(events, output, base_url=args.base_url.rstrip('/'), sitemap_name=args.sitemap_name, dry_run=args.dry_run)
+        report = generer_sortie_atomique(events, output, base_url=args.base_url.rstrip('/'), sitemap_name=args.sitemap_name, dry_run=args.dry_run, progressive_event_ids=args.progressive_event_id)
         _print_report(report, dry_run=args.dry_run)
         print(f"SLUGS_PRESERVES=remote:{slug_sources['remote']},exact:{slug_sources['exact']},uuid:{slug_sources['uuid']}")
         print(f'SLUGS_STATIQUES_PRESERVES={static_slugs}')
