@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+import uuid
 
 
 HERE = Path(__file__).resolve().parent
@@ -19,6 +20,28 @@ MANIFEST = (
     HERE /
     "legacy-enriched-events.json"
 )
+
+PROGRESSIVE_MANIFEST = HERE / "progressive-events.json"
+
+
+def progressive_event_ids(path=None):
+    path = path or PROGRESSIVE_MANIFEST
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise RuntimeError("manifeste progressif absent ou invalide") from exc
+    if not isinstance(data, dict) or set(data) != {"event_ids"} or not isinstance(data["event_ids"], list):
+        raise RuntimeError("manifeste progressif : event_ids doit être le seul champ et un tableau")
+    values = data["event_ids"]
+    if len(values) > 2:
+        raise RuntimeError("manifeste progressif : deux événements maximum")
+    try:
+        ids = [str(uuid.UUID(value)) for value in values if isinstance(value, str)]
+    except ValueError as exc:
+        raise RuntimeError("manifeste progressif : UUID invalide") from exc
+    if len(ids) != len(values) or len(set(ids)) != len(ids):
+        raise RuntimeError("manifeste progressif : identifiant invalide ou dupliqué")
+    return ids
 
 
 def sha256(path):
@@ -497,6 +520,9 @@ def main():
     argv = list(
         sys.argv[1:]
     )
+
+    for event_id in progressive_event_ids():
+        argv.extend(["--progressive-event-id", event_id])
 
     output_value = (
         argument_value(

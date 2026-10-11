@@ -1,9 +1,12 @@
 """Offline checks for the opt-in static event structure."""
 import importlib.util
 import json
+import re
 import sys
 import tempfile
+import types
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -12,6 +15,9 @@ sys.path.insert(0, str(PUBLISHER))
 spec = importlib.util.spec_from_file_location("event_generator", PUBLISHER / "generate-events.py")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+cloud_spec = importlib.util.spec_from_file_location("cloud_event_generator", PUBLISHER / "generate-events-cloud.py")
+cloud = importlib.util.module_from_spec(cloud_spec)
+cloud_spec.loader.exec_module(cloud)
 
 
 def event(identifier, image, title, city, region, start, end, description):
@@ -82,5 +88,94 @@ with tempfile.TemporaryDirectory() as directory:
         pass
     else:
         raise AssertionError("absent ID accepted")
+    try:
+        module.generer_sortie_atomique(events, output, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids={"00000000-0000-0000-0000-000000000099"})
+    except module.GenerationSeoError:
+        pass
+    else:
+        raise AssertionError("unknown public ID accepted")
+    for invalid_ids in ([events[0]['id'], events[0]['id']], [events[0]['id'], events[1]['id'], "00000000-0000-0000-0000-000000000003"]):
+        try:
+            module.generer_sortie_atomique(events, output, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids=invalid_ids)
+        except module.GenerationSeoError:
+            pass
+        else:
+            raise AssertionError("duplicate or oversized selection accepted")
+
+assert cloud.progressive_event_ids() == []
+with tempfile.TemporaryDirectory() as directory:
+    temp = Path(directory)
+    manifest = temp / "progressive-events.json"
+    manifest.write_text('{"event_ids": []}', encoding="utf-8")
+    with patch.object(cloud, "PROGRESSIVE_MANIFEST", manifest), patch.object(cloud.subprocess, "run", return_value=types.SimpleNamespace(returncode=0)) as runner:
+        with patch.object(sys, "argv", ["generate-events-cloud.py", "--sortie", str(temp / "empty-output"), "--dry-run"]):
+            assert cloud.main() == 0
+        assert "--progressive-event-id" not in runner.call_args.args[0]
+    selected = ["00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002"]
+    manifest.write_text(json.dumps({"event_ids": selected}), encoding="utf-8")
+    assert cloud.progressive_event_ids(manifest) == selected
+    with patch.object(cloud, "PROGRESSIVE_MANIFEST", manifest), patch.object(cloud.subprocess, "run", return_value=types.SimpleNamespace(returncode=0)) as runner:
+        for dry_run in (True, False):
+            argv = ["generate-events-cloud.py", "--sortie", str(temp / "cloud-output")]
+            if dry_run:
+                argv.append("--dry-run")
+            with patch.object(sys, "argv", argv), patch.dict(cloud.os.environ, {"EVENT_PUBLISHER_PRESERVE_LEGACY": "0"}):
+                assert cloud.main() == 0
+            command = runner.call_args.args[0]
+            assert command[1] == str(PUBLISHER / "generate-events.py")
+            assert [command[i + 1] for i, arg in enumerate(command[:-1]) if arg == "--progressive-event-id"] == selected
+
+    for invalid in ({}, {"event_ids": "x"}, {"event_ids": selected, "other": 1},
+                    {"event_ids": [selected[0], selected[0]]}, {"event_ids": selected + ["00000000-0000-0000-0000-000000000003"]},
+                    {"event_ids": ["not-an-uuid"]}, {"event_ids": [123]}):
+        manifest.write_text(json.dumps(invalid), encoding="utf-8")
+        try:
+            cloud.progressive_event_ids(manifest)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError(f"invalid manifest accepted: {invalid}")
+    with patch.object(cloud, "PROGRESSIVE_MANIFEST", manifest), patch.object(cloud.subprocess, "run") as runner:
+        with patch.object(sys, "argv", ["generate-events-cloud.py", "--sortie", str(temp / "invalid-output"), "--dry-run"]):
+            try:
+                cloud.main()
+            except RuntimeError:
+                pass
+            else:
+                raise AssertionError("invalid manifest did not stop cloud publisher")
+        runner.assert_not_called()
+
+    pilot = [{**event, "id": identifier, "_slug": f"pilot-{identifier}"} for event, identifier in zip(events, selected)]
+    output = temp / "pilot-site"
+    module.generer_sortie_atomique(pilot, output, base_url=base_url, sitemap_name="sitemap-evenements.xml")
+    before = {path.name: path.read_text(encoding="utf-8") for path in (output / "evenement").glob("*.html") if path.name != "index.html"}
+    sitemap_before = (output / "sitemap-evenements.xml").read_bytes()
+    control = module.generer_sortie_atomique(pilot, output, base_url=base_url, sitemap_name="sitemap-evenements.xml", dry_run=True, progressive_event_ids=selected)
+    assert len(control["updated_pages"]) == 2
+    assert {path.name: path.read_text(encoding="utf-8") for path in (output / "evenement").glob("*.html") if path.name != "index.html"} == before
+    first = module.generer_sortie_atomique(pilot, output, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids=selected)
+    assert len(first["updated_pages"]) == 2 and len(first["updated_pages"]) <= 250
+    assert not first["created_pages"] and not first["removed_pages"]
+    after = {path.name: path.read_text(encoding="utf-8") for path in (output / "evenement").glob("*.html") if path.name != "index.html"}
+    for filename, html in after.items():
+        assert 'data-detail-version="progressive-1"' in html
+        assert re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.S) == re.findall(r'<script type="application/ld\+json">(.*?)</script>', before[filename], re.S)
+        assert re.search(r'<link rel="canonical"[^>]+>', html).group() == re.search(r'<link rel="canonical"[^>]+>', before[filename]).group()
+    assert (output / "sitemap-evenements.xml").read_bytes() == sitemap_before
+    second = module.generer_sortie_atomique(pilot, output, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids=selected)
+    assert not second["updated_pages"] and not second["removed_pages"]
+    assert {path.name: path.read_text(encoding="utf-8") for path in (output / "evenement").glob("*.html") if path.name != "index.html"} == after
+    preserved, _, _ = cloud.preserve_pages(output)
+    assert preserved == 282
+    protected = json.loads((PUBLISHER / "legacy-enriched-events.json").read_text(encoding="utf-8"))["events"]
+    for filename in protected.values():
+        assert (output / "evenement" / filename).read_bytes() == (ROOT / "evenement" / filename).read_bytes()
+    module.generer_sortie_atomique(pilot, output, base_url=base_url, sitemap_name="sitemap-evenements.xml", progressive_event_ids=selected)
+    assert cloud.preserve_pages(output)[0] == 282
+    original_pages = {path.name for path in (ROOT / "evenement").glob("*.html") if path.name != "index.html"}
+    final_pages = {path.name for path in (output / "evenement").glob("*.html") if path.name != "index.html"}
+    assert original_pages <= final_pages
+    for filename in protected.values():
+        assert (output / "evenement" / filename).read_bytes() == (ROOT / "evenement" / filename).read_bytes()
 
 print("progressive event generator: PASS")

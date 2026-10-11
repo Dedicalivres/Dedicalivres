@@ -40,6 +40,7 @@ import tempfile
 import unicodedata
 import urllib.parse
 import urllib.request
+import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from publisher_compat import fusionner, normaliser, normaliser_titre_dedup
@@ -694,16 +695,28 @@ def _validate_staged(events, staged_root, base_url, sitemap_name, preserved_befo
         raise GenerationSeoError('un fichier hors corpus événement a été modifié')
 
 def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=False, progressive_event_ids=frozenset()):
-    progressive_event_ids = frozenset(progressive_event_ids)
+    requested_ids = list(progressive_event_ids)
+    if len(requested_ids) > 2:
+        raise GenerationSeoError('deux fiches progressives maximum')
+    try:
+        normalized_ids = [str(uuid.UUID(value)) for value in requested_ids if isinstance(value, str)]
+    except ValueError as exc:
+        raise GenerationSeoError('identifiant progressif UUID invalide') from exc
+    if len(normalized_ids) != len(requested_ids) or len(set(normalized_ids)) != len(normalized_ids):
+        raise GenerationSeoError('identifiant progressif invalide ou dupliqué')
+    progressive_event_ids = frozenset(normalized_ids)
     if progressive_event_ids:
         unknown = progressive_event_ids - {str(event['id']) for event in events}
         if unknown:
             raise GenerationSeoError(f'identifiants progressifs absents du catalogue public : {sorted(unknown)}')
         legacy_path = Path(__file__).resolve().parent / 'legacy-enriched-events.json'
         try:
-            legacy_ids = set(json.loads(legacy_path.read_text(encoding='utf-8'))['events'])
+            legacy_manifest = json.loads(legacy_path.read_text(encoding='utf-8'))
+            legacy_ids = set(legacy_manifest['events'])
         except (OSError, ValueError, KeyError) as exc:
             raise GenerationSeoError('manifeste legacy indisponible ou invalide') from exc
+        if len(legacy_ids) != 282 or legacy_manifest.get('count') != 282:
+            raise GenerationSeoError('manifeste legacy incohérent')
         if progressive_event_ids & legacy_ids:
             raise GenerationSeoError('une fiche legacy ne peut pas utiliser le rendu progressif')
     output = Path(output).resolve()
