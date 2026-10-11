@@ -52,9 +52,6 @@ def authorized_pilot_depublications(selected):
         raise RuntimeError("autorisation de dépublication invalide") from exc
     if not isinstance(ids, list) or not isinstance(paths, list) or len(ids) != len(paths):
         raise RuntimeError("IDs et chemins de dépublication non alignés")
-    selected_ids = set(selected)
-    if not selected_ids.intersection(ids):
-        return set()
     try:
         canonical = json.loads((ROOT / "docs/territoires/event-canonical-map.json").read_text(encoding="utf-8"))
         legacy = json.loads(MANIFEST.read_text(encoding="utf-8"))["events"]
@@ -62,8 +59,6 @@ def authorized_pilot_depublications(selected):
         raise RuntimeError("preuve canonique ou legacy indisponible") from exc
     authorized = set()
     for event_id, path in zip(ids, paths):
-        if event_id not in selected_ids:
-            continue
         if event_id in authorized or event_id in legacy or canonical.get(event_id) != path:
             raise RuntimeError("pilote dépublié : identité canonique invalide")
         if not isinstance(path, str) or not re.fullmatch(r"evenement/[^/]+\.html", path):
@@ -160,6 +155,7 @@ def has_argument(
 
 def preserve_old_sitemap_urls(
     generated_sitemap,
+    retired_paths=frozenset(),
 ):
     existing_sitemap = (
         ROOT /
@@ -230,6 +226,10 @@ def preserve_old_sitemap_urls(
         old_blocks[url]
         for url in old_blocks
         if url not in new_blocks
+        and not any(
+            url.endswith("/" + path)
+            for path in retired_paths
+        )
     ]
 
     if not missing:
@@ -458,6 +458,7 @@ def preserve_unchanged_sitemap_lastmod(
 
 def preserve_pages(
     output_root,
+    retired_paths=frozenset(),
 ):
     data = json.loads(
         MANIFEST.read_text(
@@ -544,6 +545,12 @@ def preserve_pages(
         ):
             continue
 
+        if (
+            f"evenement/{source.name}"
+            in retired_paths
+        ):
+            continue
+
         destination = (
             destination_dir /
             source.name
@@ -561,8 +568,8 @@ def preserve_pages(
 
     sitemap_preserved = (
         preserve_old_sitemap_urls(
-            output_root /
-            "sitemap-evenements.xml"
+            output_root / "sitemap-evenements.xml",
+            retired_paths,
         )
     )
 
@@ -687,12 +694,21 @@ def main():
         retire_depublished_pilots(selected, authorized, output_root)
         return 0
 
+    retired_paths = {
+        json.loads(
+            (ROOT / "docs/territoires/event-canonical-map.json")
+            .read_text(encoding="utf-8")
+        )[event_id]
+        for event_id in authorized
+    }
+
     (
         legacy_count,
         archive_count,
         sitemap_preserved,
     ) = preserve_pages(
-        output_root
+        output_root,
+        retired_paths,
     )
 
     sitemap_lastmod_preserved = (

@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import re
+import shutil
 import sys
 import tempfile
 import types
@@ -176,6 +177,17 @@ with tempfile.TemporaryDirectory() as directory:
     for filename in protected.values():
         assert (output / "evenement" / filename).read_bytes() == (ROOT / "evenement" / filename).read_bytes()
 
+    nonlegacy_page = next(
+        page for page in (ROOT / "evenement").glob("*.html")
+        if page.name != "index.html" and page.name not in protected.values()
+    )
+    retired_path = f"evenement/{nonlegacy_page.name}"
+    retired_output = temp / "retired-site"
+    module.generer_sortie_atomique(pilot, retired_output, base_url=base_url, sitemap_name="sitemap-evenements.xml")
+    cloud.preserve_pages(retired_output, {retired_path})
+    assert not (retired_output / retired_path).exists()
+    assert f"/evenement/{nonlegacy_page.name}</loc>" not in (retired_output / "sitemap-evenements.xml").read_text(encoding="utf-8")
+
     # Un pilote retiré du catalogue ne doit pas bloquer une autre publication.
     third = {**pilot[1], "id": "00000000-0000-0000-0000-000000000003", "_slug": "third-event"}
     remaining = [pilot[1], third]
@@ -252,5 +264,71 @@ with tempfile.TemporaryDirectory() as directory:
     assert original_pages <= final_pages
     for filename in protected.values():
         assert (output / "evenement" / filename).read_bytes() == (ROOT / "evenement" / filename).read_bytes()
+
+    # Parcours complet du wrapper, avec la seule lecture distante remplacée
+    # par le générateur local sur un corpus temporaire.
+    fixture_root = temp / "wrapper-root"
+    source_pages = fixture_root / "evenement"
+    source_pages.mkdir(parents=True)
+    (fixture_root / "docs/territoires").mkdir(parents=True)
+    for filename in protected.values():
+        shutil.copy2(ROOT / "evenement" / filename, source_pages / filename)
+
+    withdrawn = event("00000000-0000-0000-0000-000000000004", "", "Fiche rejetée", "Rouen", "Normandie", "2027-11-01", "2027-11-01", "Ancienne fiche publique")
+    kept = event("00000000-0000-0000-0000-000000000005", "", "Fiche conservée", "Lille", "Hauts-de-France", "2027-11-02", "2027-11-02", "Fiche toujours publique")
+    published = event("00000000-0000-0000-0000-000000000006", "", "Nouvelle fiche", "Seclin", "Hauts-de-France", "2027-11-03", "2027-11-03", "Nouvelle publication")
+    withdrawn_path = f"evenement/{withdrawn['_slug']}.html"
+    for current in (withdrawn, kept):
+        (source_pages / f"{current['_slug']}.html").write_text(module.page_event(current, base_url), encoding="utf-8")
+    assert (fixture_root / withdrawn_path).is_file()
+    (fixture_root / "sitemap-evenements.xml").write_text(module.sitemap([withdrawn, kept], base_url), encoding="utf-8")
+    (fixture_root / "docs/territoires/event-canonical-map.json").write_text(json.dumps({withdrawn["id"]: withdrawn_path}), encoding="utf-8")
+    wrapper_manifest = temp / "wrapper-progressive-events.json"
+    wrapper_manifest.write_text('{"event_ids": []}', encoding="utf-8")
+
+    def generate_for_wrapper(command, **_kwargs):
+        assert command[1] == str(PUBLISHER / "generate-events.py")
+        target = Path(command[command.index("--sortie") + 1])
+        module.generer_sortie_atomique([kept, published], target, base_url=base_url, sitemap_name="sitemap-evenements.xml")
+        assert not (target / withdrawn_path).exists()
+        assert f"/evenement/{withdrawn['_slug']}.html</loc>" not in (target / "sitemap-evenements.xml").read_text(encoding="utf-8")
+        return types.SimpleNamespace(returncode=0)
+
+    wrapper_output = temp / "wrapper-authorized-output"
+    authorization = {
+        "PUBLICATION_DEPUBLISH_EVENT_IDS": json.dumps([withdrawn["id"]]),
+        "PUBLICATION_DEPUBLISH_PATHS": json.dumps([withdrawn_path]),
+        "EVENT_PUBLISHER_PRESERVE_LEGACY": "1",
+    }
+    with patch.object(cloud, "ROOT", fixture_root), patch.object(cloud, "PROGRESSIVE_MANIFEST", wrapper_manifest), patch.object(cloud.subprocess, "run", side_effect=generate_for_wrapper) as runner, patch.dict(cloud.os.environ, authorization), patch.object(sys, "argv", ["generate-events-cloud.py", "--sortie", str(wrapper_output)]):
+        assert cloud.main() == 0
+        runner.assert_called_once()
+
+    sitemap = (wrapper_output / "sitemap-evenements.xml").read_text(encoding="utf-8")
+    assert not (wrapper_output / withdrawn_path).exists()
+    assert f"/evenement/{withdrawn['_slug']}.html</loc>" not in sitemap
+    for current in (kept, published):
+        page = wrapper_output / "evenement" / f"{current['_slug']}.html"
+        assert page.is_file()
+        assert f"/evenement/{current['_slug']}.html</loc>" in sitemap
+    assert len(protected) == 282
+    for filename in protected.values():
+        assert (wrapper_output / "evenement" / filename).read_bytes() == (source_pages / filename).read_bytes()
+
+    # Sans autorisation, le wrapper restaure la fiche et son URL.
+    unauthorized_output = temp / "wrapper-unauthorized-output"
+    with patch.object(cloud, "ROOT", fixture_root), patch.object(cloud, "PROGRESSIVE_MANIFEST", wrapper_manifest), patch.object(cloud.subprocess, "run", side_effect=generate_for_wrapper), patch.dict(cloud.os.environ, {"PUBLICATION_DEPUBLISH_EVENT_IDS": "[]", "PUBLICATION_DEPUBLISH_PATHS": "[]", "EVENT_PUBLISHER_PRESERVE_LEGACY": "1"}), patch.object(sys, "argv", ["generate-events-cloud.py", "--sortie", str(unauthorized_output)]):
+        assert cloud.main() == 0
+    assert (unauthorized_output / withdrawn_path).is_file()
+    assert f"/evenement/{withdrawn['_slug']}.html</loc>" in (unauthorized_output / "sitemap-evenements.xml").read_text(encoding="utf-8")
+
+    with patch.object(cloud, "ROOT", fixture_root), patch.object(cloud, "PROGRESSIVE_MANIFEST", wrapper_manifest), patch.object(cloud.subprocess, "run") as runner, patch.dict(cloud.os.environ, {**authorization, "PUBLICATION_DEPUBLISH_EVENT_IDS": json.dumps([kept["id"]])}), patch.object(sys, "argv", ["generate-events-cloud.py", "--sortie", str(temp / "wrapper-invalid-output")]):
+        try:
+            cloud.main()
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("autorisation incohérente acceptée")
+        runner.assert_not_called()
 
 print("progressive event generator: PASS")
