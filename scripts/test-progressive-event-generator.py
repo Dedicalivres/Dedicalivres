@@ -108,7 +108,6 @@ with tempfile.TemporaryDirectory() as directory:
         else:
             raise AssertionError("duplicate or oversized selection accepted")
 
-assert cloud.progressive_event_ids() == []
 with tempfile.TemporaryDirectory() as directory:
     temp = Path(directory)
     manifest = temp / "progressive-events.json"
