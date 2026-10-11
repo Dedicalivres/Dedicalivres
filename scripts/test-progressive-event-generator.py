@@ -176,6 +176,17 @@ with tempfile.TemporaryDirectory() as directory:
     for filename in protected.values():
         assert (output / "evenement" / filename).read_bytes() == (ROOT / "evenement" / filename).read_bytes()
 
+    nonlegacy_page = next(
+        page for page in (ROOT / "evenement").glob("*.html")
+        if page.name != "index.html" and page.name not in protected.values()
+    )
+    retired_path = f"evenement/{nonlegacy_page.name}"
+    retired_output = temp / "retired-site"
+    module.generer_sortie_atomique(pilot, retired_output, base_url=base_url, sitemap_name="sitemap-evenements.xml")
+    cloud.preserve_pages(retired_output, {retired_path})
+    assert not (retired_output / retired_path).exists()
+    assert f"/evenement/{nonlegacy_page.name}</loc>" not in (retired_output / "sitemap-evenements.xml").read_text(encoding="utf-8")
+
     # Un pilote retiré du catalogue ne doit pas bloquer une autre publication.
     third = {**pilot[1], "id": "00000000-0000-0000-0000-000000000003", "_slug": "third-event"}
     remaining = [pilot[1], third]
