@@ -38,6 +38,11 @@
   const staticEventId = container.dataset.eventId || "";
   const eventId = queryEventId || staticEventId;
   const isStaticEventPage = Boolean(!queryEventId && staticEventId);
+  const isProgressiveStaticPage = isStaticEventPage && container.dataset.detailVersion === "progressive-1" && Boolean(
+    container.querySelector(":scope > .detail-body > .detail-title") &&
+    container.querySelector(":scope > .detail-body > .detail-primary-actions") &&
+    container.querySelector(":scope > .detail-body > .detail-secondary-actions")
+  );
   let leafletAssetsPromise = null;
 
   if (!eventId) {
@@ -75,7 +80,7 @@
     const registrationModule = renderRegistrationModule(data, registrationStatus);
     const primaryActions = renderPrimaryActions(data, registrationStatus);
 
-    container.innerHTML = `
+    const detailHtml = `
       ${image}
 
       <div class="detail-body">
@@ -104,7 +109,7 @@
           <a class="btn-secondary detail-button" href="/index.html#agenda">Retour à l’agenda</a>
         </div>
 
-        ${Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng)) ? `
+        ${data.lat != null && data.lng != null && Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng)) ? `
               <div class="detail-map-block">
                 <h2>Localisation</h2>
                 <p>Repérez rapidement le lieu de cet événement littéraire.</p>
@@ -114,11 +119,58 @@
       </div>
     `;
 
+    if (isProgressiveStaticPage) {
+      updateProgressiveDetail(detailHtml);
+    } else {
+      container.innerHTML = detailHtml;
+    }
+
     bindDetailActions(data);
 
-    if (Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng))) {
+    if (data.lat != null && data.lng != null && Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng))) {
       initDetailMap(data);
     }
+  }
+
+  function updateProgressiveDetail(html) {
+    const desired = document.createElement("article");
+    desired.innerHTML = html;
+    const currentBody = container.querySelector(":scope > .detail-body");
+    const desiredBody = desired.querySelector(":scope > .detail-body");
+    const desiredMeta = desiredBody.querySelector(":scope > .detail-meta");
+    for (const staticDetail of currentBody.querySelectorAll(":scope > .detail-meta > [data-static-detail]")) {
+      desiredMeta.append(staticDetail.cloneNode(true));
+    }
+    const currentImage = container.querySelector(":scope > .detail-image-frame, :scope > .detail-image-placeholder");
+    const desiredImage = desired.querySelector(":scope > .detail-image-frame, :scope > .detail-image-placeholder");
+
+    if (currentImage?.outerHTML !== desiredImage?.outerHTML) {
+      if (currentImage && desiredImage) currentImage.replaceWith(desiredImage);
+      else if (desiredImage) container.insertBefore(desiredImage, currentBody);
+      else currentImage?.remove();
+    }
+
+    const key = (node) => node.classList[0] || node.tagName;
+    const existing = new Map([...currentBody.children].map((node) => [key(node), node]));
+    let previous = null;
+    for (const wanted of [...desiredBody.children]) {
+      const slot = key(wanted);
+      let node = existing.get(slot);
+      existing.delete(slot);
+      if (node && node.outerHTML !== wanted.outerHTML) {
+        if (slot === "detail-title") node.textContent = wanted.textContent;
+        else {
+          node.replaceWith(wanted);
+          node = wanted;
+        }
+      } else if (!node) {
+        node = wanted;
+      }
+      const next = previous ? previous.nextSibling : currentBody.firstChild;
+      if (node !== next) currentBody.insertBefore(node, next);
+      previous = node;
+    }
+    for (const stale of existing.values()) stale.remove();
   }
 
   function renderPrimaryActions(event, status) {
