@@ -26,6 +26,13 @@ fi
 
 cd "$ROOT"
 
+if [[ "${PUBLICATION_P0_TARGETED:-false}" == "true" ]]; then
+  if [[ -z "${PUBLICATION_REFERENCE_DATE:-}" ]]; then
+    PUBLICATION_REFERENCE_DATE="$(node -e 'process.stdout.write(new Intl.DateTimeFormat("sv-SE", {timeZone:"Europe/Paris"}).format(new Date()))')"
+  fi
+  export PUBLICATION_REFERENCE_DATE
+fi
+
 echo "================================================"
 echo " DEDICALIVRES — PUBLICATION EVENEMENTS LOCALE"
 echo "================================================"
@@ -108,6 +115,7 @@ python3 - \
   "${PUBLICATION_DEPUBLISH_EVENT_IDS:-[]}" <<'PY'
 from pathlib import Path
 import json
+import os
 import sys
 import xml.etree.ElementTree as ET
 
@@ -327,20 +335,14 @@ if len(entries) != len(new) + 1:
     )
 
 
-for name in authorized_removed:
-    target = (
-        root
-        / "evenement"
-        / name
-    )
-
-    if not target.exists():
-        raise SystemExit(
-            "STOP : page autorisée introuvable avant retrait : "
-            + name
-        )
-
-    target.unlink()
+if os.environ.get("PUBLICATION_P0_TARGETED") != "true":
+    for name in authorized_removed:
+        target = root / "evenement" / name
+        if not target.exists():
+            raise SystemExit(
+                "STOP : page autorisée introuvable avant retrait : " + name
+            )
+        target.unlink()
 
 
 print(
@@ -350,13 +352,17 @@ PY
 echo
 echo "=== COPIE VERS LE WORKTREE ==="
 
-rsync -a \
-  "$EXPORT/evenement/" \
-  "$ROOT/evenement/"
+if [[ "${PUBLICATION_P0_TARGETED:-false}" == "true" ]]; then
+  node scripts/project-p0-publication.mjs pages "$EXPORT"
+else
+  rsync -a \
+    "$EXPORT/evenement/" \
+    "$ROOT/evenement/"
 
-cp \
-  "$EXPORT/sitemap-evenements.xml" \
-  "$ROOT/sitemap-evenements.xml"
+  cp \
+    "$EXPORT/sitemap-evenements.xml" \
+    "$ROOT/sitemap-evenements.xml"
+fi
 
 echo
 echo "=== SNAPSHOT PUBLIC ==="
@@ -381,6 +387,10 @@ node scripts/build-static-agenda-previews.mjs
 echo
 echo "=== PAGES AUTEURS ==="
 node scripts/build-author-pages.mjs
+
+if [[ "${PUBLICATION_P0_TARGETED:-false}" == "true" ]]; then
+  node scripts/project-p0-publication.mjs aggregates
+fi
 
 echo
 echo "=== TESTS ==="

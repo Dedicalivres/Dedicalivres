@@ -8,7 +8,9 @@ const snapshot=read('docs/territoires/catalogue-public.json');
 const registry=read('docs/territoires/referentiel.json');
 const observations=read('docs/territoires/signalements.json');
 const verified=read('docs/territoires/verifications-organisateurs.json');
-const modifiedOn=snapshot.capturedAt.slice(0,10);
+const referenceDate=process.env.PUBLICATION_REFERENCE_DATE||new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris'}).format(new Date(snapshot.capturedAt));
+if(!/^\d{4}-\d{2}-\d{2}$/.test(referenceDate)||new Date(`${referenceDate}T00:00:00Z`).toISOString().slice(0,10)!==referenceDate)throw Error('PUBLICATION_REFERENCE_DATE invalide');
+const modifiedOn=referenceDate;
 const countryLocation=p=>({FR:'en France',BE:'en Belgique',CH:'en Suisse',LU:'au Luxembourg',MC:'à Monaco'}[p.code]||`en ${p.country}`);
 const seoTitle=p=>p.kind==='country'?`Événements littéraires ${countryLocation(p)} — Dédicalivres`:`Événements littéraires en ${p.label}, ${p.country} — Dédicalivres`;
 const ogTitle=p=>p.kind==='country'?`Événements littéraires ${countryLocation(p)}`:`Événements littéraires en ${p.label} — ${p.country}`;
@@ -23,8 +25,8 @@ const breadcrumbItems=p=>{
  if(!countryTerritory)throw new Error(`Territoire pays absent pour ${p.label} (${p.code})`);
  return [{name:p.country,item:countryTerritory.canonical},{name:p.label,item:p.canonical}];
 };
-const issues=analyzeQuality(snapshot.events,registry,observations,snapshot.capturedAt.slice(0,10));
-const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris'}).format(new Date(snapshot.capturedAt));
+const issues=analyzeQuality(snapshot.events,registry,observations,referenceDate);
+const today=referenceDate;
 const {accepted,rejected}=qualify(snapshot.events,registry,observations,today);
 // Reuse the existing regional page shell (header, footer, site styles and navigation).
 const base=fs.readFileSync('evenements-litteraires-bretagne.html','utf8');
@@ -32,7 +34,7 @@ const results=[];
 const archiveFiles=new Map();
 const selected=process.argv.includes('--sample')?territories.filter(p=>p.kind==='country'||['FR-BRE','BE-WAL','CH-local-24'].includes(p.id)):territories;
 for(const p of selected){
- const {main,stats,rows,archivePages}=renderTerritory({p,events:snapshot.events,registry,verified,capturedAt:snapshot.capturedAt});
+ const {main,stats,rows,archivePages}=renderTerritory({p,events:snapshot.events,registry,verified,capturedAt:snapshot.capturedAt,referenceDate});
  let html=base.replace('href="index.html?country=FR#agenda">France</a>', 'href="evenements-litteraires-france.html">France</a>').replace(/<main[\s\S]*?<\/main>/,main)
  .replace(/<title>[\s\S]*?<\/title>/,`<title>${seoTitle(p)}</title>`)
  .replace(/<meta name="description"[^>]*>/,`<meta name="description" content="${seoDescription(p)}" />`)
@@ -95,7 +97,7 @@ const index=fs.readFileSync('index.html','utf8');
 fs.writeFileSync('index.html',index.replace(/<section id="territoires-pilotes"[\s\S]*?<\/section>/,`<section id="territoires-pilotes" class="container seo-text-block" aria-labelledby="territoires-pilotes-title"><h2 id="territoires-pilotes-title">Explorer les régions</h2><p>Pour naviguer par région, sélectionnez d’abord le pays concerné.</p><nav aria-label="Agendas par pays"><p>${countryLinks()}</p></nav></section>`));
 
 const sitemapPath='sitemap.xml';
-const sitemapDate=snapshot.capturedAt.slice(0,10);
+const sitemapDate=referenceDate;
 let sitemap=fs.readFileSync(sitemapPath,'utf8');
 for(const p of territories){
  const escaped=p.canonical.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');

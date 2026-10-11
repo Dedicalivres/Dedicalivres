@@ -461,8 +461,8 @@ def page_index(evs, base_url, today=None):
     parts.append('</div></body></html>')
     return '\n'.join(parts)
 
-def sitemap(evs, base_url):
-    today = dt.date.today().isoformat()
+def sitemap(evs, base_url, today=None):
+    today = (today or dt.date.today()).isoformat()
     lignes = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemap.org/schemas/sitemap/0.9">'.replace('sitemap.org', 'sitemaps.org')]
     lignes.append(f'  <url><loc>{esc(base_url)}/evenement/index.html</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq></url>')
     for ev in evs:
@@ -695,6 +695,16 @@ def _validate_staged(events, staged_root, base_url, sitemap_name, preserved_befo
         raise GenerationSeoError('un fichier hors corpus événement a été modifié')
 
 def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=False, progressive_event_ids=frozenset(), authorized_depublication_ids=frozenset()):
+    reference = os.environ.get('PUBLICATION_REFERENCE_DATE')
+    if reference:
+        try:
+            reference_date = dt.date.fromisoformat(reference)
+        except ValueError as exc:
+            raise GenerationSeoError('PUBLICATION_REFERENCE_DATE invalide') from exc
+        if reference_date.isoformat() != reference:
+            raise GenerationSeoError('PUBLICATION_REFERENCE_DATE invalide')
+    else:
+        reference_date = dt.date.today()
     requested_ids = list(progressive_event_ids)
     if len(requested_ids) > 2:
         raise GenerationSeoError('deux fiches progressives maximum')
@@ -737,8 +747,8 @@ def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=F
             (event_root / f"{event['_slug']}.html").write_text(
                 page_event(event, base_url, progressive=str(event['id']) in progressive_event_ids), encoding='utf-8'
             )
-        (event_root / 'index.html').write_text(page_index(events, base_url), encoding='utf-8')
-        (staging / sitemap_name).write_text(sitemap(events, base_url), encoding='utf-8')
+        (event_root / 'index.html').write_text(page_index(events, base_url, reference_date), encoding='utf-8')
+        (staging / sitemap_name).write_text(sitemap(events, base_url, reference_date), encoding='utf-8')
         manifest = {'version': 1, 'source': 'supabase.events', 'events': {str(event['id']): event['_slug'] for event in events}}
         (staging / MANIFEST_NAME).write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         _validate_staged(events, staging, base_url, sitemap_name, preserved_before)

@@ -33,10 +33,15 @@ if (
   );
 }
 
-const today = new Intl.DateTimeFormat(
+const today = process.env.PUBLICATION_REFERENCE_DATE || new Intl.DateTimeFormat(
   "sv-SE",
   { timeZone: "Europe/Paris" }
 ).format(capturedAt);
+
+if (!/^\d{4}-\d{2}-\d{2}$/.test(today) ||
+    new Date(`${today}T00:00:00Z`).toISOString().slice(0, 10) !== today) {
+  throw new Error("PUBLICATION_REFERENCE_DATE invalide");
+}
 
 const clean = value => String(value || "").trim();
 
