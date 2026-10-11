@@ -40,6 +40,7 @@ import tempfile
 import unicodedata
 import urllib.parse
 import urllib.request
+import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from publisher_compat import fusionner, normaliser, normaliser_titre_dedup
@@ -693,19 +694,32 @@ def _validate_staged(events, staged_root, base_url, sitemap_name, preserved_befo
     if _non_event_inventory(root) != preserved_before:
         raise GenerationSeoError('un fichier hors corpus événement a été modifié')
 
-def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=False, progressive_event_ids=frozenset()):
-    progressive_event_ids = frozenset(progressive_event_ids)
+def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=False, progressive_event_ids=frozenset(), authorized_depublication_ids=frozenset()):
+    requested_ids = list(progressive_event_ids)
+    if len(requested_ids) > 2:
+        raise GenerationSeoError('deux fiches progressives maximum')
+    try:
+        normalized_ids = [str(uuid.UUID(value)) for value in requested_ids if isinstance(value, str)]
+    except ValueError as exc:
+        raise GenerationSeoError('identifiant progressif UUID invalide') from exc
+    if len(normalized_ids) != len(requested_ids) or len(set(normalized_ids)) != len(normalized_ids):
+        raise GenerationSeoError('identifiant progressif invalide ou dupliqué')
+    progressive_event_ids = frozenset(normalized_ids)
     if progressive_event_ids:
-        unknown = progressive_event_ids - {str(event['id']) for event in events}
-        if unknown:
-            raise GenerationSeoError(f'identifiants progressifs absents du catalogue public : {sorted(unknown)}')
         legacy_path = Path(__file__).resolve().parent / 'legacy-enriched-events.json'
         try:
-            legacy_ids = set(json.loads(legacy_path.read_text(encoding='utf-8'))['events'])
+            legacy_manifest = json.loads(legacy_path.read_text(encoding='utf-8'))
+            legacy_ids = set(legacy_manifest['events'])
         except (OSError, ValueError, KeyError) as exc:
             raise GenerationSeoError('manifeste legacy indisponible ou invalide') from exc
+        if len(legacy_ids) != 282 or legacy_manifest.get('count') != 282:
+            raise GenerationSeoError('manifeste legacy incohérent')
         if progressive_event_ids & legacy_ids:
             raise GenerationSeoError('une fiche legacy ne peut pas utiliser le rendu progressif')
+        unknown = progressive_event_ids - {str(event['id']) for event in events}
+        unauthorized = unknown - set(authorized_depublication_ids)
+        if unauthorized:
+            raise GenerationSeoError(f'identifiants progressifs absents du catalogue public : {sorted(unauthorized)}')
     output = Path(output).resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     preserved_before = _non_event_inventory(output)
@@ -775,6 +789,7 @@ def main():
     ap.add_argument('--base-url', default='https://dedicalivres.fr')
     ap.add_argument('--dry-run', action='store_true', help='valider sans remplacer la sortie locale')
     ap.add_argument('--progressive-event-id', action='append', default=[], help='activer le nouveau HTML uniquement pour cet ID public non legacy ; option absente par défaut')
+    ap.add_argument('--authorized-depublication-event-id', action='append', default=[], help='ID du job de dépublication autorisé, vérifié par le wrapper cloud')
     args = ap.parse_args()
     expected_output = (project_root / 'exports' / 'site-seo').resolve()
     output = Path(args.sortie).expanduser().resolve()
@@ -788,7 +803,7 @@ def main():
         static_slugs = appliquer_slugs_statiques_existants(events, args.existing_event_pages) if args.existing_event_pages else 0
         attribuer_slugs(events)
         events.sort(key=lambda event: (iso_date(event['date_debut']) or '9999', str(event['id'])))
-        report = generer_sortie_atomique(events, output, base_url=args.base_url.rstrip('/'), sitemap_name=args.sitemap_name, dry_run=args.dry_run, progressive_event_ids=args.progressive_event_id)
+        report = generer_sortie_atomique(events, output, base_url=args.base_url.rstrip('/'), sitemap_name=args.sitemap_name, dry_run=args.dry_run, progressive_event_ids=args.progressive_event_id, authorized_depublication_ids=args.authorized_depublication_event_id)
         _print_report(report, dry_run=args.dry_run)
         print(f"SLUGS_PRESERVES=remote:{slug_sources['remote']},exact:{slug_sources['exact']},uuid:{slug_sources['uuid']}")
         print(f'SLUGS_STATIQUES_PRESERVES={static_slugs}')
