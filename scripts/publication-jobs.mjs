@@ -16,6 +16,27 @@ const PREACTIVATION_TEST =
   process.env.PUBLICATION_PREACTIVATION_TEST
   === "true";
 
+const P0_RECOVERY =
+  process.env.PUBLICATION_P0_RECOVERY
+  === "true";
+
+const RECOVERY_JOBS = [
+  {
+    id: "c098bfc8-4482-4452-857d-d9227b422a41",
+    eventId: "c69b157c-bf2f-4ddf-affa-a57497d261c2",
+    reason: "unpublish",
+    validated: false,
+    rejected: true,
+  },
+  {
+    id: "21d2d1eb-5b65-46e3-9624-0e877df1702d",
+    eventId: "14b81335-1dab-4f6d-9667-5e88675c6f98",
+    reason: "validation",
+    validated: true,
+    rejected: false,
+  },
+];
+
 
 if (
   !SUPABASE_URL
@@ -266,6 +287,120 @@ async function patchJob(
   );
 }
 
+async function recoveryState(status, attempts, batchId = null) {
+  const ids = RECOVERY_JOBS.map((job) => job.id).join(",");
+  const eventIds = RECOVERY_JOBS.map((job) => job.eventId).join(",");
+  const rows = await request(
+    `event_publication_jobs?id=in.(${ids})`
+    + "&select=id,event_id,target_event_id,reason,status,attempt_count,batch_id,commit_sha,last_error,requested_at"
+  );
+  const events = await request(
+    `events?id=in.(${eventIds})&select=id,validated,rejected`
+  );
+
+  if (!Array.isArray(rows) || rows.length !== 2
+      || !Array.isArray(events) || events.length !== 2) {
+    throw new Error("STOP reprise P0 : jobs ou événements incomplets");
+  }
+
+  for (const expected of RECOVERY_JOBS) {
+    const row = rows.find((item) => item.id === expected.id);
+    const event = events.find((item) => item.id === expected.eventId);
+    if (!row || row.event_id !== expected.eventId
+        || row.target_event_id !== expected.eventId
+        || row.reason !== expected.reason
+        || row.status !== status
+        || Number(row.attempt_count) !== attempts
+        || row.batch_id !== batchId
+        || row.commit_sha !== null
+        || !event || event.validated !== expected.validated
+        || event.rejected !== expected.rejected
+        || legacyEvents[expected.eventId]) {
+      throw new Error(`STOP reprise P0 : état inattendu pour ${expected.id}`);
+    }
+  }
+
+  return rows;
+}
+
+async function claimRecovery() {
+  if (PREACTIVATION_TEST
+      || process.env.PUBLICATION_AUTOMATION_ENABLED !== "false") {
+    throw new Error("STOP reprise P0 : automatisation ou préactivation incompatible");
+  }
+
+  const running = await request(
+    "event_publication_jobs?status=eq.RUNNING&select=id&limit=1"
+  );
+  if (!Array.isArray(running) || running.length) {
+    throw new Error("STOP reprise P0 : publication déjà en cours");
+  }
+
+  const rows = await recoveryState("FAILED", 3);
+  const withdrawn = rows.find((row) => row.reason === "unpublish");
+  const path = canonicalDepublicationPath(withdrawn);
+  if (!path || !fs.existsSync(path)) {
+    throw new Error("STOP reprise P0 : fiche canonique à retirer absente ou invalide");
+  }
+
+  const batchId = randomUUID();
+  const ids = RECOVERY_JOBS.map((job) => job.id).join(",");
+  const claimed = await request(
+    `event_publication_jobs?id=in.(${ids})`
+    + "&status=eq.FAILED&attempt_count=eq.3&batch_id=is.null&commit_sha=is.null",
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        status: "RUNNING",
+        attempt_count: 4,
+        batch_id: batchId,
+        started_at: new Date().toISOString(),
+        finished_at: null,
+      }),
+    }
+  );
+  if (!Array.isArray(claimed) || claimed.length !== 2
+      || RECOVERY_JOBS.some((job) =>
+        !claimed.some((row) => row.id === job.id
+          && row.status === "RUNNING"
+          && Number(row.attempt_count) === 4
+          && row.batch_id === batchId))) {
+    throw new Error("STOP reprise P0 : prise en charge incomplète");
+  }
+
+  setOutput("depublish_event_ids", JSON.stringify([withdrawn.target_event_id]));
+  setOutput("depublish_paths", JSON.stringify([path]));
+  setOutput("has_jobs", "true");
+  setOutput("batch_id", batchId);
+  setOutput("job_count", "2");
+  setOutput("blocked_count", "0");
+}
+
+async function verifyRecovery(batchId) {
+  if (!P0_RECOVERY || !batchId) {
+    throw new Error("STOP reprise P0 : vérification hors mode récupération");
+  }
+  await recoveryState("RUNNING", 4, batchId);
+  console.log("PASS reprise P0 : états métier toujours cohérents");
+}
+
+async function recoveryBatch(batchId) {
+  const rows = await request(
+    "event_publication_jobs"
+    + `?batch_id=eq.${encodeURIComponent(batchId)}`
+    + "&status=eq.RUNNING"
+    + "&select=id,attempt_count,last_error"
+  );
+  if (!Array.isArray(rows) || rows.length !== 2
+      || RECOVERY_JOBS.some((job) =>
+        !rows.some((row) => row.id === job.id
+          && Number(row.attempt_count) === 4))) {
+    throw new Error("STOP reprise P0 : batch non conforme");
+  }
+  return rows;
+}
+
 
 async function recoverStaleJobs() {
   const staleBefore =
@@ -477,6 +612,10 @@ async function blockInvalidDepublicationJob(
 
 
 async function claim() {
+  if (P0_RECOVERY) {
+    return claimRecovery();
+  }
+
   await recoverStaleJobs();
 
 
@@ -776,11 +915,18 @@ async function success() {
     );
   }
 
+  if (P0_RECOVERY) {
+    await recoveryBatch(batchId);
+  }
+
 
   await request(
     "event_publication_jobs"
     + `?batch_id=eq.${encodeURIComponent(batchId)}`
-    + "&status=eq.RUNNING",
+    + "&status=eq.RUNNING"
+    + (P0_RECOVERY
+      ? `&id=in.(${RECOVERY_JOBS.map((job) => job.id).join(",")})`
+      : ""),
     {
       method:
         "PATCH",
@@ -802,8 +948,7 @@ async function success() {
           commit_sha:
             commitSha,
 
-          last_error:
-            null,
+          ...(P0_RECOVERY ? {} : { last_error: null }),
         }),
     },
   );
@@ -837,12 +982,13 @@ async function fail() {
     );
 
 
-  const rows =
-    await request(
+  const rows = P0_RECOVERY
+    ? await recoveryBatch(batchId)
+    : await request(
       "event_publication_jobs"
       + `?batch_id=eq.${encodeURIComponent(batchId)}`
       + "&status=eq.RUNNING"
-      + "&select=id,attempt_count"
+      + "&select=id,attempt_count,last_error"
     );
 
 
@@ -880,7 +1026,9 @@ async function fail() {
               .toISOString(),
 
       last_error:
-        message,
+        P0_RECOVERY
+          ? [row.last_error, message].filter(Boolean).join(" | ").slice(0, 2000)
+          : message,
     };
 
 
@@ -922,9 +1070,14 @@ if (
 ) {
   await fail();
 
+} else if (
+  command === "verify-recovery"
+) {
+  await verifyRecovery(process.argv[3]);
+
 } else {
   throw new Error(
     "Commande attendue : "
-    + "claim | success | fail"
+    + "claim | success | fail | verify-recovery"
   );
 }
