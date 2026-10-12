@@ -202,11 +202,23 @@ function projectAggregates() {
   const files = fs.readdirSync('.').filter(file => /^evenements-litteraires-.*\.html$/.test(file));
   const restored = new Set();
   const changed = new Set();
+  const oldCards = new Map();
+  const newCards = new Map();
+  const collectCards = (target, items) => {
+    for (const [id, , markup] of items) {
+      const normalized = markup.replace(/data-status="[^"]+"/, 'data-status="STATUS"')
+        .replace(' · En cours</p>', '</p>');
+      if (!target.has(id)) target.set(id, new Set());
+      target.get(id).add(normalized);
+    }
+  };
   for (const file of files) {
     let old;
-    try { old = baseline(file); } catch { changed.add(file); continue; }
+    try { old = baseline(file); } catch { stop(`nouvel agrégat non validé : ${file}`); }
     const fresh = read(file);
     const oldItems = pageItems(old), newItems = pageItems(fresh);
+    collectCards(oldCards, oldItems);
+    collectCards(newCards, newItems);
     const oldPreview = previewIds(old), newPreview = previewIds(fresh);
     for (const [id, status] of oldItems) {
       if (!oldEvents.has(id) || temporalStatus(oldEvents.get(id), oldDate) !== status) {
@@ -233,6 +245,15 @@ function projectAggregates() {
       restored.add(file);
     } else {
       changed.add(file);
+    }
+  }
+  if (oldCards.size !== previous.events.length || newCards.size !== current.events.length
+      || oldCards.has(SECLIN) || newCards.has(PASCAL) || !newCards.has(SECLIN)) {
+    stop('couverture des événements dans les agrégats incohérente');
+  }
+  for (const id of oldEvents.keys()) {
+    if (id !== PASCAL && (!newCards.has(id) || !sameSet(oldCards.get(id), newCards.get(id)))) {
+      stop(`présentation ou fiche tierce altérée dans les agrégats : ${id}`);
     }
   }
   const oldSitemap = baseline('sitemap.xml');
