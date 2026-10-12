@@ -20,6 +20,16 @@ const P0_RECOVERY =
   process.env.PUBLICATION_P0_RECOVERY
   === "true";
 
+const DOUAI_MANUAL =
+  process.env.PUBLICATION_DOUAI_MANUAL
+  === "true";
+
+const DOUAI_JOB = {
+  id: "af1a386a-1b9d-4eeb-b162-6b34c32d667b",
+  eventId: "d04e32a8-1f92-4068-bf73-d17e672950aa",
+  reason: "validation",
+};
+
 const RECOVERY_JOBS = [
   {
     id: "c098bfc8-4482-4452-857d-d9227b422a41",
@@ -494,6 +504,73 @@ async function blockLegacyJob(
   return true;
 }
 
+async function claimDouai() {
+  if (PREACTIVATION_TEST || P0_RECOVERY
+      || process.env.PUBLICATION_AUTOMATION_ENABLED !== "false") {
+    throw new Error("STOP Douai : mode manuel incompatible");
+  }
+
+  const running = await request(
+    "event_publication_jobs?status=eq.RUNNING&select=id&limit=1"
+  );
+  if (!Array.isArray(running) || running.length !== 0) {
+    throw new Error("STOP Douai : publication déjà en cours");
+  }
+
+  const rows = await request(
+    `event_publication_jobs?id=eq.${DOUAI_JOB.id}`
+    + "&select=id,event_id,target_event_id,reason,status,attempt_count,batch_id,commit_sha,requested_at"
+  );
+  const events = await request(
+    `events?id=eq.${DOUAI_JOB.eventId}&select=id,validated,rejected`
+  );
+  const row = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+  const event = Array.isArray(events) && events.length === 1 ? events[0] : null;
+
+  if (!row || row.id !== DOUAI_JOB.id
+      || row.event_id !== DOUAI_JOB.eventId
+      || row.target_event_id !== DOUAI_JOB.eventId
+      || row.reason !== DOUAI_JOB.reason
+      || row.status !== "PENDING"
+      || Number(row.attempt_count) !== 0
+      || row.batch_id !== null || row.commit_sha !== null
+      || !event || event.id !== DOUAI_JOB.eventId
+      || event.validated !== true || event.rejected !== false
+      || legacyEvents[DOUAI_JOB.eventId]) {
+    throw new Error("STOP Douai : préconditions du job ou de l'événement invalides");
+  }
+
+  const batchId = randomUUID();
+  const claimed = await rpc("claim_event_publication_batch", {
+    p_expected: [row],
+    p_batch_id: batchId,
+  });
+  if (!Array.isArray(claimed) || claimed.length !== 1
+      || claimed[0].id !== DOUAI_JOB.id
+      || claimed[0].event_id !== DOUAI_JOB.eventId
+      || claimed[0].target_event_id !== DOUAI_JOB.eventId
+      || claimed[0].reason !== DOUAI_JOB.reason
+      || claimed[0].status !== "RUNNING"
+      || Number(claimed[0].attempt_count) !== 1
+      || claimed[0].batch_id !== batchId) {
+    throw new Error("STOP Douai : réservation atomique non confirmée");
+  }
+
+  setOutput("depublish_event_ids", "[]");
+  setOutput("depublish_paths", "[]");
+  setOutput("publication_jobs", JSON.stringify([{
+    id: claimed[0].id,
+    event_id: DOUAI_JOB.eventId,
+    reason: DOUAI_JOB.reason,
+    attempt_count: 1,
+  }]));
+  setOutput("has_jobs", "true");
+  setOutput("batch_id", batchId);
+  setOutput("job_count", "1");
+  setOutput("blocked_count", "0");
+  console.log(`Batch ${batchId} : job Douai réservé`);
+}
+
 
 async function blockInvalidDepublicationJob(
   row
@@ -563,6 +640,9 @@ async function claim() {
   }
   if (P0_RECOVERY) {
     return claimRecovery();
+  }
+  if (DOUAI_MANUAL) {
+    return claimDouai();
   }
   if (process.env.PUBLICATION_AUTOMATION_ENABLED !== "true") {
     throw new Error("STOP : automatisation désactivée ; aucun claim réel autorisé");
