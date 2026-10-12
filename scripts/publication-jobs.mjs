@@ -215,6 +215,13 @@ async function request(
   );
 }
 
+async function rpc(name, payload) {
+  return request(`rpc/${name}`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 
 function setOutput(
   key,
@@ -285,6 +292,20 @@ async function patchJob(
         ),
     },
   );
+}
+
+async function blockPendingJob(row, payload) {
+  const updated = await request(
+    `event_publication_jobs?id=eq.${encodeURIComponent(row.id)}`
+    + `&status=eq.PENDING&attempt_count=eq.${Number(row.attempt_count)}`
+    + '&batch_id=is.null&commit_sha=is.null',
+    {method:'PATCH', headers:{Prefer:'return=representation'},
+      body:JSON.stringify(payload)}
+  );
+  if (!Array.isArray(updated) || updated.length !== 1
+      || updated[0].id !== row.id || updated[0].status !== 'BLOCKED') {
+    throw new Error(`STOP : blocage concurrent non confirmé pour ${row.id}`);
+  }
 }
 
 async function recoveryState(status, attempts, batchId = null) {
@@ -407,86 +428,6 @@ async function recoveryBatch(batchId) {
 }
 
 
-async function recoverStaleJobs() {
-  const staleBefore =
-    new Date(
-      Date.now()
-      - 30 * 60 * 1000
-    ).toISOString();
-
-
-  const rows =
-    await request(
-      publicationJobFilter(
-        "RUNNING"
-      )
-      + `&started_at=lt.${encodeURIComponent(staleBefore)}`
-      + "&select=id,attempt_count"
-    );
-
-
-  for (
-    const row
-    of Array.isArray(rows)
-      ? rows
-      : []
-  ) {
-    const attempts =
-      Number(
-        row.attempt_count
-        || 0
-      );
-
-
-    if (
-      attempts >= 3
-    ) {
-      await patchJob(
-        row.id,
-        {
-          status:
-            "FAILED",
-
-          finished_at:
-            new Date()
-              .toISOString(),
-
-          batch_id:
-            null,
-
-          last_error:
-            "Publication interrompue après trois tentatives.",
-        },
-      );
-
-
-    } else {
-
-      await patchJob(
-        row.id,
-        {
-          status:
-            "PENDING",
-
-          started_at:
-            null,
-
-          finished_at:
-            null,
-
-          batch_id:
-            null,
-
-          last_error:
-            "Run précédent interrompu ; nouvelle tentative planifiée.",
-        },
-      );
-
-    }
-  }
-}
-
-
 async function blockLegacyJob(
   row
 ) {
@@ -516,8 +457,8 @@ async function blockLegacyJob(
   }
 
 
-  await patchJob(
-    row.id,
+  await blockPendingJob(
+    row,
     {
       status:
         "BLOCKED",
@@ -581,8 +522,8 @@ async function blockInvalidDepublicationJob(
   }
 
 
-  await patchJob(
-    row.id,
+  await blockPendingJob(
+    row,
     {
       status:
         "BLOCKED",
@@ -617,11 +558,18 @@ async function blockInvalidDepublicationJob(
 
 
 async function claim() {
+  if (PREACTIVATION_TEST) {
+    throw new Error("STOP : préactivation réelle retirée ; utiliser les tests PostgreSQL isolés");
+  }
   if (P0_RECOVERY) {
     return claimRecovery();
   }
+  if (process.env.PUBLICATION_AUTOMATION_ENABLED !== "true") {
+    throw new Error("STOP : automatisation désactivée ; aucun claim réel autorisé");
+  }
 
-  await recoverStaleJobs();
+  // A stale RUNNING job may already have a pushed commit or a delayed Pages
+  // deployment. It requires manual evidence review, never an automatic retry.
 
 
   setOutput(
@@ -820,61 +768,32 @@ async function claim() {
   }
 
 
-  setOutput(
-    "depublish_event_ids",
-    JSON.stringify(
-      depublishEventIds
-    )
-  );
-
-
-  setOutput(
-    "depublish_paths",
-    JSON.stringify(
-      depublishPaths
-    )
-  );
-
-
   const batchId =
     randomUUID();
 
-  const startedAt =
-    new Date()
-      .toISOString();
-
-
-  for (
-    const row
-    of publishable
-  ) {
-    await patchJob(
-      row.id,
-      {
-        status:
-          "RUNNING",
-
-        batch_id:
-          batchId,
-
-        started_at:
-          startedAt,
-
-        finished_at:
-          null,
-
-        attempt_count:
-          Number(
-            row.attempt_count
-            || 0
-          )
-          + 1,
-
-        last_error:
-          null,
-      },
-    );
+  const claimed = await rpc("claim_event_publication_batch", {
+    p_expected: publishable,
+    p_batch_id: batchId,
+  });
+  if (!Array.isArray(claimed) || claimed.length !== publishable.length
+      || publishable.some((row) => !claimed.some((item) =>
+        item.id === row.id && item.status === "RUNNING"
+        && item.batch_id === batchId
+        && Number(item.attempt_count) === Number(row.attempt_count) + 1))) {
+    throw new Error("STOP : réservation atomique non confirmée");
   }
+
+  const actualDepublishIds = [...new Set(claimed.filter(
+    (row) => shouldAuthorizeCanonicalRemoval(row)
+  ).map((row) => targetEventId(row)).filter(Boolean))];
+  const actualDepublishPaths = actualDepublishIds.map((id) =>
+    canonicalDepublicationPath({target_event_id:id}));
+  if (actualDepublishIds.length !== depublishEventIds.length
+      || actualDepublishPaths.some((path) => !path || !depublishPaths.includes(path))) {
+    throw new Error("STOP : réservation et suppressions autorisées divergent");
+  }
+  setOutput("depublish_event_ids", JSON.stringify(actualDepublishIds));
+  setOutput("depublish_paths", JSON.stringify(actualDepublishPaths));
 
 
   setOutput(
@@ -884,10 +803,11 @@ async function claim() {
 
   setOutput(
     "publication_jobs",
-    JSON.stringify(publishable.map((row) => ({
+    JSON.stringify(claimed.map((row) => ({
       id: row.id,
       event_id: targetEventId(row) || null,
       reason: row.reason,
+      attempt_count: Number(row.attempt_count),
     })))
   );
 
@@ -911,6 +831,20 @@ async function claim() {
   );
 }
 
+function expectedBatch(batchId) {
+  let rows;
+  try { rows = JSON.parse(process.env.PUBLICATION_JOBS || ""); }
+  catch { throw new Error("STOP : PUBLICATION_JOBS absent ou invalide"); }
+  if (!batchId || !Array.isArray(rows) || !rows.length
+      || new Set(rows.map((row) => row.id)).size !== rows.length
+      || rows.some((row) => !/^[0-9a-f-]{36}$/.test(row.id || "")
+        || !Number.isInteger(row.attempt_count) || row.attempt_count < 1
+        || row.attempt_count > 3)) {
+    throw new Error("STOP : identité du batch invalide");
+  }
+  return rows.map(({id, attempt_count}) => ({id, attempt_count}));
+}
+
 
 async function success() {
   const batchId =
@@ -931,6 +865,29 @@ async function success() {
 
   if (P0_RECOVERY) {
     await recoveryBatch(batchId);
+  }
+
+  if (!P0_RECOVERY) {
+    const expected = expectedBatch(batchId);
+    const proof = JSON.parse(process.env.PUBLICATION_DEPLOYMENT_PROOF || "null");
+    if (!proof || proof.sha !== commitSha || !Number.isInteger(proof.pages_run_id)
+        || proof.pages_run_id <= 0 || proof.verified !== true
+        || proof.job_count !== expected.length) {
+      throw new Error("STOP : déploiement et résultat public non confirmés");
+    }
+    const updated = await rpc("complete_event_publication_batch", {
+      p_expected: expected, p_batch_id: batchId, p_outcome: "SUCCESS",
+      p_commit_sha: commitSha,
+    });
+    if (!Array.isArray(updated) || updated.length !== expected.length
+        || expected.some((row) => !updated.some((item) => item.id === row.id
+          && item.status === "SUCCESS" && item.batch_id === batchId
+          && Number(item.attempt_count) === row.attempt_count
+          && item.commit_sha === commitSha))) {
+      throw new Error("STOP : finalisation atomique non confirmée");
+    }
+    console.log(`Batch ${batchId} : SUCCESS confirmé`);
+    return;
   }
 
 
@@ -994,6 +951,22 @@ async function fail() {
       0,
       2000
     );
+
+  if (!P0_RECOVERY) {
+    const expected = expectedBatch(batchId);
+    const updated = await rpc("complete_event_publication_batch", {
+      p_expected: expected, p_batch_id: batchId,
+      p_outcome: "FAILED", p_error: message,
+    });
+    if (!Array.isArray(updated) || updated.length !== expected.length
+        || expected.some((row) => !updated.some((item) => item.id === row.id
+          && ["PENDING", "FAILED"].includes(item.status)
+          && Number(item.attempt_count) === row.attempt_count))) {
+      throw new Error("STOP : échec atomique non confirmé");
+    }
+    console.log(`Batch ${batchId} : échec avant publication consigné`);
+    return;
+  }
 
 
   const rows = P0_RECOVERY

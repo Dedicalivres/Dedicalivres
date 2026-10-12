@@ -92,10 +92,16 @@ async function scenario({
         request.on(
           "end",
           () => {
-            patches.push(
-              JSON.parse(body)
-            );
-            response.end("[]");
+            const payload = JSON.parse(body);
+            if (url.pathname.endsWith('/rpc/claim_event_publication_batch')) {
+              patches.push({status:'RUNNING', rpc:true});
+              response.end(JSON.stringify([{...row, status:'RUNNING',
+                batch_id:payload.p_batch_id,
+                attempt_count:Number(row.attempt_count) + 1}]));
+            } else {
+              patches.push(payload);
+              response.end(JSON.stringify([{...row, ...payload}]));
+            }
           }
         );
       }
@@ -168,7 +174,7 @@ async function scenario({
     const address =
       server.address();
 
-    await run(
+    const invocation = run(
       process.execPath,
       [
         worker,
@@ -190,9 +196,19 @@ async function scenario({
             preactivation
               ? "true"
               : "false",
+          PUBLICATION_AUTOMATION_ENABLED:
+            "true",
         },
       }
     );
+
+    if (preactivation) {
+      await assert.rejects(invocation, /préactivation réelle retirée/);
+      assert.equal(patches.length, 0);
+      assert.equal(filters.length, 0);
+      return;
+    }
+    await invocation;
 
     assert.equal(
       patches.length,
@@ -203,12 +219,11 @@ async function scenario({
       patches[0].status,
       expectedStatus
     );
+    if (expectedStatus === 'RUNNING') assert.equal(patches[0].rpc, true);
 
     assert.match(
       filters[0],
-      preactivation
-        ? /reason=eq\.manual.*event_id=is\.null/
-        : /reason=neq\.manual/
+      /reason=neq\.manual/
     );
 
     const outputs =
@@ -329,8 +344,6 @@ await scenario({
 
 await scenario({
   canonical: {},
-  expectedStatus:
-    "RUNNING",
   preactivation:
     true,
   row: {
@@ -351,5 +364,5 @@ await scenario({
 
 
 console.log(
-  "PASS jobs publication : canonical sûr et manual isolé du mode normal"
+  "PASS jobs publication : canonical sûr, claim RPC et préactivation sans effet"
 );
