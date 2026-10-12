@@ -175,6 +175,9 @@ jobs:
           PUBLICATION_DEPUBLISH_EVENT_IDS:
             ${{ steps.claim.outputs.depublish_event_ids }}
 
+          PUBLICATION_JOBS:
+            ${{ steps.claim.outputs.publication_jobs }}
+
         run: |
           scripts/publish-events-cloud.sh
 
@@ -186,11 +189,28 @@ jobs:
           PUBLICATION_DEPUBLISH_PATHS:
             ${{ steps.claim.outputs.depublish_paths }}
 
+          PUBLICATION_JOBS:
+            ${{ steps.claim.outputs.publication_jobs }}
+
+          PUBLICATION_TARGETED: "true"
+
         run: |
           node \
             scripts/check-publication-diff.mjs
 
           git diff --check
+
+
+      - name: Recheck public event source before push
+        if: steps.claim.outputs.has_jobs == 'true'
+
+        env:
+          EVENT_PUBLISHER_EXPORT_DIR:
+            ${{ runner.temp }}/dedicalivres-site-seo
+
+        run: |
+          node scripts/verify-publication-source.mjs \
+            "$EVENT_PUBLISHER_EXPORT_DIR/public-events-source.json"
 
 
       - name: Recheck P0 recovery event states

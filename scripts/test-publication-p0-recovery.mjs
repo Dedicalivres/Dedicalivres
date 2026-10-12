@@ -1,8 +1,21 @@
 import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
 
 const worker = pathToFileURL(path.resolve("scripts/publication-jobs.mjs"));
+const originalCwd = process.cwd();
+const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "publication-p0-recovery-"));
+fs.mkdirSync(path.join(fixtureRoot, "scripts/event-publisher"), {recursive:true});
+fs.mkdirSync(path.join(fixtureRoot, "docs/territoires"), {recursive:true});
+fs.mkdirSync(path.join(fixtureRoot, "evenement"), {recursive:true});
+fs.copyFileSync(path.join(originalCwd, "scripts/event-publisher/legacy-enriched-events.json"),
+  path.join(fixtureRoot, "scripts/event-publisher/legacy-enriched-events.json"));
+fs.writeFileSync(path.join(fixtureRoot, "docs/territoires/event-canonical-map.json"),
+  JSON.stringify({"c69b157c-bf2f-4ddf-affa-a57497d261c2":"evenement/pascal.html"}));
+fs.writeFileSync(path.join(fixtureRoot, "evenement/pascal.html"), "ancienne fiche Pascal");
+process.chdir(fixtureRoot);
 const targets = [
   ["c098bfc8-4482-4452-857d-d9227b422a41", "c69b157c-bf2f-4ddf-affa-a57497d261c2", "unpublish"],
   ["21d2d1eb-5b65-46e3-9624-0e877df1702d", "14b81335-1dab-4f6d-9667-5e88675c6f98", "validation"],
@@ -157,3 +170,5 @@ await assert.rejects(invoke(disabled, "claim", [], { PUBLICATION_PREACTIVATION_T
 assert.equal(disabled.patches.length, 0);
 
 console.log("PASS reprise P0 : deux IDs, états métier, concurrence, historique et exécution unique");
+process.chdir(originalCwd);
+fs.rmSync(fixtureRoot, {recursive:true, force:true});

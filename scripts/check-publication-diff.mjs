@@ -4,6 +4,11 @@ import {
 
 import fs from "node:fs";
 
+import path from "node:path";
+import {
+  parseJobs, assertCatalog, assertManifest, assertIndex, assertSitemap, assertEnrichment,
+} from "./project-targeted-publication.mjs";
+
 
 function command(
   args
@@ -128,6 +133,36 @@ const changed =
       "--exclude-standard",
     ]),
   ]);
+
+if (process.env.PUBLICATION_TARGETED === "true") {
+  const {allowed} = parseJobs(process.env.PUBLICATION_JOBS || "");
+  const mapPath = "docs/territoires/event-canonical-map.json";
+  const before = JSON.parse(execFileSync("git", ["show", `HEAD:${mapPath}`], {encoding:"utf8"}));
+  const after = JSON.parse(fs.readFileSync(mapPath, "utf8"));
+  const legacyIds = new Set(Object.keys(legacy.events || {}));
+  const manifest = Object.fromEntries(Object.entries(after).map(([id, file]) =>
+    [id, path.basename(file, ".html")]));
+  assertManifest(before, manifest, allowed, legacyIds);
+  const allowedPages = new Set([...allowed].flatMap(id => [before[id], after[id]].filter(Boolean)));
+  const otherPages = [...changed].filter(file => file.startsWith("evenement/")
+    && file !== "evenement/index.html" && !allowedPages.has(file));
+  if (otherPages.length) throw new Error(`STOP : fiches tierces modifiées : ${otherPages.join(", ")}`);
+  const oldSnapshot = JSON.parse(execFileSync("git", ["show", "HEAD:docs/territoires/catalogue-public.json"], {encoding:"utf8"}));
+  const snapshot = JSON.parse(fs.readFileSync("docs/territoires/catalogue-public.json", "utf8"));
+  assertCatalog(oldSnapshot, snapshot, allowed);
+  const referenceDate = JSON.parse(fs.readFileSync("docs/territoires/audit.json", "utf8")).today;
+  assertIndex(snapshot, manifest, fs.readFileSync("evenement/index.html", "utf8"), referenceDate);
+  assertSitemap(
+    execFileSync("git", ["show", "HEAD:sitemap-evenements.xml"], {encoding:"utf8"}),
+    fs.readFileSync("sitemap-evenements.xml", "utf8"), before, manifest, allowed,
+  );
+  for (const id of allowed) if (before[id] && after[id]) {
+    assertEnrichment(
+      execFileSync("git", ["show", `HEAD:${before[id]}`], {encoding:"utf8"}),
+      fs.readFileSync(after[id], "utf8"),
+    );
+  }
+}
 
 if (process.env.PUBLICATION_P0_RECOVERY === "true" || process.env.PUBLICATION_P0_TARGETED === "true") {
   const allowedIds = new Set([
