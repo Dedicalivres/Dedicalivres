@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-10T18:47:07.271Z",
+  "capturedAt": "2026-10-12T05:25:24.878Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -771,6 +771,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.canalbd.net/bd-flash-chartres/"
+    },
+    {
+      "id": "14b81335-1dab-4f6d-9667-5e88675c6f98",
+      "title": "Rencontre littéraire et séance de dédicaces à Seclin",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Hauts-de-France",
+      "city": "Seclin",
+      "start_date": "2026-10-24",
+      "end_date": "2026-10-24",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.camille-lemaire-auteur.com"
     },
     {
       "id": "14d987d0-90fe-45cf-8f0f-3233c8c77c4c",
@@ -6511,20 +6525,6 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/p/Salon-du-livre-jeunesse-de-Lantic-61576785073107/"
-    },
-    {
-      "id": "c69b157c-bf2f-4ddf-affa-a57497d261c2",
-      "title": "RENCONTRE/DEDICACES PASCAL NEUFVILLE",
-      "type": "Dédicace",
-      "country_code": "FR",
-      "region": "Normandie",
-      "city": "Rouen",
-      "start_date": "2026-11-21",
-      "end_date": "2026-11-21",
-      "validated": true,
-      "rejected": false,
-      "registration_force_status": null,
-      "website": ""
     },
     {
       "id": "c7477c54-63d6-498f-8285-d4f0f05fe5b9",
