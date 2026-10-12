@@ -7,7 +7,8 @@ import {fileURLToPath} from 'node:url';
 import {
   parseJobs, assertCatalog, assertManifest, assertEnrichment, assertIndex, assertSitemap, metadataOnlyAggregate,
 } from './project-targeted-publication.mjs';
-import {assertSourceSame} from './verify-publication-source.mjs';
+import {assertSourceSame, FIELDS, fetchSource} from './verify-publication-source.mjs';
+import {PUBLIC_EVENT_FIELDS} from './territorial-catalog.mjs';
 import {temporalStatus} from './project-p0-publication.mjs';
 
 const ownId = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
@@ -106,3 +107,47 @@ try {
   fs.rmSync(temporary, {recursive:true, force:true});
 }
 console.log('PASS 15 scénarios de publication ciblée');
+
+run('16 source complète générateur et territoires', () => {
+  const generator = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'event-publisher/generate-events.py'), 'utf8');
+  const generatorFields = generator.match(/PUBLIC_EVENT_COLUMNS = '([^']+)'/)?.[1].split(',') || [];
+  const verifiedFields = new Set(FIELDS.split(','));
+  for (const name of [...generatorFields, ...PUBLIC_EVENT_FIELDS.split(',')]) assert(verifiedFields.has(name), `champ non vérifié : ${name}`);
+  assert(generatorFields.includes('registration_force_status'), 'capture initiale sans statut forcé');
+});
+const captured = [{id:ownId, title:'Titre', start_date:'2026-10-17', registration_force_status:null}];
+run('17 source inchangée', () => assertSourceSame(captured, structuredClone(captured)));
+run('18 titre ou date modifiés STOP', () => {
+  assert.throws(() => assertSourceSame(captured, [{...captured[0], title:'Autre'}]), /pendant/);
+  assert.throws(() => assertSourceSame(captured, [{...captured[0], start_date:'2026-10-18'}]), /pendant/);
+});
+run('19 registration_force_status modifié STOP', () => assert.throws(() =>
+  assertSourceSame(captured, [{...captured[0], registration_force_status:'annule'}]), /pendant/));
+run('20 événement ajouté ou retiré STOP', () => {
+  assert.throws(() => assertSourceSame(captured, [...captured, {...captured[0], id:otherId}]), /pendant/);
+  assert.throws(() => assertSourceSame(captured, []), /pendant/);
+});
+let selected = '';
+await fetchSource('https://example.invalid', 'public-test-key', async url => {
+  selected = new URL(url).searchParams.get('select');
+  return {ok:true, json:async () => captured};
+});
+run('21 sélection REST contrôlée', () => assert(selected.split(',').includes('registration_force_status')));
+
+const place = ({name, city, street, postal}) => `<script type="application/ld+json">${JSON.stringify({
+  location:{name, address:{addressLocality:city, streetAddress:street, postalCode:postal}},
+})}</script>`;
+run('22 lieu précis vers ville générique STOP', () => assert.throws(() =>
+  assertEnrichment(place({name:'Mairie',city:'Lalouvesc',street:'21 rue des Cévennes',postal:'07520'}),
+    place({name:'Lalouvesc',city:'Lalouvesc',street:'21 rue des Cévennes',postal:'07520'})), /lieu/));
+run('23 lieu précis conservé PASS', () => assertEnrichment(
+  place({name:'Mairie',city:'Lalouvesc',street:'21 rue des Cévennes',postal:'07520'}),
+  place({name:'Mairie',city:'Lalouvesc',street:'21 rue des Cévennes',postal:'07520'})));
+run('24 changement de ville métier légitime PASS', () => assertEnrichment(
+  place({name:'Douai',city:'Douai'}), place({name:'Lille',city:'Lille'})));
+run('25 lieu précis changé sans preuve STOP', () => assert.throws(() =>
+  assertEnrichment(place({name:'Mairie',city:'Lalouvesc'}),
+    place({name:'Médiathèque',city:'Lalouvesc'})), /lieu/));
+run('26 adresse enrichie changée sans preuve STOP', () => assert.throws(() =>
+  assertEnrichment(place({name:'Mairie',city:'Lalouvesc',street:'21 rue des Cévennes'}),
+    place({name:'Mairie',city:'Lalouvesc',street:'2 rue du Marché'})), /adresse/));

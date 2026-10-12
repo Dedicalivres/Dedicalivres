@@ -1,8 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {PUBLIC_EVENT_FIELDS} from './territorial-catalog.mjs';
 
-export const FIELDS = 'id,title,type,country_code,region,city,start_date,end_date,website,description,image_url,validated,rejected';
+export const FIELDS = [...new Set([
+  ...PUBLIC_EVENT_FIELDS.split(','),
+  'description', 'image_url',
+])].join(',');
 const stop = message => { throw new Error(`STOP source publique : ${message}`); };
 const canonical = value => JSON.stringify(value, (_, entry) => entry && !Array.isArray(entry) && typeof entry === 'object'
   ? Object.fromEntries(Object.entries(entry).sort(([a], [b]) => a.localeCompare(b))) : entry);

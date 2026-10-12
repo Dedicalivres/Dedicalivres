@@ -76,7 +76,7 @@ export function assertManifest(old, manifest, allowed, legacy) {
 const field = (html, expression) => html.match(expression)?.[1] || '';
 const schema = html => {
   try { return JSON.parse(field(html, /<script type="application\/ld\+json">([^<]*)<\/script>/)); }
-  catch { return {}; }
+  catch { stop('JSON-LD absent ou invalide : enrichissements non vérifiables'); }
 };
 export function assertEnrichment(oldHtml, freshHtml) {
   const old = schema(oldHtml), fresh = schema(freshHtml);
@@ -84,12 +84,30 @@ export function assertEnrichment(oldHtml, freshHtml) {
     && !(Array.isArray(value) && value.length === 0);
   const oldAddress = old.location?.address || {};
   const newAddress = fresh.location?.address || {};
+  const comparable = value => String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr');
+  const oldPlace = old.location?.name;
+  const freshPlace = fresh.location?.name;
+  const oldCity = oldAddress.addressLocality;
+  const freshCity = newAddress.addressLocality;
+  if (rich(oldPlace) && !rich(freshPlace)) stop("perte d'enrichissement : nom du lieu");
+  if (rich(oldPlace) && comparable(oldPlace) !== comparable(freshPlace)
+      && !(comparable(oldPlace) === comparable(oldCity)
+        && comparable(freshPlace) === comparable(freshCity))) {
+    stop('lieu précis modifié sans preuve : la source publique ne fournit pas de nom de lieu');
+  }
+  for (const [label, before, after] of [
+    ['adresse', oldAddress.streetAddress, newAddress.streetAddress],
+    ['code postal', oldAddress.postalCode, newAddress.postalCode],
+  ]) if (rich(before) && comparable(before) !== comparable(after)) {
+    stop(`${label} enrichi modifié sans preuve : la source publique ne fournit pas cette donnée`);
+  }
   for (const [label, before, after] of [
     ['description', old.description, fresh.description],
     ['auteurs', old.performer, fresh.performer],
     ['organisateur', old.organizer, fresh.organizer],
-    ['adresse', oldAddress.streetAddress, newAddress.streetAddress],
-    ['code postal', oldAddress.postalCode, newAddress.postalCode],
+    ['ville', oldCity, freshCity],
+    ['région', oldAddress.addressRegion, newAddress.addressRegion],
+    ['pays', oldAddress.addressCountry, newAddress.addressCountry],
     ['image JSON-LD', old.image, fresh.image],
     ['source', field(oldHtml, /Source : ([\s\S]*?)<br>/), field(freshHtml, /Source : ([\s\S]*?)<br>/)],
     ['image SEO', field(oldHtml, /<meta property="og:image" content="([^"]*)"/), field(freshHtml, /<meta property="og:image" content="([^"]*)"/)],
