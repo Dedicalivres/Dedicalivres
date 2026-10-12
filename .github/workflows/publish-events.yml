@@ -84,12 +84,23 @@ jobs:
           fetch-depth: 0
 
 
+      - name: Preflight publication queue
+        id: preflight
+
+        run: |
+          node \
+            scripts/publication-jobs.mjs \
+            preflight
+
+
       - name: Configure Python cache
+        if: steps.preflight.outputs.has_pending == 'true'
         run: |
           echo "PYTHONPYCACHEPREFIX=$RUNNER_TEMP/dedicalivres-pycache" >> "$GITHUB_ENV"
 
 
       - name: Setup Node
+        if: steps.preflight.outputs.has_pending == 'true'
         uses: actions/setup-node@v4
 
         with:
@@ -97,6 +108,7 @@ jobs:
 
 
       - name: Setup Python
+        if: steps.preflight.outputs.has_pending == 'true'
         uses: actions/setup-python@v5
 
         with:
@@ -104,6 +116,7 @@ jobs:
 
 
       - name: Read public Supabase configuration
+        if: steps.preflight.outputs.has_pending == 'true'
         run: |
           node --input-type=module - <<'NODE'
           import fs from "node:fs";
@@ -143,6 +156,7 @@ jobs:
 
 
       - name: Install publisher dependencies
+        if: steps.preflight.outputs.has_pending == 'true'
         run: |
           if [[ -s scripts/event-publisher/requirements.txt ]]
           then
@@ -153,6 +167,8 @@ jobs:
 
       - name: Claim publication jobs
         id: claim
+
+        if: steps.preflight.outputs.has_pending == 'true'
 
         run: |
           node \
