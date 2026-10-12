@@ -8,6 +8,12 @@ const migration = fs.readFileSync('supabase/migrations/20261012155223_publicatio
 assert.match(workflow, /vars\.PUBLICATION_AUTOMATION_ENABLED == 'true'/);
 assert.match(workflow, /inputs\.preactivation_test != true/);
 assert.match(workflow, /inputs\.recover_failed_p0 != true/);
+assert.match(workflow, /github\.event_name == 'workflow_dispatch'[\s\S]*inputs\.publish_douai == true/);
+assert.match(workflow, /PUBLICATION_DOUAI_MANUAL:[\s\S]*github\.event_name == 'workflow_dispatch'/);
+assert.doesNotMatch(
+  workflow.match(/schedule:[\s\S]*?jobs:/)?.[0] || "",
+  /publish_douai/
+);
 assert.match(worker, /préactivation réelle retirée/);
 assert.doesNotMatch(worker.match(/async function claim\(\)[\s\S]*?async function success/)[0],
   /await recoverStaleJobs\(/);

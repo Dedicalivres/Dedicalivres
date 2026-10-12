@@ -15,6 +15,12 @@ on:
         default: false
         type: boolean
 
+      publish_douai:
+        description: "Publish only the approved pending Douai job"
+        required: false
+        default: false
+        type: boolean
+
   schedule:
     - cron: "*/5 * * * *"
 
@@ -35,9 +41,12 @@ jobs:
   publish:
 
     if: >-
-      ${{ vars.PUBLICATION_AUTOMATION_ENABLED == 'true'
-          && inputs.preactivation_test != true
-          && inputs.recover_failed_p0 != true }}
+      ${{ inputs.preactivation_test != true
+          && inputs.recover_failed_p0 != true
+          && ((vars.PUBLICATION_AUTOMATION_ENABLED == 'true'
+               && inputs.publish_douai != true)
+              || (github.event_name == 'workflow_dispatch'
+                  && inputs.publish_douai == true)) }}
 
     runs-on: ubuntu-latest
 
@@ -58,6 +67,9 @@ jobs:
 
       PUBLICATION_AUTOMATION_ENABLED:
         ${{ vars.PUBLICATION_AUTOMATION_ENABLED }}
+
+      PUBLICATION_DOUAI_MANUAL:
+        ${{ github.event_name == 'workflow_dispatch' && inputs.publish_douai == true }}
 
       PYTHONDONTWRITEBYTECODE: "1"
 
