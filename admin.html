@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dédicalivres — Admin V11</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="admin-v11.css?v=duplicate-review-1">
+  <link rel="stylesheet" href="admin-v11.css?v=event-bulk-preview-p1-5a-1">
   <link rel="stylesheet" href="admin-nfc-cockpit.css?v=nfc-cockpit-v1-layout-2">
 </head>
 
@@ -363,6 +363,33 @@
             </select>
           </label>
         </div>
+
+        <section class="v11-bulk-preview" aria-labelledby="v11-bulk-title">
+          <div class="v11-bulk-toolbar">
+            <div>
+              <p class="v11-section-label">ACTIONS GROUPÉES · PRÉVISUALISATION UNIQUEMENT</p>
+              <h3 id="v11-bulk-title">Sélection sécurisée</h3>
+              <p id="v11-bulk-selection-summary" aria-live="polite">0 événement sélectionné sur 20.</p>
+            </div>
+            <div class="v11-bulk-actions">
+              <button id="v11-bulk-select-visible" class="v11-action-button" type="button">Sélectionner les résultats visibles</button>
+              <button id="v11-bulk-clear" class="v11-action-button" type="button">Remise à zéro</button>
+              <button id="v11-bulk-preview-validate" class="v11-action-button" type="button" disabled>Prévisualiser la validation</button>
+              <button id="v11-bulk-preview-reject" class="v11-action-button danger" type="button" disabled>Prévisualiser le rejet</button>
+            </div>
+          </div>
+          <div id="v11-bulk-preview-panel" class="v11-bulk-preview-panel" hidden>
+            <div class="v11-event-detail-head">
+              <div>
+                <p class="v11-section-label">APERÇU SANS EXÉCUTION</p>
+                <h3 id="v11-bulk-preview-title">Prévisualisation</h3>
+              </div>
+              <button id="v11-bulk-preview-close" class="v11-text-button" type="button">Fermer</button>
+            </div>
+            <p id="v11-bulk-preview-status" class="v11-bulk-preview-status" aria-live="polite"></p>
+            <div id="v11-bulk-preview-list" class="v11-bulk-preview-list"></div>
+          </div>
+        </section>
 
         <div id="v11-events-loading" class="v11-inline-status">
           Chargement des événements...
@@ -2605,7 +2632,8 @@
   <script defer src="author-publication.js?v=author-publication-v2"></script>
   <script defer src="admin-event-deletion.js?v=safe-delete-1"></script>
   <script defer src="event-text-quality.js?v=p1-4-1"></script>
-  <script defer src="admin-shell.js?v=event-text-quality-p1-4-1"></script>
+  <script defer src="admin-event-bulk-preview.js?v=p1-5a-1"></script>
+  <script defer src="admin-shell.js?v=event-bulk-preview-p1-5a-1"></script>
   <script type="module" src="admin-territorial-quality.js?v=duplicate-review-1"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
   <script defer src="admin-photo-batch.js?v=photo-batch-1"></script>

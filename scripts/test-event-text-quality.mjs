@@ -38,5 +38,5 @@ assert.match(shell, /"Publication"/);
 assert.match(classic, /DEDICALIVRES_EVENT_TEXT_QUALITY/);
 assert.doesNotMatch(shell + classic, /textQuality[\s\S]{0,200}\.(?:update|insert|upsert|delete)\(/);
 assert.match(migration, /events_append_moderation_history/);
-for (const page of adminPages) assert.match(page, /admin-shell\.js\?v=event-text-quality-p1-4-1/);
+for (const page of adminPages) assert.match(page, /admin-shell\.js\?v=event-bulk-preview-p1-5a-1/);
 console.log("PASS qualité texte : détection déterministe, faux positifs protégés, lecture seule, V10/V11 et historique P1.3 préservés");

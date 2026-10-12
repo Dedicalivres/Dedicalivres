@@ -2929,8 +2929,115 @@ body.v11-is-loading .v11-app {
     grid-template-columns: 1fr;
   }
 
-  .v11-event-toolbar .v11-search-field {
+.v11-event-toolbar .v11-search-field {
     grid-column: auto;
+  }
+}
+
+.v11-bulk-preview {
+  margin: 0 0 14px;
+  padding: 14px;
+  border: 1px solid rgba(81,215,232,.18);
+  border-radius: 13px;
+  background: rgba(81,215,232,.025);
+}
+
+.v11-bulk-toolbar,
+.v11-bulk-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.v11-bulk-toolbar h3,
+.v11-bulk-toolbar p {
+  margin: 3px 0;
+}
+
+.v11-event-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.v11-event-select input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--cyan);
+}
+
+.v11-bulk-preview-panel {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.v11-bulk-preview-status {
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.v11-bulk-preview-status.is-stale {
+  color: #ffb36b;
+}
+
+.v11-bulk-preview-list {
+  display: grid;
+  gap: 9px;
+}
+
+.v11-bulk-preview-item {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255,255,255,.018);
+}
+
+.v11-bulk-preview-item header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.v11-bulk-preview-item dl {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 8px 14px;
+  margin: 10px 0 0;
+}
+
+.v11-bulk-preview-item dt {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.v11-bulk-preview-item dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 9px;
+}
+
+.v11-bulk-result {
+  white-space: nowrap;
+}
+
+.v11-bulk-result.is-ready { color: #87e8aa; }
+.v11-bulk-result.is-review { color: #ffd078; }
+.v11-bulk-result.is-blocked { color: #ff8f8f; }
+
+@media (max-width: 700px) {
+  .v11-bulk-actions,
+  .v11-bulk-actions .v11-action-button {
+    width: 100%;
+  }
+
+  .v11-bulk-preview-item dl {
+    grid-template-columns: 1fr;
   }
 }
 
