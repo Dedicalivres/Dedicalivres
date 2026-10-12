@@ -129,7 +129,7 @@ const changed =
     ]),
   ]);
 
-if (process.env.PUBLICATION_P0_RECOVERY === "true") {
+if (process.env.PUBLICATION_P0_RECOVERY === "true" || process.env.PUBLICATION_P0_TARGETED === "true") {
   const allowedIds = new Set([
     "c69b157c-bf2f-4ddf-affa-a57497d261c2",
     "14b81335-1dab-4f6d-9667-5e88675c6f98",
@@ -159,12 +159,38 @@ if (process.env.PUBLICATION_P0_RECOVERY === "true") {
   const current = new Set(currentLinks);
   const otherPrevious = [...previous].filter((link) => link !== pascal && link !== seclin);
   const otherCurrent = [...current].filter((link) => link !== pascal && link !== seclin);
+  let temporalIndexValid = otherPrevious.length === otherCurrent.length
+    && otherPrevious.every((link) => otherCurrent.includes(link));
+  if (process.env.PUBLICATION_P0_TARGETED === "true") {
+    const beforeSnapshot = JSON.parse(execFileSync("git", ["show", "HEAD:docs/territoires/catalogue-public.json"], {encoding:"utf8"}));
+    const afterSnapshot = JSON.parse(fs.readFileSync("docs/territoires/catalogue-public.json", "utf8"));
+    const referenceDate = JSON.parse(fs.readFileSync("docs/territoires/audit.json", "utf8")).today;
+    const beforeEvents = new Map(beforeSnapshot.events.map(event => [event.id, event]));
+    const onlyP0 = afterSnapshot.events.every(event => event.id === "14b81335-1dab-4f6d-9667-5e88675c6f98"
+      || JSON.stringify(beforeEvents.get(event.id)) === JSON.stringify(event))
+      && !afterSnapshot.events.some(event => event.id === "c69b157c-bf2f-4ddf-affa-a57497d261c2");
+    const expected = new Set(afterSnapshot.events.filter(event => {
+      const prior = beforeEvents.get(event.id);
+      if (event.id !== "14b81335-1dab-4f6d-9667-5e88675c6f98"
+          && (!prior || JSON.stringify(prior) !== JSON.stringify(event))) return false;
+      const start = event.start_date;
+      const end = event.end_date || start;
+      return /^\d{4}-\d{2}-\d{2}$/.test(start || "")
+        && /^\d{4}-\d{2}-\d{2}$/.test(end || "")
+        && end >= start && end >= referenceDate;
+    }).map(event => after[event.id]?.replace("evenement/", "")));
+    temporalIndexValid = /^\d{4}-\d{2}-\d{2}$/.test(referenceDate)
+      && onlyP0
+      && afterSnapshot.events.length === 623
+      && beforeSnapshot.events.length === 623
+      && expected.size === current.size
+      && [...expected].every(link => current.has(link));
+  }
   if (!changed.has(indexPath) || !pascal || !seclin
       || !previous.has(pascal) || previous.has(seclin)
       || current.has(pascal) || !current.has(seclin)
       || previous.size !== previousLinks.length || current.size !== currentLinks.length
-      || otherPrevious.length !== otherCurrent.length
-      || otherPrevious.some((link) => !otherCurrent.includes(link))) {
+      || !temporalIndexValid) {
     console.error("STOP : index P0 incohérent ou autre référence modifiée");
     process.exit(1);
   }

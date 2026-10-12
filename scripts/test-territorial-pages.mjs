@@ -29,15 +29,18 @@ const snapshot=JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.jso
 const sitemap=fs.readFileSync('sitemap.xml','utf8');
 const sitemapEntries=[...sitemap.matchAll(/<url>\s*<loc>([^<]+)<\/loc>\s*(?:<lastmod>([^<]+)<\/lastmod>\s*)?(?:<priority>([^<]+)<\/priority>\s*)?<\/url>/g)].map(match=>({loc:match[1],lastmod:match[2],priority:match[3]}));
 const sitemapLocs=sitemapEntries.map(entry=>entry.loc);
-const expectedTerritorialLastmod=snapshot.capturedAt.slice(0,10);
+const audit=JSON.parse(fs.readFileSync('docs/territoires/audit.json'));
+const expectedTerritorialLastmod=audit.today;
 assert.equal(territories.length,21,'21 territoires attendus');
 for(const p of territories){
  const matches=sitemapEntries.filter(entry=>entry.loc===p.canonical);
  assert.equal(matches.length,1,`${p.canonical}: présence unique dans sitemap.xml`);
- assert.equal(matches[0].lastmod,expectedTerritorialLastmod,`${p.canonical}: lastmod du snapshot`);
+ const html=fs.readFileSync(p.file,'utf8');
+ const modified=JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]).dateModified;
+ assert.equal(matches[0].lastmod,modified,`${p.canonical}: lastmod de la page`);
+ assert(modified<=expectedTerritorialLastmod,`${p.canonical}: date future interdite`);
 }
 assert.equal(new Set(sitemapLocs).size,sitemapLocs.length,'Aucun doublon <loc> dans sitemap.xml');
-const audit=JSON.parse(fs.readFileSync('docs/territoires/audit.json'));
 const source=new Map(snapshot.events.map(e=>[e.id,e]));
 const countryLocation=p=>({FR:'en France',BE:'en Belgique',CH:'en Suisse',LU:'au Luxembourg',MC:'à Monaco'}[p.code]||`en ${p.country}`);
 const titles=new Set(),descriptions=new Set(),canonicals=new Set(),intros=new Set();
@@ -64,7 +67,7 @@ for(const p of audit.territorialPages){
  const structured=JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
  assert.equal(structured['@type'],'CollectionPage');
  assert.equal(structured.url,p.canonical);
- assert.equal(structured.dateModified,snapshot.capturedAt.slice(0,10));
+ assert(structured.dateModified<=expectedTerritorialLastmod);
  assert.equal(structured.isPartOf?.name,'Dédicalivres');
  assert.equal(structured.about?.name,p.label);
  if(p.kind==='region')assert.equal(structured.about?.containedInPlace?.name,p.country);

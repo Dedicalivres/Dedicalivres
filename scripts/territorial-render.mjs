@@ -23,8 +23,9 @@ function navigation(p){
 }
 
 
-export function renderTerritory({p,events,registry,verified={},capturedAt,live=false,archivePageCount}){
- const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris'}).format(new Date(capturedAt));
+export function renderTerritory({p,events,registry,verified={},capturedAt,referenceDate,live=false,archivePageCount}){
+ const captureDate=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris'}).format(new Date(capturedAt));
+ const today=referenceDate||captureDate;
  const {accepted}=qualify(events,registry,[],today);
 function item(e){
  const note=verified[e.id];
@@ -50,7 +51,7 @@ function list(rows){return rows.length?`<ul class="territory-list">${rows.map(it
   const slice=archiveRows.slice(index*50,number*50);
   const main=`<main id="archive-content" class="container seo-content" data-archive-page="${number}">
  <nav class="territory-breadcrumb" aria-label="Fil d’Ariane"><a href="index.html">Accueil</a><span aria-hidden="true">›</span><a href="evenements-litteraires-france.html">France</a><span aria-hidden="true">›</span><span aria-current="page">Archives ${number}</span></nav>
- <h1>Archives des événements littéraires en France — page ${number}</h1><p>Archives du catalogue France, capture du <time datetime="${capturedAt}">${date(today)}</time>. Page ${number} sur ${archiveTotal}.</p>
+ <h1>Archives des événements littéraires en France — page ${number}</h1><p>Archives du catalogue France, capture du <time datetime="${capturedAt}">${date(captureDate)}</time>. Page ${number} sur ${archiveTotal}.</p>
  <section id="archives" aria-labelledby="archive-title"><h2 id="archive-title">Événements passés</h2>${list(slice)}</section>
  <nav aria-label="Pagination des archives"><p>${number>1?`<a href="${archiveFile(number-1)}">Archives précédentes</a> · `:''}<a href="evenements-litteraires-france.html">Retour à l’agenda France</a>${number<archiveTotal?` · <a href="${archiveFile(number+1)}">Archives suivantes</a>`:''}</p></nav></main>`;
   return {file:archiveFile(number),main,ids:slice.map(e=>e.id)};
@@ -60,7 +61,7 @@ function list(rows){return rows.length?`<ul class="territory-list">${rows.map(it
  const main=`<main id="territory-content" class="container seo-content" data-territory-id="${p.id}" data-as-of="${today}">
  <nav class="territory-breadcrumb" aria-label="Fil d’Ariane"><a href="index.html">Accueil</a><span aria-hidden="true">›</span>${p.kind==='region'?`<a href="${p.countryUrl}">${p.country}</a><span aria-hidden="true">›</span>`:''}<span aria-current="page">${p.label}</span></nav>
  ${p.image?`${p.imageWebp?`<picture style="display:block"><source type="image/webp" srcset="${esc(p.imageWebp)}" sizes="(max-width: 1152px) calc(100vw - 32px), 1120px">`:''}<img class="territory-banner" src="${esc(p.image)}" width="${p.imageWidth}" height="${p.imageHeight}" alt="${esc(p.country)} · ${esc(p.label)}" fetchpriority="high">${p.imageWebp?'</picture>':''}`:''}
- <section class="territory-hero"><p class="territory-kicker">Explorer les régions · ${p.country}</p><h1>Les rendez-vous du livre en ${p.label}</h1><p>${territoryIntro(p)}</p><p>${p.creation}<br>Dernière actualisation de ce catalogue : <time datetime="${capturedAt}">${date(today)}</time> (capture publique à ${capturedAt.slice(11,16)} UTC).</p></section>
+ <section class="territory-hero"><p class="territory-kicker">Explorer les régions · ${p.country}</p><h1>Les rendez-vous du livre en ${p.label}</h1><p>${territoryIntro(p)}</p><p>${p.creation}<br>Dernière actualisation de ce catalogue : <time datetime="${capturedAt}">${date(captureDate)}</time> (capture publique à ${capturedAt.slice(11,16)} UTC).</p></section>
  ${navigation(p)}
  ${p.editorial?`<div class="territory-editorial">${p.editorial}</div>`:''}
  <p id="territory-refresh-status" role="status">${live?"Catalogue public actualisé.":"Catalogue enregistré à la date indiquée ci-dessus."}</p><button id="territory-refresh" class="btn-secondary" type="button" hidden>Actualiser le catalogue</button>
