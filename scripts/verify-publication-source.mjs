@@ -21,6 +21,13 @@ export function assertSourceSame(captured, current) {
   }
 }
 
+export function assertTerritorialSame(snapshot, current) {
+  if (!snapshot || !Array.isArray(snapshot.events)) stop('capture territoriale absente');
+  const fields = PUBLIC_EVENT_FIELDS.split(',');
+  const projected = current.map(row => Object.fromEntries(fields.map(name => [name, row[name]])));
+  assertSourceSame(snapshot.events, projected);
+}
+
 export async function fetchSource(url, key, request = fetch) {
   if (!url || !key) stop('configuration publique absente');
   const rows = [];
@@ -46,5 +53,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const captured = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
   const current = await fetchSource(process.env.DEDICALIVRES_SUPABASE_URL, process.env.DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY);
   assertSourceSame(captured, current);
+  const territorial = JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json', 'utf8'));
+  assertTerritorialSame(territorial, current);
   console.log(`PASS source publique inchangée : ${current.length} événements`);
 }

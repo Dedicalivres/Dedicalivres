@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {
   parseJobs, assertCatalog, assertManifest, assertEnrichment, assertIndex, assertSitemap, metadataOnlyAggregate,
 } from './project-targeted-publication.mjs';
-import {assertSourceSame, FIELDS, fetchSource} from './verify-publication-source.mjs';
+import {assertSourceSame, assertTerritorialSame, FIELDS, fetchSource} from './verify-publication-source.mjs';
 import {PUBLIC_EVENT_FIELDS} from './territorial-catalog.mjs';
 import {temporalStatus} from './project-p0-publication.mjs';
 
@@ -151,3 +151,10 @@ run('25 lieu précis changé sans preuve STOP', () => assert.throws(() =>
 run('26 adresse enrichie changée sans preuve STOP', () => assert.throws(() =>
   assertEnrichment(place({name:'Mairie',city:'Lalouvesc',street:'21 rue des Cévennes'}),
     place({name:'Mairie',city:'Lalouvesc',street:'2 rue du Marché'})), /adresse/));
+run('27 capture territoriale cohérente PASS', () => assertTerritorialSame(
+  {events:[{id:ownId, title:'Titre', start_date:'2026-10-17', registration_force_status:null}]}, captured));
+run('28 statut transitoire vu par territoires STOP', () => {
+  assertSourceSame(captured, structuredClone(captured));
+  assert.throws(() => assertTerritorialSame(
+    {events:[{id:ownId, title:'Titre', start_date:'2026-10-17', registration_force_status:'annule'}]}, captured), /pendant/);
+});
