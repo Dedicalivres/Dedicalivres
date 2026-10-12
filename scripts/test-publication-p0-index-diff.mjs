@@ -8,14 +8,21 @@ const root = process.cwd();
 const checker = path.join(root, "scripts/check-publication-diff.mjs");
 const pascalId = "c69b157c-bf2f-4ddf-affa-a57497d261c2";
 const seclinId = "14b81335-1dab-4f6d-9667-5e88675c6f98";
-const baselineMap = JSON.parse(fs.readFileSync(path.join(root, "docs/territoires/event-canonical-map.json"), "utf8"));
-const baselineIndex = fs.readFileSync(path.join(root, "evenement/index.html"), "utf8");
+// Rejouer l'état antérieur à #210 : le corpus courant a déjà publié Seclin.
+const thirdId = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+const baselineMap = {
+  [pascalId]: "evenement/pascal.html",
+  [thirdId]: "evenement/autre.html",
+};
+const baselineIndex = [
+  '<a class="card" href="pascal.html">Pascal Neufville · 21 novembre 2026</a>',
+  '<a class="card" href="autre.html">Autre événement</a>',
+].join("\n");
 const pascalPath = baselineMap[pascalId];
 const seclinPath = `evenement/rencontre-litteraire-seclin-${seclinId}.html`;
 const pascalCard = baselineIndex.split("\n").find((line) => line.includes(path.basename(pascalPath)));
 const thirdCard = baselineIndex.split("\n").find((line) => line.startsWith('<a class="card"') && line !== pascalCard);
 const thirdPath = `evenement/${thirdCard?.match(/href="([^"]+)"/)?.[1]}`;
-const thirdId = Object.keys(baselineMap).find((id) => baselineMap[id] === thirdPath);
 const seclinCard = `<a class="card" href="${path.basename(seclinPath)}"><div class="t">Rencontre littéraire</div><div class="s">Dédicace · Seclin, Hauts-de-France · 24 octobre 2026</div></a>`;
 
 assert.ok(pascalCard?.includes("21 novembre 2026"));

@@ -26,7 +26,7 @@ fi
 
 cd "$ROOT"
 
-if [[ "${PUBLICATION_P0_TARGETED:-false}" == "true" ]]; then
+if [[ "${PUBLICATION_P0_TARGETED:-false}" == "true" || "${PUBLICATION_TARGETED:-false}" == "true" ]]; then
   if [[ -z "${PUBLICATION_REFERENCE_DATE:-}" ]]; then
     PUBLICATION_REFERENCE_DATE="$(node -e 'process.stdout.write(new Intl.DateTimeFormat("sv-SE", {timeZone:"Europe/Paris"}).format(new Date()))')"
   fi
@@ -51,6 +51,11 @@ if [[ -n "$(git status --porcelain)" ]]; then
   echo
   echo "STOP : dépôt non propre."
   git status --short
+  exit 1
+fi
+
+if [[ "$MODE" == "--apply" && "${PUBLICATION_P0_TARGETED:-false}" != "true" && "${PUBLICATION_TARGETED:-false}" != "true" ]]; then
+  echo "STOP : copie globale désactivée ; autorisations de jobs requises."
   exit 1
 fi
 
@@ -335,7 +340,7 @@ if len(entries) != len(new) + 1:
     )
 
 
-if os.environ.get("PUBLICATION_P0_TARGETED") != "true":
+if os.environ.get("PUBLICATION_P0_TARGETED") != "true" and os.environ.get("PUBLICATION_TARGETED") != "true":
     for name in authorized_removed:
         target = root / "evenement" / name
         if not target.exists():
@@ -354,14 +359,11 @@ echo "=== COPIE VERS LE WORKTREE ==="
 
 if [[ "${PUBLICATION_P0_TARGETED:-false}" == "true" ]]; then
   node scripts/project-p0-publication.mjs pages "$EXPORT"
+elif [[ "${PUBLICATION_TARGETED:-false}" == "true" ]]; then
+  node scripts/project-targeted-publication.mjs pages "$EXPORT"
 else
-  rsync -a \
-    "$EXPORT/evenement/" \
-    "$ROOT/evenement/"
-
-  cp \
-    "$EXPORT/sitemap-evenements.xml" \
-    "$ROOT/sitemap-evenements.xml"
+  echo "STOP : mode de projection non reconnu."
+  exit 1
 fi
 
 echo
@@ -390,6 +392,8 @@ node scripts/build-author-pages.mjs
 
 if [[ "${PUBLICATION_P0_TARGETED:-false}" == "true" ]]; then
   node scripts/project-p0-publication.mjs aggregates
+elif [[ "${PUBLICATION_TARGETED:-false}" == "true" ]]; then
+  node scripts/project-targeted-publication.mjs aggregates
 fi
 
 echo

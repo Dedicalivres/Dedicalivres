@@ -371,6 +371,11 @@ async function claimRecovery() {
 
   setOutput("depublish_event_ids", JSON.stringify([withdrawn.target_event_id]));
   setOutput("depublish_paths", JSON.stringify([path]));
+  setOutput("publication_jobs", JSON.stringify(rows.map((row) => ({
+    id: row.id,
+    event_id: targetEventId(row),
+    reason: row.reason,
+  }))));
   setOutput("has_jobs", "true");
   setOutput("batch_id", batchId);
   setOutput("job_count", "2");
@@ -875,6 +880,15 @@ async function claim() {
   setOutput(
     "has_jobs",
     "true"
+  );
+
+  setOutput(
+    "publication_jobs",
+    JSON.stringify(publishable.map((row) => ({
+      id: row.id,
+      event_id: targetEventId(row) || null,
+      reason: row.reason,
+    })))
   );
 
   setOutput(

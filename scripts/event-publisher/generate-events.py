@@ -643,7 +643,7 @@ def _non_event_inventory(root):
     root = Path(root)
     if not root.is_dir():
         return {}
-    generated = {MANIFEST_NAME, REPORT_NAME, 'sitemap-evenements.xml'}
+    generated = {MANIFEST_NAME, REPORT_NAME, 'sitemap-evenements.xml', 'public-events-source.json'}
     result = {}
     for path in root.rglob('*'):
         if not path.is_file():
@@ -694,7 +694,7 @@ def _validate_staged(events, staged_root, base_url, sitemap_name, preserved_befo
     if _non_event_inventory(root) != preserved_before:
         raise GenerationSeoError('un fichier hors corpus événement a été modifié')
 
-def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=False, progressive_event_ids=frozenset(), authorized_depublication_ids=frozenset()):
+def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=False, progressive_event_ids=frozenset(), authorized_depublication_ids=frozenset(), source_rows=None):
     reference = os.environ.get('PUBLICATION_REFERENCE_DATE')
     if reference:
         try:
@@ -751,6 +751,10 @@ def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=F
         (staging / sitemap_name).write_text(sitemap(events, base_url, reference_date), encoding='utf-8')
         manifest = {'version': 1, 'source': 'supabase.events', 'events': {str(event['id']): event['_slug'] for event in events}}
         (staging / MANIFEST_NAME).write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        if source_rows is not None:
+            (staging / 'public-events-source.json').write_text(
+                json.dumps(source_rows, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+            )
         _validate_staged(events, staging, base_url, sitemap_name, preserved_before)
         report = _build_report(events, output, staging, sitemap_name)
         (staging / REPORT_NAME).write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
@@ -813,7 +817,7 @@ def main():
         static_slugs = appliquer_slugs_statiques_existants(events, args.existing_event_pages) if args.existing_event_pages else 0
         attribuer_slugs(events)
         events.sort(key=lambda event: (iso_date(event['date_debut']) or '9999', str(event['id'])))
-        report = generer_sortie_atomique(events, output, base_url=args.base_url.rstrip('/'), sitemap_name=args.sitemap_name, dry_run=args.dry_run, progressive_event_ids=args.progressive_event_id, authorized_depublication_ids=args.authorized_depublication_event_id)
+        report = generer_sortie_atomique(events, output, base_url=args.base_url.rstrip('/'), sitemap_name=args.sitemap_name, dry_run=args.dry_run, progressive_event_ids=args.progressive_event_id, authorized_depublication_ids=args.authorized_depublication_event_id, source_rows=rows if os.environ.get('PUBLICATION_TARGETED') == 'true' else None)
         _print_report(report, dry_run=args.dry_run)
         print(f"SLUGS_PRESERVES=remote:{slug_sources['remote']},exact:{slug_sources['exact']},uuid:{slug_sources['uuid']}")
         print(f'SLUGS_STATIQUES_PRESERVES={static_slugs}')
