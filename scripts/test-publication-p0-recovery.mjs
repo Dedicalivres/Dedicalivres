@@ -166,7 +166,7 @@ for (const change of [
 
 const disabled = fixture();
 await assert.rejects(invoke(disabled, "claim", [], { PUBLICATION_AUTOMATION_ENABLED: "true" }), /incompatible/);
-await assert.rejects(invoke(disabled, "claim", [], { PUBLICATION_PREACTIVATION_TEST: "true" }), /incompatible/);
+await assert.rejects(invoke(disabled, "claim", [], { PUBLICATION_PREACTIVATION_TEST: "true" }), /préactivation réelle retirée/);
 assert.equal(disabled.patches.length, 0);
 
 console.log("PASS reprise P0 : deux IDs, états métier, concurrence, historique et exécution unique");

@@ -441,7 +441,12 @@ assert.match(
 
 assert.match(
   workflow,
-  /PASS préactivation : zéro diff généré\./
+  /inputs\.preactivation_test != true/
+);
+
+assert.match(
+  worker,
+  /préactivation réelle retirée ; utiliser les tests PostgreSQL isolés/
 );
 
 

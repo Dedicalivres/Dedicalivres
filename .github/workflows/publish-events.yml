@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       preactivation_test:
-        description: "Run one isolated preactivation test while scheduled automation remains disabled"
+        description: "Retired: use local isolated PostgreSQL tests; this input cannot publish"
         required: false
         default: false
         type: boolean
       recover_failed_p0:
-        description: "One recovery attempt for the two named P0 publication jobs"
+        description: "Retired: historical P0 jobs must never be retried"
         required: false
         default: false
         type: boolean
@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 
 concurrency:
@@ -32,20 +33,9 @@ jobs:
   publish:
 
     if: >-
-      ${{
-        (vars.PUBLICATION_AUTOMATION_ENABLED == 'true' && inputs.recover_failed_p0 != true)
-        || (
-          github.event_name == 'workflow_dispatch'
-          && inputs.preactivation_test == true
-          && inputs.recover_failed_p0 != true
-        )
-        || (
-          github.event_name == 'workflow_dispatch'
-          && vars.PUBLICATION_AUTOMATION_ENABLED == 'false'
-          && inputs.recover_failed_p0 == true
+      ${{ vars.PUBLICATION_AUTOMATION_ENABLED == 'true'
           && inputs.preactivation_test != true
-        )
-      }}
+          && inputs.recover_failed_p0 != true }}
 
     runs-on: ubuntu-latest
 
@@ -60,10 +50,10 @@ jobs:
         ${{ secrets.DEDICALIVRES_SUPABASE_SECRET_KEY }}
 
       PUBLICATION_PREACTIVATION_TEST:
-        ${{ vars.PUBLICATION_AUTOMATION_ENABLED != 'true' && github.event_name == 'workflow_dispatch' && inputs.preactivation_test == true && inputs.recover_failed_p0 != true }}
+        "false"
 
       PUBLICATION_P0_RECOVERY:
-        ${{ vars.PUBLICATION_AUTOMATION_ENABLED == 'false' && github.event_name == 'workflow_dispatch' && inputs.recover_failed_p0 == true && inputs.preactivation_test != true }}
+        "false"
 
       PUBLICATION_AUTOMATION_ENABLED:
         ${{ vars.PUBLICATION_AUTOMATION_ENABLED }}
@@ -101,18 +91,7 @@ jobs:
           python-version: "3.11"
 
 
-      - name: Claim publication jobs
-        id: claim
-
-        run: |
-          node \
-            scripts/publication-jobs.mjs \
-            claim
-
-
       - name: Read public Supabase configuration
-        if: steps.claim.outputs.has_jobs == 'true'
-
         run: |
           node --input-type=module - <<'NODE'
           import fs from "node:fs";
@@ -152,14 +131,21 @@ jobs:
 
 
       - name: Install publisher dependencies
-        if: steps.claim.outputs.has_jobs == 'true'
-
         run: |
           if [[ -s scripts/event-publisher/requirements.txt ]]
           then
             python -m pip install \
               -r scripts/event-publisher/requirements.txt
           fi
+
+
+      - name: Claim publication jobs
+        id: claim
+
+        run: |
+          node \
+            scripts/publication-jobs.mjs \
+            claim
 
 
       - name: Generate static publication
@@ -213,35 +199,6 @@ jobs:
             "$EVENT_PUBLISHER_EXPORT_DIR/public-events-source.json"
 
 
-      - name: Recheck P0 recovery event states
-        if: steps.claim.outputs.has_jobs == 'true' && env.PUBLICATION_P0_RECOVERY == 'true'
-
-        run: |
-          node \
-            scripts/publication-jobs.mjs \
-            verify-recovery \
-            "${{ steps.claim.outputs.batch_id }}"
-
-
-      - name: Enforce isolated preactivation no-op
-        if: steps.claim.outputs.has_jobs == 'true' && env.PUBLICATION_PREACTIVATION_TEST == 'true'
-
-        run: |
-          set -euo pipefail
-
-          if             ! git diff --quiet             || [[ -n "$(git status --porcelain)" ]]
-          then
-            echo "STOP : le test de préactivation a généré des modifications."
-            echo "Aucun push ne sera autorisé."
-
-            git status --short
-
-            exit 1
-          fi
-
-          echo "PASS préactivation : zéro diff généré."
-
-
       - name: Commit and push publication
         id: publish
 
@@ -286,6 +243,10 @@ jobs:
           git commit \
             -m "chore(publication): publish validated events"
 
+          # Written before push: an interruption or rejected push must not
+          # automatically requeue a batch whose commit may already exist.
+          echo "commit_created=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
           git push \
             origin \
@@ -296,111 +257,41 @@ jobs:
             "changed=true" \
             >> "$GITHUB_OUTPUT"
 
-          echo \
-            "sha=$(git rev-parse HEAD)" \
-            >> "$GITHUB_OUTPUT"
-
-
       - name: Verify production deployment
+        id: deployment
         if: steps.claim.outputs.has_jobs == 'true'
 
         env:
           PUBLICATION_SHA:
             ${{ steps.publish.outputs.sha }}
+          PUBLICATION_JOBS:
+            ${{ steps.claim.outputs.publication_jobs }}
+          PUBLICATION_DEPUBLISH_PATHS:
+            ${{ steps.claim.outputs.depublish_paths }}
+          GITHUB_TOKEN:
+            ${{ github.token }}
 
         run: |
-          set -euo pipefail
+          node scripts/verify-publication-deployment.mjs
 
-          local_sitemap="$(
-            sha256sum sitemap-evenements.xml \
-              | awk '{print $1}'
-          )"
-
-          local_canonical="$(
-            sha256sum event-canonical.js \
-              | awk '{print $1}'
-          )"
-
-          local_home="$(
-            sha256sum index.html \
-              | awk '{print $1}'
-          )"
-
-          deployed=0
-
-          for attempt in $(seq 1 60)
-          do
-
-            cache="${PUBLICATION_SHA}-${attempt}"
-
-            curl \
-              -fsSL \
-              "https://dedicalivres.fr/sitemap-evenements.xml?publication=${cache}" \
-              -o /tmp/sitemap.xml \
-              || true
-
-            curl \
-              -fsSL \
-              "https://dedicalivres.fr/event-canonical.js?publication=${cache}" \
-              -o /tmp/event-canonical.js \
-              || true
-
-            curl \
-              -fsSL \
-              "https://dedicalivres.fr/?publication=${cache}" \
-              -o /tmp/index.html \
-              || true
-
-            remote_sitemap="$(
-              [[ -f /tmp/sitemap.xml ]] \
-                && sha256sum /tmp/sitemap.xml \
-                  | awk '{print $1}' \
-                || true
-            )"
-
-            remote_canonical="$(
-              [[ -f /tmp/event-canonical.js ]] \
-                && sha256sum /tmp/event-canonical.js \
-                  | awk '{print $1}' \
-                || true
-            )"
-
-            remote_home="$(
-              [[ -f /tmp/index.html ]] \
-                && sha256sum /tmp/index.html \
-                  | awk '{print $1}' \
-                || true
-            )"
-
-            if \
-              [[ "$remote_sitemap" == "$local_sitemap" ]] \
-              && [[ "$remote_canonical" == "$local_canonical" ]] \
-              && [[ "$remote_home" == "$local_home" ]]
-            then
-              echo "Production synchronisée."
-
-              deployed=1
-
-              break
-            fi
-
-            echo \
-              "Déploiement en attente : ${attempt}/60"
-
-            sleep 10
-          done
-
-          if [[ "$deployed" != "1" ]]
-          then
-            echo \
-              "STOP : production non synchronisée après 10 minutes."
-
-            exit 1
-          fi
+      - name: Recheck source after deployment
+        if: steps.claim.outputs.has_jobs == 'true'
+        env:
+          EVENT_PUBLISHER_EXPORT_DIR:
+            ${{ runner.temp }}/dedicalivres-site-seo
+        run: |
+          node scripts/verify-publication-source.mjs \
+            "$EVENT_PUBLISHER_EXPORT_DIR/public-events-source.json"
 
 
       - name: Mark jobs successful
         if: success() && steps.claim.outputs.has_jobs == 'true'
+
+        env:
+          PUBLICATION_JOBS:
+            ${{ steps.claim.outputs.publication_jobs }}
+          PUBLICATION_DEPLOYMENT_PROOF:
+            ${{ steps.deployment.outputs.proof }}
 
         run: |
           node \
@@ -411,14 +302,29 @@ jobs:
 
 
       - name: Requeue or fail jobs
-        if: failure() && steps.claim.outputs.has_jobs == 'true'
+        if: >-
+          ${{ failure() && steps.claim.outputs.has_jobs == 'true'
+              && steps.publish.outcome != 'success'
+              && steps.publish.outputs.commit_created != 'true' }}
 
         env:
           PUBLICATION_ERROR:
             GitHub Actions publication failed
+          PUBLICATION_JOBS:
+            ${{ steps.claim.outputs.publication_jobs }}
 
         run: |
           node \
             scripts/publication-jobs.mjs \
             fail \
             "${{ steps.claim.outputs.batch_id }}"
+
+      - name: Hold uncertain publication for manual review
+        if: >-
+          ${{ failure() && steps.claim.outputs.has_jobs == 'true'
+              && (steps.publish.outcome == 'success'
+                  || steps.publish.outputs.commit_created == 'true') }}
+        run: |
+          echo "STOP : résultat du commit ou du déploiement incertain."
+          echo "Le batch reste RUNNING ; vérifier GitHub Pages et le site avant toute reprise."
+          exit 1
