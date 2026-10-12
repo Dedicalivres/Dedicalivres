@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-12T05:25:24.878Z",
+  "capturedAt": "2026-10-12T20:09:02.865Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -6819,6 +6819,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://data.datatourisme.fr/23/d579a6e1-bbb9-37f9-88ab-0afa8d303575"
+    },
+    {
+      "id": "d04e32a8-1f92-4068-bf73-d17e672950aa",
+      "title": "Dédicace",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Hauts-de-France",
+      "city": "Douai",
+      "start_date": "2026-10-17",
+      "end_date": "2026-10-17",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "d1262155-dfb6-43df-87fa-c5b45146941d",

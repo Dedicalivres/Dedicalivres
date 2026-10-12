@@ -625,7 +625,8 @@
   "3d509e99-5e2d-478d-9300-f86ba6c478f6": "evenement/dedicace-dylan-heskin-cultura-brest-brest-3d509e99-5e2d-478d-9300-f86ba6c478f6.html",
   "f2df9ae0-6164-440e-8b67-1adafff70182": "evenement/dedicace-dylan-heskin-espace-culturel-e-leclerc-queven-queven-f2df9ae0-6164-440e-8b67-1adafff70182.html",
   "e319b179-8986-4543-9ace-215839fbe46e": "evenement/oasis-litteraire-salon-de-la-culture-litteraire-independante-escalquen-e319b179-8986-4543-9ace-215839fbe46e.html",
-  "14b81335-1dab-4f6d-9667-5e88675c6f98": "evenement/rencontre-litteraire-et-seance-de-dedicaces-a-seclin-seclin-14b81335-1dab-4f6d-9667-5e88675c6f98.html"
+  "14b81335-1dab-4f6d-9667-5e88675c6f98": "evenement/rencontre-litteraire-et-seance-de-dedicaces-a-seclin-seclin-14b81335-1dab-4f6d-9667-5e88675c6f98.html",
+  "d04e32a8-1f92-4068-bf73-d17e672950aa": "evenement/dedicace-douai-d04e32a8-1f92-4068-bf73-d17e672950aa.html"
 });
 
   function eventId(value) {
