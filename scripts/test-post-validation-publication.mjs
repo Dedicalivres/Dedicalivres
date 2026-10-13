@@ -93,6 +93,16 @@ const lifecycle =
     "utf8"
   );
 
+const batchStateMachine = fs.readFileSync(
+  "supabase/migrations/20261012155223_publication_batch_state_machine.sql",
+  "utf8"
+);
+
+const initialJobs = fs.readFileSync(
+  "supabase/migrations/20261006193158_event_publication_jobs.sql",
+  "utf8"
+);
+
 
 const legacy =
   JSON.parse(
@@ -184,6 +194,11 @@ assert.match(
 
 assert.match(
   lifecycle,
+  /tg_op = 'DELETE'[\s\S]*target_id\s*:=\s*old\.id[\s\S]*live_event_id\s*:=\s*null[\s\S]*job_reason\s*:=\s*'delete'/
+);
+
+assert.match(
+  lifecycle,
   /'unpublish'/
 );
 
@@ -202,6 +217,64 @@ assert.match(
 assert.match(
   lifecycle,
   /coalesce\(\s*job\.event_id,\s*job\.target_event_id\s*\)/s
+);
+
+// Plusieurs décisions successives consolident le PENDING courant sans toucher
+// aux FAILED historiques ni aux RUNNING incertains.
+assert.match(
+  lifecycle,
+  /on conflict \(event_id\)[\s\S]*status = 'PENDING'[\s\S]*reason\s*=\s*excluded\.reason[\s\S]*requested_at\s*=\s*excluded\.requested_at/
+);
+
+assert.match(
+  batchStateMachine,
+  /pg_try_advisory_xact_lock[\s\S]*PUBLICATION_BATCH_CONCURRENT_CLAIM/
+);
+
+assert.match(
+  batchStateMachine,
+  /exists \(select 1 from public\.event_publication_jobs where status = 'RUNNING'\)[\s\S]*PUBLICATION_BATCH_ALREADY_RUNNING/
+);
+
+assert.match(
+  batchStateMachine,
+  /j\.status = 'PENDING'[\s\S]*j\.reason is not distinct from x\.reason[\s\S]*j\.requested_at is not distinct from x\.requested_at[\s\S]*PUBLICATION_BATCH_STALE_SELECTION/
+);
+
+assert.match(
+  batchStateMachine,
+  /newer\.status = 'PENDING'[\s\S]*then 'FAILED'/
+);
+
+// Régression documentée : après DELETE, la FK annule event_id sur l'ancien
+// PENDING tandis que le trigger insère un second PENDING delete. L'index partiel
+// ne déduplique pas ces deux lignes par target_event_id.
+assert.match(
+  initialJobs,
+  /event_id uuid[\s\S]*references public\.events\(id\)[\s\S]*on delete set null/
+);
+
+assert.match(
+  initialJobs,
+  /create unique index[\s\S]*event_publication_jobs_one_pending_per_event_idx[\s\S]*on public\.event_publication_jobs \(\s*event_id\s*\)[\s\S]*event_id is not null[\s\S]*status = 'PENDING'/
+);
+
+const deletedTarget = "22222222-2222-4222-8222-222222222222";
+const pendingAfterDelete = [
+  { event_id: null, target_event_id: deletedTarget, reason: "edit" },
+  { event_id: null, target_event_id: deletedTarget, reason: "delete" },
+];
+assert.equal(pendingAfterDelete.length, 2);
+assert.equal(new Set(pendingAfterDelete.map((row) => row.target_event_id)).size, 1);
+
+// Modèle explicatif uniquement, pas une exécution PostgreSQL : événement absent,
+// donc seul delete satisfait le prédicat métier atomique et le lot de deux échoue.
+const matchedWithoutEvent = pendingAfterDelete.filter((row) => row.reason === "delete");
+assert.equal(matchedWithoutEvent.length, 1);
+assert.notEqual(matchedWithoutEvent.length, pendingAfterDelete.length);
+assert.match(
+  batchStateMachine,
+  /j\.reason in \('validation', 'edit'\)[\s\S]*exists \([\s\S]*public\.events[\s\S]*j\.reason = 'delete'[\s\S]*not exists \([\s\S]*public\.events[\s\S]*matched_count <> expected_count[\s\S]*PUBLICATION_BATCH_STALE_SELECTION/
 );
 
 
