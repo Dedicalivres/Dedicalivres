@@ -27,6 +27,9 @@ jobs:
       - name: Test preserved Douai manual mode
         run: node scripts/test-publication-douai-manual.mjs
 
+      - name: Test selected manual PREVIEW and EXECUTE
+        run: node scripts/test-publication-manual-selected.mjs
+
       - name: Test publication incident observation
         run: node scripts/test-publication-incident-health.mjs
 
@@ -41,3 +44,6 @@ jobs:
 
       - name: Test pending DELETE coalescence on disposable PostgreSQL
         run: bash scripts/test-p0c3c-delete-pending.sh
+
+      - name: Test atomic batch reservation on disposable PostgreSQL
+        run: bash scripts/test-publication-batch-state.sh

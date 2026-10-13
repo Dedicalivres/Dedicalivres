@@ -1,5 +1,6 @@
 import {
   randomUUID,
+  createHash,
 } from "node:crypto";
 
 import fs from "node:fs";
@@ -23,6 +24,11 @@ const P0_RECOVERY =
 const DOUAI_MANUAL =
   process.env.PUBLICATION_DOUAI_MANUAL
   === "true";
+
+const MANUAL_MODE = process.env.PUBLICATION_MANUAL_MODE || "";
+const MANUAL_IDS = process.env.PUBLICATION_MANUAL_JOB_IDS || "";
+const MANUAL_FINGERPRINT = process.env.PUBLICATION_MANUAL_FINGERPRINT || "";
+const MANUAL_CONFIRMATION = process.env.PUBLICATION_MANUAL_CONFIRMATION || "";
 
 const DOUAI_JOB = {
   id: "af1a386a-1b9d-4eeb-b162-6b34c32d667b",
@@ -282,6 +288,11 @@ function publicationJobFilter(
 }
 
 async function preflight() {
+  if (MANUAL_MODE === "execute") {
+    await selectedBatch(true);
+    setOutput("has_pending", "true");
+    return;
+  }
   if (DOUAI_MANUAL) {
     setOutput("has_pending", "true");
     console.log("Mode Douai : précontrôle général ignoré");
@@ -310,6 +321,131 @@ async function preflight() {
   const hasPending = rows.length > 0;
   setOutput("has_pending", String(hasPending));
   console.log(hasPending ? "File de publication non vide." : "File de publication vide.");
+}
+
+function selectedIds() {
+  const ids = MANUAL_IDS.split(/[\s,]+/).filter(Boolean).map((id) => id.toLowerCase());
+  if (ids.length < 1 || ids.length > AUTOMATIC_BATCH_LIMIT
+      || ids.some((id) => !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id))
+      || new Set(ids).size !== ids.length) {
+    throw new Error("STOP manuel : fournir 1 à 3 UUID distincts et valides");
+  }
+  return ids;
+}
+
+function stable(value) {
+  if (Array.isArray(value)) return value.map(stable);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
+  }
+  return value;
+}
+
+async function readSelection(path) {
+  try { return await request(path); }
+  catch { throw new Error("STOP manuel : lecture Supabase impossible"); }
+}
+
+async function selectedBatch(execute) {
+  if (PREACTIVATION_TEST || P0_RECOVERY || DOUAI_MANUAL
+      || process.env.PUBLICATION_AUTOMATION_ENABLED !== "false") {
+    throw new Error("STOP manuel : mode incompatible ou automatisation activée");
+  }
+  const ids = selectedIds();
+  if (execute && (MANUAL_CONFIRMATION !== "EXECUTE"
+      || !/^[0-9a-f]{64}$/.test(MANUAL_FINGERPRINT))) {
+    throw new Error("STOP manuel : confirmation et empreinte PREVIEW obligatoires");
+  }
+  const running = await readSelection("event_publication_jobs?status=eq.RUNNING&select=id&limit=1");
+  if (!Array.isArray(running) || running.length) {
+    throw new Error("STOP manuel : publication concurrente ou état illisible");
+  }
+  const rows = await readSelection("event_publication_jobs?id=in.("
+    + ids.join(",") + ")&select=*");
+  if (!Array.isArray(rows) || rows.length !== ids.length) {
+    throw new Error("STOP manuel : job absent ou réponse illisible");
+  }
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const jobs = ids.map((id) => byId.get(id));
+  if (jobs.some((row) => !row || row.status !== "PENDING"
+      || row.batch_id !== null || row.commit_sha !== null
+      || !Number.isInteger(Number(row.attempt_count))
+      || Number(row.attempt_count) < 0 || Number(row.attempt_count) >= 3
+      || !["validation", "edit", "unpublish", "delete"].includes(row.reason)
+      || !row.target_event_id || !row.requested_at
+      || (row.event_id !== null && row.event_id !== row.target_event_id)
+      || (row.reason === "delete" && row.event_id !== null)
+      || (legacyEvents[row.target_event_id] && !isDepublicationReason(row.reason))
+      || (shouldAuthorizeCanonicalRemoval(row) && !canonicalDepublicationPath(row)))) {
+    throw new Error("STOP manuel : job PENDING incompatible");
+  }
+  if (new Set(jobs.map((row) => row.target_event_id)).size !== jobs.length) {
+    throw new Error("STOP manuel : événements cibles dupliqués");
+  }
+  const eventIds = [...new Set(jobs.map((row) => row.target_event_id))];
+  const events = await readSelection("events?id=in.(" + eventIds.join(",") + ")&select=*");
+  if (!Array.isArray(events)) throw new Error("STOP manuel : événements illisibles");
+  const eventById = new Map(events.map((event) => [event.id, event]));
+  if (jobs.some((row) => {
+    const event = eventById.get(row.target_event_id);
+    const publicEvent = event?.validated === true && event?.rejected !== true;
+    return row.reason === "validation" || row.reason === "edit"
+      ? !publicEvent
+      : row.reason === "delete" ? Boolean(event) : publicEvent;
+  })) throw new Error("STOP manuel : événement incompatible");
+  const fingerprint = createHash("sha256").update(JSON.stringify(stable({
+    ids, jobs, events: eventIds.map((id) => eventById.get(id) || null),
+  }))).digest("hex");
+  if (execute && fingerprint !== MANUAL_FINGERPRINT) {
+    throw new Error("STOP manuel : données modifiées depuis PREVIEW");
+  }
+  console.log("Lot manuel : " + jobs.map((row) => `${row.id} ${row.reason} PENDING ${row.target_event_id}`).join(" | "));
+  if (!execute) console.log(`Empreinte PREVIEW : ${fingerprint}`);
+  return { jobs, fingerprint };
+}
+
+async function previewSelected() {
+  if (MANUAL_MODE !== "preview") throw new Error("STOP manuel : PREVIEW attendu");
+  await selectedBatch(false);
+  console.log("PREVIEW lecture seule : aucune réservation ni publication");
+}
+
+async function claimSelected() {
+  const { jobs } = await selectedBatch(true);
+  const batchId = randomUUID();
+  let claimed;
+  try {
+    claimed = await rpc("claim_event_publication_batch", {
+      p_expected: jobs, p_batch_id: batchId,
+    });
+  } catch {
+    throw new Error("STOP manuel : réservation RPC refusée ; vérifier les statuts avant toute reprise");
+  }
+  if (!Array.isArray(claimed) || claimed.length !== jobs.length
+      || jobs.some((row) => !claimed.some((item) => item.id === row.id
+        && item.status === "RUNNING" && item.batch_id === batchId
+        && item.reason === row.reason
+        && item.target_event_id === row.target_event_id
+        && Number(item.attempt_count) === Number(row.attempt_count) + 1))) {
+    throw new Error("STOP manuel : réservation atomique non confirmée");
+  }
+  const depublishEventIds = [...new Set(claimed.filter(shouldAuthorizeCanonicalRemoval)
+    .map(targetEventId))];
+  const depublishPaths = depublishEventIds.map((id) => canonicalDepublicationPath({target_event_id:id}));
+  if (depublishPaths.some((path) => !path)) {
+    throw new Error("STOP manuel : chemin canonical réservé invalide");
+  }
+  setOutput("depublish_event_ids", JSON.stringify(depublishEventIds));
+  setOutput("depublish_paths", JSON.stringify(depublishPaths));
+  setOutput("publication_jobs", JSON.stringify(claimed.map((row) => ({
+    id: row.id, event_id: targetEventId(row) || null, reason: row.reason,
+    attempt_count: Number(row.attempt_count),
+  }))));
+  setOutput("has_jobs", "true");
+  setOutput("batch_id", batchId);
+  setOutput("job_count", String(claimed.length));
+  setOutput("blocked_count", "0");
+  console.log(`Batch ${batchId} : ${claimed.length} job(s) manuel(s) réservé(s)`);
 }
 
 
@@ -673,6 +809,9 @@ async function claim() {
   }
   if (P0_RECOVERY) {
     return claimRecovery();
+  }
+  if (MANUAL_MODE === "execute") {
+    return claimSelected();
   }
   if (DOUAI_MANUAL) {
     return claimDouai();
@@ -1159,6 +1298,11 @@ if (
   command === "preflight"
 ) {
   await preflight();
+
+} else if (
+  command === "preview-selected"
+) {
+  await previewSelected();
 
 } else if (
   command === "claim"
