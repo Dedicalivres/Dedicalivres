@@ -30,6 +30,8 @@ const DOUAI_JOB = {
   reason: "validation",
 };
 
+const AUTOMATIC_BATCH_LIMIT = 3;
+
 const RECOVERY_JOBS = [
   {
     id: "c098bfc8-4482-4452-857d-d9227b422a41",
@@ -277,6 +279,37 @@ function publicationJobFilter(
 
 
   return path;
+}
+
+async function preflight() {
+  if (DOUAI_MANUAL) {
+    setOutput("has_pending", "true");
+    console.log("Mode Douai : précontrôle général ignoré");
+    return;
+  }
+  if (PREACTIVATION_TEST || P0_RECOVERY
+      || process.env.PUBLICATION_AUTOMATION_ENABLED !== "true") {
+    throw new Error("STOP précontrôle : mode de publication incompatible");
+  }
+
+  let rows;
+  try {
+    rows = await request(
+      publicationJobFilter("PENDING")
+      + "&select=id"
+      + "&order=requested_at.asc,id.asc"
+      + "&limit=1"
+    );
+  } catch (error) {
+    throw new Error(`STOP précontrôle : ${error.message}`);
+  }
+  if (!Array.isArray(rows)) {
+    throw new Error("STOP précontrôle : réponse Supabase illisible");
+  }
+
+  const hasPending = rows.length > 0;
+  setOutput("has_pending", String(hasPending));
+  console.log(hasPending ? "File de publication non vide." : "File de publication vide.");
 }
 
 
@@ -669,8 +702,8 @@ async function claim() {
         "PENDING"
       )
       + "&select=id,event_id,target_event_id,reason,attempt_count,requested_at"
-      + "&order=requested_at.asc"
-      + "&limit=500"
+      + "&order=requested_at.asc,id.asc"
+      + `&limit=${AUTOMATIC_BATCH_LIMIT}`
     );
 
 
@@ -1123,6 +1156,11 @@ const command =
 
 
 if (
+  command === "preflight"
+) {
+  await preflight();
+
+} else if (
   command === "claim"
 ) {
   await claim();
@@ -1145,6 +1183,6 @@ if (
 } else {
   throw new Error(
     "Commande attendue : "
-    + "claim | success | fail | verify-recovery"
+    + "preflight | claim | success | fail | verify-recovery"
   );
 }
