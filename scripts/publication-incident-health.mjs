@@ -13,6 +13,17 @@ class HealthError extends Error {
 
 function parseDate(value, nowMs, code) {
   if (typeof value !== "string" || !value) throw new HealthError(code);
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/,
+  );
+  if (!match) throw new HealthError(code);
+  const [, year, month, day, hour, minute, second] = match.map(Number);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (month < 1 || month > 12 || day < 1 || day > daysInMonth[month - 1]
+      || hour > 23 || minute > 59 || second > 59) {
+    throw new HealthError(code);
+  }
   const timestamp = Date.parse(value);
   if (!Number.isFinite(timestamp) || timestamp > nowMs) throw new HealthError(code);
   return timestamp;
@@ -68,10 +79,10 @@ export function classifyPublicationHealth(rows, {
         const age = (nowMs - started) / 60000;
         counts.signals[age >= DELAY_MINUTES ? "running_suspect" : "running_in_progress"] += 1;
       } else if (row.status === "PENDING") {
+        const requested = parseDate(row.requested_at, nowMs, "PENDING_DATE_INVALID");
         if (!automationEnabled) {
           counts.signals.pending_suppressed += 1;
         } else {
-          const requested = parseDate(row.requested_at, nowMs, "PENDING_DATE_INVALID");
           if ((nowMs - requested) / 60000 >= DELAY_MINUTES) {
             counts.signals.pending_delayed += 1;
           }

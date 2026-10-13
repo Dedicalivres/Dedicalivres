@@ -21,6 +21,14 @@ assert.equal(runningWithoutDate.counts.signals.anomaly, 1);
 assert.equal(runningWithoutDate.state, "UNKNOWN");
 assert.equal(health([{ ...base, status: "PENDING", requested_at: "2026-10-13T10:00:00Z" }],
   { automationEnabled: false }).counts.signals.pending_suppressed, 1);
+assert.equal(health([{ ...base, status: "PENDING", requested_at: null }],
+  { automationEnabled: false }).state, "UNKNOWN");
+assert.equal(health([{ ...base, status: "PENDING", requested_at: "not-a-date" }],
+  { automationEnabled: false }).state, "UNKNOWN");
+assert.equal(health([{ ...base, status: "PENDING", requested_at: "2026-10-14T10:00:00Z" }],
+  { automationEnabled: false }).state, "UNKNOWN");
+assert.equal(health([{ ...base, status: "PENDING", requested_at: "2026-02-30T10:00:00Z" }],
+  { automationEnabled: false }).state, "UNKNOWN");
 assert.equal(health([{ ...base, status: "PENDING", requested_at: "2026-10-13T10:00:00Z" }],
   { automationEnabled: true }).counts.signals.pending_delayed, 1);
 assert.equal(health([{ ...base, status: "FAILED", finished_at: "2026-10-12T23:00:00Z" }])
@@ -53,8 +61,39 @@ await expectReadFailure(async () => ({ ok: true, status: 200,
   headers: { get: () => "0-0/1" }, text: async () => "not-json" }), /JSON_INVALID/);
 await expectReadFailure(async () => response([{ ...base, status: "RUNNING" }], "0-0/2"),
   /PAGINATION_TRUNCATED/);
+let missingPageCall = 0;
+await expectReadFailure(async () => {
+  missingPageCall += 1;
+  return missingPageCall === 1
+    ? response(Array.from({ length: 100 }, (_, index) => ({ ...base, id: `job-${index}` })),
+      "0-99/101")
+    : response([{ ...base, id: "job-100" }], "0-0/101");
+}, /PAGINATION_TRUNCATED/);
+let inconsistentTotalCall = 0;
+await expectReadFailure(async () => {
+  inconsistentTotalCall += 1;
+  return inconsistentTotalCall === 1
+    ? response(Array.from({ length: 100 }, (_, index) => ({ ...base, id: `job-${index}` })),
+      "0-99/101")
+    : response([{ ...base, id: "job-100" }], "100-100/102");
+}, /PAGINATION_TRUNCATED/);
 assert.deepEqual(await readPublicationJobs({ url: "https://example.invalid", key: "test-key",
   fetchImpl: async () => response([], "*/0") }), []);
+
+const completeJobs = Array.from({ length: 101 }, (_, index) => ({ ...base, id: `job-${index}` }));
+const completeRanges = [];
+const completeResult = await readPublicationJobs({
+  url: "https://example.invalid",
+  key: "test-key",
+  fetchImpl: async (_url, options) => {
+    completeRanges.push(options.headers.Range);
+    return completeRanges.length === 1
+      ? response(completeJobs.slice(0, 100), "0-99/101")
+      : response(completeJobs.slice(100), "100-100/101");
+  },
+});
+assert.equal(completeResult.length, 101);
+assert.deepEqual(completeRanges, ["0-99", "100-199"]);
 
 const calls = [];
 const rows = await readPublicationJobs({ url: "https://example.invalid", key: "test-key",
