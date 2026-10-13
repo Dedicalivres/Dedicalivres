@@ -6,6 +6,10 @@ const migration = fs.readFileSync(
   "supabase/migrations/20261009143000_author_presence_static_refresh.sql",
   "utf8"
 );
+const archiveMigration = fs.readFileSync(
+  "supabase/migrations/20260904190703_admin_v11_community_safe_archive.sql",
+  "utf8"
+);
 
 assert.match(migration, /after insert or update or delete[\s\S]*on public\.event_authors_presence/i);
 assert.match(migration, /old\.validated = true[\s\S]*new\.validated = true/i);
@@ -15,6 +19,11 @@ assert.match(migration, /old\.author_id[\s\S]*new\.author_id/i);
 assert.match(migration, /private\.queue_author_presence_publication\(old\.event_id\)/i);
 assert.match(migration, /private\.queue_author_presence_publication\(new\.event_id\)/i);
 assert.match(migration, /not exists \([\s\S]*public\.event_authors_presence presence/i);
+assert.match(migration, /p_event_id is null or not exists \([\s\S]*event\.validated = true[\s\S]*event\.rejected, false\) = false/i);
+assert.match(migration, /on conflict \(event_id\)[\s\S]*status = 'PENDING'[\s\S]*reason = excluded\.reason/i);
+assert.match(migration, /old_is_public[\s\S]*old\.event_id[\s\S]*old\.author_id[\s\S]*is distinct from[\s\S]*new_is_public[\s\S]*new\.event_id[\s\S]*new\.author_id/i);
+assert.match(migration, /if old_is_public then[\s\S]*queue_author_presence_publication\(old\.event_id\)[\s\S]*if new_is_public[\s\S]*new\.event_id is distinct from old\.event_id[\s\S]*queue_author_presence_publication\(new\.event_id\)/i);
+assert.match(archiveMigration, /create policy "Public can read validated author presences"[\s\S]*validated = true[\s\S]*rejected, false\) = false[\s\S]*archived_at is null/i);
 
 const author = {
   id: "ababf0dc-b962-43ff-a324-dbc54dcc4505",

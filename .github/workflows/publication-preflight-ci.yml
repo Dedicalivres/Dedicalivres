@@ -29,3 +29,12 @@ jobs:
 
       - name: Test publication incident observation
         run: node scripts/test-publication-incident-health.mjs
+
+      - name: Test publication lifecycle recipes
+        run: |
+          node scripts/test-targeted-publication.mjs
+          node scripts/test-event-edit-canonical-cleanup.mjs
+          node scripts/test-publication-jobs-canonical.mjs
+          node scripts/test-post-validation-publication.mjs
+          node scripts/test-author-event-auto-refresh.mjs
+          node scripts/test-publication-workflow-safety.mjs

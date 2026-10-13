@@ -93,6 +93,11 @@ const lifecycle =
     "utf8"
   );
 
+const batchStateMachine = fs.readFileSync(
+  "supabase/migrations/20261012155223_publication_batch_state_machine.sql",
+  "utf8"
+);
+
 
 const legacy =
   JSON.parse(
@@ -184,6 +189,11 @@ assert.match(
 
 assert.match(
   lifecycle,
+  /tg_op = 'DELETE'[\s\S]*target_id\s*:=\s*old\.id[\s\S]*live_event_id\s*:=\s*null[\s\S]*job_reason\s*:=\s*'delete'/
+);
+
+assert.match(
+  lifecycle,
   /'unpublish'/
 );
 
@@ -202,6 +212,33 @@ assert.match(
 assert.match(
   lifecycle,
   /coalesce\(\s*job\.event_id,\s*job\.target_event_id\s*\)/s
+);
+
+// Plusieurs décisions successives consolident le PENDING courant sans toucher
+// aux FAILED historiques ni aux RUNNING incertains.
+assert.match(
+  lifecycle,
+  /on conflict \(event_id\)[\s\S]*status = 'PENDING'[\s\S]*reason\s*=\s*excluded\.reason[\s\S]*requested_at\s*=\s*excluded\.requested_at/
+);
+
+assert.match(
+  batchStateMachine,
+  /pg_try_advisory_xact_lock[\s\S]*PUBLICATION_BATCH_CONCURRENT_CLAIM/
+);
+
+assert.match(
+  batchStateMachine,
+  /exists \(select 1 from public\.event_publication_jobs where status = 'RUNNING'\)[\s\S]*PUBLICATION_BATCH_ALREADY_RUNNING/
+);
+
+assert.match(
+  batchStateMachine,
+  /j\.status = 'PENDING'[\s\S]*j\.reason is not distinct from x\.reason[\s\S]*j\.requested_at is not distinct from x\.requested_at[\s\S]*PUBLICATION_BATCH_STALE_SELECTION/
+);
+
+assert.match(
+  batchStateMachine,
+  /newer\.status = 'PENDING'[\s\S]*then 'FAILED'/
 );
 
 
