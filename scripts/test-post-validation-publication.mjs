@@ -98,6 +98,11 @@ const batchStateMachine = fs.readFileSync(
   "utf8"
 );
 
+const initialJobs = fs.readFileSync(
+  "supabase/migrations/20261006193158_event_publication_jobs.sql",
+  "utf8"
+);
+
 
 const legacy =
   JSON.parse(
@@ -239,6 +244,37 @@ assert.match(
 assert.match(
   batchStateMachine,
   /newer\.status = 'PENDING'[\s\S]*then 'FAILED'/
+);
+
+// Régression documentée : après DELETE, la FK annule event_id sur l'ancien
+// PENDING tandis que le trigger insère un second PENDING delete. L'index partiel
+// ne déduplique pas ces deux lignes par target_event_id.
+assert.match(
+  initialJobs,
+  /event_id uuid[\s\S]*references public\.events\(id\)[\s\S]*on delete set null/
+);
+
+assert.match(
+  initialJobs,
+  /create unique index[\s\S]*event_publication_jobs_one_pending_per_event_idx[\s\S]*on public\.event_publication_jobs \(\s*event_id\s*\)[\s\S]*event_id is not null[\s\S]*status = 'PENDING'/
+);
+
+const deletedTarget = "22222222-2222-4222-8222-222222222222";
+const pendingAfterDelete = [
+  { event_id: null, target_event_id: deletedTarget, reason: "edit" },
+  { event_id: null, target_event_id: deletedTarget, reason: "delete" },
+];
+assert.equal(pendingAfterDelete.length, 2);
+assert.equal(new Set(pendingAfterDelete.map((row) => row.target_event_id)).size, 1);
+
+// Modèle explicatif uniquement, pas une exécution PostgreSQL : événement absent,
+// donc seul delete satisfait le prédicat métier atomique et le lot de deux échoue.
+const matchedWithoutEvent = pendingAfterDelete.filter((row) => row.reason === "delete");
+assert.equal(matchedWithoutEvent.length, 1);
+assert.notEqual(matchedWithoutEvent.length, pendingAfterDelete.length);
+assert.match(
+  batchStateMachine,
+  /j\.reason in \('validation', 'edit'\)[\s\S]*exists \([\s\S]*public\.events[\s\S]*j\.reason = 'delete'[\s\S]*not exists \([\s\S]*public\.events[\s\S]*matched_count <> expected_count[\s\S]*PUBLICATION_BATCH_STALE_SELECTION/
 );
 
 
