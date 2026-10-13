@@ -8,10 +8,8 @@ set -euo pipefail
 # transaction, not a complete replay of every Supabase migration or worker.
 root=$(cd "$(dirname "$0")/.." && pwd)
 container=''
-duplicate_container=''
 cleanup() {
   [[ -z "$container" ]] || docker rm -f "$container" >/dev/null 2>&1 || true
-  [[ -z "$duplicate_container" ]] || docker rm -f "$duplicate_container" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 start_postgres() { docker run --rm -d -e POSTGRES_PASSWORD=test postgres:17-alpine; }
@@ -110,17 +108,16 @@ expect_error_matching 'SIMULATED_DELETE_JOB_ERROR' "delete from public.events wh
 sql "drop trigger aa_fail_delete_job on public.event_publication_jobs; drop function public.fail_delete_job()" >/dev/null
 echo 'GREEN PASS: DELETE error rolls back event and pending transition'
 
-# Separate ephemeral database: duplicate historical PENDING rows must stop the
-# migration before index/function/trigger creation, without any row mutation.
-duplicate_container=$(start_postgres)
-wait_ready "$duplicate_container"
-docker exec "$duplicate_container" psql -X -U postgres -v ON_ERROR_STOP=1 -c "create schema private; create schema auth; create role anon; create role authenticated; create table public.events (id uuid primary key); create table public.event_publication_jobs (id uuid primary key, target_event_id uuid, status text, finished_at timestamptz, last_error text); insert into public.event_publication_jobs values ('11111111-1111-4111-8111-111111111111','$event','PENDING',null,null),('22222222-2222-4222-8222-222222222222','$event','PENDING',null,null);" >/dev/null
-before=$(docker exec "$duplicate_container" psql -X -U postgres -Atq -c "select jsonb_agg(to_jsonb(j) order by id) from public.event_publication_jobs j")
-docker cp "$root/supabase/migrations/20261013162613_coalesce_pending_delete_target.sql" "$duplicate_container:/fix.sql"
-if duplicate_error=$(docker exec "$duplicate_container" psql -X -U postgres -v ON_ERROR_STOP=1 -f /fix.sql 2>&1); then
+# Separate database in the same ephemeral container: duplicate historical
+# PENDING rows must stop the migration without any row mutation.
+docker exec "$container" createdb -U postgres duplicate_gate
+docker exec "$container" psql -X -U postgres -d duplicate_gate -v ON_ERROR_STOP=1 -c "create schema private; create schema auth; create table public.events (id uuid primary key); create table public.event_publication_jobs (id uuid primary key, target_event_id uuid, status text, finished_at timestamptz, last_error text); insert into public.event_publication_jobs values ('11111111-1111-4111-8111-111111111111','$event','PENDING',null,null),('22222222-2222-4222-8222-222222222222','$event','PENDING',null,null);" >/dev/null
+before=$(docker exec "$container" psql -X -U postgres -d duplicate_gate -Atq -c "select jsonb_agg(to_jsonb(j) order by id) from public.event_publication_jobs j")
+docker cp "$root/supabase/migrations/20261013162613_coalesce_pending_delete_target.sql" "$container:/duplicate-fix.sql"
+if duplicate_error=$(docker exec "$container" psql -X -U postgres -d duplicate_gate -v ON_ERROR_STOP=1 -f /duplicate-fix.sql 2>&1); then
   fail 'duplicate precheck unexpectedly accepted historical duplicates'
 fi
 [[ "$duplicate_error" == *PENDING_TARGET_EVENT_DUPLICATES* ]] || fail "unexpected duplicate refusal: $duplicate_error"
-after=$(docker exec "$duplicate_container" psql -X -U postgres -Atq -c "select jsonb_agg(to_jsonb(j) order by id) from public.event_publication_jobs j")
+after=$(docker exec "$container" psql -X -U postgres -d duplicate_gate -Atq -c "select jsonb_agg(to_jsonb(j) order by id) from public.event_publication_jobs j")
 [[ "$before" == "$after" ]] || fail 'duplicate precheck mutated historical jobs'
 echo 'PRECHECK PASS: historical duplicates stop migration without mutation'
