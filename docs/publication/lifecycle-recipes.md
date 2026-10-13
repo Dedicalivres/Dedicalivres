@@ -11,7 +11,7 @@ aucune migration.
 | T03 dépublication | EXISTANT | Retrait ciblé, manifest et sitemap contrôlés. |
 | T04 suppression définitive | EXISTANT | `target_event_id` durable, `event_id` nul et canonical obligatoire avant retrait. |
 | T05 événement jamais publié | EXISTANT | Absence de canonical traitée par un `BLOCKED` contrôlé. |
-| T06 décisions successives | MANQUANT — DÉFAUT CONFIRMÉ STATIQUEMENT | Un PENDING `edit` ou `validation` peut survivre au DELETE avec `event_id = NULL`, puis coexister avec le nouveau PENDING `delete` pour le même `target_event_id`. Le RPC refuse alors le lot comme sélection périmée. |
+| T06 décisions successives | CORRIGÉ — migration F2 installée | Le précontrôle refuse les doublons historiques sans les modifier ; le trigger BEFORE DELETE retire seulement le PENDING courant puis le trigger existant crée le DELETE unique. RED/GREEN PostgreSQL validé en CI. |
 | T07 présence ajoutée | EXISTANT (preuve statique) | INSERT public met en file l'événement public et consolide un PENDING sans doublon. |
 | T08 présence retirée | EXISTANT (preuve statique) | DELETE public rafraîchit seulement l'ancien événement. |
 | T09 présence transférée | EXISTANT (preuve statique) | UPDATE compare état, événement et auteur puis couvre ancien et nouvel événement. |
@@ -20,21 +20,13 @@ aucune migration.
 | T12 legacy et fichiers tiers | EXISTANT | 282 legacy, suppressions ciblées, tiers inchangés et seuil de 250 fichiers. |
 | T13 cohérence globale | EXISTANT | Canonical, sitemap, catalogue, index et pages territoriales contrôlés. |
 
-**MANQUANT après ce lot :** la succession PENDING `edit/validation` puis DELETE
-n'est pas gérée par le moteur actuel. Le worker sélectionne les deux lignes ; le
-RPC n'en considère qu'une conforme à l'absence de l'événement et annule toute la
-réservation avec `PUBLICATION_BATCH_STALE_SELECTION`.
-
-**NON TESTABLE dans ce lot :** l'exécution réelle des triggers PostgreSQL.
+**État après F2 :** la migration de coalescence est installée dans Supabase. Le
+scénario PENDING `validation`/`edit`/`unpublish` puis DELETE est validé RED/GREEN
+sur PostgreSQL Docker éphémère et dans la CI. Aucun DELETE réel n'a été testé en
+production.
 
 ## Limite de preuve
 
-`SQL RUNTIME : NON TESTÉ`. Les fonctions et triggers PostgreSQL sont vérifiés
-statiquement, car les migrations contiennent des données historiques et ne
-doivent jamais être rejouées. Une validation runtime future devra utiliser une
-base PostgreSQL éphémère construite sans exécuter ces blocs d'insertion.
-
-Le correctif moteur devra rendre atomique la substitution du PENDING obsolète
-par le DELETE, ou garantir une unicité/coalescence par `target_event_id` avant la
-sélection. Il devra préserver l'historique et être livré dans un lot séparé avec
-une migration dédiée et une recette PostgreSQL isolée.
+Le test PostgreSQL importe le trigger réel avec un schéma réduit : il couvre le
+chemin DELETE, pas une relecture complète de toutes les migrations Supabase ni
+du worker. Les tests auteurs restent principalement statiques.
