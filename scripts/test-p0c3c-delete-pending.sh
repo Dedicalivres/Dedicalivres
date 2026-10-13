@@ -12,14 +12,31 @@ cleanup() {
   [[ -z "$container" ]] || docker rm -f "$container" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
-start_postgres() { docker run --rm -d -e POSTGRES_PASSWORD=test postgres:17-alpine; }
+start_postgres() {
+  docker run --rm -d \
+    --health-cmd 'pg_isready -U postgres' \
+    --health-interval 1s \
+    --health-timeout 5s \
+    --health-retries 30 \
+    -e POSTGRES_PASSWORD=test \
+    postgres:17-alpine
+}
 wait_ready() {
   local target=$1
   for _ in $(seq 1 30); do
+    [[ $(docker inspect --format '{{.State.Health.Status}}' "$target") == healthy ]] && break
+    sleep 1
+  done
+  [[ $(docker inspect --format '{{.State.Health.Status}}' "$target") == healthy ]] || {
+    docker logs "$target" >&2
+    fail 'PostgreSQL Docker healthcheck did not become healthy'
+  }
+  for _ in $(seq 1 10); do
     docker exec "$target" psql -X -U postgres -Atq -c 'select 1' >/dev/null 2>&1 && return
     sleep 1
   done
-  docker exec "$target" psql -X -U postgres -Atq -v ON_ERROR_STOP=1 -c 'select 1' >/dev/null
+  docker logs "$target" >&2
+  fail 'PostgreSQL Docker accepted healthcheck but not psql'
 }
 sql() { docker exec "$container" psql -X -U postgres -Atq -v ON_ERROR_STOP=1 -c "$1"; }
 fail() { echo "FAIL: $*" >&2; exit 1; }
