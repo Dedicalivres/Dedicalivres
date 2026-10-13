@@ -26,3 +26,6 @@ jobs:
 
       - name: Test preserved Douai manual mode
         run: node scripts/test-publication-douai-manual.mjs
+
+      - name: Test publication incident observation
+        run: node scripts/test-publication-incident-health.mjs
