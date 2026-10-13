@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-12T20:09:02.865Z",
+  "capturedAt": "2026-10-13T20:48:46.057Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -5783,6 +5783,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "b0a7b6cb-708e-40c2-a8ec-e8087e578cba",
+      "title": "Rencontre/dédicace Bertrand Crapez",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Hauts-de-France",
+      "city": "Douai",
+      "start_date": "2026-10-17",
+      "end_date": "2026-10-17",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.facebook.com/boutiquehorreursdouai/"
     },
     {
       "id": "b0f916ad-e5f9-493b-80e9-7f05e7e7d55c",
