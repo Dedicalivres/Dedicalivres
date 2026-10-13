@@ -29,3 +29,6 @@ jobs:
 
       - name: Test publication incident observation
         run: node scripts/test-publication-incident-health.mjs
+
+      - name: Test pending DELETE coalescence on disposable PostgreSQL
+        run: bash scripts/test-p0c3c-delete-pending.sh

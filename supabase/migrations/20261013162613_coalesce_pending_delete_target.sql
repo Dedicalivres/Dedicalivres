@@ -1,32 +1,21 @@
 -- P0-C3-C: a DELETE supersedes any still-pending publication decision for the
 -- same durable target.  RUNNING and terminal jobs are deliberately untouched.
 
-with ranked_pending_jobs as (
-  select
-    id,
-    row_number() over (
-      partition by target_event_id
-      order by
-        case when reason = 'delete' then 0 else 1 end,
-        requested_at desc,
-        id desc
-    ) as row_number
-  from public.event_publication_jobs
-  where status = 'PENDING'
-    and target_event_id is not null
-)
-update public.event_publication_jobs as job
-set
-  status = 'BLOCKED',
-  finished_at = coalesce(job.finished_at, now()),
-  last_error = concat_ws(
-    ' | ',
-    job.last_error,
-    'superseded pending publication decision for the same target'
-  )
-from ranked_pending_jobs as ranked
-where job.id = ranked.id
-  and ranked.row_number > 1;
+do $precheck$
+begin
+  if exists (
+    select 1
+    from public.event_publication_jobs
+    where status = 'PENDING'
+      and target_event_id is not null
+    group by target_event_id
+    having count(*) > 1
+  ) then
+    raise exception
+      'PENDING_TARGET_EVENT_DUPLICATES: resolve historical jobs manually before applying this migration';
+  end if;
+end;
+$precheck$;
 
 create unique index if not exists
   event_publication_jobs_one_pending_per_target_idx
