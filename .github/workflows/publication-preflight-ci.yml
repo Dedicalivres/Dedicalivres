@@ -1,0 +1,28 @@
+name: Publication preflight CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  publication-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v4
+
+      - name: Show preinstalled Node version
+        run: node --version
+
+      - name: Test batch limit and preflight
+        run: node scripts/test-publication-batch-preflight.mjs
+
+      - name: Test publication workflow safety
+        run: node scripts/test-publication-workflow-safety.mjs
+
+      - name: Test preserved Douai manual mode
+        run: node scripts/test-publication-douai-manual.mjs
