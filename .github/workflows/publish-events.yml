@@ -21,6 +21,30 @@ on:
         default: false
         type: boolean
 
+      manual_mode:
+        description: "Selected jobs: PREVIEW (read-only) or EXECUTE"
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - execute
+
+      manual_job_ids:
+        description: "1 to 3 job UUIDs, separated by commas or spaces"
+        required: false
+        type: string
+
+      manual_preview_fingerprint:
+        description: "Exact fingerprint printed by PREVIEW (EXECUTE only)"
+        required: false
+        type: string
+
+      manual_confirmation:
+        description: "Type EXECUTE to confirm real publication (EXECUTE only)"
+        required: false
+        type: string
+
   schedule:
     - cron: "*/5 * * * *"
 
@@ -38,15 +62,46 @@ concurrency:
 
 jobs:
 
+  manual-preview:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+          && inputs.manual_mode == 'preview'
+          && inputs.publish_douai != true
+          && inputs.preactivation_test != true
+          && inputs.recover_failed_p0 != true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: https://pwyetrqyiaxpzjrafpvb.supabase.co
+      SUPABASE_SECRET_KEY: ${{ secrets.DEDICALIVRES_SUPABASE_SECRET_KEY }}
+      PUBLICATION_AUTOMATION_ENABLED: ${{ vars.PUBLICATION_AUTOMATION_ENABLED }}
+      PUBLICATION_MANUAL_MODE: preview
+      PUBLICATION_MANUAL_JOB_IDS: ${{ inputs.manual_job_ids }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Preview selected publication jobs (read-only)
+        run: node scripts/publication-jobs.mjs preview-selected
+
   publish:
 
     if: >-
       ${{ inputs.preactivation_test != true
           && inputs.recover_failed_p0 != true
           && ((vars.PUBLICATION_AUTOMATION_ENABLED == 'true'
-               && inputs.publish_douai != true)
+               && inputs.publish_douai != true
+               && inputs.manual_mode != 'preview'
+               && inputs.manual_mode != 'execute')
               || (github.event_name == 'workflow_dispatch'
-                  && inputs.publish_douai == true)) }}
+                  && inputs.publish_douai == true)
+              || (github.event_name == 'workflow_dispatch'
+                  && inputs.manual_mode == 'execute'
+                  && inputs.publish_douai != true)) }}
 
     runs-on: ubuntu-latest
 
@@ -70,6 +125,18 @@ jobs:
 
       PUBLICATION_DOUAI_MANUAL:
         ${{ github.event_name == 'workflow_dispatch' && inputs.publish_douai == true }}
+
+      PUBLICATION_MANUAL_MODE:
+        ${{ github.event_name == 'workflow_dispatch' && inputs.publish_douai != true && inputs.manual_mode || '' }}
+
+      PUBLICATION_MANUAL_JOB_IDS:
+        ${{ inputs.manual_job_ids }}
+
+      PUBLICATION_MANUAL_FINGERPRINT:
+        ${{ inputs.manual_preview_fingerprint }}
+
+      PUBLICATION_MANUAL_CONFIRMATION:
+        ${{ inputs.manual_confirmation }}
 
       PYTHONDONTWRITEBYTECODE: "1"
 
