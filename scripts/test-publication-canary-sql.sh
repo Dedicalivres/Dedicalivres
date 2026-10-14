@@ -15,6 +15,7 @@ docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null
 docker cp "$root/supabase/migrations/20261012155223_publication_batch_state_machine.sql" "$container:/batch.sql"
 docker cp "$root/supabase/migrations/20261014043617_publication_canary_guard.sql" "$container:/canary.sql"
 docker cp "$root/supabase/migrations/20261014120000_admin_canary_evidence_status.sql" "$container:/admin-evidence.sql"
+docker cp "$root/supabase/migrations/20261014161135_canary_direct_provenance.sql" "$container:/direct-provenance.sql"
 sql() { docker exec "$container" psql -X -U postgres -Atq -v ON_ERROR_STOP=1 -c "$1"; }
 expect_error() {
   local result
@@ -23,15 +24,28 @@ expect_error() {
   fi
   [[ "$result" == *"$2"* ]] || { echo "FAIL: expected $2, got $result" >&2; exit 1; }
 }
+expect_equal() {
+  if [[ "$1" != "$2" ]]; then
+    echo "FAIL $3: expected $2, got $1" >&2
+    exit 1
+  fi
+}
 event='11111111-1111-4111-8111-111111111111'
 job='22222222-2222-4222-8222-222222222222'
 other='33333333-3333-4333-8333-333333333333'
 checked_event='66666666-6666-4666-8666-666666666666'
 batch='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-sql "create schema private; create schema auth; create role anon; create role authenticated; create role service_role; create function auth.uid() returns uuid language sql stable as \$\$ select nullif(current_setting('test.uid',true),'')::uuid \$\$; create function private.is_admin() returns boolean language sql stable security definer as \$\$ select current_setting('test.admin',true)='true' \$\$; create table public.events (id uuid primary key, title text, city text, start_date date, end_date date, validated boolean, rejected boolean, verified boolean, registration_force_status text, website text, description text, region text, country_code text, lat double precision, lng double precision); create table public.event_publication_jobs (id uuid primary key, event_id uuid, target_event_id uuid, reason text, status text, attempt_count integer, batch_id uuid, commit_sha text, requested_at timestamptz, started_at timestamptz, finished_at timestamptz, last_error text);" >/dev/null
+sql "create schema private; create schema auth; create role anon; create role authenticated; create role service_role; create function auth.uid() returns uuid language sql stable as \$\$ select nullif(current_setting('test.uid',true),'')::uuid \$\$; create function private.is_admin() returns boolean language sql stable security definer as \$\$ select current_setting('test.admin',true)='true' \$\$; create table public.events (id uuid primary key, title text, city text, start_date date, end_date date, validated boolean, rejected boolean, verified boolean, registration_force_status text, website text, description text, region text, country_code text, lat double precision, lng double precision); create table public.event_submission_contacts (event_id uuid primary key references public.events(id), submitter_name text, submitter_email text, created_at timestamptz default now()); create table public.event_publication_jobs (id uuid primary key, event_id uuid, target_event_id uuid, reason text, status text, attempt_count integer, batch_id uuid, commit_sha text, requested_at timestamptz, started_at timestamptz, finished_at timestamptz, last_error text);" >/dev/null
 docker exec "$container" psql -X -U postgres -v ON_ERROR_STOP=1 -f /batch.sql >/dev/null
 docker exec "$container" psql -X -U postgres -v ON_ERROR_STOP=1 -f /canary.sql >/dev/null
 docker exec "$container" psql -X -U postgres -v ON_ERROR_STOP=1 -f /admin-evidence.sql >/dev/null
+legacy_event='99999999-9999-4999-8999-999999999999'
+sql "insert into public.events values ('$legacy_event','Salon ancien','Paris',current_date+20,current_date+20,true,false,false,null,'https://organizer.example/events/ancien','Lieu ancien','Île-de-France','FR',48.86,2.35)" >/dev/null
+sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_publication_canary_evidence('$legacy_event','https://organizer.example/events/ancien','Official organizer','Salon ancien','Salon ancien','Paris',(current_date+20)::text,(current_date+20)::text,true)" >/dev/null
+docker exec "$container" psql -X -U postgres -v ON_ERROR_STOP=1 -f /direct-provenance.sql >/dev/null
+[[ $(sql "select proof_type from private.publication_canary_evidence where event_id='$legacy_event'") == PUBLIC_OFFICIAL ]]
+[[ $(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select proof_status from public.get_publication_canary_evidence('$legacy_event')") == valid ]]
+echo 'PASS preexisting PUBLIC_OFFICIAL proof survives additive migration'
 sql "insert into public.events values ('$event','Salon confirmé','Lille',current_date+20,current_date+20,true,false,true,null,'https://organizer.example/events/salon-2026','Salon à la librairie','Hauts-de-France','FR',50.63,3.05),('$other','Autre salon','Lyon',current_date+21,current_date+21,true,false,false,null,null,null,null,'FR',null,null); insert into public.event_publication_jobs (id,event_id,target_event_id,reason,status,attempt_count,requested_at) values ('$job','$event','$event','validation','PENDING',0,now()),('$other','$other','$other','validation','PENDING',0,now()+interval '1 minute');" >/dev/null
 selected() { sql "select to_jsonb(j) from public.event_publication_jobs j where id='$1'"; }
 claim() { sql "select count(*) from public.claim_publication_canary_batch('[$(selected "$1")]'::jsonb,'$2'::uuid,$3,1)"; }
@@ -41,7 +55,7 @@ proof_state() { sql "set test.uid='$event'; set test.admin='true'; set role auth
 
 [[ $(proof_state) == none:true:false ]]
 expect_error "set test.uid='$event'; set test.admin='false'; set role authenticated; select * from public.get_publication_canary_evidence('$event')" CANARY_ADMIN_REQUIRED
-[[ $(sql "select count(*) from private.publication_canary_evidence") == 0 ]]
+[[ $(sql "select count(*) from private.publication_canary_evidence where event_id='$event'") == 0 ]]
 
 # The Admin V11 path must compare a full expected snapshot under a row lock.
 sql "insert into public.events values ('$checked_event','Salon confirmé','Lille',current_date+20,current_date+20,true,false,true,null,'https://organizer.example/events/salon-2026','Salon à la librairie','Hauts-de-France','FR',50.63,3.05)" >/dev/null
@@ -110,13 +124,13 @@ echo 'PASS disarmed and missing source evidence'
 
 proof
 [[ $(proof_state) == valid:true:true ]]
-sql "update private.publication_canary_evidence set checked_at=now()-interval '31 days'" >/dev/null
+sql "update private.publication_canary_evidence set checked_at=now()-interval '31 days' where event_id='$event'" >/dev/null
 [[ $(proof_state) == expired:true:false ]]
 expect_error "select count(*) from public.claim_publication_canary_batch('[$(selected "$job")]'::jsonb,'$batch',100,1)" CANARY_SOURCE_OR_JOB_INVALID
-sql "update private.publication_canary_evidence set checked_at=now(), city_snapshot='Paris'" >/dev/null
+sql "update private.publication_canary_evidence set checked_at=now(), city_snapshot='Paris' where event_id='$event'" >/dev/null
 [[ $(proof_state) == invalidated:true:false ]]
 expect_error "select count(*) from public.claim_publication_canary_batch('[$(selected "$job")]'::jsonb,'$batch',100,1)" CANARY_SOURCE_OR_JOB_INVALID
-sql "update private.publication_canary_evidence set city_snapshot='Lille'" >/dev/null
+sql "update private.publication_canary_evidence set city_snapshot='Lille' where event_id='$event'" >/dev/null
 sql "update public.events set website='https://unrelated.example/event' where id='$event'" >/dev/null
 expect_error "select count(*) from public.claim_publication_canary_batch('[$(selected "$job")]'::jsonb,'$batch',100,1)" CANARY_SOURCE_OR_JOB_INVALID
 sql "update public.events set website='https://organizer.example/events/salon-2026' where id='$event'" >/dev/null
@@ -158,7 +172,7 @@ echo 'PASS first verified reservation; stale and contradictory proof refused'
 
 expect_error "select count(*) from public.claim_publication_canary_batch('[$(selected "$other")]'::jsonb,'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',101,1)" CANARY_24H_LIMIT
 sql "select count(*) from public.complete_event_publication_batch('[{\"id\":\"$job\",\"attempt_count\":1}]'::jsonb,'$batch','SUCCESS','0123456789abcdef0123456789abcdef01234567',null)" >/dev/null
-sql "update private.publication_canary_attempts set reserved_at=now()-interval '25 hours'; update private.publication_canary_evidence set event_id='$other',title_snapshot='Autre salon',city_snapshot='Lyon',website_snapshot=null,description_snapshot=null,region_snapshot=null,country_code_snapshot='FR',lat_snapshot=null,lng_snapshot=null,start_date_snapshot=(current_date+21)::text,end_date_snapshot=(current_date+21)::text" >/dev/null
+sql "update private.publication_canary_attempts set reserved_at=now()-interval '25 hours'; update private.publication_canary_evidence set event_id='$other',title_snapshot='Autre salon',city_snapshot='Lyon',website_snapshot=null,description_snapshot=null,region_snapshot=null,country_code_snapshot='FR',lat_snapshot=null,lng_snapshot=null,start_date_snapshot=(current_date+21)::text,end_date_snapshot=(current_date+21)::text where event_id='$event'" >/dev/null
 [[ $(sql "select count(*) from public.publication_canary_candidate() where id='$other'") == 1 ]]
 sql "update public.events set region='Auvergne-Rhône-Alpes',lat=45.76 where id='$other'" >/dev/null
 expect_error "select count(*) from public.claim_publication_canary_batch('[$(selected "$other")]'::jsonb,'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',101,1)" CANARY_SOURCE_OR_JOB_INVALID
@@ -202,3 +216,156 @@ for role in anon authenticated service_role; do
   [[ $(sql "select has_table_privilege('$role','private.publication_canary_evidence','INSERT')") == f ]]
 done
 echo 'PASS separated admin and publisher grants'
+
+# E5-C: a direct proof is separate from the unchanged official-public route.
+direct_event='77777777-7777-4777-8777-777777777777'
+direct_job='88888888-8888-4888-8888-888888888888'
+sql "insert into public.events values ('$direct_event','Salon direct','Nantes',current_date+25,current_date+25,true,false,true,null,'https://example.org','Salle des fêtes','Pays de la Loire','FR',47.22,-1.55)" >/dev/null
+direct_call="set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_direct_publication_canary_evidence_checked('$direct_event','$direct_event',null,'DIRECT_ORGANIZER','OFFICIAL_PHONE','evidence:Proof12345','Salon direct','Nantes','Pays de la Loire','FR','Salle des fêtes','https://example.org',(current_date+25)::text,(current_date+25)::text,47.22,-1.55,true)"
+direct_proofs() { sql "select count(*) from private.publication_canary_evidence where event_id='$direct_event'"; }
+direct_attestations() { sql "select count(*) from private.event_provenance where event_id='$direct_event' and state='ATTESTED'"; }
+direct_candidate() { sql "select count(*) from public.publication_canary_candidate() where id='$direct_job'"; }
+direct_status() { sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select proof_status from public.get_publication_canary_evidence('$direct_event')" | tail -1; }
+expect_error "$direct_call" CANARY_DIRECT_SUBMISSION_INVALID
+[[ $(direct_proofs) == 0 && $(direct_attestations) == 0 ]]
+sql "insert into public.event_submission_contacts(event_id,submitter_name,submitter_email) values ('$direct_event','Organisation test','organizer@example.test')" >/dev/null
+expect_error "$(sed "s/'DIRECT_ORGANIZER'/NULL/" <<< "$direct_call")" CANARY_DIRECT_EVIDENCE_INVALID
+expect_error "$(sed "s/'OFFICIAL_PHONE'/NULL/" <<< "$direct_call")" CANARY_DIRECT_EVIDENCE_INVALID
+expect_error "$(sed "s/'evidence:Proof12345'/NULL/" <<< "$direct_call")" CANARY_DIRECT_EVIDENCE_INVALID
+expect_error "$(sed "s/'DIRECT_ORGANIZER'/'AUTO_MATTE'/" <<< "$direct_call")" CANARY_DIRECT_EVIDENCE_INVALID
+expect_error "$(sed "s#'evidence:Proof12345'#'https://public.example/poster.jpg'#" <<< "$direct_call")" CANARY_DIRECT_EVIDENCE_INVALID
+expect_error "$(sed "s/'$direct_event','$direct_event'/'$direct_event','$other'/" <<< "$direct_call")" CANARY_DIRECT_SUBMISSION_INVALID
+expect_error "${direct_call/,true)/,false)}" CANARY_DIRECT_EVIDENCE_INVALID
+expect_error "set test.uid='$event'; set test.admin='false'; set role authenticated; select public.record_direct_publication_canary_evidence_checked('$direct_event','$direct_event',null,'DIRECT_ORGANIZER','OFFICIAL_PHONE','evidence:Proof12345','Salon direct','Nantes','Pays de la Loire','FR','Salle des fêtes','https://example.org',(current_date+25)::text,(current_date+25)::text,47.22,-1.55,true)" CANARY_ADMIN_REQUIRED
+expect_error "set role anon; select public.record_direct_publication_canary_evidence_checked('$direct_event','$direct_event',null,'DIRECT_ORGANIZER','OFFICIAL_PHONE','evidence:Proof12345','Salon direct','Nantes','Pays de la Loire','FR','Salle des fêtes','https://example.org',(current_date+25)::text,(current_date+25)::text,47.22,-1.55,true)" 'permission denied'
+expect_error "$direct_call" CANARY_DIRECT_DOSSIER_NOT_VERIFIED
+[[ $(direct_proofs) == 0 && $(direct_attestations) == 0 ]]
+sql "insert into private.event_provenance(event_id,state,observed_channel,declared_origin) values ('$direct_event','DECLARED','DIRECT_FORM','DIRECT_ORGANIZER')" >/dev/null
+sql "insert into private.event_provenance(event_id,state,observed_channel,auto_matte_reference) values ('$direct_event','OBSERVED','AUTO_MATTE','local:123')" >/dev/null
+[[ $(direct_candidate) == 0 ]]
+[[ $(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select observed_channel||':'||declared_origin||':'||attested_origin from public.get_event_provenance('$direct_event')") == DIRECT_FORM:DIRECT_ORGANIZER:LEGACY_UNKNOWN ]]
+[[ $(sql "select count(*) from public.event_publication_jobs where target_event_id='$direct_event'") == 0 ]]
+echo 'PASS direct gate: contact, identity, role, private reference, admin rights, no partial write or job'
+
+# A dossier is a private verification record, generated by SQL, then explicitly
+# reviewed. Neither a fabricated reference nor an unreviewed record is enough.
+dossier_call="set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_direct_publication_canary_dossier('$direct_event','$direct_event','DIRECT_ORGANIZER','OFFICIAL_PHONE','Official organiser contact page independently consulted','Official telephone contact independently checked; organiser confirmed this event, venue and dates')"
+expect_error "set test.uid='$event'; set test.admin='false'; set role authenticated; select public.record_direct_publication_canary_dossier('$direct_event','$direct_event','DIRECT_ORGANIZER','OFFICIAL_PHONE','Official organiser contact page independently consulted','Official telephone contact independently checked; organiser confirmed this event, venue and dates')" CANARY_ADMIN_REQUIRED
+expect_error "set role anon; select public.record_direct_publication_canary_dossier('$direct_event','$direct_event','DIRECT_ORGANIZER','OFFICIAL_PHONE','Official organiser contact page independently consulted','Official telephone contact independently checked; organiser confirmed this event, venue and dates')" 'permission denied'
+dossier_ref=$(sql "$dossier_call" | tail -1)
+[[ $dossier_ref == evidence:* ]]
+expect_equal "$(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select dossier_state from public.get_direct_publication_canary_dossier('$dossier_ref')" | tail -1)" PENDING_REVIEW 'admin can inspect private dossier before verification'
+expect_error "set test.uid='$event'; set test.admin='false'; set role authenticated; select * from public.get_direct_publication_canary_dossier('$dossier_ref')" CANARY_ADMIN_REQUIRED
+expect_error "set role anon; select * from public.get_direct_publication_canary_dossier('$dossier_ref')" 'permission denied'
+direct_call=${direct_call/evidence:Proof12345/$dossier_ref}
+expect_error "$direct_call" CANARY_DIRECT_DOSSIER_NOT_VERIFIED
+expect_error "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.verify_direct_publication_canary_dossier('$direct_event','$dossier_ref',false)" CANARY_DIRECT_DOSSIER_CONFIRMATION_REQUIRED
+expect_error "set test.uid='$event'; set test.admin='false'; set role authenticated; select public.verify_direct_publication_canary_dossier('$direct_event','$dossier_ref',true)" CANARY_ADMIN_REQUIRED
+expect_error "set role anon; select public.verify_direct_publication_canary_dossier('$direct_event','$dossier_ref',true)" 'permission denied'
+sql "update public.events set description='Location changed before dossier review' where id='$direct_event'" >/dev/null
+expect_error "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.verify_direct_publication_canary_dossier('$direct_event','$dossier_ref',true)" CANARY_DIRECT_DOSSIER_INVALID
+sql "update public.events set description='Salle des fêtes' where id='$direct_event'" >/dev/null
+sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.verify_direct_publication_canary_dossier('$direct_event','$dossier_ref',true)" >/dev/null
+expect_error "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.verify_direct_publication_canary_dossier('$direct_event','$dossier_ref',true)" CANARY_DIRECT_DOSSIER_INVALID
+expect_equal "$(sql "select state from private.publication_canary_source_dossiers where evidence_reference='$dossier_ref'")" VERIFIED 'verified dossier state'
+expect_error "$(sed "s/'$dossier_ref'/'evidence:Imaginary123'/" <<< "$direct_call")" CANARY_DIRECT_DOSSIER_NOT_VERIFIED
+sql "insert into public.event_submission_contacts(event_id,submitter_name,submitter_email) values ('$other','Other organisation','other@example.test')" >/dev/null
+other_ref=$(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_direct_publication_canary_dossier('$other','$other','DIRECT_ORGANIZER','OFFICIAL_PHONE','Another official source independently consulted','Another organiser confirmed the separate event at another place')" | tail -1)
+sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.verify_direct_publication_canary_dossier('$other','$other_ref',true)" >/dev/null
+expect_error "$(sed "s/'$dossier_ref'/'$other_ref'/" <<< "$direct_call")" CANARY_DIRECT_DOSSIER_NOT_VERIFIED
+expect_equal "$(direct_attestations)" 0 'no attestation from absent or mismatched dossier'
+echo 'PASS private dossier: generated reference, verified state, event/submission binding and ACL'
+
+# Keep a public proof behind the direct proof: revocation must not fall back to it.
+sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_publication_canary_evidence('$direct_event','https://organizer.example/events/direct','Official organizer','Salon direct','Salon direct','Nantes',(current_date+25)::text,(current_date+25)::text,true)" >/dev/null
+sql "$direct_call" >/dev/null
+[[ $(direct_proofs) == 2 && $(direct_attestations) == 1 ]]
+[[ $(direct_status) == valid ]]
+[[ $(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select attested_origin||':'||attestation_state||':'||proof_type||':'||history_count from public.get_event_provenance('$direct_event')") == DIRECT_ORGANIZER:ATTESTED:DIRECT_VERIFIED:3 ]]
+sql "insert into public.event_publication_jobs(id,event_id,target_event_id,reason,status,attempt_count,requested_at) values ('$direct_job','$direct_event','$direct_event','validation','PENDING',0,now()+interval '3 minutes')" >/dev/null
+[[ $(direct_candidate) == 1 ]]
+for change in "title='Autre titre'" "city='Rennes'" "region='Bretagne'" "country_code='BE'" "description='Autre lieu'" "website=null" "start_date=current_date+26" "end_date=null" "lat=null" "lng=-1.56"; do
+  sql "update public.events set $change where id='$direct_event'" >/dev/null
+  [[ $(direct_status) == invalidated && $(direct_candidate) == 0 ]]
+  sql "update public.events set title='Salon direct',city='Nantes',region='Pays de la Loire',country_code='FR',description='Salle des fêtes',website='https://example.org',start_date=current_date+25,end_date=current_date+25,lat=47.22,lng=-1.55 where id='$direct_event'" >/dev/null
+done
+expect_error "$(sed "s/'Pays de la Loire'/NULL/" <<< "$direct_call")" CANARY_SOURCE_EVIDENCE_STALE
+[[ $(direct_attestations) == 1 && $(direct_proofs) == 2 ]]
+sql "update public.events set region=null,description=null,website=null,end_date=null,lat=null,lng=null where id='$direct_event'" >/dev/null
+expect_error "$direct_call" CANARY_SOURCE_EVIDENCE_STALE
+null_ref=$(sql "$dossier_call" | tail -1)
+expect_error "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.verify_direct_publication_canary_dossier('$direct_event','$dossier_ref',true)" CANARY_DIRECT_DOSSIER_INVALID
+sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.verify_direct_publication_canary_dossier('$direct_event','$null_ref',true)" >/dev/null
+direct_null="set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_direct_publication_canary_evidence_checked('$direct_event','$direct_event',null,'DIRECT_ORGANIZER','OFFICIAL_PHONE','$null_ref','Salon direct','Nantes',null,'FR',null,null,(current_date+25)::text,null,null,null,true)"
+sql "$direct_null" >/dev/null
+[[ $(direct_status) == valid && $(direct_attestations) == 2 ]]
+echo 'PASS direct proof: exact snapshot, venue, dates and NULL transitions'
+
+# Two writers serialize; an intervening event edit refuses without either partial row.
+sql "begin; $direct_null; select pg_sleep(2); commit" >/dev/null &
+background=$!
+sleep 0.3
+sql "$direct_null" >/dev/null
+wait "$background"
+[[ $(direct_attestations) == 4 ]]
+sql "begin; update public.events set description='Changed concurrently' where id='$direct_event'; select pg_sleep(2); commit" >/dev/null &
+background=$!
+sleep 0.3
+expect_error "$direct_null" CANARY_SOURCE_EVIDENCE_STALE
+wait "$background"
+[[ $(direct_attestations) == 4 ]]
+sql "update public.events set description=null where id='$direct_event'" >/dev/null
+echo 'PASS direct concurrent attestations and stale edit refusal'
+
+latest_direct_proof=$(sql "select id from private.publication_canary_evidence where event_id='$direct_event' order by checked_at desc,id desc limit 1")
+expect_error "set test.uid='$event'; set test.admin='false'; set role authenticated; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked')" CANARY_ADMIN_REQUIRED
+expect_error "set role anon; select public.get_event_provenance('$direct_event')" 'permission denied'
+expect_error "set role anon; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked')" 'permission denied'
+sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked')" >/dev/null
+expect_equal "$(direct_status)" invalidated 'revoked proof status'
+expect_equal "$(direct_candidate)" 0 'revoked proof candidate'
+expect_equal "$(sql "select count(*) from private.event_provenance where event_id='$direct_event' and state='REVOKED'")" 1 'revocation history'
+expect_equal "$(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select attestation_state from public.get_event_provenance('$direct_event')")" REVOKED 'revoked provenance state'
+expect_error "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked')" CANARY_DIRECT_ALREADY_REVOKED
+expect_equal "$(direct_proofs)" 5 'revocation leaves proof history unchanged'
+expect_equal "$(sql "select state from private.publication_canary_source_dossiers where evidence_reference='$null_ref'")" REVOKED 'revoked dossier state'
+expect_error "$direct_null" CANARY_DIRECT_DOSSIER_NOT_VERIFIED
+renewed_ref=$(sql "$dossier_call" | tail -1)
+sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.verify_direct_publication_canary_dossier('$direct_event','$renewed_ref',true)" >/dev/null
+direct_null=${direct_null/$null_ref/$renewed_ref}
+sql "$direct_null" >/dev/null
+expect_equal "$(direct_status)" valid 'renewed proof status'
+# Simulate time passing for the complete history, preserving latest-proof ordering.
+sql "update private.publication_canary_evidence set checked_at=checked_at-interval '31 days' where event_id='$direct_event'" >/dev/null
+expect_equal "$(direct_status)" expired 'expired proof status'
+expect_equal "$(direct_candidate)" 0 'expired proof candidate'
+sql "$direct_null" >/dev/null
+expect_equal "$(direct_status)" valid 'fresh proof status'
+echo 'PASS direct revocation, no older-proof fallback, expiry and renewed human evidence'
+
+# A revocation in flight blocks claim, rather than allowing an uncertain reservation.
+latest_direct_proof=$(sql "select id from private.publication_canary_evidence where event_id='$direct_event' order by checked_at desc,id desc limit 1")
+sql "begin; set test.uid='$event'; set test.admin='true'; set role authenticated; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked'); select pg_sleep(2); commit" >/dev/null &
+background=$!
+sleep 0.3
+sql "update private.publication_canary_attempts set reserved_at=now()-interval '25 hours'" >/dev/null
+expect_error "select count(*) from public.claim_publication_canary_batch('[$(selected "$direct_job")]'::jsonb,'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',104,1)" 'could not obtain lock'
+wait "$background"
+[[ $(direct_candidate) == 0 ]]
+[[ $(sql "select status from public.event_publication_jobs where id='$direct_job'") == PENDING ]]
+[[ $(sql "select count(*) from private.publication_canary_attempts") == 3 ]]
+echo 'PASS concurrent revocation blocks claim without partial reservation'
+
+for role in anon authenticated service_role; do
+  [[ $(sql "select has_table_privilege('$role','private.event_provenance','SELECT')") == f ]]
+  [[ $(sql "select has_table_privilege('$role','private.event_provenance','INSERT')") == f ]]
+  [[ $(sql "select has_table_privilege('$role','private.publication_canary_source_dossiers','SELECT')") == f ]]
+  [[ $(sql "select has_table_privilege('$role','private.publication_canary_source_dossiers','INSERT')") == f ]]
+  [[ $(sql "select has_function_privilege('$role','public.record_direct_publication_canary_dossier(uuid,uuid,text,text,text,text)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
+  [[ $(sql "select has_function_privilege('$role','public.get_direct_publication_canary_dossier(text)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
+  [[ $(sql "select has_function_privilege('$role','public.verify_direct_publication_canary_dossier(uuid,text,boolean)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
+  [[ $(sql "select has_function_privilege('$role','public.record_direct_publication_canary_evidence_checked(uuid,uuid,text,text,text,text,text,text,text,text,text,text,text,text,double precision,double precision,boolean)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
+  [[ $(sql "select has_function_privilege('$role','public.revoke_direct_publication_canary_evidence(uuid,bigint,text)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
+  [[ $(sql "select has_function_privilege('$role','public.get_event_provenance(uuid)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
+done
+echo 'PASS direct private ACL, RPC grants and history'
