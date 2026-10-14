@@ -287,6 +287,166 @@ function publicationJobFilter(
   return path;
 }
 
+function canaryRun() {
+  const runId = Number(process.env.GITHUB_RUN_ID);
+  const attempt = Number(process.env.GITHUB_RUN_ATTEMPT);
+  if (process.env.GITHUB_EVENT_NAME !== "schedule"
+      || !Number.isSafeInteger(runId) || runId <= 0 || attempt !== 1
+      || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(process.env.GITHUB_REPOSITORY || "")
+      || !process.env.GITHUB_TOKEN) {
+    throw new Error("STOP CANARY : contexte planifié invalide ou relancement interdit");
+  }
+  return runId;
+}
+
+async function canaryStatus() {
+  let rows;
+  try { rows = await rpc("publication_canary_status", {}); }
+  catch { throw new Error("STOP CANARY : état de sécurité inaccessible"); }
+  if (!Array.isArray(rows) || rows.length !== 1
+      || typeof rows[0].armed !== "boolean"
+      || typeof rows[0].halted !== "boolean"
+      || !Number.isSafeInteger(Number(rows[0].cleared_through_run_id))) {
+    throw new Error("STOP CANARY : état de sécurité illisible");
+  }
+  return rows[0];
+}
+
+async function checkCanaryActionsHistory(clearedThrough, currentRun) {
+  // Actions history is the durable fail-closed fallback when Supabase cannot
+  // record a preflight failure, cancellation, timeout, or network incident.
+  const repo = process.env.GITHUB_REPOSITORY;
+  let sawCurrent = false;
+  for (let page = 1; page <= 100; page += 1) {
+    let body;
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/${repo}/actions/workflows/publish-events.yml/runs?event=schedule&per_page=100&page=${page}`,
+        { headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28" } },
+      );
+      if (!response.ok) throw new Error("Actions unavailable");
+      body = await response.json();
+    } catch { throw new Error("STOP CANARY : historique GitHub Actions inaccessible"); }
+    const runs = body?.workflow_runs;
+    if (!Array.isArray(runs)) throw new Error("STOP CANARY : historique GitHub Actions illisible");
+    for (const run of runs) {
+      if (!Number.isSafeInteger(run.id)) throw new Error("STOP CANARY : run GitHub illisible");
+      if (run.id === currentRun) { sawCurrent = true; continue; }
+      if (run.id > currentRun || run.id <= clearedThrough) continue;
+      if (run.status !== "completed"
+          || !["success", "skipped"].includes(run.conclusion)) {
+        throw new Error(`STOP CANARY : incident GitHub Actions non acquitté (run ${run.id})`);
+      }
+    }
+    if (runs.length < 100 || runs.some((run) => run.id <= clearedThrough)) {
+      if (!sawCurrent) throw new Error("STOP CANARY : run courant absent de l'historique GitHub");
+      return;
+    }
+  }
+  throw new Error("STOP CANARY : historique GitHub Actions incomplet");
+}
+
+function noCanaryJobs(reason) {
+  setOutput("has_pending", "false");
+  console.log(`CANARY : ${reason}`);
+}
+
+async function canaryCandidate() {
+  let rows;
+  try { rows = await rpc("publication_canary_candidate", {}); }
+  catch { throw new Error("STOP CANARY : sélection sécurisée inaccessible"); }
+  if (!Array.isArray(rows) || rows.length > 1) {
+    throw new Error("STOP CANARY : sélection sécurisée illisible");
+  }
+  const row = rows[0] || null;
+  if (row && (row.reason !== "validation" || row.status !== "PENDING"
+      || row.attempt_count !== 0 || row.event_id !== row.target_event_id)) {
+    throw new Error("STOP CANARY : sélection incompatible");
+  }
+  return row && !legacyEvents[row.target_event_id] ? row : null;
+}
+
+async function canaryGuards() {
+  const runId = canaryRun();
+  const state = await canaryStatus();
+  if (state.halted) throw new Error("STOP CANARY : incident persistant, revue humaine requise");
+  if (!state.armed) return { runId, ready: false, reason: "non armé" };
+  await checkCanaryActionsHistory(Number(state.cleared_through_run_id), runId);
+  if (state.last_reserved_at) {
+    const reserved = Date.parse(state.last_reserved_at);
+    if (!Number.isFinite(reserved)) throw new Error("STOP CANARY : date de réservation illisible");
+    if (Date.now() - reserved < 24 * 60 * 60 * 1000) {
+      return { runId, ready: false, reason: "quota 24 h atteint" };
+    }
+  }
+  return { runId, ready: true };
+}
+
+async function canaryPreflight() {
+  const state = await canaryGuards();
+  if (!state.ready) return noCanaryJobs(state.reason);
+  const row = await canaryCandidate();
+  if (!row) return noCanaryJobs("aucun job validé avec preuve de source admissible");
+  setOutput("has_pending", "true");
+  console.log(`CANARY : un job éligible (${row.id})`);
+}
+
+async function canaryClaim() {
+  const state = await canaryGuards();
+  if (!state.ready) throw new Error("STOP CANARY : quota ou armement changé avant réservation");
+  const row = await canaryCandidate();
+  if (!row) throw new Error("STOP CANARY : candidat modifié avant réservation");
+  const batchId = randomUUID();
+  let claimed;
+  try {
+    claimed = await rpc("claim_publication_canary_batch", {
+      p_expected: [row], p_batch_id: batchId,
+      p_run_id: state.runId, p_run_attempt: 1,
+    });
+  } catch { throw new Error("STOP CANARY : réservation atomique refusée"); }
+  if (!Array.isArray(claimed) || claimed.length !== 1
+      || claimed[0].id !== row.id || claimed[0].status !== "RUNNING"
+      || claimed[0].batch_id !== batchId || claimed[0].reason !== "validation"
+      || Number(claimed[0].attempt_count) !== 1) {
+    throw new Error("STOP CANARY : résultat de réservation incertain");
+  }
+  setOutput("depublish_event_ids", "[]");
+  setOutput("depublish_paths", "[]");
+  setOutput("publication_jobs", JSON.stringify([{
+    id: row.id, event_id: row.target_event_id,
+    reason: "validation", attempt_count: 1,
+  }]));
+  setOutput("has_jobs", "true");
+  setOutput("batch_id", batchId);
+  setOutput("job_count", "1");
+  setOutput("blocked_count", "0");
+  console.log(`Batch CANARY ${batchId} : 1 job réservé`);
+}
+
+async function canaryIncident() {
+  const runId = Number(process.env.GITHUB_RUN_ID);
+  const runAttempt = Number(process.env.GITHUB_RUN_ATTEMPT);
+  const batchId = process.env.PUBLICATION_CANARY_BATCH_ID || null;
+  const stage = String(process.env.PUBLICATION_ERROR || "unknown failure")
+    .replace(/[^A-Za-z0-9 ,.-]/g, "").slice(0, 120);
+  if (process.env.GITHUB_EVENT_NAME !== "schedule"
+      || !Number.isSafeInteger(runId) || runId <= 0
+      || !Number.isSafeInteger(runAttempt) || runAttempt < 1) {
+    throw new Error("STOP CANARY : contexte d'incident invalide");
+  }
+  try {
+    await rpc("record_publication_canary_incident", {
+      p_run_id: runId, p_run_attempt: runAttempt,
+      p_batch_id: batchId, p_reason: `Automatic CANARY failure: ${stage}`,
+    });
+  } catch {
+    throw new Error("STOP CANARY : incident non consigné en base ; historique GitHub requis pour bloquer la reprise");
+  }
+  console.log(`CANARY : incident enregistré pour le run ${runId}`);
+}
+
 async function preflight() {
   if (MANUAL_MODE === "execute") {
     await selectedBatch(true);
@@ -303,24 +463,7 @@ async function preflight() {
     throw new Error("STOP précontrôle : mode de publication incompatible");
   }
 
-  let rows;
-  try {
-    rows = await request(
-      publicationJobFilter("PENDING")
-      + "&select=id"
-      + "&order=requested_at.asc,id.asc"
-      + "&limit=1"
-    );
-  } catch (error) {
-    throw new Error(`STOP précontrôle : ${error.message}`);
-  }
-  if (!Array.isArray(rows)) {
-    throw new Error("STOP précontrôle : réponse Supabase illisible");
-  }
-
-  const hasPending = rows.length > 0;
-  setOutput("has_pending", String(hasPending));
-  console.log(hasPending ? "File de publication non vide." : "File de publication vide.");
+  return canaryPreflight();
 }
 
 function selectedIds() {
@@ -348,8 +491,8 @@ async function readSelection(path) {
 
 async function selectedBatch(execute) {
   if (PREACTIVATION_TEST || P0_RECOVERY || DOUAI_MANUAL
-      || process.env.PUBLICATION_AUTOMATION_ENABLED !== "false") {
-    throw new Error("STOP manuel : mode incompatible ou automatisation activée");
+      || !["false", "true"].includes(process.env.PUBLICATION_AUTOMATION_ENABLED)) {
+    throw new Error("STOP manuel : mode incompatible ou état d'automatisation inconnu");
   }
   const ids = selectedIds();
   if (execute && (MANUAL_CONFIRMATION !== "EXECUTE"
@@ -819,268 +962,7 @@ async function claim() {
   if (process.env.PUBLICATION_AUTOMATION_ENABLED !== "true") {
     throw new Error("STOP : automatisation désactivée ; aucun claim réel autorisé");
   }
-
-  // A stale RUNNING job may already have a pushed commit or a delayed Pages
-  // deployment. It requires manual evidence review, never an automatic retry.
-
-
-  setOutput(
-    "depublish_event_ids",
-    "[]"
-  );
-
-  setOutput(
-    "depublish_paths",
-    "[]"
-  );
-
-
-  const rows =
-    await request(
-      publicationJobFilter(
-        "PENDING"
-      )
-      + "&select=id,event_id,target_event_id,reason,attempt_count,requested_at"
-      + "&order=requested_at.asc,id.asc"
-      + `&limit=${AUTOMATIC_BATCH_LIMIT}`
-    );
-
-
-  if (
-    !Array.isArray(rows)
-    || rows.length === 0
-  ) {
-    setOutput(
-      "has_jobs",
-      "false"
-    );
-
-    setOutput(
-      "batch_id",
-      ""
-    );
-
-    setOutput(
-      "job_count",
-      "0"
-    );
-
-    setOutput(
-      "blocked_count",
-      "0"
-    );
-
-    console.log(
-      "Aucun job en attente."
-    );
-
-    return;
-  }
-
-
-  if (
-    PREACTIVATION_TEST
-  ) {
-    const unsafeRows =
-      rows.filter(
-        (row) =>
-          row.event_id !== null
-          || row.target_event_id !== null
-          || row.reason !== "manual"
-      );
-
-
-    if (
-      unsafeRows.length
-    ) {
-      throw new Error(
-        "PREACTIVATION isolation violated: "
-        + "only manual jobs with event_id=null are allowed"
-      );
-    }
-
-
-    console.log(
-      `PREACTIVATION_TEST=true : ${rows.length} job(s) manuel(s) isolé(s)`
-    );
-  }
-
-
-  const publishable = [];
-  let blockedCount = 0;
-
-
-  for (
-    const row
-    of rows
-  ) {
-    if (
-      await blockInvalidDepublicationJob(
-        row
-      )
-    ) {
-      blockedCount += 1;
-
-      continue;
-    }
-
-
-    if (
-      await blockLegacyJob(
-        row
-      )
-    ) {
-      blockedCount += 1;
-
-      continue;
-    }
-
-    publishable.push(
-      row
-    );
-  }
-
-
-  setOutput(
-    "blocked_count",
-    String(
-      blockedCount
-    )
-  );
-
-
-  if (
-    publishable.length === 0
-  ) {
-    setOutput(
-      "has_jobs",
-      "false"
-    );
-
-    setOutput(
-      "batch_id",
-      ""
-    );
-
-    setOutput(
-      "job_count",
-      "0"
-    );
-
-    console.log(
-      `${blockedCount} job(s) legacy bloqué(s), aucun job publiable.`
-    );
-
-    return;
-  }
-
-
-
-  const depublishEventIds =
-    [
-      ...new Set(
-        publishable
-          .filter(
-            (row) =>
-              shouldAuthorizeCanonicalRemoval(row)
-          )
-          .map(
-            (row) =>
-              targetEventId(
-                row
-              )
-          )
-          .filter(Boolean)
-      ),
-    ];
-
-
-  const depublishPaths =
-    [
-      ...new Set(
-        depublishEventIds
-          .map(
-            (identifier) =>
-              canonicalDepublicationPath({
-                target_event_id:
-                  identifier,
-              })
-          )
-      ),
-    ];
-
-
-  if (
-    depublishEventIds.length
-    !== depublishPaths.length
-  ) {
-    throw new Error(
-      "STOP : incohérence entre événements et chemins de dépublication"
-    );
-  }
-
-
-  const batchId =
-    randomUUID();
-
-  const claimed = await rpc("claim_event_publication_batch", {
-    p_expected: publishable,
-    p_batch_id: batchId,
-  });
-  if (!Array.isArray(claimed) || claimed.length !== publishable.length
-      || publishable.some((row) => !claimed.some((item) =>
-        item.id === row.id && item.status === "RUNNING"
-        && item.batch_id === batchId
-        && Number(item.attempt_count) === Number(row.attempt_count) + 1))) {
-    throw new Error("STOP : réservation atomique non confirmée");
-  }
-
-  const actualDepublishIds = [...new Set(claimed.filter(
-    (row) => shouldAuthorizeCanonicalRemoval(row)
-  ).map((row) => targetEventId(row)).filter(Boolean))];
-  const actualDepublishPaths = actualDepublishIds.map((id) =>
-    canonicalDepublicationPath({target_event_id:id}));
-  if (actualDepublishIds.length !== depublishEventIds.length
-      || actualDepublishPaths.some((path) => !path || !depublishPaths.includes(path))) {
-    throw new Error("STOP : réservation et suppressions autorisées divergent");
-  }
-  setOutput("depublish_event_ids", JSON.stringify(actualDepublishIds));
-  setOutput("depublish_paths", JSON.stringify(actualDepublishPaths));
-
-
-  setOutput(
-    "has_jobs",
-    "true"
-  );
-
-  setOutput(
-    "publication_jobs",
-    JSON.stringify(claimed.map((row) => ({
-      id: row.id,
-      event_id: targetEventId(row) || null,
-      reason: row.reason,
-      attempt_count: Number(row.attempt_count),
-    })))
-  );
-
-  setOutput(
-    "batch_id",
-    batchId
-  );
-
-  setOutput(
-    "job_count",
-    String(
-      publishable.length
-    )
-  );
-
-
-  console.log(
-    `Batch ${batchId} : `
-    + `${publishable.length} publiable(s), `
-    + `${blockedCount} legacy bloqué(s)`
-  );
+  return canaryClaim();
 }
 
 function expectedBatch(batchId) {
@@ -1308,6 +1190,11 @@ if (
   command === "claim"
 ) {
   await claim();
+
+} else if (
+  command === "canary-incident"
+) {
+  await canaryIncident();
 
 } else if (
   command === "success"

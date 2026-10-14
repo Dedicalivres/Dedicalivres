@@ -6,53 +6,62 @@ import { pathToFileURL } from "node:url";
 
 const root = process.cwd();
 const worker = pathToFileURL(path.resolve("scripts/publication-jobs.mjs"));
+const id = "11111111-1111-4111-8111-111111111111";
+const eventId = "22222222-2222-4222-8222-222222222222";
 let imports = 0;
 
-function jobs(count) {
-  return Array.from({ length: count }, (_, index) => ({
-    id: `${String(index + 1).padStart(8, "0")}-1111-4111-8111-111111111111`,
-    event_id: `${String(index + 1).padStart(8, "0")}-2222-4222-8222-222222222222`,
-    target_event_id: `${String(index + 1).padStart(8, "0")}-2222-4222-8222-222222222222`,
+function fixture() {
+  const row = { id, event_id: eventId, target_event_id: eventId,
     reason: "validation", status: "PENDING", attempt_count: 0,
-    batch_id: null, commit_sha: null,
-    requested_at: index < 2 ? "2026-10-12T00:00:00Z" : "2026-10-12T00:00:01Z",
-  }));
-}
-
-function fixture(count, { failed = false, running = false, response = null } = {}) {
-  const rows = jobs(count);
-  if (failed) rows.push({ ...jobs(1)[0], id: "90000000-1111-4111-8111-111111111111", status: "FAILED" });
-  if (running) rows.push({ ...jobs(1)[0], id: "80000000-1111-4111-8111-111111111111", status: "RUNNING" });
-  const calls = [];
-  return { rows, calls, async fetch(raw, options = {}) {
+    batch_id: null, commit_sha: null, last_error: null,
+    requested_at: "2026-10-14T00:00:00Z" };
+  const state = { row, candidate: row, armed: true, halted: false,
+    lastReserved: null, cleared: 100,
+    history: [{ id: 200, status: "in_progress", conclusion: null }], githubError: false,
+    dbError: false, calls: [] };
+  state.fetch = async (raw, options = {}) => {
     const url = new URL(raw);
     const method = options.method || "GET";
-    calls.push({ method, path: url.pathname, search: url.search });
-    if (response) return response();
-    if (url.pathname.endsWith("/rpc/claim_event_publication_batch")) {
-      const body = JSON.parse(options.body);
-      calls.at(-1).expected = body.p_expected;
-      const claimed = body.p_expected.map((expected) => ({ ...expected,
-        status: "RUNNING", attempt_count: expected.attempt_count + 1,
-        batch_id: body.p_batch_id }));
-      return { ok: true, text: async () => JSON.stringify(claimed) };
+    state.calls.push({ path: url.pathname, method });
+    if (url.hostname === "api.github.com") {
+      if (state.githubError) throw new Error("network unavailable");
+      return { ok: true, json: async () => ({ workflow_runs: state.history }) };
     }
-    const status = url.searchParams.get("status")?.slice(3);
-    let selected = rows.filter((row) => row.status === status);
-    selected.sort((a, b) => a.requested_at.localeCompare(b.requested_at)
-      || a.id.localeCompare(b.id));
-    const limit = Number(url.searchParams.get("limit") || selected.length);
-    selected = selected.slice(0, limit);
-    return { ok: true, text: async () => JSON.stringify(selected) };
-  }};
+    if (state.dbError) throw new Error("database unavailable");
+    let result;
+    if (url.pathname.endsWith("/rpc/publication_canary_status")) {
+      result = [{ armed: state.armed, halted: state.halted,
+        cleared_through_run_id: state.cleared, last_reserved_at: state.lastReserved }];
+    } else if (url.pathname.endsWith("/rpc/publication_canary_candidate")) {
+      result = state.candidate ? [state.candidate] : [];
+    } else if (url.pathname.endsWith("/rpc/claim_publication_canary_batch")) {
+      const body = JSON.parse(options.body);
+      assert.equal(body.p_expected.length, 1);
+      assert.equal(body.p_expected[0].id, id);
+      assert.equal(body.p_run_id, 200);
+      result = [{ ...state.row, status: "RUNNING", attempt_count: 1,
+        batch_id: body.p_batch_id }];
+      state.lastReserved = new Date().toISOString();
+    } else if (url.pathname.endsWith("/rpc/record_publication_canary_incident")) {
+      state.armed = false;
+      state.halted = true;
+      result = null;
+    } else {
+      throw new Error(`Unexpected request ${url.pathname}`);
+    }
+    return { ok: true, text: async () => JSON.stringify(result) };
+  };
+  return state;
 }
 
-async function invoke(state, command, env = {}) {
+async function invoke(state, command, extra = {}) {
   const oldArgv = process.argv;
   const oldFetch = global.fetch;
   const keys = ["SUPABASE_URL", "SUPABASE_SECRET_KEY", "PUBLICATION_DOUAI_MANUAL",
     "PUBLICATION_AUTOMATION_ENABLED", "PUBLICATION_PREACTIVATION_TEST",
-    "PUBLICATION_P0_RECOVERY", "GITHUB_OUTPUT"];
+    "PUBLICATION_P0_RECOVERY", "GITHUB_OUTPUT", "GITHUB_EVENT_NAME",
+    "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "GITHUB_REPOSITORY", "GITHUB_TOKEN",
+    "PUBLICATION_ERROR", "PUBLICATION_CANARY_BATCH_ID"];
   const oldEnv = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   const output = path.join(process.cwd(), `output-${++imports}.txt`);
   process.argv = [process.execPath, worker.pathname, command];
@@ -60,9 +69,11 @@ async function invoke(state, command, env = {}) {
   Object.assign(process.env, { SUPABASE_URL: "https://example.invalid",
     SUPABASE_SECRET_KEY: "test-secret", PUBLICATION_DOUAI_MANUAL: "false",
     PUBLICATION_AUTOMATION_ENABLED: "true", PUBLICATION_PREACTIVATION_TEST: "false",
-    PUBLICATION_P0_RECOVERY: "false", GITHUB_OUTPUT: output, ...env });
+    PUBLICATION_P0_RECOVERY: "false", GITHUB_OUTPUT: output,
+    GITHUB_EVENT_NAME: "schedule", GITHUB_RUN_ID: "200", GITHUB_RUN_ATTEMPT: "1",
+    GITHUB_REPOSITORY: "Dedicalivres/Dedicalivres", GITHUB_TOKEN: "test-token", ...extra });
   try {
-    await import(`${worker.href}?batch=${imports}`);
+    await import(`${worker.href}?canary=${imports}`);
     return fs.existsSync(output) ? fs.readFileSync(output, "utf8") : "";
   } finally {
     process.argv = oldArgv;
@@ -72,7 +83,7 @@ async function invoke(state, command, env = {}) {
   }
 }
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "publication-batch-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "publication-canary-worker-"));
 fs.mkdirSync(path.join(tmp, "scripts/event-publisher"), { recursive: true });
 fs.mkdirSync(path.join(tmp, "docs/territoires"), { recursive: true });
 fs.copyFileSync(path.join(root, "scripts/event-publisher/legacy-enriched-events.json"),
@@ -81,62 +92,85 @@ fs.writeFileSync(path.join(tmp, "docs/territoires/event-canonical-map.json"), "{
 process.chdir(tmp);
 
 try {
-  for (const count of [0, 1, 3, 4, 10]) {
-    const state = fixture(count);
-    const preflight = await invoke(state, "preflight");
-    assert.match(preflight, new RegExp(`has_pending=${count > 0}`));
-    assert.equal(state.calls.filter((call) => call.method !== "GET").length, 0);
-    if (count === 0) continue;
-    const claimed = await invoke(state, "claim");
-    assert.match(claimed, new RegExp(`job_count=${Math.min(count, 3)}`));
-    assert.equal(state.calls.filter((call) =>
-      call.path.endsWith("/rpc/claim_event_publication_batch")).length, 1);
-    const rpc = state.calls.find((call) =>
-      call.path.endsWith("/rpc/claim_event_publication_batch"));
-    assert.deepEqual(rpc.expected.map((row) => row.id),
-      state.rows.filter((row) => row.status === "PENDING").slice(0, 3).map((row) => row.id));
-    assert.match(state.calls.find((call) => call.search.includes("limit=3")).search,
-      /order=requested_at\.asc,id\.asc/);
+  const first = fixture();
+  assert.match(await invoke(first, "preflight"), /has_pending=true/);
+  assert.match(await invoke(first, "claim"), /job_count=1/);
+  assert.equal(first.calls.filter((call) => call.path.endsWith("/rpc/claim_publication_canary_batch")).length, 1);
+  assert.equal(first.calls.filter((call) => call.path.endsWith("/rpc/claim_event_publication_batch")).length, 0);
+
+  const quota = fixture();
+  quota.lastReserved = new Date().toISOString();
+  assert.match(await invoke(quota, "preflight"), /has_pending=false/);
+  assert.equal(quota.calls.some((call) => call.path.endsWith("/rpc/publication_canary_candidate")), false);
+
+  const empty = fixture();
+  empty.candidate = null;
+  assert.match(await invoke(empty, "preflight"), /has_pending=false/);
+  assert.equal(empty.calls.some((call) => call.path.endsWith("/rpc/claim_publication_canary_batch")), false);
+
+  const disarmed = fixture();
+  disarmed.armed = false;
+  assert.match(await invoke(disarmed, "preflight"), /has_pending=false/);
+
+  const halted = fixture();
+  halted.halted = true;
+  await assert.rejects(invoke(halted, "preflight"), /incident persistant/);
+
+  const incident = fixture();
+  await invoke(incident, "canary-incident", { PUBLICATION_ERROR: "generation" });
+  assert.equal(incident.halted, true);
+  await assert.rejects(invoke(incident, "preflight"), /incident persistant/);
+
+  const unrecorded = fixture();
+  unrecorded.dbError = true;
+  await assert.rejects(invoke(unrecorded, "canary-incident"), /incident non consigné/);
+  unrecorded.dbError = false;
+  unrecorded.history.push({ id: 150, status: "completed", conclusion: "failure" });
+  await assert.rejects(invoke(unrecorded, "preflight"), /incident GitHub Actions/);
+
+  const failedRun = fixture();
+  failedRun.history.push({ id: 150, status: "completed", conclusion: "failure" });
+  await assert.rejects(invoke(failedRun, "preflight"), /incident GitHub Actions/);
+  assert.equal(failedRun.calls.some((call) => call.path.endsWith("/rpc/claim_publication_canary_batch")), false);
+  const cancelledRun = fixture();
+  cancelledRun.history.push({ id: 151, status: "completed", conclusion: "cancelled" });
+  await assert.rejects(invoke(cancelledRun, "preflight"), /incident GitHub Actions/);
+
+  const apiDown = fixture();
+  apiDown.githubError = true;
+  await assert.rejects(invoke(apiDown, "preflight"), /historique GitHub Actions inaccessible/);
+  const dbDown = fixture();
+  dbDown.dbError = true;
+  await assert.rejects(invoke(dbDown, "preflight"), /état de sécurité inaccessible/);
+
+  const rerun = fixture();
+  await assert.rejects(invoke(rerun, "preflight", { GITHUB_RUN_ATTEMPT: "2" }), /relancement interdit/);
+  assert.equal(rerun.calls.length, 0);
+
+  const changed = fixture();
+  assert.match(await invoke(changed, "preflight"), /has_pending=true/);
+  changed.candidate = null;
+  await assert.rejects(invoke(changed, "claim"), /candidat modifié/);
+  assert.equal(changed.calls.some((call) => call.path.endsWith("/rpc/claim_publication_canary_batch")), false);
+
+  for (const reason of ["edit", "unpublish", "delete"]) {
+    const incompatible = fixture();
+    incompatible.candidate = { ...incompatible.row, reason };
+    await assert.rejects(invoke(incompatible, "preflight"), /sélection incompatible/);
   }
 
-  const changedAfterPreflight = fixture(1);
-  await invoke(changedAfterPreflight, "preflight");
-  changedAfterPreflight.rows[0].status = "SUCCESS";
-  const afterChange = await invoke(changedAfterPreflight, "claim");
-  assert.match(afterChange, /has_jobs=false/);
-  assert.equal(changedAfterPreflight.calls.filter((call) =>
-    call.path.endsWith("/rpc/claim_event_publication_batch")).length, 0);
-
-  for (const options of [{ failed: true }, { running: true }, { failed: true, running: true }]) {
-    const state = fixture(0, options);
-    const output = await invoke(state, "preflight");
-    assert.match(output, /has_pending=false/);
-    assert.equal(state.calls.filter((call) => call.method !== "GET").length, 0);
-  }
-
-  for (const response of [
-    () => { throw new Error("network down"); },
-    () => ({ ok: false, status: 401, text: async () => "invalid api key" }),
-    () => ({ ok: true, text: async () => "not-json" }),
-  ]) {
-    const state = fixture(0, { response });
-    await assert.rejects(invoke(state, "preflight"), /STOP précontrôle/);
-    assert.equal(state.calls.filter((call) => call.method !== "GET").length, 0);
-  }
-
-  const disabled = fixture(1);
-  await assert.rejects(invoke(disabled, "preflight",
-    { PUBLICATION_AUTOMATION_ENABLED: "false" }), /mode de publication incompatible/);
+  const disabled = fixture();
+  await assert.rejects(invoke(disabled, "preflight", {
+    PUBLICATION_AUTOMATION_ENABLED: "false" }), /mode de publication incompatible/);
   assert.equal(disabled.calls.length, 0);
-
-  const douai = fixture(0);
-  const output = await invoke(douai, "preflight", { PUBLICATION_DOUAI_MANUAL: "true",
-    PUBLICATION_AUTOMATION_ENABLED: "false" });
-  assert.match(output, /has_pending=true/);
+  const douai = fixture();
+  assert.match(await invoke(douai, "preflight", {
+    PUBLICATION_DOUAI_MANUAL: "true", PUBLICATION_AUTOMATION_ENABLED: "false",
+  }), /has_pending=true/);
   assert.equal(douai.calls.length, 0);
 } finally {
   process.chdir(root);
   fs.rmSync(tmp, { recursive: true, force: true });
 }
 
-console.log("PASS batch 3 et précontrôle non destructif");
+console.log("PASS CANARY précontrôle, quota, incident persistant et réservation unique");

@@ -47,3 +47,6 @@ jobs:
 
       - name: Test atomic batch reservation on disposable PostgreSQL
         run: bash scripts/test-publication-batch-state.sh
+
+      - name: Test CANARY source, quota and incident on disposable PostgreSQL
+        run: bash scripts/test-publication-canary-sql.sh

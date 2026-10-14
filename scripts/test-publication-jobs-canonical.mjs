@@ -1,368 +1,90 @@
 import assert from "node:assert/strict";
-import {
-  execFile,
-} from "node:child_process";
+import { execFile } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import {
-  promisify,
-} from "node:util";
+import { promisify } from "node:util";
 
+const run = promisify(execFile);
+const worker = path.resolve("scripts/publication-jobs.mjs");
+const legacy = path.resolve("scripts/event-publisher/legacy-enriched-events.json");
+const target = "22222222-2222-4222-8222-222222222222";
 
-const run =
-  promisify(
-    execFile
-  );
-
-const worker =
-  path.resolve(
-    "scripts/publication-jobs.mjs"
-  );
-
-const legacySource =
-  path.resolve(
-    "scripts/event-publisher/legacy-enriched-events.json"
-  );
-
-
-async function scenario({
-  canonical,
-  expectedStatus,
-  expectedPath,
-  preactivation = false,
-  row = {
-    id:
-      "11111111-1111-4111-8111-111111111111",
-    event_id:
-      null,
-    target_event_id:
-      "22222222-2222-4222-8222-222222222222",
-    reason:
-      "delete",
-    attempt_count:
-      0,
-    requested_at:
-      "2026-10-07T00:00:00Z",
-  },
-}) {
-  const patches = [];
-  const filters = [];
-
-  const server =
-    http.createServer(
-      (request, response) => {
-        const url =
-          new URL(
-            request.url,
-            "http://127.0.0.1"
-          );
-
-        if (
-          request.method === "GET"
-          && url.searchParams.get("status") === "eq.RUNNING"
-        ) {
-          response.end("[]");
-          return;
-        }
-
-        if (request.method === "GET") {
-          filters.push(
-            url.search
-          );
-
-          response.end(
-            JSON.stringify([
-              row,
-            ])
-          );
-          return;
-        }
-
-        let body = "";
-
-        request.on(
-          "data",
-          (chunk) => {
-            body += chunk;
-          }
-        );
-
-        request.on(
-          "end",
-          () => {
-            const payload = JSON.parse(body);
-            if (url.pathname.endsWith('/rpc/claim_event_publication_batch')) {
-              patches.push({status:'RUNNING', rpc:true});
-              response.end(JSON.stringify([{...row, status:'RUNNING',
-                batch_id:payload.p_batch_id,
-                attempt_count:Number(row.attempt_count) + 1}]));
-            } else {
-              patches.push(payload);
-              response.end(JSON.stringify([{...row, ...payload}]));
-            }
-          }
-        );
-      }
-    );
-
-  await new Promise(
-    (resolve) =>
-      server.listen(
-        0,
-        "127.0.0.1",
-        resolve
-      )
-  );
-
-  const fixture =
-    fs.mkdtempSync(
-      path.join(
-        os.tmpdir(),
-        "publication-canonical-"
-      )
-    );
-
-  fs.mkdirSync(
-    path.join(
-      fixture,
-      "scripts/event-publisher"
-    ),
-    {
-      recursive:
-        true,
+async function scenario({ canonical, reason = "delete", permitted }) {
+  const job = { id: "11111111-1111-4111-8111-111111111111",
+    event_id: reason === "delete" ? null : target, target_event_id: target,
+    reason, status: "PENDING", attempt_count: 0, requested_at: "2026-10-14T00:00:00Z",
+    batch_id: null, commit_sha: null };
+  const calls = [];
+  const server = http.createServer(async (request, response) => {
+    const url = new URL(request.url, "http://127.0.0.1");
+    calls.push({ method: request.method, path: url.pathname, search: url.search });
+    if (url.pathname.endsWith("/rpc/claim_event_publication_batch")) {
+      let body = "";
+      for await (const chunk of request) body += chunk;
+      const payload = JSON.parse(body);
+      response.end(JSON.stringify([{ ...job, status: "RUNNING", attempt_count: 1,
+        batch_id: payload.p_batch_id }]));
+    } else if (url.pathname.endsWith("/events")) {
+      response.end(JSON.stringify(reason === "delete" ? []
+        : [{ id: target, validated: true, rejected: false }]));
+    } else if (url.searchParams.get("status") === "eq.RUNNING") {
+      response.end("[]");
+    } else {
+      response.end(JSON.stringify([job]));
     }
-  );
-
-  fs.mkdirSync(
-    path.join(
-      fixture,
-      "docs/territoires"
-    ),
-    {
-      recursive:
-        true,
-    }
-  );
-
-  fs.copyFileSync(
-    legacySource,
-    path.join(
-      fixture,
-      "scripts/event-publisher/legacy-enriched-events.json"
-    )
-  );
-
-  fs.writeFileSync(
-    path.join(
-      fixture,
-      "docs/territoires/event-canonical-map.json"
-    ),
-    JSON.stringify(
-      canonical
-    )
-  );
-
-  const output =
-    path.join(
-      fixture,
-      "github-output.txt"
-    );
-
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "publication-canonical-"));
+  fs.mkdirSync(path.join(fixture, "scripts/event-publisher"), { recursive: true });
+  fs.mkdirSync(path.join(fixture, "docs/territoires"), { recursive: true });
+  fs.copyFileSync(legacy, path.join(fixture, "scripts/event-publisher/legacy-enriched-events.json"));
+  fs.writeFileSync(path.join(fixture, "docs/territoires/event-canonical-map.json"),
+    JSON.stringify(canonical));
+  const output = path.join(fixture, "github-output.txt");
+  const common = { ...process.env, SUPABASE_URL: `http://127.0.0.1:${server.address().port}`,
+    SUPABASE_SECRET_KEY: "test-secret", PUBLICATION_AUTOMATION_ENABLED: "false",
+    PUBLICATION_DOUAI_MANUAL: "false", PUBLICATION_PREACTIVATION_TEST: "false",
+    PUBLICATION_P0_RECOVERY: "false", PUBLICATION_MANUAL_JOB_IDS: job.id,
+    GITHUB_OUTPUT: output };
   try {
-    const address =
-      server.address();
-
-    const invocation = run(
-      process.execPath,
-      [
-        worker,
-        "claim",
-      ],
-      {
-        cwd:
-          fixture,
-
-        env: {
-          ...process.env,
-          SUPABASE_URL:
-            `http://127.0.0.1:${address.port}`,
-          SUPABASE_SECRET_KEY:
-            "test-secret",
-          GITHUB_OUTPUT:
-            output,
-          PUBLICATION_PREACTIVATION_TEST:
-            preactivation
-              ? "true"
-              : "false",
-          PUBLICATION_AUTOMATION_ENABLED:
-            "true",
-        },
-      }
-    );
-
-    if (preactivation) {
-      await assert.rejects(invocation, /préactivation réelle retirée/);
-      assert.equal(patches.length, 0);
-      assert.equal(filters.length, 0);
+    const preview = run(process.execPath, [worker, "preview-selected"], {
+      cwd: fixture, env: { ...common, PUBLICATION_MANUAL_MODE: "preview" },
+    });
+    if (!permitted) {
+      await assert.rejects(preview, /PENDING incompatible/);
+      assert.equal(calls.filter((call) => call.method !== "GET").length, 0);
       return;
     }
-    await invocation;
-
-    assert.equal(
-      patches.length,
-      1
-    );
-
-    assert.equal(
-      patches[0].status,
-      expectedStatus
-    );
-    if (expectedStatus === 'RUNNING') assert.equal(patches[0].rpc, true);
-
-    assert.match(
-      filters[0],
-      /reason=neq\.manual/
-    );
-
-    const outputs =
-      fs.readFileSync(
-        output,
-        "utf8"
-      );
-
-    if (expectedPath) {
-      assert.match(
-        outputs,
-        new RegExp(
-          `depublish_paths=.*${expectedPath.replace(".", "\\.")}`
-        )
-      );
-    } else if (
-      expectedStatus === "BLOCKED"
-    ) {
-      assert.match(
-        patches[0].last_error,
-        /target_event_id=22222222-2222-4222-8222-222222222222/
-      );
-      assert.match(
-        outputs,
-        /has_jobs=false/
-      );
+    const fingerprint = (await preview).stdout.match(/Empreinte PREVIEW : ([0-9a-f]{64})/)?.[1];
+    assert.ok(fingerprint);
+    assert.equal(calls.filter((call) => call.method !== "GET").length, 0);
+    const claimed = await run(process.execPath, [worker, "claim"], {
+      cwd: fixture, env: { ...common, PUBLICATION_MANUAL_MODE: "execute",
+        PUBLICATION_MANUAL_FINGERPRINT: fingerprint,
+        PUBLICATION_MANUAL_CONFIRMATION: "EXECUTE" },
+    });
+    assert.match(claimed.stdout, /job_count=1/);
+    assert.equal(calls.filter((call) => call.path.endsWith("/rpc/claim_event_publication_batch")).length, 1);
+    const expectedPath = canonical[target];
+    const outputs = fs.readFileSync(output, "utf8");
+    if (expectedPath && (reason === "delete" || reason === "edit")) {
+      assert.ok(outputs.includes(expectedPath));
+    } else {
+      assert.match(outputs, /depublish_paths=\[\]/);
     }
-
   } finally {
-    await new Promise(
-      (resolve) =>
-        server.close(resolve)
-    );
-
-    fs.rmSync(
-      fixture,
-      {
-        recursive:
-          true,
-        force:
-          true,
-      }
-    );
+    await new Promise((resolve) => server.close(resolve));
+    fs.rmSync(fixture, { recursive: true, force: true });
   }
 }
 
+await scenario({ canonical: {}, permitted: false });
+await scenario({ canonical: { [target]: "evenement/sous-dossier/page.html" }, permitted: false });
+await scenario({ canonical: { [target]: "evenement/page-test.html" }, permitted: true });
+await scenario({ canonical: { [target]: "evenement/page-avant-modification.html" },
+  reason: "edit", permitted: true });
+await scenario({ canonical: {}, reason: "edit", permitted: true });
 
-await scenario({
-  canonical: {},
-  expectedStatus:
-    "BLOCKED",
-});
-
-await scenario({
-  canonical: {
-    "22222222-2222-4222-8222-222222222222":
-      "evenement/sous-dossier/page.html",
-  },
-  expectedStatus:
-    "BLOCKED",
-});
-
-await scenario({
-  canonical: {
-    "22222222-2222-4222-8222-222222222222":
-      "evenement/page-test.html",
-  },
-  expectedStatus:
-    "RUNNING",
-  expectedPath:
-    "evenement/page-test.html",
-});
-
-await scenario({
-  canonical: {
-    "22222222-2222-4222-8222-222222222222":
-      "evenement/page-avant-modification.html",
-  },
-  expectedStatus:
-    "RUNNING",
-  expectedPath:
-    "evenement/page-avant-modification.html",
-  row: {
-    id:
-      "44444444-4444-4444-8444-444444444444",
-    event_id:
-      "22222222-2222-4222-8222-222222222222",
-    target_event_id:
-      "22222222-2222-4222-8222-222222222222",
-    reason:
-      "edit",
-    attempt_count:
-      0,
-    requested_at:
-      "2026-10-09T00:00:00Z",
-  },
-});
-
-await scenario({
-  canonical: {},
-  expectedStatus:
-    "RUNNING",
-  row: {
-    id:
-      "55555555-5555-4555-8555-555555555555",
-    event_id:
-      "22222222-2222-4222-8222-222222222222",
-    target_event_id:
-      "22222222-2222-4222-8222-222222222222",
-    reason:
-      "edit",
-    attempt_count:
-      0,
-    requested_at:
-      "2026-10-09T00:00:01Z",
-  },
-});
-
-await scenario({
-  canonical: {},
-  preactivation:
-    true,
-  row: {
-    id:
-      "33333333-3333-4333-8333-333333333333",
-    event_id:
-      null,
-    target_event_id:
-      null,
-    reason:
-      "manual",
-    attempt_count:
-      0,
-    requested_at:
-      "2026-10-07T00:00:00Z",
-  },
-});
-
-
-console.log(
-  "PASS jobs publication : canonical sûr, claim RPC et préactivation sans effet"
-);
+console.log("PASS jobs publication : canonical manuel sûr, PREVIEW sans écriture et RPC unique");

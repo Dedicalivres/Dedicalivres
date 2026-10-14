@@ -28,7 +28,10 @@ assert.match(workflow, /Read public Supabase configuration\n\s+if: steps\.prefli
 assert.match(workflow, /Install publisher dependencies\n\s+if: steps\.preflight\.outputs\.has_pending == 'true'/);
 assert.match(workflow, /Claim publication jobs\n\s+id: claim\n\n\s+if: steps\.preflight\.outputs\.has_pending == 'true'/);
 assert.match(worker, /const AUTOMATIC_BATCH_LIMIT = 3/);
-assert.match(worker, /order=requested_at\.asc,id\.asc/);
+assert.match(worker, /claim_publication_canary_batch/);
+assert.match(worker, /publication_canary_candidate/);
+assert.match(workflow, /github\.event_name == 'schedule'\s*&& vars\.PUBLICATION_AUTOMATION_ENABLED == 'true'/);
+assert.match(workflow, /Persist automatic CANARY incident/);
 assert.match(worker, /préactivation réelle retirée/);
 assert.doesNotMatch(worker.match(/async function claim\(\)[\s\S]*?async function success/)[0],
   /await recoverStaleJobs\(/);
