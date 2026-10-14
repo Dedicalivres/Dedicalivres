@@ -24,6 +24,12 @@ expect_error() {
   fi
   [[ "$result" == *"$2"* ]] || { echo "FAIL: expected $2, got $result" >&2; exit 1; }
 }
+expect_equal() {
+  if [[ "$1" != "$2" ]]; then
+    echo "FAIL $3: expected $2, got $1" >&2
+    exit 1
+  fi
+}
 event='11111111-1111-4111-8111-111111111111'
 job='22222222-2222-4222-8222-222222222222'
 other='33333333-3333-4333-8333-333333333333'
@@ -282,17 +288,20 @@ expect_error "set test.uid='$event'; set test.admin='false'; set role authentica
 expect_error "set role anon; select public.get_event_provenance('$direct_event')" 'permission denied'
 expect_error "set role anon; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked')" 'permission denied'
 sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked')" >/dev/null
-[[ $(direct_status) == invalidated && $(direct_candidate) == 0 ]]
-[[ $(sql "select count(*) from private.event_provenance where event_id='$direct_event' and state='REVOKED'") == 1 ]]
-[[ $(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select attestation_state from public.get_event_provenance('$direct_event')") == REVOKED ]]
+expect_equal "$(direct_status)" invalidated 'revoked proof status'
+expect_equal "$(direct_candidate)" 0 'revoked proof candidate'
+expect_equal "$(sql "select count(*) from private.event_provenance where event_id='$direct_event' and state='REVOKED'")" 1 'revocation history'
+expect_equal "$(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select attestation_state from public.get_event_provenance('$direct_event')")" REVOKED 'revoked provenance state'
 expect_error "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked')" CANARY_DIRECT_ALREADY_REVOKED
-[[ $(direct_proofs) == 5 ]]
+expect_equal "$(direct_proofs)" 5 'revocation leaves proof history unchanged'
 sql "$direct_null" >/dev/null
-[[ $(direct_status) == valid ]]
-sql "update private.publication_canary_evidence set checked_at=now()-interval '31 days' where id=(select id from private.publication_canary_evidence where event_id='$direct_event' order by checked_at desc,id desc limit 1)" >/dev/null
-[[ $(direct_status) == expired && $(direct_candidate) == 0 ]]
+expect_equal "$(direct_status)" valid 'renewed proof status'
+# Simulate time passing for the complete history, preserving latest-proof ordering.
+sql "update private.publication_canary_evidence set checked_at=checked_at-interval '31 days' where event_id='$direct_event'" >/dev/null
+expect_equal "$(direct_status)" expired 'expired proof status'
+expect_equal "$(direct_candidate)" 0 'expired proof candidate'
 sql "$direct_null" >/dev/null
-[[ $(direct_status) == valid ]]
+expect_equal "$(direct_status)" valid 'fresh proof status'
 echo 'PASS direct revocation, no older-proof fallback, expiry and renewed human evidence'
 
 # A revocation in flight blocks claim, rather than allowing an uncertain reservation.
