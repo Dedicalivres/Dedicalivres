@@ -2,6 +2,60 @@
 -- Private references are opaque dossier identifiers, never contact details or public R2 URLs.
 begin;
 
+-- A private, identifiable verification record is the dossier itself. No public
+-- image bucket or caller-invented reference can satisfy this gate.
+create table private.publication_canary_source_dossiers (
+  id uuid primary key default gen_random_uuid(),
+  evidence_reference text generated always as
+    ('evidence:' || replace(id::text, '-', '')) stored unique,
+  event_id uuid not null,
+  submission_event_id uuid not null,
+  attested_origin text not null check (attested_origin in
+    ('DIRECT_AUTHOR', 'DIRECT_ORGANIZER', 'DIRECT_OTHER')),
+  identity_method text not null check (identity_method in
+    ('OFFICIAL_CHANNEL_REPLY', 'OFFICIAL_PHONE',
+     'VERIFIED_PROFESSIONAL_PROFILE', 'PREVIOUS_CONTACT_RECONFIRMED')),
+  independent_source_reference text not null check
+    (char_length(btrim(independent_source_reference)) between 10 and 1000),
+  verification_record text not null check
+    (char_length(btrim(verification_record)) between 30 and 4000),
+  event_snapshot jsonb not null,
+  state text not null default 'PENDING_REVIEW' check
+    (state in ('PENDING_REVIEW', 'VERIFIED', 'REVOKED')),
+  recorded_by uuid not null,
+  recorded_at timestamptz not null default clock_timestamp(),
+  verified_by uuid,
+  verified_at timestamptz,
+  revoked_by uuid,
+  revoked_at timestamptz,
+  revocation_reason text,
+  retention_review_at timestamptz,
+  constraint publication_canary_dossier_state_shape check (
+    (state = 'PENDING_REVIEW' and verified_by is null and verified_at is null
+      and revoked_by is null and revoked_at is null and revocation_reason is null)
+    or (state = 'VERIFIED' and verified_by is not null and verified_at is not null
+      and revoked_by is null and revoked_at is null and revocation_reason is null)
+    or (state = 'REVOKED' and verified_by is not null and verified_at is not null
+      and revoked_by is not null and revoked_at is not null
+      and nullif(btrim(revocation_reason), '') is not null)
+  )
+);
+create index publication_canary_dossiers_event_idx
+  on private.publication_canary_source_dossiers (event_id, recorded_at desc);
+alter table private.publication_canary_source_dossiers enable row level security;
+revoke all on private.publication_canary_source_dossiers
+  from public, anon, authenticated, service_role;
+
+create function private.publication_canary_dossier_snapshot(p_event public.events)
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select jsonb_build_array((p_event).title, (p_event).city, (p_event).region,
+    (p_event).country_code, (p_event).description, (p_event).website,
+    (p_event).start_date::text, (p_event).end_date::text,
+    (p_event).lat, (p_event).lng);
+$$;
+revoke all on function private.publication_canary_dossier_snapshot(public.events)
+  from public, anon, authenticated, service_role;
+
 create table private.event_provenance (
   id bigint generated always as identity primary key,
   event_id uuid not null,
@@ -19,6 +73,7 @@ create table private.event_provenance (
     ('OFFICIAL_CHANNEL_REPLY', 'OFFICIAL_PHONE',
      'VERIFIED_PROFESSIONAL_PROFILE', 'PREVIOUS_CONTACT_RECONFIRMED')),
   justification_reference text,
+  dossier_id uuid references private.publication_canary_source_dossiers(id),
   verified_by uuid,
   verified_at timestamptz,
   revokes_id bigint references private.event_provenance(id),
@@ -45,6 +100,7 @@ create table private.event_provenance (
       and submission_event_id is not null
       and submission_event_id = event_id
       and identity_method is not null
+      and dossier_id is not null
       and justification_reference is not null
       and justification_reference ~ '^evidence:[A-Za-z0-9_-]{8,128}$')
   )
@@ -101,6 +157,8 @@ returns boolean language sql volatile security definer set search_path = '' as $
             select 1 from private.event_provenance provenance
             join public.event_submission_contacts contact
               on contact.event_id = provenance.submission_event_id
+            join private.publication_canary_source_dossiers dossier
+              on dossier.id = provenance.dossier_id
             where provenance.id = proof.provenance_id
               and provenance.event_id = (p_event).id
               and provenance.submission_event_id = (p_event).id
@@ -109,7 +167,17 @@ returns boolean language sql volatile security definer set search_path = '' as $
               and provenance.attested_origin in
                 ('DIRECT_AUTHOR', 'DIRECT_ORGANIZER', 'DIRECT_OTHER')
               and provenance.identity_method is not null
-              and provenance.justification_reference ~ '^evidence:[A-Za-z0-9_-]{8,128}$'
+              and dossier.evidence_reference = provenance.justification_reference
+              and dossier.event_id = (p_event).id
+              and dossier.submission_event_id = (p_event).id
+              and dossier.attested_origin = provenance.attested_origin
+              and dossier.identity_method = provenance.identity_method
+              and dossier.state = 'VERIFIED'
+              and dossier.verified_by is not null
+              and dossier.verified_at between
+                clock_timestamp() - interval '30 days' and clock_timestamp()
+              and dossier.event_snapshot =
+                private.publication_canary_dossier_snapshot(p_event)
               and provenance.verified_by is not null
               and provenance.verified_at is not null
               and not exists (
@@ -186,6 +254,114 @@ revoke all on function public.get_publication_canary_evidence(uuid)
   from public, anon, authenticated, service_role;
 grant execute on function public.get_publication_canary_evidence(uuid) to authenticated;
 
+-- Recording a dossier does not verify it and never creates a CANARY proof.
+create function public.record_direct_publication_canary_dossier(
+  p_event_id uuid, p_submission_event_id uuid, p_attested_origin text,
+  p_identity_method text, p_independent_source_reference text,
+  p_verification_record text
+) returns text language plpgsql security definer set search_path = '' as $$
+declare e public.events%rowtype; dossier_reference text;
+begin
+  if auth.uid() is null or not (select private.is_admin()) then
+    raise exception 'CANARY_ADMIN_REQUIRED';
+  end if;
+  if p_attested_origin is null or p_attested_origin not in
+      ('DIRECT_AUTHOR', 'DIRECT_ORGANIZER', 'DIRECT_OTHER')
+    or p_identity_method is null or p_identity_method not in
+      ('OFFICIAL_CHANNEL_REPLY', 'OFFICIAL_PHONE',
+       'VERIFIED_PROFESSIONAL_PROFILE', 'PREVIOUS_CONTACT_RECONFIRMED')
+    or char_length(btrim(coalesce(p_independent_source_reference, ''))) not between 10 and 1000
+    or char_length(btrim(coalesce(p_verification_record, ''))) not between 30 and 4000
+  then raise exception 'CANARY_DIRECT_DOSSIER_INVALID'; end if;
+  select * into e from public.events where id = p_event_id for update;
+  if not found then raise exception 'CANARY_EVENT_NOT_FOUND'; end if;
+  if p_submission_event_id is distinct from p_event_id
+    or not exists (select 1 from public.event_submission_contacts c
+      where c.event_id = p_submission_event_id for share) then
+    raise exception 'CANARY_DIRECT_SUBMISSION_INVALID';
+  end if;
+  insert into private.publication_canary_source_dossiers (
+    event_id, submission_event_id, attested_origin, identity_method,
+    independent_source_reference, verification_record, event_snapshot,
+    recorded_by
+  ) values (
+    p_event_id, p_submission_event_id, p_attested_origin, p_identity_method,
+    btrim(p_independent_source_reference), btrim(p_verification_record),
+    private.publication_canary_dossier_snapshot(e), auth.uid()
+  ) returning evidence_reference into dossier_reference;
+  return dossier_reference;
+end;
+$$;
+revoke all on function public.record_direct_publication_canary_dossier(
+  uuid,uuid,text,text,text,text) from public, anon, authenticated, service_role;
+grant execute on function public.record_direct_publication_canary_dossier(
+  uuid,uuid,text,text,text,text) to authenticated;
+
+-- The reviewer can inspect the actual private record before confirming it.
+create function public.get_direct_publication_canary_dossier(p_evidence_reference text)
+returns table (
+  event_id uuid, submission_event_id uuid, attested_origin text,
+  identity_method text, independent_source_reference text,
+  verification_record text, event_snapshot jsonb, dossier_state text,
+  recorded_by uuid, recorded_at timestamptz,
+  verified_by uuid, verified_at timestamptz
+) language plpgsql stable security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or not (select private.is_admin()) then
+    raise exception 'CANARY_ADMIN_REQUIRED';
+  end if;
+  return query select d.event_id, d.submission_event_id, d.attested_origin,
+    d.identity_method, d.independent_source_reference,
+    d.verification_record, d.event_snapshot, d.state,
+    d.recorded_by, d.recorded_at, d.verified_by, d.verified_at
+  from private.publication_canary_source_dossiers d
+  where d.evidence_reference = p_evidence_reference;
+end;
+$$;
+revoke all on function public.get_direct_publication_canary_dossier(text)
+  from public, anon, authenticated, service_role;
+grant execute on function public.get_direct_publication_canary_dossier(text)
+  to authenticated;
+
+-- Separate human action: verify the existing private record against the same
+-- event and submission. A changed fiche requires a fresh dossier.
+create function public.verify_direct_publication_canary_dossier(
+  p_event_id uuid, p_evidence_reference text, p_human_confirmed boolean
+) returns boolean language plpgsql security definer set search_path = '' as $$
+declare e public.events%rowtype;
+  dossier private.publication_canary_source_dossiers%rowtype;
+begin
+  if auth.uid() is null or not (select private.is_admin()) then
+    raise exception 'CANARY_ADMIN_REQUIRED';
+  end if;
+  if p_human_confirmed is not true then
+    raise exception 'CANARY_DIRECT_DOSSIER_CONFIRMATION_REQUIRED';
+  end if;
+  select * into e from public.events where id = p_event_id for update;
+  if not found then raise exception 'CANARY_EVENT_NOT_FOUND'; end if;
+  select * into dossier from private.publication_canary_source_dossiers d
+    where d.evidence_reference = p_evidence_reference for update;
+  if not found or dossier.event_id is distinct from p_event_id
+    or dossier.submission_event_id is distinct from p_event_id
+    or dossier.state <> 'PENDING_REVIEW'
+    or dossier.event_snapshot is distinct from
+      private.publication_canary_dossier_snapshot(e)
+    or not exists (select 1 from public.event_submission_contacts c
+      where c.event_id = dossier.submission_event_id for share) then
+    raise exception 'CANARY_DIRECT_DOSSIER_INVALID';
+  end if;
+  update private.publication_canary_source_dossiers
+    set state = 'VERIFIED', verified_by = auth.uid(),
+      verified_at = clock_timestamp()
+    where id = dossier.id;
+  return true;
+end;
+$$;
+revoke all on function public.verify_direct_publication_canary_dossier(uuid,text,boolean)
+  from public, anon, authenticated, service_role;
+grant execute on function public.verify_direct_publication_canary_dossier(uuid,text,boolean)
+  to authenticated;
+
 -- One Admin action writes the attestation and proof in one transaction.
 create function public.record_direct_publication_canary_evidence_checked(
   p_event_id uuid, p_submission_event_id uuid, p_declared_origin text,
@@ -196,7 +372,9 @@ create function public.record_direct_publication_canary_evidence_checked(
   p_expected_lat double precision, p_expected_lng double precision,
   p_human_confirmed boolean
 ) returns bigint language plpgsql security definer set search_path = '' as $$
-declare e public.events%rowtype; attestation_id bigint; proof_id bigint;
+declare e public.events%rowtype;
+  dossier private.publication_canary_source_dossiers%rowtype;
+  attestation_id bigint; proof_id bigint;
 begin
   if auth.uid() is null or not (select private.is_admin()) then
     raise exception 'CANARY_ADMIN_REQUIRED';
@@ -230,13 +408,27 @@ begin
       select 1 from public.event_submission_contacts c
       where c.event_id = p_submission_event_id for share
     ) then raise exception 'CANARY_DIRECT_SUBMISSION_INVALID'; end if;
+  select * into dossier from private.publication_canary_source_dossiers d
+    where d.evidence_reference = p_justification_reference for share;
+  if not found or dossier.event_id is distinct from p_event_id
+    or dossier.submission_event_id is distinct from p_submission_event_id
+    or dossier.state <> 'VERIFIED'
+    or dossier.verified_by is null
+    or dossier.verified_at not between
+      clock_timestamp() - interval '30 days' and clock_timestamp()
+    or dossier.attested_origin is distinct from p_attested_origin
+    or dossier.identity_method is distinct from p_identity_method
+    or dossier.event_snapshot is distinct from
+      private.publication_canary_dossier_snapshot(e) then
+    raise exception 'CANARY_DIRECT_DOSSIER_NOT_VERIFIED';
+  end if;
   insert into private.event_provenance (
     event_id, state, observed_channel, declared_origin, attested_origin,
-    submission_event_id, identity_method, justification_reference,
+    submission_event_id, identity_method, justification_reference, dossier_id,
     verified_by, verified_at
   ) values (
     p_event_id, 'ATTESTED', 'DIRECT_FORM', p_declared_origin, p_attested_origin,
-    p_submission_event_id, p_identity_method, p_justification_reference,
+    p_submission_event_id, p_identity_method, p_justification_reference, dossier.id,
     auth.uid(), clock_timestamp()
   ) returning id into attestation_id;
   insert into private.publication_canary_evidence (
@@ -297,6 +489,11 @@ begin
     p_event_id, 'REVOKED', attestation.observed_channel,
     attestation.id, btrim(p_reason), auth.uid(), clock_timestamp()
   ) returning id into revocation_id;
+  update private.publication_canary_source_dossiers
+    set state = 'REVOKED', revoked_by = auth.uid(),
+      revoked_at = clock_timestamp(), revocation_reason = btrim(p_reason)
+    where id = attestation.dossier_id and state = 'VERIFIED';
+  if not found then raise exception 'CANARY_DIRECT_DOSSIER_NOT_VERIFIED'; end if;
   return revocation_id;
 end;
 $$;
@@ -375,6 +572,7 @@ begin
   end if;
   lock table private.publication_canary_evidence in share mode nowait;
   lock table private.event_provenance in share mode nowait;
+  lock table private.publication_canary_source_dossiers in share mode nowait;
   selected_id := (p_expected->0->>'id')::uuid;
   select e.id into selected_event_id
   from public.event_publication_jobs j
