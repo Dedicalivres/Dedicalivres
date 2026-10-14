@@ -6,10 +6,12 @@ container=''
 trap 'if [[ -n "$container" ]]; then docker rm -f "$container" >/dev/null 2>&1 || true; fi' EXIT
 container=$(docker run --rm -d -e POSTGRES_PASSWORD=test postgres:17-alpine)
 for _ in $(seq 1 30); do
-  if docker exec "$container" pg_isready -U postgres >/dev/null 2>&1; then break; fi
+  if docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1; then break; fi
   sleep 1
 done
-docker exec "$container" pg_isready -U postgres >/dev/null
+# The image's temporary init server accepts Unix-socket checks before its
+# final TCP server starts. Wait for the final server before the first psql.
+docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null
 docker cp "$root/supabase/migrations/20261012155223_publication_batch_state_machine.sql" "$container:/migration.sql"
 sql() { docker exec "$container" psql -X -U postgres -Atq -v ON_ERROR_STOP=1 -c "$1"; }
 expect_error() { if sql "$1" >/dev/null 2>&1; then echo "FAIL: expected refusal" >&2; exit 1; fi; }
