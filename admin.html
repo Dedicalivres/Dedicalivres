@@ -391,6 +391,22 @@
             class="v11-event-detail-content"
           ></div>
 
+          <section id="v11-canary-proof" class="v11-canary-proof" aria-labelledby="v11-canary-proof-title">
+            <h4 id="v11-canary-proof-title">Preuve de source CANARY</h4>
+            <p id="v11-canary-proof-status" role="status">Chargement de la preuve…</p>
+            <p id="v11-canary-job-status"></p>
+            <div id="v11-canary-proof-context" class="v11-canary-proof-context"></div>
+            <p id="v11-canary-proof-latest"></p>
+            <form id="v11-canary-proof-form">
+              <label>URL précise de l’annonce officielle <input name="source_url" type="url" required pattern="https://.*" autocomplete="url"></label>
+              <label>Identité de la source <input name="source_identity" type="text" required maxlength="250"></label>
+              <label>Référence de l’annonce <input name="event_reference" type="text" required maxlength="250"></label>
+              <label class="v11-canary-proof-confirm"><input name="human_confirmed" type="checkbox" required> J’ai vérifié cette annonce auprès de sa source pour cet événement et ce lieu.</label>
+              <button id="v11-canary-proof-save" class="v11-action-button" type="submit">Enregistrer une nouvelle preuve</button>
+            </form>
+            <p id="v11-canary-proof-feedback" role="alert"></p>
+          </section>
+
           <div class="v11-event-detail-actions">
             <a
               id="v11-event-public-link"
@@ -2606,6 +2622,7 @@
   <script defer src="admin-event-deletion.js?v=safe-delete-1"></script>
   <script defer src="event-text-quality.js?v=p1-4-1"></script>
   <script defer src="admin-shell.js?v=event-text-quality-p1-4-1"></script>
+  <script defer src="admin-canary-evidence.js?v=canary-e2-1"></script>
   <script type="module" src="admin-territorial-quality.js?v=duplicate-review-1"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
   <script defer src="admin-photo-batch.js?v=photo-batch-1"></script>

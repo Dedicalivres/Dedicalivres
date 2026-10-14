@@ -14,6 +14,7 @@ done
 docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null
 docker cp "$root/supabase/migrations/20261012155223_publication_batch_state_machine.sql" "$container:/batch.sql"
 docker cp "$root/supabase/migrations/20261014043617_publication_canary_guard.sql" "$container:/canary.sql"
+docker cp "$root/supabase/migrations/20261014120000_admin_canary_evidence_status.sql" "$container:/admin-evidence.sql"
 sql() { docker exec "$container" psql -X -U postgres -Atq -v ON_ERROR_STOP=1 -c "$1"; }
 expect_error() {
   local result
@@ -29,11 +30,17 @@ batch='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 sql "create schema private; create schema auth; create role anon; create role authenticated; create role service_role; create function auth.uid() returns uuid language sql stable as \$\$ select nullif(current_setting('test.uid',true),'')::uuid \$\$; create function private.is_admin() returns boolean language sql stable security definer as \$\$ select current_setting('test.admin',true)='true' \$\$; create table public.events (id uuid primary key, title text, city text, start_date date, end_date date, validated boolean, rejected boolean, verified boolean, registration_force_status text, website text, description text, region text, country_code text, lat double precision, lng double precision); create table public.event_publication_jobs (id uuid primary key, event_id uuid, target_event_id uuid, reason text, status text, attempt_count integer, batch_id uuid, commit_sha text, requested_at timestamptz, started_at timestamptz, finished_at timestamptz, last_error text);" >/dev/null
 docker exec "$container" psql -X -U postgres -v ON_ERROR_STOP=1 -f /batch.sql >/dev/null
 docker exec "$container" psql -X -U postgres -v ON_ERROR_STOP=1 -f /canary.sql >/dev/null
+docker exec "$container" psql -X -U postgres -v ON_ERROR_STOP=1 -f /admin-evidence.sql >/dev/null
 sql "insert into public.events values ('$event','Salon confirmé','Lille',current_date+20,current_date+20,true,false,true,null,'https://organizer.example/events/salon-2026','Salon à la librairie','Hauts-de-France','FR',50.63,3.05),('$other','Autre salon','Lyon',current_date+21,current_date+21,true,false,false,null,null,null,null,'FR',null,null); insert into public.event_publication_jobs (id,event_id,target_event_id,reason,status,attempt_count,requested_at) values ('$job','$event','$event','validation','PENDING',0,now()),('$other','$other','$other','validation','PENDING',0,now()+interval '1 minute');" >/dev/null
 selected() { sql "select to_jsonb(j) from public.event_publication_jobs j where id='$1'"; }
 claim() { sql "select count(*) from public.claim_publication_canary_batch('[$(selected "$1")]'::jsonb,'$2'::uuid,$3,1)"; }
 arm() { sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.arm_publication_canary($1,'Reviewed GitHub Actions incidents and Supabase jobs');" >/dev/null; }
 proof() { sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_publication_canary_evidence('$event','https://organizer.example/events/salon-2026','Official organizer','Salon confirmed','Salon confirmé','Lille',(current_date+20)::text,(current_date+20)::text,true);" >/dev/null; }
+proof_state() { sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select proof_status||':'||pending_validation_job||':'||technical_candidate from public.get_publication_canary_evidence('$event')" | tail -1; }
+
+[[ $(proof_state) == none:true:false ]]
+expect_error "set test.uid='$event'; set test.admin='false'; set role authenticated; select * from public.get_publication_canary_evidence('$event')" CANARY_ADMIN_REQUIRED
+[[ $(sql "select count(*) from private.publication_canary_evidence") == 0 ]]
 
 [[ $(sql "select armed::text||':'||halted::text from public.publication_canary_status()") == false:false ]]
 expect_error "select count(*) from public.claim_publication_canary_batch('[$(selected "$job")]'::jsonb,'$batch',100,1)" CANARY_NOT_ARMED
@@ -45,9 +52,12 @@ expect_error "select count(*) from public.claim_publication_canary_batch('[$(sel
 echo 'PASS disarmed and missing source evidence'
 
 proof
+[[ $(proof_state) == valid:true:true ]]
 sql "update private.publication_canary_evidence set checked_at=now()-interval '31 days'" >/dev/null
+[[ $(proof_state) == expired:true:false ]]
 expect_error "select count(*) from public.claim_publication_canary_batch('[$(selected "$job")]'::jsonb,'$batch',100,1)" CANARY_SOURCE_OR_JOB_INVALID
 sql "update private.publication_canary_evidence set checked_at=now(), city_snapshot='Paris'" >/dev/null
+[[ $(proof_state) == invalidated:true:false ]]
 expect_error "select count(*) from public.claim_publication_canary_batch('[$(selected "$job")]'::jsonb,'$batch',100,1)" CANARY_SOURCE_OR_JOB_INVALID
 sql "update private.publication_canary_evidence set city_snapshot='Lille'" >/dev/null
 sql "update public.events set website='https://unrelated.example/event' where id='$event'" >/dev/null
@@ -64,11 +74,14 @@ for change in \
   "lat=null" \
   "lng=null"; do
   sql "update public.events set $change where id='$event'" >/dev/null
+  [[ $(proof_state) == invalidated:true:false ]]
   expect_error "select count(*) from public.claim_publication_canary_batch('[$(selected "$job")]'::jsonb,'$batch',100,1)" CANARY_SOURCE_OR_JOB_INVALID
   sql "update public.events set description='Salon à la librairie',region='Hauts-de-France',country_code='FR',lat=50.63,lng=3.05 where id='$event'" >/dev/null
 done
 sql "update public.events set description='Salon déplacé à la médiathèque' where id='$event'" >/dev/null
 proof
+[[ $(proof_state) == valid:true:true ]]
+[[ $(sql "select count(*) from private.publication_canary_evidence where event_id='$event'") == 2 ]]
 [[ $(sql "select count(*) from public.publication_canary_candidate() where id='$job'") == 1 ]]
 echo 'PASS venue snapshots reject changed values and NULL transitions; fresh proof restores eligibility'
 for reason in edit unpublish delete; do
@@ -126,6 +139,7 @@ echo 'PASS concurrent CANARY reservation has one winner'
 for role in anon authenticated service_role; do
   [[ $(sql "select has_function_privilege('$role','public.arm_publication_canary(bigint,text)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
   [[ $(sql "select has_function_privilege('$role','public.record_publication_canary_evidence(uuid,text,text,text,text,text,text,text,boolean)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
+  [[ $(sql "select has_function_privilege('$role','public.get_publication_canary_evidence(uuid)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
   [[ $(sql "select has_function_privilege('$role','public.claim_publication_canary_batch(jsonb,uuid,bigint,integer)','EXECUTE')") == $([[ $role == service_role ]] && echo t || echo f) ]]
   [[ $(sql "select has_table_privilege('$role','private.publication_canary_evidence','INSERT')") == f ]]
 done

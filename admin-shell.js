@@ -1714,6 +1714,10 @@
         encodeURIComponent(event.id);
     }
 
+    window.dispatchEvent(new CustomEvent("dedicalivres:admin-event-detail", {
+      detail: { event }
+    }));
+
     eventDetail.scrollIntoView({
       behavior: "smooth",
       block: "start"

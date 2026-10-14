@@ -2984,6 +2984,35 @@ body.v11-is-loading .v11-app {
   font-size: 10px;
 }
 
+.v11-canary-proof {
+  min-width: 0;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.v11-canary-proof h4 { margin: 0 0 10px; }
+.v11-canary-proof p, .v11-canary-proof a { overflow-wrap: anywhere; }
+.v11-canary-proof-context {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+.v11-canary-proof-context div { min-width: 0; }
+.v11-canary-proof-context span { display: block; color: var(--muted); }
+.v11-canary-proof-context strong { display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
+.v11-canary-proof form { display: grid; gap: 10px; margin-top: 14px; }
+.v11-canary-proof form label { display: grid; gap: 5px; min-width: 0; }
+.v11-canary-proof form input:not([type="checkbox"]) { box-sizing: border-box; width: 100%; min-width: 0; }
+.v11-canary-proof form .v11-canary-proof-confirm { display: flex; align-items: flex-start; }
+.v11-canary-proof form button { justify-self: start; }
+
+@media (max-width: 700px) {
+  .v11-canary-proof-context { grid-template-columns: 1fr; }
+  .v11-canary-proof form button { max-width: 100%; white-space: normal; }
+}
+
 .v11-event-detail-actions {
   display: flex;
   flex-wrap: wrap;
