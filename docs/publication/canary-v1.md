@@ -1,7 +1,7 @@
 # CANARY V1 — procédure avant activation
 
-Cette PR ne déploie pas la migration, n'arme pas le CANARY et ne modifie pas
-`PUBLICATION_AUTOMATION_ENABLED`. La migration additive crée un état **désarmé**.
+Cette procédure n'arme pas le CANARY et ne modifie pas
+`PUBLICATION_AUTOMATION_ENABLED`. La migration CANARY V1 crée un état **désarmé**.
 Un changement de variable seul ne permet donc aucune réservation automatique.
 
 ## Preuve éditoriale
@@ -19,6 +19,25 @@ humaine. Le serveur fixe `checked_at` et `checked_by` ; la preuve expire
 après 30 jours. `events.verified=true` et les
 trois entrées historiques du registre territorial ne sont pas importés comme
 preuves CANARY. Une URL générale de profil Facebook/Instagram est refusée.
+
+Dans Admin V11 (`admin.html` et `admin-v11.html`), ouvrir la fiche événement,
+examiner le titre, la ville, les dates, le site et les champs de lieu affichés,
+puis saisir l'URL précise, l'identité de la source et la référence de l'annonce.
+La case de confirmation et une seconde confirmation précèdent l'appel à
+`record_publication_canary_evidence_checked`. La fiche est relue avant cet
+appel ; la RPC verrouille ensuite l'événement, compare titre, ville, région,
+pays, description, site, dates et coordonnées (valeurs NULL comprises), puis
+réutilise `record_publication_canary_evidence` dans la même transaction. Une
+différence refuse toute insertion et exige une nouvelle vérification humaine.
+La signature historique reste inchangée pour ses autres usages. La RPC de
+lecture additive `get_publication_canary_evidence` donne l'état serveur de la dernière preuve
+(absente, valide, expirée, invalidée) et indique séparément si un job PENDING
+de validation remplit les critères événement/job. Elle ne teste pas l'armement,
+le quota ni la concurrence : « preuve valide » n'est jamais une promesse de
+publication. Les preuves antérieures restent conservées en base. La lecture
+et l'écriture sont réservées à l'administrateur authentifié ; `verified` ne
+fait pas office de preuve. Installer la migration additive de lecture avant
+de déployer l'interface ; cette PR ne l'applique pas en production.
 
 Seuls les jobs `validation`, jamais tentés (`attempt_count=0`, sans
 `last_error`), peuvent être sélectionnés automatiquement. Les jobs `edit`,

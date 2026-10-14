@@ -50,3 +50,6 @@ jobs:
 
       - name: Test CANARY source, quota and incident on disposable PostgreSQL
         run: bash scripts/test-publication-canary-sql.sh
+
+      - name: Test Admin V11 CANARY evidence interface
+        run: node scripts/test-admin-canary-evidence.mjs
