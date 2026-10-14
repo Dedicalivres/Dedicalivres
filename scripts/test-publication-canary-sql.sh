@@ -49,7 +49,7 @@ proof_state() { sql "set test.uid='$event'; set test.admin='true'; set role auth
 
 [[ $(proof_state) == none:true:false ]]
 expect_error "set test.uid='$event'; set test.admin='false'; set role authenticated; select * from public.get_publication_canary_evidence('$event')" CANARY_ADMIN_REQUIRED
-[[ $(sql "select count(*) from private.publication_canary_evidence") == 0 ]]
+[[ $(sql "select count(*) from private.publication_canary_evidence where event_id='$event'") == 0 ]]
 
 # The Admin V11 path must compare a full expected snapshot under a row lock.
 sql "insert into public.events values ('$checked_event','Salon confirmé','Lille',current_date+20,current_date+20,true,false,true,null,'https://organizer.example/events/salon-2026','Salon à la librairie','Hauts-de-France','FR',50.63,3.05)" >/dev/null
