@@ -93,10 +93,8 @@ jobs:
     if: >-
       ${{ inputs.preactivation_test != true
           && inputs.recover_failed_p0 != true
-          && ((vars.PUBLICATION_AUTOMATION_ENABLED == 'true'
-               && inputs.publish_douai != true
-               && inputs.manual_mode != 'preview'
-               && inputs.manual_mode != 'execute')
+          && ((github.event_name == 'schedule'
+               && vars.PUBLICATION_AUTOMATION_ENABLED == 'true')
               || (github.event_name == 'workflow_dispatch'
                   && inputs.publish_douai == true)
               || (github.event_name == 'workflow_dispatch'
@@ -153,6 +151,9 @@ jobs:
 
       - name: Preflight publication queue
         id: preflight
+
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
         run: |
           node \
@@ -237,6 +238,9 @@ jobs:
 
         if: steps.preflight.outputs.has_pending == 'true'
 
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
         run: |
           node \
             scripts/publication-jobs.mjs \
@@ -244,6 +248,7 @@ jobs:
 
 
       - name: Generate static publication
+        id: generate
         if: steps.claim.outputs.has_jobs == 'true'
 
         env:
@@ -264,6 +269,7 @@ jobs:
 
 
       - name: Validate generated scope
+        id: scope
         if: steps.claim.outputs.has_jobs == 'true'
 
         env:
@@ -283,6 +289,7 @@ jobs:
 
 
       - name: Recheck public event source before push
+        id: source_before
         if: steps.claim.outputs.has_jobs == 'true'
 
         env:
@@ -363,6 +370,7 @@ jobs:
       # ==================================================
 
       - name: Request GitHub Pages build
+        id: pages_request
         if: steps.claim.outputs.has_jobs == 'true' && steps.publish.outputs.changed == 'true'
 
         env:
@@ -451,6 +459,7 @@ jobs:
 
 
       - name: Recheck source after deployment
+        id: source_after
         if: steps.claim.outputs.has_jobs == 'true'
 
         env:
@@ -463,6 +472,7 @@ jobs:
 
 
       - name: Mark jobs successful
+        id: finalize
         if: success() && steps.claim.outputs.has_jobs == 'true'
 
         env:
@@ -481,6 +491,7 @@ jobs:
 
 
       - name: Requeue or fail jobs
+        id: requeue
         if: >-
           ${{ failure() && steps.claim.outputs.has_jobs == 'true'
               && steps.publish.outcome != 'success'
@@ -501,6 +512,7 @@ jobs:
 
 
       - name: Hold uncertain publication for manual review
+        id: uncertain
         if: >-
           ${{ failure() && steps.claim.outputs.has_jobs == 'true'
               && (steps.publish.outcome == 'success'
@@ -510,3 +522,25 @@ jobs:
           echo "STOP : résultat du commit ou du déploiement incertain."
           echo "Le batch reste RUNNING ; vérifier GitHub Pages et le site avant toute reprise."
           exit 1
+
+
+      - name: Persist automatic CANARY incident
+        if: ${{ always() && github.event_name == 'schedule' && (failure() || cancelled()) }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PUBLICATION_CANARY_BATCH_ID: ${{ steps.claim.outputs.batch_id }}
+          PUBLICATION_ERROR: >-
+            ${{ steps.preflight.outcome == 'failure' && 'preflight'
+                || steps.claim.outcome == 'failure' && 'reservation'
+                || steps.generate.outcome == 'failure' && 'generation'
+                || steps.scope.outcome == 'failure' && 'diff validation'
+                || steps.source_before.outcome == 'failure' && 'source recheck before push'
+                || steps.publish.outcome == 'failure' && 'commit or push'
+                || steps.pages_request.outcome == 'failure' && 'Pages build request'
+                || steps.deployment.outcome == 'failure' && 'Pages deployment verification'
+                || steps.source_after.outcome == 'failure' && 'source recheck after deployment'
+                || steps.finalize.outcome == 'failure' && 'Supabase finalization'
+                || steps.requeue.outcome == 'failure' && 'failure finalization'
+                || steps.uncertain.outcome == 'failure' && 'uncertain publication'
+                || 'setup, cancellation, or unknown failure' }}
+        run: node scripts/publication-jobs.mjs canary-incident

@@ -391,7 +391,7 @@ assert.match(
 
 assert.match(
   worker,
-  /depublishEventIds\.length\s*!==\s*depublishPaths\.length/s
+  /depublishPaths\.some\(\(path\) => !path\)/
 );
 
 

@@ -163,10 +163,16 @@ try {
   await assert.rejects(invoke(noConfirmation, "claim", ids[0]), /confirmation/);
   assert.equal(noConfirmation.calls.length, 0);
   const autoEnabled = fixture();
-  await assert.rejects(invoke(autoEnabled, "preview-selected", ids[0], {
+  const autoPreview = await invoke(autoEnabled, "preview-selected", ids[0], {
     PUBLICATION_AUTOMATION_ENABLED: "true",
-  }), /mode incompatible/);
-  assert.equal(autoEnabled.calls.length, 0);
+  });
+  assert.ok(autoEnabled.calls.every((call) => call.method === "GET"));
+  await invoke(autoEnabled, "claim", ids[0], {
+    PUBLICATION_AUTOMATION_ENABLED: "true",
+    PUBLICATION_MANUAL_FINGERPRINT: autoPreview.join("\n").match(/Empreinte PREVIEW : ([0-9a-f]{64})/)[1],
+    PUBLICATION_MANUAL_CONFIRMATION: "EXECUTE",
+  });
+  assert.equal(autoEnabled.calls.filter((call) => call.method === "POST").length, 1);
 } finally {
   process.chdir(root);
   fs.rmSync(tmp, { recursive: true, force: true });
