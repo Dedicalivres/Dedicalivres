@@ -127,15 +127,21 @@
         return;
       }
       writeAttempted = true;
-      const response = await api.rpc("record_publication_canary_evidence", {
+      const response = await api.rpc("record_publication_canary_evidence_checked", {
         p_event_id: event.id,
         p_source_url: String(data.get("source_url") || "").trim(),
         p_source_identity: String(data.get("source_identity") || "").trim(),
         p_event_reference: String(data.get("event_reference") || "").trim(),
-        p_title: event.title,
-        p_city: event.city,
-        p_start_date: event.start_date,
-        p_end_date: event.end_date,
+        p_expected_title: event.title,
+        p_expected_city: event.city,
+        p_expected_region: event.region,
+        p_expected_country_code: event.country_code,
+        p_expected_description: event.description,
+        p_expected_website: event.website,
+        p_expected_start_date: event.start_date,
+        p_expected_end_date: event.end_date,
+        p_expected_lat: event.lat,
+        p_expected_lng: event.lng,
         p_human_confirmed: true
       });
       if (response.error) throw response.error;
@@ -150,7 +156,7 @@
         if (written || writeAttempted) ready = false;
         if (code.includes("Fiche modifiée") || code.includes("CANARY_SOURCE_EVIDENCE_STALE")) ready = false;
         feedback.textContent = code.includes("Fiche modifiée") ? code
-          : code.includes("CANARY_SOURCE_EVIDENCE_STALE") ? "Fiche modifiée : rechargez-la et revérifiez la source."
+          : code.includes("CANARY_SOURCE_EVIDENCE_STALE") ? "Fiche modifiée : rechargez la fiche et vérifiez à nouveau la source."
           : code.includes("CANARY_SOURCE_EVIDENCE_INVALID") ? "Source refusée : fournir une URL précise et les références requises."
           : written ? "Preuve enregistrée, mais état indisponible. Rechargez la fiche avant toute nouvelle saisie."
           : writeAttempted ? "Résultat de l’enregistrement incertain. Rechargez la fiche avant toute nouvelle tentative."

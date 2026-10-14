@@ -75,3 +75,52 @@ revoke all on function public.get_publication_canary_evidence(uuid)
   from public, anon, authenticated, service_role;
 grant execute on function public.get_publication_canary_evidence(uuid)
   to authenticated;
+
+-- Strict Admin V11 path. Keep the CANARY V1 RPC signature for existing callers.
+-- The row lock serializes event edits and proof writes until transaction end.
+create function public.record_publication_canary_evidence_checked(
+  p_event_id uuid, p_source_url text, p_source_identity text,
+  p_event_reference text, p_expected_title text, p_expected_city text,
+  p_expected_region text, p_expected_country_code text,
+  p_expected_description text, p_expected_website text,
+  p_expected_start_date text, p_expected_end_date text,
+  p_expected_lat double precision, p_expected_lng double precision,
+  p_human_confirmed boolean
+) returns bigint language plpgsql security definer set search_path = '' as $$
+declare
+  e public.events%rowtype;
+begin
+  if auth.uid() is null or not (select private.is_admin()) then
+    raise exception 'CANARY_ADMIN_REQUIRED';
+  end if;
+
+  select * into e from public.events where id = p_event_id for update;
+  if not found
+    or e.title is distinct from p_expected_title
+    or e.city is distinct from p_expected_city
+    or e.region is distinct from p_expected_region
+    or e.country_code is distinct from p_expected_country_code
+    or e.description is distinct from p_expected_description
+    or e.website is distinct from p_expected_website
+    or e.start_date::text is distinct from p_expected_start_date
+    or e.end_date::text is distinct from p_expected_end_date
+    or e.lat is distinct from p_expected_lat
+    or e.lng is distinct from p_expected_lng then
+    raise exception 'CANARY_SOURCE_EVIDENCE_STALE';
+  end if;
+
+  return public.record_publication_canary_evidence(
+    p_event_id, p_source_url, p_source_identity, p_event_reference,
+    p_expected_title, p_expected_city, p_expected_start_date,
+    p_expected_end_date, p_human_confirmed
+  );
+end;
+$$;
+revoke all on function public.record_publication_canary_evidence_checked(
+  uuid,text,text,text,text,text,text,text,text,text,text,text,
+  double precision,double precision,boolean
+) from public, anon, authenticated, service_role;
+grant execute on function public.record_publication_canary_evidence_checked(
+  uuid,text,text,text,text,text,text,text,text,text,text,text,
+  double precision,double precision,boolean
+) to authenticated;

@@ -23,11 +23,14 @@ preuves CANARY. Une URL générale de profil Facebook/Instagram est refusée.
 Dans Admin V11 (`admin.html` et `admin-v11.html`), ouvrir la fiche événement,
 examiner le titre, la ville, les dates, le site et les champs de lieu affichés,
 puis saisir l'URL précise, l'identité de la source et la référence de l'annonce.
-La case de confirmation et une seconde confirmation précèdent l'appel à la RPC
-existante `record_publication_canary_evidence`. La fiche est relue avant cet
-appel ; si elle a changé, la saisie est refusée et une nouvelle vérification
-humaine est requise. La RPC de lecture additive
-`get_publication_canary_evidence` donne l'état serveur de la dernière preuve
+La case de confirmation et une seconde confirmation précèdent l'appel à
+`record_publication_canary_evidence_checked`. La fiche est relue avant cet
+appel ; la RPC verrouille ensuite l'événement, compare titre, ville, région,
+pays, description, site, dates et coordonnées (valeurs NULL comprises), puis
+réutilise `record_publication_canary_evidence` dans la même transaction. Une
+différence refuse toute insertion et exige une nouvelle vérification humaine.
+La signature historique reste inchangée pour ses autres usages. La RPC de
+lecture additive `get_publication_canary_evidence` donne l'état serveur de la dernière preuve
 (absente, valide, expirée, invalidée) et indique séparément si un job PENDING
 de validation remplit les critères événement/job. Elle ne teste pas l'armement,
 le quota ni la concurrence : « preuve valide » n'est jamais une promesse de
