@@ -1,4 +1,4 @@
--- SITE-C3C-03-B-R2. Additive only; deliberately disarmed on installation.
+-- SITE-C3C-03-B-R3. Additive only; deliberately disarmed on installation.
 -- Apply only after review. No historical event or publication job is changed.
 
 create table private.publication_canary_state (
@@ -52,6 +52,11 @@ create table private.publication_canary_evidence (
   title_snapshot text not null,
   city_snapshot text not null,
   website_snapshot text,
+  description_snapshot text,
+  region_snapshot text,
+  country_code_snapshot text,
+  lat_snapshot double precision,
+  lng_snapshot double precision,
   start_date_snapshot text not null,
   end_date_snapshot text,
   checked_at timestamptz not null default clock_timestamp(),
@@ -101,6 +106,11 @@ returns boolean language sql volatile security definer set search_path = '' as $
       and proof.title_snapshot = (p_event).title
       and proof.city_snapshot = (p_event).city
       and proof.website_snapshot is not distinct from (p_event).website
+      and proof.description_snapshot is not distinct from (p_event).description
+      and proof.region_snapshot is not distinct from (p_event).region
+      and proof.country_code_snapshot is not distinct from (p_event).country_code
+      and proof.lat_snapshot is not distinct from (p_event).lat
+      and proof.lng_snapshot is not distinct from (p_event).lng
       and proof.start_date_snapshot = (p_event).start_date::text
       and proof.end_date_snapshot is not distinct from (p_event).end_date::text
       and nullif(btrim(proof.source_identity), '') is not null
@@ -143,11 +153,13 @@ begin
   end if;
   insert into private.publication_canary_evidence (
     event_id, source_url, source_identity, event_reference,
-    title_snapshot, city_snapshot, website_snapshot, start_date_snapshot,
-    end_date_snapshot, checked_by, human_confirmed
+    title_snapshot, city_snapshot, website_snapshot, description_snapshot,
+    region_snapshot, country_code_snapshot, lat_snapshot, lng_snapshot,
+    start_date_snapshot, end_date_snapshot, checked_by, human_confirmed
   ) values (
     p_event_id, p_source_url, btrim(p_source_identity), btrim(p_event_reference),
-    p_title, p_city, e.website, p_start_date, p_end_date, auth.uid(), true
+    p_title, p_city, e.website, e.description, e.region, e.country_code,
+    e.lat, e.lng, p_start_date, p_end_date, auth.uid(), true
   ) returning id into proof_id;
   return proof_id;
 end;

@@ -11,8 +11,12 @@ organisateur, d'une librairie, d'un éditeur, d'un auteur ou d'une institution
 concernée. Il enregistre via `record_publication_canary_evidence` l'ID de
 l'événement, l'URL précise, l'identité de la source et la référence de
 l'annonce. Il confirme explicitement le titre, la ville et les dates actuels
-de la fiche. Le serveur fixe `checked_at` et `checked_by` ; la preuve expire
-après 30 jours ou dès divergence de ces champs. `events.verified=true` et les
+de la fiche et contrôle aussi le lieu décrit par la source. La photographie
+enregistrée comprend également `description`, `region`, `country_code`,
+`lat` et `lng`, y compris leurs valeurs `NULL`. Une différence sur l'un de
+ces champs rend la preuve inutilisable jusqu'à une nouvelle vérification
+humaine. Le serveur fixe `checked_at` et `checked_by` ; la preuve expire
+après 30 jours. `events.verified=true` et les
 trois entrées historiques du registre territorial ne sont pas importés comme
 preuves CANARY. Une URL générale de profil Facebook/Instagram est refusée.
 
