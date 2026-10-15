@@ -397,6 +397,11 @@
             <p id="v11-canary-job-status"></p>
             <div id="v11-canary-proof-context" class="v11-canary-proof-context"></div>
             <p id="v11-canary-proof-latest"></p>
+            <div id="v11-canary-provenance" class="v11-canary-proof-context"></div>
+            <label class="v11-canary-proof-mode">Type de preuve
+              <select id="v11-canary-proof-mode"><option value="official">Annonce officielle</option><option value="direct" disabled>Soumission directe vérifiée</option></select>
+            </label>
+            <p id="v11-canary-direct-availability" role="status">Vérification du parcours direct…</p>
             <form id="v11-canary-proof-form">
               <label>URL précise de l’annonce officielle <input name="source_url" type="url" required pattern="https://.*" autocomplete="url"></label>
               <label>Identité de la source <input name="source_identity" type="text" required maxlength="250"></label>
@@ -404,6 +409,28 @@
               <label class="v11-canary-proof-confirm"><input name="human_confirmed" type="checkbox" required> J’ai vérifié cette annonce auprès de sa source pour cet événement et ce lieu.</label>
               <button id="v11-canary-proof-save" class="v11-action-button" type="submit">Enregistrer une nouvelle preuve</button>
             </form>
+            <div id="v11-canary-direct" hidden>
+              <p id="v11-canary-direct-latest"></p>
+              <label>Rôle réellement attesté
+                <select id="v11-canary-direct-role"><option value="">Choisir après vérification</option><option value="DIRECT_AUTHOR">Auteur</option><option value="DIRECT_ORGANIZER">Organisateur</option><option value="DIRECT_OTHER">Autre rôle direct</option></select>
+              </label>
+              <label>Méthode de vérification
+                <select id="v11-canary-direct-method"><option value="">Choisir la méthode</option><option value="OFFICIAL_CHANNEL_REPLY">Réponse sur canal officiel</option><option value="OFFICIAL_PHONE">Appel au numéro officiel</option><option value="VERIFIED_PROFESSIONAL_PROFILE">Profil professionnel vérifié</option><option value="PREVIOUS_CONTACT_RECONFIRMED">Contact antérieur reconfirmé</option></select>
+              </label>
+              <label>Référence de source indépendante <input id="v11-canary-direct-source" type="text" minlength="10" maxlength="1000" autocomplete="off"></label>
+              <label>Compte rendu de vérification <textarea id="v11-canary-direct-record" minlength="30" maxlength="4000"></textarea></label>
+              <button id="v11-canary-direct-create" class="v11-action-button" type="button" disabled>Créer un dossier privé</button>
+              <label>Référence du dossier privé <input id="v11-canary-direct-reference" type="text" autocomplete="off" placeholder="Référence reçue lors de la création"></label>
+              <button id="v11-canary-direct-read" class="v11-action-button" type="button" disabled>Relire le dossier</button>
+              <div id="v11-canary-direct-dossier" class="v11-canary-proof-context"></div>
+              <label class="v11-canary-proof-confirm"><input id="v11-canary-direct-confirm" type="checkbox"> J’ai personnellement contrôlé ce dossier et cette source pour l’événement affiché.</label>
+              <button id="v11-canary-direct-verify" class="v11-action-button" type="button" disabled>Valider le dossier</button>
+              <button id="v11-canary-direct-record-proof" class="v11-action-button" type="button" disabled>Enregistrer la preuve directe</button>
+              <label>Motif de révocation <textarea id="v11-canary-direct-reason" minlength="10" maxlength="500"></textarea></label>
+              <button id="v11-canary-direct-revoke" class="v11-action-button" type="button" disabled>Révoquer la dernière preuve directe</button>
+              <p id="v11-canary-direct-feedback" role="alert"></p>
+              <p>Une preuve enregistrée n’est pas une publication et ne crée aucun job.</p>
+            </div>
             <p id="v11-canary-proof-feedback" role="alert"></p>
           </section>
 
@@ -2623,6 +2650,7 @@
   <script defer src="event-text-quality.js?v=p1-4-1"></script>
   <script defer src="admin-shell.js?v=event-text-quality-p1-4-1"></script>
   <script defer src="admin-canary-evidence.js?v=canary-e2-2"></script>
+  <script defer src="admin-canary-direct.js?v=canary-e5-d1-1"></script>
   <script type="module" src="admin-territorial-quality.js?v=duplicate-review-1"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
   <script defer src="admin-photo-batch.js?v=photo-batch-1"></script>

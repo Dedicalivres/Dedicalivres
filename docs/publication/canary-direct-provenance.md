@@ -65,6 +65,18 @@ peut alors relire le dossier par sa référence et transmettre le `proof_id`
 à la RPC de révocation existante. Si une preuve plus récente apparaît entre
 lecture et révocation, cette dernière refuse l'identifiant devenu obsolète.
 
+Admin V11 présente séparément l'origine observée, le rôle déclaré disponible
+dans la provenance, le dernier rôle attesté (historique) et l'état de la preuve.
+Le parcours direct nécessite les RPC E5-C et D0 : sans elles, il reste désactivé
+et le formulaire d'annonce officielle demeure utilisable. Un dossier direct est
+créé, relu, validé humainement, puis seulement utilisé pour enregistrer une
+preuve ; aucune de ces actions ne publie l'événement ni ne crée de job. Après
+rechargement, la dernière preuve directe fournit sa référence de dossier via
+D0. Pour un dossier encore en attente, la référence doit être conservée par
+l'administrateur : les RPC actuelles ne permettent pas de le lister par
+événement. Si elle est perdue, il faut refaire le contrôle et créer un nouveau
+dossier, sans déduire ni inventer une référence.
+
 La réservation CANARY verrouille aussi le registre de provenance avant de
 recontrôler l'admissibilité. Le parcours `PUBLIC_OFFICIAL`, le quota de 24 h,
 l'arrêt sur incident, les 30 jours, le réarmement humain et la publication
