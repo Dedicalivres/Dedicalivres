@@ -16,6 +16,7 @@ docker cp "$root/supabase/migrations/20261012155223_publication_batch_state_mach
 docker cp "$root/supabase/migrations/20261014043617_publication_canary_guard.sql" "$container:/canary.sql"
 docker cp "$root/supabase/migrations/20261014120000_admin_canary_evidence_status.sql" "$container:/admin-evidence.sql"
 docker cp "$root/supabase/migrations/20261014161135_canary_direct_provenance.sql" "$container:/direct-provenance.sql"
+docker cp "$root/supabase/migrations/20261015051416_admin_latest_direct_canary_reference.sql" "$container:/latest-direct-reference.sql"
 sql() { docker exec "$container" psql -X -U postgres -Atq -v ON_ERROR_STOP=1 -c "$1"; }
 expect_error() {
   local result
@@ -43,10 +44,23 @@ legacy_event='99999999-9999-4999-8999-999999999999'
 sql "insert into public.events values ('$legacy_event','Salon ancien','Paris',current_date+20,current_date+20,true,false,false,null,'https://organizer.example/events/ancien','Lieu ancien','Île-de-France','FR',48.86,2.35)" >/dev/null
 sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_publication_canary_evidence('$legacy_event','https://organizer.example/events/ancien','Official organizer','Salon ancien','Salon ancien','Paris',(current_date+20)::text,(current_date+20)::text,true)" >/dev/null
 docker exec "$container" psql -X -U postgres -v ON_ERROR_STOP=1 -f /direct-provenance.sql >/dev/null
+docker exec "$container" psql -X -U postgres -v ON_ERROR_STOP=1 -f /latest-direct-reference.sql >/dev/null
 [[ $(sql "select proof_type from private.publication_canary_evidence where event_id='$legacy_event'") == PUBLIC_OFFICIAL ]]
 [[ $(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select proof_status from public.get_publication_canary_evidence('$legacy_event')") == valid ]]
 echo 'PASS preexisting PUBLIC_OFFICIAL proof survives additive migration'
 sql "insert into public.events values ('$event','Salon confirmé','Lille',current_date+20,current_date+20,true,false,true,null,'https://organizer.example/events/salon-2026','Salon à la librairie','Hauts-de-France','FR',50.63,3.05),('$other','Autre salon','Lyon',current_date+21,current_date+21,true,false,false,null,null,null,null,'FR',null,null); insert into public.event_publication_jobs (id,event_id,target_event_id,reason,status,attempt_count,requested_at) values ('$job','$event','$event','validation','PENDING',0,now()),('$other','$other','$other','validation','PENDING',0,now()+interval '1 minute');" >/dev/null
+latest_direct_reference() { sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select proof_id||':'||dossier_reference||':'||dossier_state from public.get_latest_direct_publication_canary_reference('$1')" | tail -1; }
+expect_equal "$(latest_direct_reference "$event")" '' 'no proof returns no direct reference'
+expect_equal "$(latest_direct_reference "$legacy_event")" '' 'latest PUBLIC_OFFICIAL returns no direct reference'
+expect_error "set role anon; select * from public.get_latest_direct_publication_canary_reference('$event')" 'permission denied'
+expect_error "set test.uid='$event'; set test.admin='false'; set role authenticated; select * from public.get_latest_direct_publication_canary_reference('$event')" CANARY_ADMIN_REQUIRED
+expect_error "set test.admin='true'; set role authenticated; select * from public.get_latest_direct_publication_canary_reference('$event')" CANARY_ADMIN_REQUIRED
+expect_error "set test.uid='$event'; set test.admin='true'; set role authenticated; select * from public.get_latest_direct_publication_canary_reference('00000000-0000-4000-8000-000000000000')" CANARY_EVENT_NOT_FOUND
+for role in anon authenticated service_role; do
+  [[ $(sql "select has_function_privilege('$role','public.get_latest_direct_publication_canary_reference(uuid)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
+  [[ $(sql "select has_table_privilege('$role','private.publication_canary_evidence','SELECT')") == f ]]
+done
+echo 'PASS Admin-only latest direct reference: empty/public cases and private ACL'
 selected() { sql "select to_jsonb(j) from public.event_publication_jobs j where id='$1'"; }
 claim() { sql "select count(*) from public.claim_publication_canary_batch('[$(selected "$1")]'::jsonb,'$2'::uuid,$3,1)"; }
 arm() { sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.arm_publication_canary($1,'Reviewed GitHub Actions incidents and Supabase jobs');" >/dev/null; }
@@ -279,6 +293,9 @@ echo 'PASS private dossier: generated reference, verified state, event/submissio
 # Keep a public proof behind the direct proof: revocation must not fall back to it.
 sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_publication_canary_evidence('$direct_event','https://organizer.example/events/direct','Official organizer','Salon direct','Salon direct','Nantes',(current_date+25)::text,(current_date+25)::text,true)" >/dev/null
 sql "$direct_call" >/dev/null
+first_direct_id=$(sql "select id from private.publication_canary_evidence where event_id='$direct_event' order by checked_at desc,id desc limit 1")
+expect_equal "$(latest_direct_reference "$direct_event")" "$first_direct_id:$dossier_ref:VERIFIED" 'reload retrieves latest direct ID and verified dossier reference'
+expect_equal "$(sql "begin read only; set test.uid='$event'; set test.admin='true'; set role authenticated; select proof_id from public.get_latest_direct_publication_canary_reference('$direct_event'); commit" | head -1)" "$first_direct_id" 'reference RPC works in a read-only transaction'
 [[ $(direct_proofs) == 2 && $(direct_attestations) == 1 ]]
 [[ $(direct_status) == valid ]]
 [[ $(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select attested_origin||':'||attestation_state||':'||proof_type||':'||history_count from public.get_event_provenance('$direct_event')") == DIRECT_ORGANIZER:ATTESTED:DIRECT_VERIFIED:3 ]]
@@ -298,6 +315,12 @@ expect_error "set test.uid='$event'; set test.admin='true'; set role authenticat
 sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.verify_direct_publication_canary_dossier('$direct_event','$null_ref',true)" >/dev/null
 direct_null="set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_direct_publication_canary_evidence_checked('$direct_event','$direct_event',null,'DIRECT_ORGANIZER','OFFICIAL_PHONE','$null_ref','Salon direct','Nantes',null,'FR',null,null,(current_date+25)::text,null,null,null,true)"
 sql "$direct_null" >/dev/null
+second_direct_id=$(sql "select id from private.publication_canary_evidence where event_id='$direct_event' order by checked_at desc,id desc limit 1")
+expect_equal "$(latest_direct_reference "$direct_event")" "$second_direct_id:$null_ref:VERIFIED" 'newest direct proof replaces previous reference'
+sql "update private.publication_canary_evidence set checked_at=statement_timestamp() where id in ($first_direct_id,$second_direct_id)" >/dev/null
+expect_equal "$(latest_direct_reference "$direct_event")" "$second_direct_id:$null_ref:VERIFIED" 'equal checked_at breaks tie by descending proof ID'
+expect_error "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.revoke_direct_publication_canary_evidence('$direct_event',$first_direct_id,'Source independently rechecked')" CANARY_DIRECT_PROOF_NOT_LATEST
+expect_equal "$(sql "select count(*) from private.event_provenance where event_id='$direct_event' and state='REVOKED'")" 0 'stale revocation does not write'
 [[ $(direct_status) == valid && $(direct_attestations) == 2 ]]
 echo 'PASS direct proof: exact snapshot, venue, dates and NULL transitions'
 
@@ -317,11 +340,12 @@ wait "$background"
 sql "update public.events set description=null where id='$direct_event'" >/dev/null
 echo 'PASS direct concurrent attestations and stale edit refusal'
 
-latest_direct_proof=$(sql "select id from private.publication_canary_evidence where event_id='$direct_event' order by checked_at desc,id desc limit 1")
+latest_direct_proof=$(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select proof_id from public.get_latest_direct_publication_canary_reference('$direct_event')" | tail -1)
 expect_error "set test.uid='$event'; set test.admin='false'; set role authenticated; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked')" CANARY_ADMIN_REQUIRED
 expect_error "set role anon; select public.get_event_provenance('$direct_event')" 'permission denied'
 expect_error "set role anon; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked')" 'permission denied'
 sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked')" >/dev/null
+expect_equal "$(latest_direct_reference "$direct_event")" "$latest_direct_proof:$null_ref:REVOKED" 'revoked latest direct reference remains readable'
 expect_equal "$(direct_status)" invalidated 'revoked proof status'
 expect_equal "$(direct_candidate)" 0 'revoked proof candidate'
 expect_equal "$(sql "select count(*) from private.event_provenance where event_id='$direct_event' and state='REVOKED'")" 1 'revocation history'
@@ -339,12 +363,14 @@ expect_equal "$(direct_status)" valid 'renewed proof status'
 sql "update private.publication_canary_evidence set checked_at=checked_at-interval '31 days' where event_id='$direct_event'" >/dev/null
 expect_equal "$(direct_status)" expired 'expired proof status'
 expect_equal "$(direct_candidate)" 0 'expired proof candidate'
+expired_direct_id=$(sql "select id from private.publication_canary_evidence where event_id='$direct_event' order by checked_at desc,id desc limit 1")
+expect_equal "$(latest_direct_reference "$direct_event")" "$expired_direct_id:$renewed_ref:VERIFIED" 'expired latest direct reference remains readable'
 sql "$direct_null" >/dev/null
 expect_equal "$(direct_status)" valid 'fresh proof status'
 echo 'PASS direct revocation, no older-proof fallback, expiry and renewed human evidence'
 
 # A revocation in flight blocks claim, rather than allowing an uncertain reservation.
-latest_direct_proof=$(sql "select id from private.publication_canary_evidence where event_id='$direct_event' order by checked_at desc,id desc limit 1")
+latest_direct_proof=$(sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select proof_id from public.get_latest_direct_publication_canary_reference('$direct_event')" | tail -1)
 sql "begin; set test.uid='$event'; set test.admin='true'; set role authenticated; select public.revoke_direct_publication_canary_evidence('$direct_event',$latest_direct_proof,'Source independently rechecked'); select pg_sleep(2); commit" >/dev/null &
 background=$!
 sleep 0.3
@@ -369,3 +395,11 @@ for role in anon authenticated service_role; do
   [[ $(sql "select has_function_privilege('$role','public.get_event_provenance(uuid)','EXECUTE')") == $([[ $role == authenticated ]] && echo t || echo f) ]]
 done
 echo 'PASS direct private ACL, RPC grants and history'
+
+# A newer public proof hides all older direct references, even after reload.
+sql "set test.uid='$event'; set test.admin='true'; set role authenticated; select public.record_publication_canary_evidence('$direct_event','https://organizer.example/events/direct','Official organizer','Salon direct','Salon direct','Nantes',(current_date+25)::text,null,true)" >/dev/null
+expect_equal "$(latest_direct_reference "$direct_event")" '' 'newer PUBLIC_OFFICIAL prevents older direct fallback'
+expect_equal "$(sql "select proof_type from private.publication_canary_evidence where event_id='$direct_event' order by checked_at desc,id desc limit 1")" PUBLIC_OFFICIAL 'public proof is latest'
+expect_equal "$(sql "select count(*) from public.event_publication_jobs where target_event_id='$direct_event'")" 1 'reference reads create no jobs'
+expect_equal "$(sql "select status from public.event_publication_jobs where id='$direct_job'")" PENDING 'reference reads preserve job state'
+echo 'PASS read-only Admin references: reload, revocation race, expiry and no fallback'

@@ -54,6 +54,17 @@ que la preuve la plus récente : sa révocation ne réactive donc pas une preuve
 plus ancienne. `get_event_provenance` n'expose que des métadonnées à
 l'administrateur ; il ne renvoie ni contact, ni référence de dossier.
 
+La migration Admin D0 ajoute
+`get_latest_direct_publication_canary_reference(event_id)` : cette lecture
+réservée à l'administrateur renvoie uniquement `proof_id`,
+`dossier_reference` et `dossier_state` pour la **dernière** preuve, si elle est
+`DIRECT_VERIFIED`. Elle ne renvoie aucune ligne sans preuve ou si la dernière
+est `PUBLIC_OFFICIAL` ; elle ne cherche jamais une ancienne preuve directe.
+Elle reste consultable pour une preuve directe expirée ou révoquée. L'Admin
+peut alors relire le dossier par sa référence et transmettre le `proof_id`
+à la RPC de révocation existante. Si une preuve plus récente apparaît entre
+lecture et révocation, cette dernière refuse l'identifiant devenu obsolète.
+
 La réservation CANARY verrouille aussi le registre de provenance avant de
 recontrôler l'admissibilité. Le parcours `PUBLIC_OFFICIAL`, le quota de 24 h,
 l'arrêt sur incident, les 30 jours, le réarmement humain et la publication
