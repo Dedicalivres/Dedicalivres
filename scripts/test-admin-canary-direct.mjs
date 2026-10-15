@@ -52,8 +52,8 @@ function setup(options = {}) {
   const calls = [];
   const state = {
     current: { ...event }, origin: options.origin || { ...direct }, latest: options.latest || null,
-    proof: { proof_status: "none" }, dossier: options.dossier || null,
-    fail: {}, confirm: true, delayCreate: null
+    proof: { proof_status: "none", proof_count: 0 }, dossier: options.dossier || null,
+    fail: {}, loseAfterWrite: null, confirm: true, delayCreate: null
   };
   const api = {
     async rpc(name, args) {
@@ -71,23 +71,30 @@ function setup(options = {}) {
           attested_origin: args.p_attested_origin, identity_method: args.p_identity_method,
           independent_source_reference: args.p_independent_source_reference,
           verification_record: args.p_verification_record, dossier_state: "PENDING_REVIEW" };
+        if (state.loseAfterWrite === name) return { data: null, error: { message: "network failed" } };
         return { data: dossierRef, error: null };
       }
       if (name === "verify_direct_publication_canary_dossier") {
         state.dossier.dossier_state = "VERIFIED";
+        state.dossier.verified_by = "33333333-3333-4333-8333-333333333333";
+        state.dossier.verified_at = "2026-10-15T10:00:00Z";
+        if (state.loseAfterWrite === name) return { data: null, error: { message: "network failed" } };
         return { data: true, error: null };
       }
       if (name === "record_direct_publication_canary_evidence_checked") {
         state.latest = { proof_id: 17, dossier_reference: dossierRef, dossier_state: "VERIFIED" };
         state.origin = { ...state.origin, proof_type: "DIRECT_VERIFIED", attestation_state: "ATTESTED" };
-        state.proof = { proof_status: "valid" };
+        state.proof = { proof_status: "valid", proof_count: state.proof.proof_count + 1 };
+        if (state.loseAfterWrite === name) return { data: null, error: { message: "network failed" } };
         return { data: 17, error: null };
       }
       if (name === "revoke_direct_publication_canary_evidence") {
         if (args.p_proof_id !== state.latest.proof_id)
           return { data: null, error: { message: "CANARY_DIRECT_PROOF_NOT_LATEST" } };
         state.latest = { ...state.latest, dossier_state: "REVOKED" };
-        state.proof = { proof_status: "invalidated" };
+        state.origin = { ...state.origin, attestation_state: "REVOKED" };
+        state.proof = { ...state.proof, proof_status: "invalidated" };
+        if (state.loseAfterWrite === name) return { data: null, error: { message: "network failed" } };
         return { data: 18, error: null };
       }
       throw new Error(`RPC imprévue : ${name}`);
@@ -147,9 +154,6 @@ assert.equal(h.count("get_direct_publication_canary_dossier"), 1);
 assert.equal(h.get("direct-reference").value, dossierRef);
 assert.equal(h.count("record_direct_publication_canary_evidence_checked"), 0);
 assert.equal(h.get("direct-verify").disabled, true);
-delete h.state.fail.verify_direct_publication_canary_dossier;
-await h.click("direct-read");
-assert.equal(h.get("direct-create").disabled, false, "Relecture manuelle permet une reprise contrôlée");
 h.get("direct-confirm").checked = true;
 h.get("direct-confirm").listeners.change();
 await h.click("direct-verify");
@@ -212,7 +216,12 @@ h.state.current = { ...event };
 h.state.fail.record_direct_publication_canary_dossier = { message: "network failed" };
 await h.click("direct-create");
 assert.equal(h.get("direct-create").disabled, true);
-assert.match(h.get("direct-feedback").textContent, /Résultat réseau incertain/);
+assert.match(h.get("direct-feedback").textContent, /écritures directes bloquées/);
+await h.open(otherEvent);
+assert.equal(h.get("direct-create").disabled, true, "Changer de fiche ne lève pas l'incertitude");
+await h.open(event);
+assert.equal(h.get("direct-create").disabled, true, "Recharger la fiche ne lève pas l'incertitude");
+assert.equal(h.get("direct-reference").value, "", "Aucune référence de dossier inventée");
 
 h = setup({ dossier: { event_id: event.id, submission_event_id: event.id,
   attested_origin: "DIRECT_AUTHOR", identity_method: "OFFICIAL_PHONE", dossier_state: "PENDING_REVIEW" } });
@@ -228,6 +237,9 @@ h.state.fail.verify_direct_publication_canary_dossier = { message: "CANARY_DIREC
 await h.click("direct-verify");
 assert.equal(h.count("record_direct_publication_canary_evidence_checked"), 0);
 assert.equal(h.get("direct-verify").disabled, true);
+delete h.state.fail.verify_direct_publication_canary_dossier;
+await h.click("direct-read");
+assert.equal(h.get("direct-verify").disabled, true, "Un résultat de vérification ambigu reste bloqué");
 
 // A stale proof ID is sent as read and refused by the server; no fallback or retry.
 h = setup({ latest: { proof_id: 11, dossier_reference: dossierRef, dossier_state: "VERIFIED" },
@@ -260,5 +272,80 @@ await first;
 assert.equal(h.get("direct-reference").value, "");
 assert.equal(h.count("record_direct_publication_canary_dossier"), 1);
 assert.equal(h.calls.some((call) => /publish|job|claim|reserve/i.test(call.name)), false);
+
+// A committed proof with a lost response must not be repeated after a dossier-only read.
+h = setup({ dossier: { event_id: event.id, submission_event_id: event.id,
+  attested_origin: "DIRECT_AUTHOR", identity_method: "OFFICIAL_PHONE", dossier_state: "VERIFIED" } });
+await h.open();
+h.get("direct-reference").value = dossierRef;
+await h.click("direct-read");
+h.state.loseAfterWrite = "record_direct_publication_canary_evidence_checked";
+await h.click("direct-record-proof");
+assert.equal(h.count("record_direct_publication_canary_evidence_checked"), 1);
+assert.equal(h.get("direct-record-proof").disabled, true);
+await h.click("direct-read");
+assert.equal(h.get("direct-record-proof").disabled, true, "La preuve déjà créée ne peut être écrite une seconde fois");
+assert.equal(h.count("record_direct_publication_canary_evidence_checked"), 1);
+assert.equal(h.count("get_event_provenance") >= 2, true, "Réconciliation : provenance relue");
+assert.equal(h.count("get_latest_direct_publication_canary_reference") >= 2, true, "Réconciliation : dernière preuve relue");
+
+// A committed revocation with a lost response must be verified against the server.
+h = setup({ latest: { proof_id: 11, dossier_reference: dossierRef, dossier_state: "VERIFIED" },
+  dossier: { event_id: event.id, submission_event_id: event.id,
+    attested_origin: "DIRECT_AUTHOR", identity_method: "OFFICIAL_PHONE", dossier_state: "VERIFIED" },
+  origin: { ...direct, proof_type: "DIRECT_VERIFIED" } });
+h.state.proof = { proof_status: "valid", proof_count: 1 };
+await h.open();
+h.get("direct-reason").value = "Révocation après contrôle humain";
+h.state.loseAfterWrite = "revoke_direct_publication_canary_evidence";
+await h.click("direct-revoke");
+assert.equal(h.count("revoke_direct_publication_canary_evidence"), 1);
+await h.click("direct-read");
+assert.equal(h.get("direct-revoke").disabled, true);
+assert.equal(h.count("revoke_direct_publication_canary_evidence"), 1);
+assert.equal(h.count("get_event_provenance") >= 2, true, "Révocation : provenance relue");
+
+// A known reference can recover a completed creation; an unreadable server cannot.
+h = setup();
+await h.open();
+h.get("direct-role").value = "DIRECT_AUTHOR";
+h.get("direct-method").value = "OFFICIAL_PHONE";
+h.get("direct-source").value = "https://source.example/fiche";
+h.get("direct-record").value = "Compte rendu de vérification indépendant et détaillé.";
+h.state.fail.get_direct_publication_canary_dossier = { message: "network failed" };
+await h.click("direct-create");
+assert.equal(h.get("direct-reference").value, dossierRef);
+assert.equal(h.get("direct-create").disabled, true);
+delete h.state.fail.get_direct_publication_canary_dossier;
+await h.click("direct-read");
+assert.equal(h.get("direct-create").disabled, true, "Dossier retrouvé : pas de seconde création automatique");
+assert.equal(h.get("direct-verify").disabled, true, "Une nouvelle confirmation humaine reste requise");
+
+// A lost verification response is reconciled only after the dossier and proof/provenance reads agree.
+h = setup({ dossier: { event_id: event.id, submission_event_id: event.id,
+  attested_origin: "DIRECT_AUTHOR", identity_method: "OFFICIAL_PHONE", dossier_state: "PENDING_REVIEW" } });
+await h.open();
+h.get("direct-reference").value = dossierRef;
+await h.click("direct-read");
+h.get("direct-confirm").checked = true;
+h.state.loseAfterWrite = "verify_direct_publication_canary_dossier";
+await h.click("direct-verify");
+assert.equal(h.get("direct-record-proof").disabled, true);
+await h.click("direct-read");
+assert.equal(h.state.dossier.dossier_state, "VERIFIED");
+assert.equal(h.get("direct-record-proof").disabled, false);
+assert.equal(h.count("verify_direct_publication_canary_dossier"), 1);
+
+h = setup({ dossier: { event_id: event.id, submission_event_id: event.id,
+  attested_origin: "DIRECT_AUTHOR", identity_method: "OFFICIAL_PHONE", dossier_state: "VERIFIED" } });
+await h.open();
+h.get("direct-reference").value = dossierRef;
+await h.click("direct-read");
+h.state.loseAfterWrite = "record_direct_publication_canary_evidence_checked";
+await h.click("direct-record-proof");
+h.state.fail.get_event_provenance = { message: "network unavailable" };
+await h.click("direct-read");
+assert.equal(h.get("direct-record-proof").disabled, true, "Serveur indisponible : blocage conservé");
+assert.match(h.get("direct-feedback").textContent, /reprise administrative|indisponible/i);
 
 console.log("PASS Admin direct CANARY : provenance, fail-closed, dossier, preuve, révocation, concurrence et confidentialité simulés");

@@ -52,10 +52,12 @@
   let event = null;
   let provenance = null;
   let latest = null;
+  let proofState = null;
   let dossier = null;
   let enabled = false;
   let busy = false;
   let uncertain = false;
+  let pendingWrite = null;
   let sequence = 0;
 
   function client() { return bridge.isAuthenticated() ? bridge.getClient() : null; }
@@ -77,10 +79,11 @@
   function controls() {
     const active = enabled && Boolean(event) && !busy && !uncertain;
     mode.options[1].disabled = !enabled;
-    ui.create.disabled = !active;
+    ui.create.disabled = !active || Boolean(dossier);
     ui.read.disabled = !enabled || !event || busy || !ui.reference.value.trim();
     ui.verify.disabled = !active || dossier?.dossier_state !== "PENDING_REVIEW" || !ui.confirm.checked;
-    ui.recordProof.disabled = !active || dossier?.dossier_state !== "VERIFIED";
+    ui.recordProof.disabled = !active || dossier?.dossier_state !== "VERIFIED" ||
+      latest?.dossier_reference === ui.reference.value.trim();
     ui.revoke.disabled = !active || !latest?.proof_id || latest.dossier_state !== "VERIFIED";
   }
   function selectMode() {
@@ -138,6 +141,7 @@
     if (token !== sequence) return;
     provenance = observed;
     latest = reference;
+    proofState = proof;
     showProvenance();
     ui.latest.textContent = latest
       ? `Dernière preuve directe : ${proofStates[proof?.proof_status] || "état inconnu"} ; dossier ${dossierStates[latest.dossier_state] || "état inconnu"}. Identifiant ${latest.proof_id}.`
@@ -157,12 +161,15 @@
   function reset(selected) {
     event = selected ? { ...selected } : null;
     sequence += 1;
-    provenance = latest = dossier = null;
-    enabled = uncertain = false;
+    provenance = latest = proofState = dossier = null;
+    uncertain = Boolean(pendingWrite);
     ui.role.value = ui.method.value = ui.source.value = ui.record.value = "";
-    ui.reference.value = ui.reason.value = "";
+    ui.reference.value = pendingWrite?.eventId === event?.id ? pendingWrite.reference || "" : "";
+    ui.reason.value = "";
     ui.confirm.checked = false;
-    ui.feedback.textContent = "";
+    ui.feedback.textContent = pendingWrite
+      ? "Écriture au résultat incertain : aucune nouvelle écriture directe avant réconciliation serveur ou reprise administrative contrôlée."
+      : "";
     ui.provenance.replaceChildren();
     showProvenance();
     ui.dossier.replaceChildren();
@@ -187,8 +194,52 @@
       return "Une preuve plus récente existe : rechargez la fiche avant toute révocation.";
     if (code.includes("CANARY_DIRECT_DOSSIER_NOT_FOUND"))
       return "Dossier introuvable pour cet événement. Vérifiez la référence ; sans elle, recréez un dossier après contrôle humain.";
+    if (pendingWrite)
+      return "État serveur indisponible ou indéterminé : écritures directes bloquées. Demandez une reprise administrative contrôlée.";
     if (started) return "Résultat réseau incertain ou refus serveur : rechargez la fiche avant une nouvelle écriture. Aucune publication déclenchée.";
     return "Lecture impossible : vérifiez la session et réessayez sans écrire. Aucune publication déclenchée.";
+  }
+  function sameProofAsBefore(attempt) {
+    return (latest?.proof_id ?? null) === attempt.beforeProofId &&
+      Number(proofState?.proof_count) === attempt.beforeProofCount;
+  }
+  async function reconcile(token) {
+    const attempt = pendingWrite;
+    if (!attempt || token !== sequence || attempt.eventId !== event?.id) return;
+    await refresh(token);
+    if (token !== sequence || attempt !== pendingWrite) return;
+    const sameReference = ui.reference.value.trim() === attempt.reference;
+    const sameDossier = sameReference && dossier?.event_id === event.id &&
+      dossier?.submission_event_id === event.id;
+    let resolved = false;
+    if (attempt.kind === "create") {
+      resolved = Boolean(attempt.reference && sameDossier && sameProofAsBefore(attempt) &&
+        dossier.attested_origin === attempt.role && dossier.identity_method === attempt.method &&
+        dossier.independent_source_reference === attempt.source &&
+        dossier.verification_record === attempt.record &&
+        ["PENDING_REVIEW", "VERIFIED"].includes(dossier.dossier_state));
+    } else if (attempt.kind === "verify") {
+      resolved = Boolean(sameDossier && sameProofAsBefore(attempt) &&
+        dossier.dossier_state === "VERIFIED" && dossier.verified_by && dossier.verified_at);
+    } else if (attempt.kind === "proof") {
+      resolved = Boolean(sameDossier && latest?.dossier_reference === attempt.reference &&
+        latest.proof_id !== attempt.beforeProofId &&
+        Number(proofState?.proof_count) > attempt.beforeProofCount &&
+        provenance?.proof_type === "DIRECT_VERIFIED" &&
+        ["ATTESTED", "REVOKED"].includes(provenance.attestation_state));
+    } else if (attempt.kind === "revoke") {
+      resolved = Boolean(sameDossier && latest?.proof_id === attempt.proofId &&
+        latest.dossier_reference === attempt.reference && latest.dossier_state === "REVOKED" &&
+        provenance?.attestation_state === "REVOKED" &&
+        ["invalidated", "expired"].includes(proofState?.proof_status));
+    }
+    if (resolved) {
+      pendingWrite = null;
+      uncertain = false;
+      ui.feedback.textContent = "Résultat confirmé par les lectures serveur. Vérifiez la fiche avant une autre action.";
+    } else {
+      ui.feedback.textContent = "Résultat indéterminé : écritures directes bloquées. Demandez une reprise administrative contrôlée.";
+    }
   }
   async function action(work, readOnly = false) {
     if (!enabled || !event || busy || (uncertain && !readOnly)) return;
@@ -197,12 +248,22 @@
     busy = true;
     controls();
     let started = false;
-    const markWrite = () => { started = true; };
+    let attempt = null;
+    const markWrite = (kind, details) => {
+      started = true;
+      attempt = { kind, eventId: selected.id,
+        beforeProofId: latest?.proof_id ?? null,
+        beforeProofCount: Number(proofState?.proof_count), ...details };
+      return attempt;
+    };
     try {
       await work(selected, token, markWrite);
     } catch (error) {
+      if (started) {
+        pendingWrite = attempt;
+        uncertain = true;
+      }
       if (token === sequence) {
-        if (started) uncertain = true;
         ui.feedback.textContent = explain(error, started);
       }
     } finally {
@@ -245,7 +306,10 @@
       return;
     }
     await currentSnapshot(selected, token);
-    markWrite();
+    const attempt = markWrite("create", {
+      reference: null, role: ui.role.value, method: ui.method.value,
+      source: ui.source.value.trim(), record: ui.record.value.trim()
+    });
     const reference = await rpc("record_direct_publication_canary_dossier", {
       p_event_id: selected.id, p_submission_event_id: selected.id,
       p_attested_origin: ui.role.value, p_identity_method: ui.method.value,
@@ -255,6 +319,7 @@
     if (token !== sequence) return;
     if (typeof reference !== "string" || !reference.startsWith("evidence:"))
       throw new Error("CANARY_DIRECT_DOSSIER_NOT_FOUND");
+    attempt.reference = reference;
     ui.reference.value = reference;
     await readDossier(reference, token);
     ui.feedback.textContent = "Dossier créé puis relu. Conservez sa référence privée pour une reprise après rechargement ; aucune preuve enregistrée.";
@@ -263,8 +328,11 @@
     const reference = ui.reference.value.trim();
     await readDossier(reference, token);
     if (token !== sequence || ui.reference.value.trim() !== reference || !dossier) return;
-    uncertain = false;
-    ui.feedback.textContent = "Dossier relu depuis Supabase. Vérifiez son contenu avant de le valider.";
+    if (pendingWrite) {
+      await reconcile(token);
+    } else {
+      ui.feedback.textContent = "Dossier relu depuis Supabase. Vérifiez son contenu avant de le valider.";
+    }
   }, true));
   ui.verify.addEventListener("click", () => action(async (selected, token, markWrite) => {
     if (!dossier || dossier.dossier_state !== "PENDING_REVIEW" || !ui.confirm.checked) return;
@@ -274,7 +342,7 @@
       return;
     }
     const reference = ui.reference.value.trim();
-    markWrite();
+    markWrite("verify", { reference });
     await rpc("verify_direct_publication_canary_dossier", {
       p_event_id: selected.id, p_evidence_reference: reference, p_human_confirmed: true
     });
@@ -296,7 +364,7 @@
       ui.feedback.textContent = "Enregistrement annulé.";
       return;
     }
-    markWrite();
+    markWrite("proof", { reference });
     await rpc("record_direct_publication_canary_evidence_checked", {
       p_event_id: selected.id, p_submission_event_id: selected.id,
       p_declared_origin: provenance?.declared_origin || null,
@@ -320,7 +388,7 @@
       return;
     }
     if (token !== sequence) return;
-    markWrite();
+    markWrite("revoke", { reference: latest.dossier_reference, proofId });
     await rpc("revoke_direct_publication_canary_evidence", {
       p_event_id: selected.id, p_proof_id: proofId, p_reason: reason
     });
