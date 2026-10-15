@@ -56,3 +56,9 @@ jobs:
 
       - name: Test read-only Auto-Matte provenance reconciliation fixtures
         run: python3 scripts/test-reconcile-automatte-provenance.py
+
+      - name: Test Auto-Matte snapshot and import guard on disposable PostgreSQL
+        run: |
+          python3 scripts/test-snapshot-automatte-sqlite.py
+          python3 scripts/test-build-automatte-dry-run-fixture.py
+          bash scripts/test-automatte-provenance-import.sh
