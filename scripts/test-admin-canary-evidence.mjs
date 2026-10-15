@@ -91,3 +91,4 @@ assert.match(elements.get("v11-canary-proof-status").textContent, /Preuve édito
 assert.match(elements.get("v11-canary-job-status").textContent, /Réservation non garantie/);
 assert.equal(fs.readFileSync("admin-v11.css", "utf8").includes("@media (max-width: 700px)"), true);
 console.log("PASS Admin CANARY : lecture seule, état, source, changement de fiche, confirmation, anti-double-clic, alias et mobile CSS");
+await import("./test-admin-canary-direct.mjs");

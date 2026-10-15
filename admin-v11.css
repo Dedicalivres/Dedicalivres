@@ -3007,6 +3007,13 @@ body.v11-is-loading .v11-app {
 .v11-canary-proof form input:not([type="checkbox"]) { box-sizing: border-box; width: 100%; min-width: 0; }
 .v11-canary-proof form .v11-canary-proof-confirm { display: flex; align-items: flex-start; }
 .v11-canary-proof form button { justify-self: start; }
+.v11-canary-proof [hidden] { display: none !important; }
+.v11-canary-proof-mode, #v11-canary-direct > label { display: grid; gap: 5px; min-width: 0; margin-top: 10px; }
+.v11-canary-proof select, .v11-canary-proof textarea, .v11-canary-proof input:not([type="checkbox"]) { box-sizing: border-box; width: 100%; min-width: 0; }
+.v11-canary-proof textarea { min-height: 74px; resize: vertical; }
+#v11-canary-direct { min-width: 0; }
+#v11-canary-direct .v11-canary-proof-confirm { display: flex; align-items: flex-start; }
+#v11-canary-direct button { max-width: 100%; margin-top: 10px; white-space: normal; }
 
 @media (max-width: 700px) {
   .v11-canary-proof-context { grid-template-columns: 1fr; }
