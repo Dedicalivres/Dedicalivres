@@ -45,10 +45,20 @@ en transaction terminée par `ROLLBACK`, et appelle la fonction avec
 python3 scripts/build-automatte-dry-run-fixture.py \
   --ids /chemin/local/supabase-ids.json \
   --manifest /chemin/local/reconciliation/manifest.json \
-  --output /chemin/local/isolated-dry-run.sql
+  --output /chemin/local/isolated-dry-run.sql \
+  --metadata-output /chemin/local/manifest-hashes.json
 AUTOMATTE_DRY_RUN_SQL=/chemin/local/isolated-dry-run.sql \
   bash scripts/test-automatte-provenance-import.sh
 ```
+
+`p_manifest_sha256` désigne désormais le SHA-256 du contenu importable canonique,
+pas celui du fichier original. La représentation est la concaténation UTF-8
+des lignes `event_id<TAB>auto_matte_reference<LF>`, triées par UUID puis
+référence. Le générateur enregistre séparément `import_canonical_sha256` et
+`manifest_file_sha256` dans les métadonnées locales. Le SQL recalcule le
+premier avant tout import et refuse une empreinte divergente, même en dry-run.
+Les champs non importables du fichier original restent couverts uniquement
+par le second hash ; ne jamais substituer l'un à l'autre.
 
 La fixture simule une table de provenance initialement vide. Son nombre
 « admissible » n'est **pas** une preuve de l'état réel de Supabase. Les
@@ -63,7 +73,7 @@ privée `private.prepare_auto_matte_observed_import`. Elle ne contient aucun
 backfill. La fonction est `SECURITY INVOKER`, sans droit EXECUTE pour `PUBLIC`,
 `anon`, `authenticated` ou `service_role`. Une session SQL `postgres` doit
 fournir le manifeste, les ensembles complets d'UUID exportés et le SHA-256
-du manifeste. Le mode `p_execute=false` ne fait que lire et compter :
+canonique des correspondances importables. Le mode `p_execute=false` ne fait que lire et compter :
 `eligible`, `already_present`, `conflicts`, `excluded`, `blocked`.
 
 Pour une exécution **dans une mission ultérieure uniquement**, recontrôler le

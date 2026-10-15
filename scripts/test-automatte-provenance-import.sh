@@ -51,15 +51,29 @@ four='44444444-4444-4444-8444-444444444444'
 five='55555555-5555-4555-8555-555555555555'
 six='66666666-6666-4666-8666-666666666666'
 missing='99999999-9999-4999-8999-999999999999'
-hash='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+hash_for() {
+  python3 -c 'import hashlib,json,sys; rows=json.loads(sys.argv[1]); payload="".join(r["event_id"]+"\t"+r["auto_matte_reference"]+"\n" for r in sorted(rows,key=lambda r:(r["event_id"],r["auto_matte_reference"]))); print(hashlib.sha256(payload.encode("utf-8")).hexdigest())' "$1"
+}
 sql "insert into public.events (id,title) values ('$one','One'),('$two','Two'),('$three','Three'),('$four','Four'),('$five','Five'),('$six','Six')" >/dev/null
 expected="[\"$one\",\"$two\",\"$three\",\"$four\",\"$five\",\"$six\"]"
 direct='[]'
 manifest_one="[{\"event_id\":\"$one\",\"auto_matte_reference\":\"evenements:11\"}]"
 manifest_two="[{\"event_id\":\"$two\",\"auto_matte_reference\":\"evenements:12\"}]"
-call() { sql "select eligible||':'||already_present||':'||conflicts||':'||excluded||':'||blocked from private.prepare_auto_matte_observed_import('$1'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$hash',$2)"; }
+call() { local digest; digest=$(hash_for "$1"); sql "select eligible||':'||already_present||':'||conflicts||':'||excluded||':'||blocked from private.prepare_auto_matte_observed_import('$1'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$digest',$2)"; }
 count() { sql 'select count(*) from private.event_provenance'; }
+hash=$(hash_for "$manifest_one")
 expect "$(call "$manifest_one" false)" '1:0:0:0:0' 'first dry-run'
+expect_error "select * from private.prepare_auto_matte_observed_import('$manifest_one'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',false)" AUTO_MATTE_IMPORT_MANIFEST_SHA256_MISMATCH
+expect_error "select * from private.prepare_auto_matte_observed_import('$manifest_one'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',true)" AUTO_MATTE_IMPORT_MANIFEST_SHA256_MISMATCH
+manifest_one_two="[{\"event_id\":\"$one\",\"auto_matte_reference\":\"evenements:11\"},{\"event_id\":\"$two\",\"auto_matte_reference\":\"evenements:12\"}]"
+manifest_two_one="[{\"event_id\":\"$two\",\"auto_matte_reference\":\"evenements:12\"},{\"event_id\":\"$one\",\"auto_matte_reference\":\"evenements:11\"}]"
+expect "$(hash_for "$manifest_one_two")" "$(hash_for "$manifest_two_one")" 'row order independent'
+expect "$(call "$manifest_two_one" false)" '2:0:0:0:0' 'reordered manifest valid'
+expect_error "select * from private.prepare_auto_matte_observed_import('$manifest_one_two'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$hash',true)" AUTO_MATTE_IMPORT_MANIFEST_SHA256_MISMATCH
+expect_error "select * from private.prepare_auto_matte_observed_import('$manifest_two'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$(hash_for "$manifest_one_two")',true)" AUTO_MATTE_IMPORT_MANIFEST_SHA256_MISMATCH
+changed_ref="[{\"event_id\":\"$one\",\"auto_matte_reference\":\"evenements:99\"}]"
+expect_error "select * from private.prepare_auto_matte_observed_import('$changed_ref'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$hash',true)" AUTO_MATTE_IMPORT_MANIFEST_SHA256_MISMATCH
+expect "$(count)" '0' 'invalid hashes cannot import'
 expect "$(sql "begin read only; select eligible||':'||already_present||':'||conflicts||':'||excluded||':'||blocked from private.prepare_auto_matte_observed_import('$manifest_one'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$hash',false); rollback" | head -n 1)" '1:0:0:0:0' 'dry-run allowed in read-only transaction'
 expect "$(count)" '0' 'dry-run writes nothing'
 expect "$(call "$manifest_one" true)" '1:0:0:0:0' 'first insert'
@@ -80,25 +94,26 @@ expect_error "select * from private.prepare_auto_matte_observed_import('$manifes
 sql "insert into public.event_submission_contacts (event_id) values ('$two')" >/dev/null
 direct="[\"$two\"]"
 expect "$(call "$manifest_two" false)" '0:0:0:1:0' 'direct form excluded'
-expect_error "select * from private.prepare_auto_matte_observed_import('$manifest_two'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$hash',true)" AUTO_MATTE_IMPORT_PRECONDITION_FAILED
+expect_error "select * from private.prepare_auto_matte_observed_import('$manifest_two'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$(hash_for "$manifest_two")',true)" AUTO_MATTE_IMPORT_PRECONDITION_FAILED
 expect "$(call "$manifest_conflict" false)" '0:0:1:0:0' 'reference conflict'
 expect "$(call "$manifest_bad" false)" '0:0:0:0:1' 'ambiguous reference'
 duplicate="[{\"event_id\":\"$five\",\"auto_matte_reference\":\"evenements:15\"},{\"event_id\":\"$five\",\"auto_matte_reference\":\"evenements:15\"}]"
 expect "$(call "$duplicate" false)" '1:0:0:0:1' 'duplicate manifest row'
-expect_error "select * from private.prepare_auto_matte_observed_import('$duplicate'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$hash',true)" AUTO_MATTE_IMPORT_PRECONDITION_FAILED
+expect_error "select * from private.prepare_auto_matte_observed_import('$duplicate'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$(hash_for "$duplicate")',true)" AUTO_MATTE_IMPORT_PRECONDITION_FAILED
 echo 'PASS stale export, absent UUID, direct form, ambiguous reference'
 
 sql "insert into private.event_provenance (event_id,state,observed_channel,attested_origin,verified_by,verified_at) values ('$three','ATTESTED','ADMIN','ADMIN_MANUAL','$three',now())" >/dev/null
 expect "$(call "$manifest_three" false)" '0:0:1:0:0' 'human attestation conflict'
 mixed="[{\"event_id\":\"$four\",\"auto_matte_reference\":\"evenements:14\"},{\"event_id\":\"$three\",\"auto_matte_reference\":\"evenements:13\"}]"
-expect_error "select * from private.prepare_auto_matte_observed_import('$mixed'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$hash',true)" AUTO_MATTE_IMPORT_PRECONDITION_FAILED
+expect_error "select * from private.prepare_auto_matte_observed_import('$mixed'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$(hash_for "$mixed")',true)" AUTO_MATTE_IMPORT_PRECONDITION_FAILED
 expect "$(count)" '2' 'atomic batch rollback'
 expect "$(call "$manifest_four" true)" '1:0:0:0:0' 'safe retry after failure'
 partial="[{\"event_id\":\"$one\",\"auto_matte_reference\":\"evenements:11\"},{\"event_id\":\"$five\",\"auto_matte_reference\":\"evenements:15\"}]"
 expect "$(call "$partial" true)" '1:1:0:0:0' 'partial rerun'
-sql "begin; select * from private.prepare_auto_matte_observed_import('$manifest_six'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$hash',true); rollback" >/dev/null
+six_hash=$(hash_for "$manifest_six")
+sql "begin; select * from private.prepare_auto_matte_observed_import('$manifest_six'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$six_hash',true); rollback" >/dev/null
 expect "$(sql "select count(*) from private.event_provenance where event_id='$six'")" '0' 'interrupted transaction rolled back'
-sql "begin; select * from private.prepare_auto_matte_observed_import('$manifest_six'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$hash',true); select pg_sleep(1); commit" >/dev/null &
+sql "begin; select * from private.prepare_auto_matte_observed_import('$manifest_six'::jsonb,'$expected'::jsonb,'$direct'::jsonb,'$six_hash',true); select pg_sleep(1); commit" >/dev/null &
 background=$!
 sleep 0.2
 expect "$(call "$manifest_six" true)" '0:1:0:0:0' 'concurrent rerun serializes'

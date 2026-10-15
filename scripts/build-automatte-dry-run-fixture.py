@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import re
 import uuid
 from pathlib import Path
 
@@ -12,7 +13,15 @@ def canonical(value):
     return str(uuid.UUID(value)) if isinstance(value, str) and str(uuid.UUID(value)) == value else None
 
 
-def build(ids_path, manifest_path):
+def canonical_manifest_sha256(rows):
+    payload = "".join(
+        f"{row['event_id']}\t{row['auto_matte_reference']}\n"
+        for row in sorted(rows, key=lambda row: (row['event_id'], row['auto_matte_reference']))
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def build(ids_path, manifest_path, metadata=None):
     ids = json.loads(Path(ids_path).read_text(encoding="utf-8"))
     manifest_bytes = Path(manifest_path).read_bytes()
     manifest = json.loads(manifest_bytes)
@@ -30,14 +39,19 @@ def build(ids_path, manifest_path):
         if not isinstance(item, dict) or canonical(item.get("event_id")) is None:
             raise ValueError("Manifeste invalide")
         reference = item.get("auto_matte_reference")
-        if not isinstance(reference, str) or not reference.startswith("evenements:") or not reference[11:].isdigit():
+        if not isinstance(reference, str) or re.fullmatch(r"evenements:[1-9][0-9]*", reference) is None:
             raise ValueError("Référence Auto-Matte invalide")
         rows.append({"event_id": item["event_id"], "auto_matte_reference": reference})
     if len(rows) != len({row["event_id"] for row in rows}) or len(rows) != len({row["auto_matte_reference"] for row in rows}):
         raise ValueError("Manifeste ambigu")
     if not {row["event_id"] for row in rows} <= set(events) - set(direct):
         raise ValueError("Manifeste hors périmètre ou soumission directe")
-    digest = hashlib.sha256(manifest_bytes).hexdigest()
+    digest = canonical_manifest_sha256(rows)
+    if metadata is not None:
+        metadata.update({
+            "manifest_file_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+            "import_canonical_sha256": digest,
+        })
     event_json = json.dumps(events, separators=(",", ":"))
     direct_json = json.dumps(direct, separators=(",", ":"))
     rows_json = json.dumps(rows, separators=(",", ":"))
@@ -59,11 +73,19 @@ def main():
     parser.add_argument("--ids", required=True)
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--metadata-output", help="Local JSON containing separate file and canonical SHA-256 digests")
     args = parser.parse_args()
     output = Path(args.output)
     if output.exists():
         raise ValueError("Fichier cible déjà présent")
-    output.write_text(build(args.ids, args.manifest), encoding="utf-8")
+    metadata = Path(args.metadata_output) if args.metadata_output else None
+    if metadata and (metadata.exists() or metadata.resolve() == output.resolve()):
+        raise ValueError("Métadonnées cibles déjà présentes ou confondues")
+    hashes = {}
+    fixture = build(args.ids, args.manifest, hashes)
+    if metadata:
+        metadata.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    output.write_text(fixture, encoding="utf-8")
     print("Dry-run SQL fixture generated; never execute against production")
 
 

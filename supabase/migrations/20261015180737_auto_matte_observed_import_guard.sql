@@ -31,6 +31,7 @@ declare
   item record;
   existing_count integer;
   same_count integer;
+  canonical_sha256 text;
 begin
   eligible := 0; already_present := 0; conflicts := 0; excluded := 0; blocked := 0;
   if jsonb_typeof(p_manifest) is distinct from 'array'
@@ -40,6 +41,18 @@ begin
     or p_manifest_sha256 is null
     or p_execute is null then
     raise exception 'AUTO_MATTE_IMPORT_INPUT_INVALID';
+  end if;
+  -- UTF-8 SHA-256 of sorted, importable pairs only. A reference is ASCII and
+  -- cannot contain a tab or newline, making this representation unambiguous.
+  select pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(
+    coalesce(pg_catalog.string_agg(
+      x.event_id::text || E'\t' || x.auto_matte_reference || E'\n', ''
+      order by x.event_id::text, x.auto_matte_reference), ''), 'UTF8')), 'hex')
+    into canonical_sha256
+    from pg_catalog.jsonb_to_recordset(p_manifest)
+      as x(event_id uuid, auto_matte_reference text);
+  if canonical_sha256 is distinct from p_manifest_sha256 then
+    raise exception 'AUTO_MATTE_IMPORT_MANIFEST_SHA256_MISMATCH';
   end if;
   if p_execute then
     if current_user <> 'postgres' then
