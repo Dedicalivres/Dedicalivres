@@ -20,6 +20,7 @@
     "test:admin-v11-cutover": "node scripts/test-admin-v11-cutover-readiness.mjs",
     "test:nfc-analytics-v1": "node scripts/test-nfc-analytics-cockpit-v1.mjs",
     "test:admin-v11-session": "node scripts/test-admin-v11-session-resilience.mjs",
+    "test:admin-v11-auth-mobile": "node scripts/test-admin-v11-session-resilience.mjs && node scripts/test-admin-v11-auth-mobile-browser.mjs",
     "test:registration-timeline": "node scripts/test-registration-timeline.mjs",
     "test:admin-v11-author-merge": "node scripts/test-admin-v11-author-merge.mjs",
     "test:admin-v11-community-archive": "node scripts/test-admin-v11-community-safe-archive.mjs",

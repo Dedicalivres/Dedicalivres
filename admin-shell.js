@@ -34,6 +34,10 @@
   const loginFeedback =
     document.getElementById("v11-login-feedback");
 
+  const authTitle = document.getElementById("v11-auth-title");
+  const authCopy = document.getElementById("v11-auth-copy");
+  const deniedLogout = document.getElementById("v11-denied-logout");
+
   const refreshButton =
     document.getElementById("v11-refresh");
 
@@ -12343,6 +12347,8 @@ function openCommunityView(name) {
       "v11-chip warning";
   }
 
+  let hadAuthorizedView = false;
+
   function renderState(state) {
     const loading =
       state.status === "loading" ||
@@ -12353,8 +12359,29 @@ function openCommunityView(name) {
       loading
     );
 
-    const showAuth =
-      state.authenticated === false;
+    const authorized =
+      state.authenticated === true && state.status === "ready";
+    const showAuth = !authorized;
+    document.body.classList.toggle("v11-is-authorized", authorized);
+
+    if (authorized) hadAuthorizedView = true;
+    if (hadAuthorizedView && state.status === "unauthenticated") {
+      hadAuthorizedView = false;
+      window.location.reload();
+      return;
+    }
+
+    if (authTitle && authCopy && loginForm) {
+      const forbidden = state.status === "forbidden";
+      authTitle.textContent = forbidden ? "Accès refusé" : "Connexion";
+      authCopy.textContent = forbidden
+        ? "Ce compte ne dispose pas des droits d’administration."
+        : state.status === "error"
+          ? "Vérification indisponible. Réessayez après le rétablissement du service."
+          : "Accès réservé à l’administration Dédicalivres.";
+      loginForm.hidden = forbidden || loading;
+      if (deniedLogout) deniedLogout.hidden = !(forbidden || state.session);
+    }
 
     if (authGate) {
       authGate.hidden = !showAuth;
@@ -12367,6 +12394,8 @@ function openCommunityView(name) {
         showAuth ? "false" : "true"
       );
     }
+
+    if (!authorized) return;
 
     if (state.communityMetrics) {
       const communityMetrics = state.communityMetrics;
@@ -12717,15 +12746,13 @@ function openCommunityView(name) {
           "Connexion...";
 
         try {
-          await context.signIn(
+          const state = await context.signIn(
             email,
             password
           );
 
           loginForm.reset();
-          toast(
-            "Connexion réussie"
-          );
+          if (state.status === "ready") toast("Connexion réussie");
         } catch (error) {
           console.error(error);
 
@@ -12778,15 +12805,18 @@ function openCommunityView(name) {
     );
   }
 
-  if (logoutButton) {
-    logoutButton.addEventListener(
-      "click",
-      async () => {
-        await context.signOut();
-        toast("Déconnecté");
-      }
-    );
+  async function signOutAndClear() {
+    try {
+      await context.signOut();
+      // Reload destroys private DOM nodes and module-level caches after sign-out.
+      window.location.reload();
+    } catch (error) {
+      toast(v11ErrorMessage(error, "Déconnexion impossible. Réessayez."), "error");
+    }
   }
+
+  logoutButton?.addEventListener("click", signOutAndClear);
+  deniedLogout?.addEventListener("click", signOutAndClear);
 
   window.addEventListener("offline", () => {
     renderSupabaseStatus(context.getState());

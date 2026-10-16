@@ -49,6 +49,44 @@
 
   const listeners = new Set();
   let authSubscription = null;
+  let authEpoch = 0;
+
+  function clearPrivateState(values = {}) {
+    state.events = [];
+    state.metrics = {
+      eventsTotal: null,
+      eventsPending: null,
+      eventsValidated: null,
+      eventsRejected: null,
+      eventsActive: null,
+      qualityMissingImage: null,
+      qualityMissingCoords: null,
+      qualityMissingWebsite: null,
+      qualitySoon: null,
+      qualityFeaturedPast: null,
+      visitsToday: null,
+      visits7d: null,
+      visits30d: null,
+      visitsTotal: null,
+      visitsStatus: "Chargement du trafic"
+    };
+    state.trafficDetails = { topPages: [], topReferrers: [] };
+    state.community = { presences: [], authors: [], testimonials: [] };
+    state.communityMetrics = {
+      presenceTotal: null,
+      presencePending: null,
+      presenceValidated: null,
+      presenceRejected: null,
+      authorsTotal: null,
+      testimonialsTotal: null
+    };
+    setState({
+      authenticated: false,
+      session: null,
+      refreshedAt: null,
+      ...values
+    });
+  }
 
   function snapshot() {
     return {
@@ -130,23 +168,20 @@
     }
 
     const result = client.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        setState({
-          authenticated: false,
-          session: null,
-          status: "unauthenticated",
-          error: null,
-          refreshedAt: null
-        });
+      if (event === "SIGNED_OUT" ||
+          (["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event) && !session)) {
+        authEpoch += 1;
+        clearPrivateState({ status: "unauthenticated", error: null });
         return;
       }
 
-      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-        setState({
-          authenticated: true,
-          session,
-          error: null
-        });
+      if (["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
+        // Supabase auth callbacks must not await another auth request.
+        authEpoch += 1;
+        clearPrivateState({ status: "loading", error: null });
+        window.setTimeout(() => {
+          authorizeSession(session).catch(console.error);
+        }, 0);
       }
     });
 
@@ -748,9 +783,10 @@
   }
 
   async function refresh() {
-    if (state.authenticated === false) {
+    if (state.authenticated !== true) {
       return snapshot();
     }
+    const epoch = authEpoch;
 
     setState({
       status: "loading",
@@ -760,7 +796,7 @@
     let watchdogTriggered = false;
 
     const watchdog = window.setTimeout(() => {
-      if (state.status === "loading") {
+      if (epoch === authEpoch && state.status === "loading") {
         watchdogTriggered = true;
 
         setState({
@@ -781,7 +817,7 @@
         loadCommunity()
       ]);
 
-      if (!watchdogTriggered) {
+      if (!watchdogTriggered && epoch === authEpoch && state.authenticated) {
         setState({
           status: "ready",
           error: null,
@@ -789,15 +825,59 @@
         });
       }
     } catch (error) {
-      setState({
-        status: "error",
-        error
-      });
+      if (epoch === authEpoch && state.authenticated) {
+        setState({ status: "error", error });
+      }
     } finally {
       window.clearTimeout(watchdog);
     }
 
     return snapshot();
+  }
+
+  async function authorizeSession(session) {
+    const epoch = ++authEpoch;
+    clearPrivateState({ status: "loading", error: null });
+
+    try {
+      const client = getClient();
+      const identity = await client.auth.getUser();
+      if (epoch !== authEpoch) return snapshot();
+
+      if (identity.error || !identity.data?.user) {
+        const error = identity.error;
+        if (error && ![401, 403].includes(error.status)) throw error;
+        clearPrivateState({ status: "unauthenticated", error: null });
+        return snapshot();
+      }
+
+      const userId = identity.data.user.id;
+      if (!session?.user || session.user.id !== userId) {
+        clearPrivateState({ status: "unauthenticated", error: null });
+        return snapshot();
+      }
+
+      // Existing admin_users SELECT policy returns only the caller's row.
+      const result = await client.from("admin_users")
+        .select("user_id")
+        .eq("user_id", userId)
+        .limit(1);
+      if (epoch !== authEpoch) return snapshot();
+      if (result.error) throw result.error;
+
+      if (!result.data?.some((row) => row.user_id === userId)) {
+        clearPrivateState({ status: "forbidden", session, error: null });
+        return snapshot();
+      }
+
+      setState({ authenticated: true, session, status: "loading", error: null });
+      return await refresh();
+    } catch (error) {
+      if (epoch === authEpoch) {
+        clearPrivateState({ status: "error", session, error });
+      }
+      return snapshot();
+    }
   }
 
   async function restoreSession() {
@@ -823,31 +903,14 @@
           : null;
 
       if (!session) {
-        setState({
-          status: "unauthenticated",
-          authenticated: false,
-          session: null,
-          error: null
-        });
+        clearPrivateState({ status: "unauthenticated", error: null });
 
         return snapshot();
       }
 
-      setState({
-        status: "loading",
-        authenticated: true,
-        session,
-        error: null
-      });
-
-      return await refresh();
+      return await authorizeSession(session);
     } catch (error) {
-      setState({
-        status: "error",
-        authenticated: false,
-        session: null,
-        error
-      });
+      clearPrivateState({ status: "error", error });
 
       return snapshot();
     }
@@ -870,44 +933,23 @@
       throw result.error;
     }
 
-    setState({
-      authenticated: true,
-      session: result.data.session || null,
-      status: "loading",
-      error: null
-    });
-
-    return await refresh();
+    return await authorizeSession(result.data.session || null);
   }
 
   async function signOut() {
     const client = getClient();
-
+    const session = state.session;
+    authEpoch += 1;
+    clearPrivateState({ status: "loading", session, error: null });
     if (client) {
-      await client.auth.signOut();
+      const result = await client.auth.signOut();
+      if (result?.error) {
+        clearPrivateState({ status: "error", session, error: result.error });
+        throw result.error;
+      }
     }
 
-    state.events = [];
-    state.metrics = {
-      eventsTotal: null,
-      eventsPending: null,
-      eventsValidated: null,
-      eventsRejected: null,
-      eventsActive: null,
-      visitsToday: null,
-      visits7d: null,
-      visits30d: null,
-      visitsTotal: null,
-      visitsStatus: "Chargement du trafic"
-    };
-
-    setState({
-      authenticated: false,
-      session: null,
-      status: "unauthenticated",
-      error: null,
-      refreshedAt: null
-    });
+    clearPrivateState({ status: "unauthenticated", error: null });
 
     return snapshot();
   }
