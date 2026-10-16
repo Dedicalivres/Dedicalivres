@@ -348,4 +348,20 @@ await h.click("direct-read");
 assert.equal(h.get("direct-record-proof").disabled, true, "Serveur indisponible : blocage conservé");
 assert.match(h.get("direct-feedback").textContent, /reprise administrative|indisponible/i);
 
+// A fresh JS context simulates a browser restart without in-memory uncertainty.
+// Server reads must prevent a second proof for the same dossier after a lost response.
+h = setup({ latest: { proof_id: 17, dossier_reference: dossierRef, dossier_state: "VERIFIED" },
+  dossier: { event_id: event.id, submission_event_id: event.id,
+    attested_origin: "DIRECT_AUTHOR", identity_method: "OFFICIAL_PHONE", dossier_state: "VERIFIED" },
+  origin: { ...direct, proof_type: "DIRECT_VERIFIED" } });
+h.state.proof = { proof_status: "valid", proof_count: 1 };
+await h.open();
+h.get("proof-mode").value = "direct";
+h.get("proof-mode").listeners.change();
+assert.equal(h.get("direct-reference").value, dossierRef);
+assert.match(h.get("direct-latest").textContent, /Identifiant 17/);
+assert.equal(h.get("direct-record-proof").disabled, true,
+  "Après rechargement complet, la dernière preuve relue bloque une répétition sur le même dossier");
+assert.equal(h.count("record_direct_publication_canary_evidence_checked"), 0);
+
 console.log("PASS Admin direct CANARY : provenance, fail-closed, dossier, preuve, révocation, concurrence et confidentialité simulés");
