@@ -46,6 +46,20 @@ dossier lors de la réservation. Aucun `DIRECT_VERIFIED` n'est accepté sans ces
 étapes. Le dossier est privé et aucun contenu n'est renvoyé par la RPC de
 consultation générale `get_event_provenance`.
 
+La migration additive E5-F1 (à installer séparément, après E5-C, E5-D0 et E5-D2B)
+rend la dernière action idempotente. Deux index uniques imposent au plus une
+attestation `DIRECT_FORM / ATTESTED` par dossier et une preuve directe par
+attestation. La RPC conserve sa signature et tous ses contrôles. Après une
+réponse réseau perdue, elle renvoie le `proof_id` déjà créé, sans écriture,
+uniquement si la même fiche, le même administrateur et les mêmes paramètres
+sont présents, si le dossier reste vérifié, et si cette preuve est encore la
+dernière et valide. Un dossier révoqué, une preuve expirée ou remplacée et des
+paramètres divergents sont refusés ; un nouveau contrôle humain requiert un
+nouveau dossier. Le verrou SQL et les index protègent aussi les retries
+simultanés. Une migration sur un environnement contenant déjà des doublons
+échoue sans modifier l'historique ; leur traitement requiert une décision
+humaine distincte. Aucun fallback vers une preuve antérieure n'est ajouté.
+
 `revoke_direct_publication_canary_evidence` ajoute une décision de révocation
 horodatée et marque le dossier associé `REVOKED`, sans effacer l'attestation ni
 la preuve. Un nouveau dossier et une nouvelle vérification sont nécessaires

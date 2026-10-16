@@ -54,6 +54,9 @@ jobs:
       - name: Test Admin V11 CANARY evidence interface
         run: node scripts/test-admin-canary-evidence.mjs
 
+      - name: Test Admin V11 direct proof and lost-response recovery
+        run: node scripts/test-admin-canary-direct.mjs
+
       - name: Test read-only Auto-Matte provenance reconciliation fixtures
         run: python3 scripts/test-reconcile-automatte-provenance.py
 
