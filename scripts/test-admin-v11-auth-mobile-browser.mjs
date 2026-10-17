@@ -29,6 +29,8 @@ try {
         const listeners = [];
         const publish = patch => { state = { ...state, ...patch }; listeners.forEach(fn => fn(state)); return state; };
         window.__publishAuth = publish;
+        window.__pageLoads = Number(sessionStorage.getItem("pageLoads") || 0) + 1;
+        sessionStorage.setItem("pageLoads", String(window.__pageLoads));
         window.__calls = { signOut: Number(sessionStorage.getItem("signOutCount") || 0) };
         window.DEDICALIVRES_ADMIN_CONTEXT = {
           getState: () => state,
@@ -68,6 +70,29 @@ try {
       await page.locator("#v11-password").fill("local-test");
       await page.locator("#v11-login-form button[type=submit]").click();
       await page.waitForFunction(() => document.body.classList.contains("v11-is-authorized"));
+      if (width === 390 || width === 1024) {
+        for (const event of ["TOKEN_REFRESHED", "SIGNED_IN", "USER_UPDATED"]) {
+          const pageLoads = await page.evaluate(() => window.__pageLoads);
+          await page.evaluate(() => {
+            document.getElementById("v11-events-list").textContent = "private-marker";
+            window.__publishAuth({ status: "loading", authenticated: false, session: null,
+              events: [], community: { presences: [], authors: [], testimonials: [] } });
+          });
+          await page.waitForTimeout(50);
+          assert.equal(await page.evaluate(() => window.__pageLoads), pageLoads,
+            `${name} ${width} ${event} must not reload`);
+          assert.equal(await page.locator("body").textContent().then(text => text.includes("private-marker")), false,
+            `${name} ${width} private DOM absent during ${event}`);
+          await page.evaluate(() => {
+            window.__publishAuth({ status: "loading", authenticated: true,
+              session: { user: { id: "admin" } } });
+            window.__publishAuth({ status: "ready", authenticated: true,
+              session: { user: { id: "admin" } } });
+          });
+          assert.equal(await page.locator(".v11-app").isVisible(), true,
+            `${name} ${width} interface recovered after ${event}`);
+        }
+      }
       for (const selector of ["#v11-refresh", "#v11-logout"]) {
         const button = page.locator(selector);
         assert.equal(await button.isVisible(), true, `${name} ${width} ${selector}`);
@@ -104,6 +129,22 @@ try {
         });
         await page.waitForFunction(() => document.querySelector("#v11-email")?.offsetParent !== null);
         assert.equal(await page.locator("body").textContent().then(text => text.includes("private-marker")), false);
+        await page.locator("#v11-email").fill("admin@example.test");
+        await page.locator("#v11-password").fill("local-test");
+        await page.locator("#v11-login-form button[type=submit]").click();
+        await page.waitForFunction(() => document.body.classList.contains("v11-is-authorized"));
+        const pageLoads = await page.evaluate(() => window.__pageLoads);
+        await page.evaluate(() => {
+          document.getElementById("v11-events-list").textContent = "private-marker";
+          window.__publishAuth({ status: "loading", authenticated: false, session: null });
+          window.__publishAuth({ status: "loading", authenticated: true,
+            session: { user: { id: "different-admin" } } });
+          window.__publishAuth({ status: "ready", authenticated: true,
+            session: { user: { id: "different-admin" } } });
+        });
+        await page.waitForFunction(previous => window.__pageLoads > previous, pageLoads);
+        assert.equal(await page.locator("body").textContent().then(text => text.includes("private-marker")), false,
+          `${name} ${width} previous user's DOM removed`);
       }
       assert.deepEqual(errors, [], `${name} ${width} page errors`);
       await page.close();

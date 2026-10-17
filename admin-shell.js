@@ -12348,6 +12348,8 @@ function openCommunityView(name) {
   }
 
   let hadAuthorizedView = false;
+  let authorizedUserId = null;
+  let parkedApp = null;
 
   function renderState(state) {
     const loading =
@@ -12359,19 +12361,42 @@ function openCommunityView(name) {
       loading
     );
 
+    const userId = state.session?.user?.id || null;
     const authorized =
-      state.authenticated === true && state.status === "ready";
+      state.authenticated === true && state.status === "ready" && Boolean(userId);
+    if (hadAuthorizedView && state.status === "ready" && !authorized) {
+      parkedApp = null;
+      window.location.reload();
+      return;
+    }
+    if (authorized && parkedApp) {
+      if (userId !== authorizedUserId) {
+        parkedApp = null;
+        window.location.reload();
+        return;
+      }
+      document.body.prepend(parkedApp);
+      parkedApp = null;
+    }
     const showAuth = !authorized;
     document.body.classList.toggle("v11-is-authorized", authorized);
 
-    if (authorized) hadAuthorizedView = true;
+    if (authorized) {
+      hadAuthorizedView = true;
+      authorizedUserId = userId;
+    }
     if (hadAuthorizedView && state.authenticated !== true) {
-      // Remove rendered private data immediately, including while auth rechecks.
-      document.querySelector(".v11-app")?.remove();
+      // Keep the live UI detached until this same user is authorized again.
+      if (!parkedApp) {
+        parkedApp = document.querySelector(".v11-app");
+        parkedApp?.remove();
+      }
     }
     if (hadAuthorizedView && state.authenticated !== true &&
-        (state.status !== "loading" || !state.session)) {
+        state.status !== "loading") {
       hadAuthorizedView = false;
+      authorizedUserId = null;
+      parkedApp = null;
       window.location.reload();
       return;
     }

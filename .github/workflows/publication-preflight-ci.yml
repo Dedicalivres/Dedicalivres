@@ -22,6 +22,7 @@ jobs:
         run: |
           node scripts/test-admin-v11-session-resilience.mjs
           node scripts/test-admin-v11-late-requests.mjs
+          node scripts/test-admin-v11-auth-shell-transition.mjs
 
       - name: Test batch limit and preflight
         run: node scripts/test-publication-batch-preflight.mjs

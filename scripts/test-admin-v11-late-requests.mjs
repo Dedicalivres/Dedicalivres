@@ -20,6 +20,7 @@ function fixture() {
   let currentSession = null;
   let listener;
   let holdOldReads = true;
+  const admins = new Set([oldUser.id, nextUser.id]);
   const pending = [];
   const reads = [];
   const window = {
@@ -80,7 +81,7 @@ function fixture() {
           reads.push(table);
           if (table === "admin_users") {
             return Promise.resolve({
-              data: currentSession?.user.id === reader.id ? [] : [{ user_id: currentSession?.user.id }],
+              data: admins.has(currentSession?.user.id) ? [{ user_id: currentSession.user.id }] : [],
               error: null
             }).then(resolve, reject);
           }
@@ -105,11 +106,17 @@ function fixture() {
     ));
   };
   const releaseNewReads = () => { holdOldReads = false; };
-  const changeUser = user => {
-    currentSession = user ? session(user) : null;
-    listener(user ? "SIGNED_IN" : "SIGNED_OUT", currentSession);
+  const holdReads = () => { holdOldReads = true; };
+  const setAdmin = (user, allowed) => {
+    if (allowed) admins.add(user.id);
+    else admins.delete(user.id);
   };
-  return { context, pending, reads, completeOldReads, releaseNewReads, changeUser };
+  const changeUser = (user, event = user ? "SIGNED_IN" : "SIGNED_OUT") => {
+    currentSession = user ? { access_token: `${user.id}-${event}`, user } : null;
+    listener(event, currentSession);
+  };
+  return { context, pending, reads, completeOldReads, releaseNewReads,
+    holdReads, setAdmin, changeUser };
 }
 
 function assertPrivateEmpty(state) {
@@ -162,4 +169,47 @@ for (const scenario of ["signout", "expired", "nonadmin", "new-admin", "query-40
   assert.equal(lab.reads.filter(table => table === "event_submission_contacts").length,
     scenario === "new-admin" ? 1 : 0, `${scenario}: stale events do not start contact lookup`);
   console.log(`PASS ${scenario}: five late loaders cannot restore private state`);
+}
+
+for (const event of ["TOKEN_REFRESHED", "SIGNED_IN", "USER_UPDATED"]) {
+  const lab = fixture();
+  lab.releaseNewReads();
+  await lab.context.signIn("admin@example.test", "local");
+  assert.equal(lab.context.getState().status, "ready");
+  const adminReads = lab.reads.filter(table => table === "admin_users").length;
+  lab.holdReads();
+  lab.changeUser(oldUser, event);
+  assertPrivateEmpty(lab.context.getState());
+  await waitFor(() => lab.pending.length === 13);
+  assert.equal(lab.reads.filter(table => table === "admin_users").length, adminReads + 1,
+    `${event}: admin rights rechecked`);
+  lab.completeOldReads();
+  await waitFor(() => lab.context.getState().status === "ready");
+  assert.equal(lab.context.getState().session.user.id, oldUser.id);
+  assert.equal(lab.context.getState().events[0].id, oldUser.id);
+  console.log(`PASS ${event}: same admin revalidated without private data during loading`);
+}
+
+{
+  const lab = fixture();
+  lab.releaseNewReads();
+  await lab.context.signIn("admin@example.test", "local");
+  lab.setAdmin(oldUser, false);
+  lab.changeUser(oldUser, "TOKEN_REFRESHED");
+  await waitFor(() => lab.context.getState().status === "forbidden");
+  assertPrivateEmpty(lab.context.getState());
+  console.log("PASS admin revocation: authorization denied and private state cleared");
+}
+
+{
+  const lab = fixture();
+  lab.releaseNewReads();
+  await lab.context.signIn("admin@example.test", "local");
+  lab.changeUser(nextUser);
+  await waitFor(() => lab.context.getState().status === "ready");
+  assert.equal(lab.context.getState().events[0].id, nextUser.id);
+  lab.changeUser(null);
+  assertPrivateEmpty(lab.context.getState());
+  assert.equal(lab.context.getState().status, "unauthenticated");
+  console.log("PASS user switch and SIGNED_OUT: old data removed immediately");
 }
