@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import {fetchPublicEvents} from './territorial-catalog.mjs';
+import {publishedEventRows} from './project-targeted-publication.mjs';
 
 const snapshotPath =
   'docs/territoires/catalogue-public.json';
@@ -27,7 +28,7 @@ const key =
   )[1];
 
 
-const events =
+const fetched =
   await fetchPublicEvents({
     supabaseUrl:
       url,
@@ -35,6 +36,8 @@ const events =
     supabaseAnonKey:
       key
   });
+const events = process.env.PUBLICATION_TARGETED === 'true'
+  ? publishedEventRows(fetched) : fetched;
 
 
 let previous =

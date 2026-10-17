@@ -12,7 +12,16 @@ assert.match(workflow, /manual-preview:[\s\S]*?permissions:\s*contents: read[\s\
 assert.match(workflow, /inputs\.manual_mode == 'execute'/);
 assert.match(workflow, /vars\.PUBLICATION_AUTOMATION_ENABLED == 'true'/);
 assert.match(workflow, /- name: Preflight publication queue[\s\S]*?- name: Install publisher dependencies/);
+assert.match(workflow, /Recheck public event source before push[\s\S]*?Recheck Finistellaire excluded jobs before publication[\s\S]*?Commit and push publication/);
 const ids = [1, 2, 3, 4].map((n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`);
+const finistellaireJob = "a47786e2-16b0-4c0f-abae-a5ba698830ec";
+const finistellaireEvent = "316861b7-0dd1-4ea7-b458-9fd8da849881";
+const excluded = [
+  {id:"8c3a9b53-fae8-482e-bfa9-be1c2cb2d397", event_id:"3807ee7e-96fd-49bd-b909-0708f0fcf131"},
+  {id:"18d9141a-917e-42d2-9f41-c598231ef6f3", event_id:"9acc76bd-9356-485f-a8fb-f95d6cfad346"},
+  {id:"dca88c9e-cffb-44e5-9453-e03bbf6bf0a4", event_id:"77ccedcc-655f-424b-a8fe-829115b93ed6"},
+].map((row) => ({...row, target_event_id:row.event_id, reason:"validation",
+  status:"PENDING", attempt_count:0, batch_id:null, commit_sha:null}));
 let imports = 0;
 
 function fixture(count = 1) {
@@ -25,7 +34,8 @@ function fixture(count = 1) {
     id, validated: true, rejected: false, title: `Event ${id}`,
   }));
   const calls = [];
-  return { jobs, events, calls, partial: false, async fetch(raw, options = {}) {
+  return { jobs, events, excluded:structuredClone(excluded), calls, partial: false,
+    verifyRunning:false, async fetch(raw, options = {}) {
     const url = new URL(raw);
     const method = options.method || "GET";
     calls.push({ method, url: url.pathname + url.search });
@@ -37,10 +47,12 @@ function fixture(count = 1) {
         ...job, status: "RUNNING", attempt_count: job.attempt_count + 1,
         batch_id: body.p_batch_id,
       }));
+    } else if (url.searchParams.has("or")) {
+      result = this.excluded;
     } else if (url.pathname.endsWith("/events")) {
       result = events;
     } else if (url.searchParams.get("status") === "eq.RUNNING") {
-      result = [];
+      result = this.verifyRunning ? this.jobs.filter((row) => row.status === "RUNNING") : [];
     } else {
       const selected = url.searchParams.get("id") || "";
       result = jobs.filter((job) => selected.includes(job.id));
@@ -57,7 +69,7 @@ async function invoke(state, command, jobIds, extra = {}) {
     "PUBLICATION_MANUAL_MODE", "PUBLICATION_MANUAL_JOB_IDS",
     "PUBLICATION_MANUAL_FINGERPRINT", "PUBLICATION_MANUAL_CONFIRMATION",
     "PUBLICATION_DOUAI_MANUAL", "PUBLICATION_PREACTIVATION_TEST",
-    "PUBLICATION_P0_RECOVERY", "GITHUB_OUTPUT"];
+    "PUBLICATION_P0_RECOVERY", "PUBLICATION_BATCH_ID", "PUBLICATION_JOBS", "GITHUB_OUTPUT"];
   const previousEnv = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   const logs = [];
   process.argv = [process.execPath, worker.pathname, command];
@@ -86,10 +98,125 @@ fs.mkdirSync(path.join(tmp, "scripts/event-publisher"), { recursive: true });
 fs.mkdirSync(path.join(tmp, "docs/territoires"), { recursive: true });
 fs.copyFileSync(path.join(root, "scripts/event-publisher/legacy-enriched-events.json"),
   path.join(tmp, "scripts/event-publisher/legacy-enriched-events.json"));
-fs.writeFileSync(path.join(tmp, "docs/territoires/event-canonical-map.json"), "{}");
+fs.writeFileSync(path.join(tmp, "docs/territoires/event-canonical-map.json"),
+  JSON.stringify({[finistellaireEvent]: "evenement/festival-finistellaire-2026-quimper-3479.html"}));
 process.chdir(tmp);
 
 try {
+  const finistellaire = fixture();
+  Object.assign(finistellaire.jobs[0], {id: finistellaireJob,
+    event_id: finistellaireEvent, target_event_id: finistellaireEvent, reason: "edit"});
+  finistellaire.events[0].id = finistellaireEvent;
+  const finistellairePreview = await invoke(finistellaire, "preview-selected", finistellaireJob);
+  const finistellaireFingerprint = finistellairePreview.join("\n")
+    .match(/Empreinte PREVIEW : ([0-9a-f]{64})/)?.[1];
+  assert.ok(finistellaireFingerprint);
+  assert.ok(finistellaire.calls.some((call) => call.url.includes('or=')));
+  assert.ok(finistellaire.calls.every((call) => call.method === "GET"));
+  await assert.rejects(invoke(finistellaire, "claim", finistellaireJob), /confirmation/);
+  await assert.rejects(invoke(finistellaire, "claim", finistellaireJob, {
+    PUBLICATION_MANUAL_FINGERPRINT: "0".repeat(64), PUBLICATION_MANUAL_CONFIRMATION: "EXECUTE",
+  }), /données modifiées/);
+  assert.ok(finistellaire.calls.every((call) => call.method === "GET"));
+  const finistellaireClaim = await invoke(finistellaire, "claim", finistellaireJob, {
+    PUBLICATION_MANUAL_FINGERPRINT: finistellaireFingerprint,
+    PUBLICATION_MANUAL_CONFIRMATION: "EXECUTE",
+  });
+  assert.ok(finistellaireClaim.includes("depublish_paths=[]"));
+  assert.equal(finistellaire.calls.filter((call) => call.method === "POST").length, 1);
+  for (const mutate of [
+    (s) => { s.excluded[0].status = 'RUNNING'; },
+    (s) => { s.excluded[0].attempt_count = 1; },
+    (s) => { s.excluded[0].batch_id = 'other'; },
+    (s) => { s.excluded[0].commit_sha = 'abc'; },
+    (s) => { s.excluded[0].reason = 'edit'; },
+    (s) => { s.excluded[0].event_id = ids[0]; },
+    (s) => { s.excluded[0].id = ids[0]; },
+    (s) => { s.excluded.push({...s.excluded[0], id:ids[1]}); },
+  ]) {
+    const state = fixture();
+    Object.assign(state.jobs[0], {id:finistellaireJob, event_id:finistellaireEvent,
+      target_event_id:finistellaireEvent, reason:'edit'});
+    state.events[0].id = finistellaireEvent;
+    mutate(state);
+    await assert.rejects(invoke(state, 'claim', finistellaireJob, {
+      PUBLICATION_MANUAL_FINGERPRINT:finistellaireFingerprint,
+      PUBLICATION_MANUAL_CONFIRMATION:'EXECUTE',
+    }), /trois jobs exclus/);
+    assert.ok(state.calls.every((call) => call.method === 'GET'));
+  }
+  const beforePush = fixture();
+  Object.assign(beforePush.jobs[0], {id:finistellaireJob, event_id:finistellaireEvent,
+    target_event_id:finistellaireEvent, reason:'edit', status:'RUNNING', attempt_count:1,
+    batch_id:'batch-test'});
+  beforePush.events[0].id = finistellaireEvent;
+  beforePush.verifyRunning = true;
+  const claimedJob = JSON.stringify([{id:finistellaireJob, event_id:finistellaireEvent,
+    reason:'edit', attempt_count:1}]);
+  const nearEnv = {PUBLICATION_JOBS:claimedJob, PUBLICATION_BATCH_ID:'batch-test'};
+  assert.match((await invoke(beforePush, 'verify-finistellaire-excluded', finistellaireJob, nearEnv)).join(' '),
+    /trois jobs exclus inchangés/);
+  assert.ok(beforePush.calls.every((call) => call.method === 'GET'));
+  await assert.rejects(invoke(beforePush, 'verify-finistellaire-excluded', finistellaireJob,
+    {...nearEnv, PUBLICATION_BATCH_ID:'wrong-batch'}), /publication concurrente/);
+  beforePush.excluded.pop();
+  await assert.rejects(invoke(beforePush, 'verify-finistellaire-excluded', finistellaireJob, nearEnv),
+    /trois jobs exclus/);
+  beforePush.excluded = structuredClone(excluded);
+  beforePush.excluded[1].commit_sha = 'changed';
+  await assert.rejects(invoke(beforePush, 'verify-finistellaire-excluded', finistellaireJob, nearEnv),
+    /trois jobs exclus/);
+  beforePush.excluded[1].commit_sha = null;
+  beforePush.jobs.push({...beforePush.jobs[0], id:ids[3]});
+  await assert.rejects(invoke(beforePush, 'verify-finistellaire-excluded', finistellaireJob, nearEnv),
+    /publication concurrente/);
+  finistellaire.events[0].title = "Modifié depuis PREVIEW";
+  await assert.rejects(invoke(finistellaire, "claim", finistellaireJob, {
+    PUBLICATION_MANUAL_FINGERPRINT: finistellaireFingerprint,
+    PUBLICATION_MANUAL_CONFIRMATION: "EXECUTE",
+  }), /données modifiées/);
+  assert.equal(finistellaire.calls.filter((call) => call.method === "POST").length, 1);
+
+  for (const change of [
+    (state) => { state.jobs[0].id = ids[0]; },
+    (state) => { state.jobs[0].reason = "validation"; },
+    (state) => { state.jobs[0].event_id = ids[0]; state.jobs[0].target_event_id = ids[0]; },
+    (state) => { state.jobs[0].status = "SUCCESS"; },
+  ]) {
+    const state = fixture();
+    Object.assign(state.jobs[0], {id: finistellaireJob, event_id: finistellaireEvent,
+      target_event_id: finistellaireEvent, reason: "edit"});
+    state.events[0].id = finistellaireEvent;
+    change(state);
+    await assert.rejects(invoke(state, "preview-selected", state.jobs[0].id), /PENDING incompatible/);
+    assert.ok(state.calls.every((call) => call.method === "GET"));
+  }
+  const protectedIds = Object.keys(JSON.parse(fs.readFileSync(
+    path.join(tmp, "scripts/event-publisher/legacy-enriched-events.json"))).events)
+    .filter((id) => id !== finistellaireEvent);
+  assert.equal(protectedIds.length, 281);
+  for (const protectedId of protectedIds) {
+    const otherLegacy = fixture();
+    Object.assign(otherLegacy.jobs[0], {reason: "edit",
+      event_id: protectedId, target_event_id: protectedId});
+    otherLegacy.events[0].id = protectedId;
+    await assert.rejects(invoke(otherLegacy, "preview-selected", ids[0]), /PENDING incompatible/);
+    assert.ok(otherLegacy.calls.every((call) => call.method === "GET"));
+  }
+  const automationEnabled = fixture();
+  Object.assign(automationEnabled.jobs[0], {id: finistellaireJob,
+    event_id: finistellaireEvent, target_event_id: finistellaireEvent, reason: "edit"});
+  automationEnabled.events[0].id = finistellaireEvent;
+  await assert.rejects(invoke(automationEnabled, "preview-selected", finistellaireJob, {
+    PUBLICATION_AUTOMATION_ENABLED: "true",
+  }), /PENDING incompatible/);
+  const mixed = fixture(2);
+  Object.assign(mixed.jobs[0], {id: finistellaireJob,
+    event_id: finistellaireEvent, target_event_id: finistellaireEvent, reason: "edit"});
+  mixed.events[0].id = finistellaireEvent;
+  await assert.rejects(invoke(mixed, "preview-selected", `${finistellaireJob},${ids[1]}`),
+    /PENDING incompatible/);
+
   for (const count of [1, 3]) {
     const state = fixture(count);
     const chosen = ids.slice(0, count).join(",");

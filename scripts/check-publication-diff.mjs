@@ -50,6 +50,14 @@ const protectedPages =
     )
   );
 
+const FINISTELLAIRE_EDIT = {
+  id: "a47786e2-16b0-4c0f-abae-a5ba698830ec",
+  eventId: "316861b7-0dd1-4ea7-b458-9fd8da849881",
+  reason: "edit",
+  canonical: "evenement/festival-finistellaire-2026-quimper-3479.html",
+};
+let authorizedLegacyEditPath = null;
+
 
 if (
   protectedPages.size !== 282
@@ -135,11 +143,28 @@ const changed =
   ]);
 
 if (process.env.PUBLICATION_TARGETED === "true") {
-  const {allowed} = parseJobs(process.env.PUBLICATION_JOBS || "");
+  const {allowed, rows} = parseJobs(process.env.PUBLICATION_JOBS || "");
   const mapPath = "docs/territoires/event-canonical-map.json";
   const before = JSON.parse(execFileSync("git", ["show", `HEAD:${mapPath}`], {encoding:"utf8"}));
   const after = JSON.parse(fs.readFileSync(mapPath, "utf8"));
   const legacyIds = new Set(Object.keys(legacy.events || {}));
+  if ([...allowed].some(id => legacyIds.has(id))) {
+    const row = rows[0];
+    if (rows.length !== 1
+        || process.env.PUBLICATION_MANUAL_MODE !== "execute"
+        || process.env.PUBLICATION_AUTOMATION_ENABLED !== "false"
+        || row.id !== FINISTELLAIRE_EDIT.id
+        || row.event_id !== FINISTELLAIRE_EDIT.eventId
+        || row.reason !== FINISTELLAIRE_EDIT.reason
+        || legacy.events[FINISTELLAIRE_EDIT.eventId]
+          !== path.basename(FINISTELLAIRE_EDIT.canonical)
+        || before[FINISTELLAIRE_EDIT.eventId] !== FINISTELLAIRE_EDIT.canonical
+        || after[FINISTELLAIRE_EDIT.eventId] !== FINISTELLAIRE_EDIT.canonical
+        || authorizedDeletedPaths.has(FINISTELLAIRE_EDIT.canonical)) {
+      throw new Error("STOP : exception legacy Finistellaire invalide");
+    }
+    authorizedLegacyEditPath = FINISTELLAIRE_EDIT.canonical;
+  }
   const manifest = Object.fromEntries(Object.entries(after).map(([id, file]) =>
     [id, path.basename(file, ".html")]));
   assertManifest(before, manifest, allowed, legacyIds);
@@ -159,7 +184,7 @@ if (process.env.PUBLICATION_TARGETED === "true") {
   for (const id of allowed) if (before[id] && after[id]) {
     assertEnrichment(
       execFileSync("git", ["show", `HEAD:${before[id]}`], {encoding:"utf8"}),
-      fs.readFileSync(after[id], "utf8"),
+      fs.readFileSync(after[id], "utf8"), id,
     );
   }
 }
@@ -320,6 +345,7 @@ const legacyChanged =
       protectedPages.has(
         path
       )
+      && path !== authorizedLegacyEditPath
       && !(
         deletedSet.has(
           path
@@ -449,7 +475,7 @@ console.log(
 );
 
 console.log(
-  "PASS fiches legacy modifiées : 0/282"
+  `PASS fiches legacy modifiées : ${authorizedLegacyEditPath && changed.has(authorizedLegacyEditPath) ? 1 : 0}/282`
 );
 
 console.log(

@@ -330,6 +330,9 @@ def page_event(ev, base_url, *, progressive=False):
     debut = iso_date(ev['date_debut'])
     fin = iso_date(ev['date_fin'])
     lieu_txt = ', '.join([p for p in (ev['ville'], ev['departement']) if p]) or ev['pays']
+    detail_lieu_txt = (f"{ev['lieu']}, {ev['departement']}"
+                      if ev['id'] == '316861b7-0dd1-4ea7-b458-9fd8da849881'
+                      and ev['lieu'] == 'Espace Dan Ar Braz' else lieu_txt)
     when = date_fr(debut) if debut else ''
     if fin and fin != debut:
         when += f' → {date_fr(fin)}'
@@ -375,7 +378,7 @@ def page_event(ev, base_url, *, progressive=False):
         parts.append('<div class="detail-meta detail-info-grid">')
         if when:
             parts.append(f'<p>📅 <strong>Date :</strong> {esc(when)}</p>')
-        parts.append(f'<p>📍 <strong>Lieu :</strong> {esc(lieu_txt or "Non précisé")}</p>')
+        parts.append(f'<p>📍 <strong>Lieu :</strong> {esc(detail_lieu_txt or "Non précisé")}</p>')
         if ev['adresse']:
             parts.append(f'<p data-static-detail="address"><strong>Adresse :</strong> {esc(ev["adresse"])}{(", " + esc(ev["code_postal"]) if ev["code_postal"] else "")}</p>')
         if ev['auteurs']:
@@ -401,8 +404,8 @@ def page_event(ev, base_url, *, progressive=False):
         parts.append('<div class="meta">')
         if when:
             parts.append(f'<div><b>Dates</b> {esc(when)}</div>')
-        if lieu_txt:
-            parts.append(f'<div><b>Lieu</b> {esc(lieu_txt)}</div>')
+        if detail_lieu_txt:
+            parts.append(f'<div><b>Lieu</b> {esc(detail_lieu_txt)}</div>')
         if ev['adresse']:
             parts.append(f"<div><b>Adresse</b> {esc(ev['adresse'])}{(', ' + esc(ev['code_postal']) if ev['code_postal'] else '')}</div>")
         if ev['pays']:
@@ -804,6 +807,7 @@ def main():
     ap.add_argument('--dry-run', action='store_true', help='valider sans remplacer la sortie locale')
     ap.add_argument('--progressive-event-id', action='append', default=[], help='activer le nouveau HTML uniquement pour cet ID public non legacy ; option absente par défaut')
     ap.add_argument('--authorized-depublication-event-id', action='append', default=[], help='ID du job de dépublication autorisé, vérifié par le wrapper cloud')
+    ap.add_argument('--finistellaire-legacy-edit', action='store_true', help='exception ciblée vérifiée par le wrapper cloud')
     args = ap.parse_args()
     expected_output = (project_root / 'exports' / 'site-seo').resolve()
     output = Path(args.sortie).expanduser().resolve()
@@ -812,7 +816,39 @@ def main():
     try:
         (url, key) = _load_credentials(Path(args.config).expanduser().resolve())
         rows = charger_evenements_publics(url, key)
-        events = [normaliser_evenement_public(row) for row in rows]
+        selected_rows = rows
+        if args.finistellaire_legacy_edit:
+            job = json.loads(os.environ.get('PUBLICATION_JOBS') or '[]')
+            target = '316861b7-0dd1-4ea7-b458-9fd8da849881'
+            pending = {
+                '3807ee7e-96fd-49bd-b909-0708f0fcf131',
+                '9acc76bd-9356-485f-a8fb-f95d6cfad346',
+                '77ccedcc-655f-424b-a8fe-829115b93ed6',
+            }
+            canonical = json.loads((source_root.parent.parent / 'docs/territoires/event-canonical-map.json').read_text(encoding='utf-8'))
+            ids = {row['id'] for row in rows}
+            if not (isinstance(job, list) and len(job) == 1 and isinstance(job[0], dict)
+                    and all(job[0].get(k) == v for k, v in {
+                        'id': 'a47786e2-16b0-4c0f-abae-a5ba698830ec',
+                        'event_id': target, 'reason': 'edit'}.items())):
+                raise GenerationSeoError('exception Finistellaire : job invalide')
+            if (os.environ.get('PUBLICATION_MANUAL_MODE') != 'execute'
+                    or os.environ.get('PUBLICATION_AUTOMATION_ENABLED') != 'false'
+                    or canonical.get(target) != 'evenement/festival-finistellaire-2026-quimper-3479.html'
+                    or len(canonical) != 625 or len(rows) != 628
+                    or ids - set(canonical) != pending or not set(canonical) <= ids):
+                raise GenerationSeoError('exception Finistellaire : écart canonique inattendu')
+            selected_rows = [row for row in rows if row['id'] not in pending]
+        events = [normaliser_evenement_public(row) for row in selected_rows]
+        if args.finistellaire_legacy_edit:
+            target_event = next(event for event in events if event['id'] == target)
+            source = next(row for row in rows if row['id'] == target)
+            if (target_event['date_debut'] != '2026-11-14' or target_event['date_fin'] != '2026-11-15'
+                    or 'Dan Ar Braz' not in target_event['description']
+                    or source.get('website') != 'https://www.la29emedimension.fr/le-finistellaire/le-finistellaire-5-2026/'):
+                raise GenerationSeoError('exception Finistellaire : source publique incohérente')
+            # Lieu 2026 confirmé par l'organisateur et la Ville de Quimper.
+            target_event.update(lieu='Espace Dan Ar Braz', adresse='17 ter rue Stang Bihan', code_postal='29000')
         slug_sources = appliquer_indices_slugs_sqlite(events, args.db)
         static_slugs = appliquer_slugs_statiques_existants(events, args.existing_event_pages) if args.existing_event_pages else 0
         attribuer_slugs(events)

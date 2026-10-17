@@ -6,6 +6,7 @@ import {execFileSync, spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {
   parseJobs, assertCatalog, assertManifest, assertEnrichment, assertIndex, assertSitemap, metadataOnlyAggregate,
+  selectPublishedRows,
 } from './project-targeted-publication.mjs';
 import {assertSourceSame, assertTerritorialSame, FIELDS, fetchSource} from './verify-publication-source.mjs';
 import {PUBLIC_EVENT_FIELDS} from './territorial-catalog.mjs';
@@ -106,7 +107,81 @@ try {
 } finally {
   fs.rmSync(temporary, {recursive:true, force:true});
 }
+const finistellaireFixture = fs.mkdtempSync(path.join(os.tmpdir(), 'finistellaire-diff-'));
+try {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const write = (name, value) => {
+    const target = path.join(finistellaireFixture, name);
+    fs.mkdirSync(path.dirname(target), {recursive:true});
+    fs.writeFileSync(target, value);
+  };
+  const git = (...args) => execFileSync('git', args, {cwd:finistellaireFixture, stdio:'ignore'});
+  const id = '316861b7-0dd1-4ea7-b458-9fd8da849881';
+  const page = 'evenement/festival-finistellaire-2026-quimper-3479.html';
+  const jobId = 'a47786e2-16b0-4c0f-abae-a5ba698830ec';
+  const other = '00000000-0000-4000-8000-000000000001';
+  const legacy = Object.fromEntries(Array.from({length:281}, (_, i) =>
+    [`legacy-${i}`, `legacy-${i}.html`]));
+  legacy[id] = path.basename(page);
+  const pageHtml = (text, corrected = false) => `<link rel="canonical" href="https://dedicalivres.fr/${page}">`
+    + `<script type="application/ld+json">${JSON.stringify({
+      '@type':'Event', description:corrected ? 'Finistellaire #5' : text,
+      startDate:'2026-11-14', endDate:'2026-11-15',
+      location:{name:corrected ? 'Espace Dan Ar Braz' : 'Pôle Culturel Max Jacob',
+        address:{streetAddress:corrected ? '17 ter rue Stang Bihan' : '4 boulevard Dupleix', postalCode:'29000'}},
+      organizer:{url:'https://www.la29emedimension.fr/le-finistellaire/le-finistellaire-5-2026/'},
+    })}</script><article data-event-id="${id}">${text}</article>`
+    + (corrected ? '<div><b>Lieu</b> Espace Dan Ar Braz, Bretagne</div><div><b>Adresse</b> 17 ter rue Stang Bihan, 29000</div>' : '');
+  git('init', '-q');
+  git('config', 'user.email', 'test@example.invalid');
+  git('config', 'user.name', 'test');
+  write('scripts/event-publisher/legacy-enriched-events.json', JSON.stringify({events:legacy}));
+  write('docs/territoires/event-canonical-map.json', JSON.stringify({[id]:page}));
+  write('docs/territoires/catalogue-public.json', JSON.stringify({events:[event(id)]}));
+  write('docs/territoires/audit.json', JSON.stringify({today:'2026-10-17'}));
+  write('evenement/index.html', htmlIndex(path.basename(page, '.html')));
+  write('sitemap-evenements.xml', xml(path.basename(page, '.html')));
+  write(page, pageHtml('Avant'));
+  write(`evenement/${legacy['legacy-0']}`, 'Fiche tierce');
+  git('add', '-A'); git('commit', '-qm', 'fixture');
+  write(page, pageHtml('Après', true));
+  const check = (row) => spawnSync(process.execPath,
+    [path.join(root, 'scripts/check-publication-diff.mjs')], {
+      cwd:finistellaireFixture, encoding:'utf8', env:{...process.env,
+        PUBLICATION_TARGETED:'true', PUBLICATION_MANUAL_MODE:'execute',
+        PUBLICATION_AUTOMATION_ENABLED:'false', PUBLICATION_DEPUBLISH_PATHS:'[]',
+        PUBLICATION_JOBS:jobs(row)},
+    });
+  const approved = job(jobId, id, 'edit');
+  const approvedResult = check(approved);
+  assert.equal(approvedResult.status, 0, approvedResult.stderr);
+  assert.match(approvedResult.stdout, /fiches legacy modifiées : 1\/282/);
+  assert.match(check(job(jobId, id, 'validation')).stderr, /exception legacy Finistellaire invalide/);
+  assert.match(check(job(jobId, other, 'edit')).stderr, /fiches tierces modifiées/);
+  const correctedPage = fs.readFileSync(path.join(finistellaireFixture, page), 'utf8');
+  write(page, correctedPage.replace('17 ter rue Stang Bihan', '18 rue Stang Bihan'));
+  assert.match(check(approved).stderr, /correction documentée du lieu/);
+  write(page, correctedPage.replace('<b>Lieu</b> Espace Dan Ar Braz', '<b>Lieu</b> Quimper'));
+  assert.match(check(approved).stderr, /correction documentée du lieu/);
+  write(page, correctedPage);
+  write(`evenement/${legacy['legacy-0']}`, 'Fiche tierce changée');
+  assert.match(check(approved).stderr, /fiche legacy protégée|fiches tierces modifiées/);
+  console.log('PASS exception Finistellaire : diff unique, 281 autres protégées');
+} finally {
+  fs.rmSync(finistellaireFixture, {recursive:true, force:true});
+}
 console.log('PASS 15 scénarios de publication ciblée');
+
+run('écart canonique exact : trois jobs exclus, aucun autre', () => {
+  const excluded = ['3807ee7e-96fd-49bd-b909-0708f0fcf131',
+    '9acc76bd-9356-485f-a8fb-f95d6cfad346', '77ccedcc-655f-424b-a8fe-829115b93ed6'];
+  const canonical = Object.fromEntries(Array.from({length:625}, (_, i) => [`known-${i}`, `evenement/known-${i}.html`]));
+  const rows = [...Object.keys(canonical), ...excluded].map(id => ({id}));
+  assert.equal(selectPublishedRows(rows, canonical, true).length, 625);
+  assert.throws(() => selectPublishedRows(rows.slice(0, -1), canonical, true), /écart canonique/);
+  assert.throws(() => selectPublishedRows([...rows.slice(0, -1), {id:otherId}], canonical, true), /écart canonique/);
+  assert.equal(selectPublishedRows(rows, canonical, false).length, 628);
+});
 
 run('16 source complète générateur et territoires', () => {
   const generator = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'event-publisher/generate-events.py'), 'utf8');
