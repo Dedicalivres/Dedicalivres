@@ -8,6 +8,17 @@ const MAP = 'docs/territoires/event-canonical-map.json';
 const SNAPSHOT = 'docs/territoires/catalogue-public.json';
 const INDEX = 'evenement/index.html';
 const SITEMAP = 'sitemap-evenements.xml';
+const FINISTELLAIRE_EDIT = {
+  id: 'a47786e2-16b0-4c0f-abae-a5ba698830ec',
+  eventId: '316861b7-0dd1-4ea7-b458-9fd8da849881',
+  reason: 'edit',
+  canonical: 'evenement/festival-finistellaire-2026-quimper-3479.html',
+};
+const FINISTELLAIRE_PENDING = new Set([
+  '3807ee7e-96fd-49bd-b909-0708f0fcf131',
+  '9acc76bd-9356-485f-a8fb-f95d6cfad346',
+  '77ccedcc-655f-424b-a8fe-829115b93ed6',
+]);
 const read = file => fs.readFileSync(file, 'utf8');
 const json = file => JSON.parse(read(file));
 const baseline = file => execFileSync('git', ['show', `HEAD:${file}`], {encoding:'utf8'});
@@ -43,7 +54,7 @@ export function parseJobs(raw) {
     if (row.event_id) allowed.add(row.event_id);
     if (row.reason === 'unpublish' || row.reason === 'delete') removals.add(row.event_id);
   }
-  return {allowed, removals};
+  return {allowed, removals, rows};
 }
 
 export function assertCatalog(previous, current, allowed) {
@@ -73,12 +84,36 @@ export function assertManifest(old, manifest, allowed, legacy) {
   }
 }
 
+export function selectPublishedRows(rows, canonical, approved) {
+  if (!approved) return rows;
+  const ids = new Set(rows.map(row => row.id));
+  const extra = [...ids].filter(id => !(id in canonical));
+  if (Object.keys(canonical).length !== 625 || rows.length !== 628 || ids.size !== rows.length
+      || [...Object.keys(canonical)].some(id => !ids.has(id))
+      || !sameSet(new Set(extra), FINISTELLAIRE_PENDING)) {
+    stop('écart canonique Finistellaire différent des trois jobs PENDING identifiés');
+  }
+  return rows.filter(row => !FINISTELLAIRE_PENDING.has(row.id));
+}
+
+function finistellaireApproved(jobs, legacyFiles, canonical) {
+  const edit = jobs.rows[0];
+  return jobs.rows.length === 1
+    && process.env.PUBLICATION_MANUAL_MODE === 'execute'
+    && process.env.PUBLICATION_AUTOMATION_ENABLED === 'false'
+    && edit?.id === FINISTELLAIRE_EDIT.id
+    && edit.event_id === FINISTELLAIRE_EDIT.eventId
+    && edit.reason === FINISTELLAIRE_EDIT.reason
+    && legacyFiles[FINISTELLAIRE_EDIT.eventId] === path.basename(FINISTELLAIRE_EDIT.canonical)
+    && canonical[FINISTELLAIRE_EDIT.eventId] === FINISTELLAIRE_EDIT.canonical;
+}
+
 const field = (html, expression) => html.match(expression)?.[1] || '';
 const schema = html => {
   try { return JSON.parse(field(html, /<script type="application\/ld\+json">([^<]*)<\/script>/)); }
   catch { stop('JSON-LD absent ou invalide : enrichissements non vérifiables'); }
 };
-export function assertEnrichment(oldHtml, freshHtml) {
+export function assertEnrichment(oldHtml, freshHtml, eventId) {
   const old = schema(oldHtml), fresh = schema(freshHtml);
   const rich = value => value !== undefined && value !== null && value !== ''
     && !(Array.isArray(value) && value.length === 0);
@@ -89,8 +124,29 @@ export function assertEnrichment(oldHtml, freshHtml) {
   const freshPlace = fresh.location?.name;
   const oldCity = oldAddress.addressLocality;
   const freshCity = newAddress.addressLocality;
+  const verifiedFinistellaire = eventId === FINISTELLAIRE_EDIT.eventId;
+  if (verifiedFinistellaire) {
+    const canonical = `https://dedicalivres.fr/${FINISTELLAIRE_EDIT.canonical}`;
+    const organizer = 'https://www.la29emedimension.fr/le-finistellaire/le-finistellaire-5-2026/';
+    if (![oldHtml, freshHtml].every(html => html.includes(`data-event-id="${eventId}"`)
+        && html.includes(`rel="canonical" href="${canonical}"`))
+        || comparable(oldPlace) !== comparable('Pôle Culturel Max Jacob')
+        || comparable(oldAddress.streetAddress) !== comparable('4 boulevard Dupleix')
+        || comparable(freshPlace) !== comparable('Espace Dan Ar Braz')
+        || comparable(newAddress.streetAddress) !== comparable('17 ter rue Stang Bihan')
+        || comparable(newAddress.postalCode) !== '29000'
+        || fresh.startDate !== '2026-11-14' || fresh.endDate !== '2026-11-15'
+        || fresh.organizer?.url !== organizer
+        || !String(fresh.description || '').includes('Finistellaire #5')
+        || !freshHtml.includes('<b>Lieu</b> Espace Dan Ar Braz, Bretagne')
+        || !freshHtml.includes('<b>Adresse</b> 17 ter rue Stang Bihan, 29000')
+        || freshHtml.includes('Pôle Culturel Max Jacob') || freshHtml.includes('4 boulevard Dupleix')) {
+      stop('correction documentée du lieu Finistellaire absente ou élargie');
+    }
+  }
   if (rich(oldPlace) && !rich(freshPlace)) stop("perte d'enrichissement : nom du lieu");
   if (rich(oldPlace) && comparable(oldPlace) !== comparable(freshPlace)
+      && !verifiedFinistellaire
       && !(comparable(oldPlace) === comparable(oldCity)
         && comparable(freshPlace) === comparable(freshCity))) {
     stop('lieu précis modifié sans preuve : la source publique ne fournit pas de nom de lieu');
@@ -98,7 +154,8 @@ export function assertEnrichment(oldHtml, freshHtml) {
   for (const [label, before, after] of [
     ['adresse', oldAddress.streetAddress, newAddress.streetAddress],
     ['code postal', oldAddress.postalCode, newAddress.postalCode],
-  ]) if (rich(before) && comparable(before) !== comparable(after)) {
+  ]) if (rich(before) && comparable(before) !== comparable(after)
+      && !(verifiedFinistellaire && label === 'adresse')) {
     stop(`${label} enrichi modifié sans preuve : la source publique ne fournit pas cette donnée`);
   }
   for (const [label, before, after] of [
@@ -143,22 +200,38 @@ export function assertSitemap(oldXml, freshXml, oldMap, manifest, allowed) {
   return {before, after, expected};
 }
 
-function context() {
+export function context() {
   if (process.env.PUBLICATION_TARGETED !== 'true') stop('mode ciblé absent');
   const jobs = parseJobs(process.env.PUBLICATION_JOBS || '');
-  const legacy = new Set(Object.keys(json('scripts/event-publisher/legacy-enriched-events.json').events));
-  if (legacy.size !== 282 || [...jobs.allowed].some(id => legacy.has(id))) stop('protection 282 legacy');
+  const legacyFiles = json('scripts/event-publisher/legacy-enriched-events.json').events;
+  const legacy = new Set(Object.keys(legacyFiles));
+  const selectedLegacy = [...jobs.allowed].filter(id => legacy.has(id));
+  const approved = finistellaireApproved(jobs, legacyFiles, json(MAP));
+  if (legacy.size !== 282 || (selectedLegacy.length > 0
+      && !(selectedLegacy.length === 1 && approved))) stop('protection 282 legacy');
   const day = process.env.PUBLICATION_REFERENCE_DATE;
   if (!validDate(day)) stop('date Europe/Paris invalide');
-  return {...jobs, legacy, day};
+  return {...jobs, legacy, day, approved};
+}
+
+export function publishedEventRows(rows) {
+  const jobs = parseJobs(process.env.PUBLICATION_JOBS || '');
+  const legacyFiles = json('scripts/event-publisher/legacy-enriched-events.json').events;
+  const selectedLegacy = [...jobs.allowed].filter(id => id in legacyFiles);
+  const approved = finistellaireApproved(jobs, legacyFiles, json(MAP));
+  if (Object.keys(legacyFiles).length !== 282 || (selectedLegacy.length
+      && !(selectedLegacy.length === 1 && approved))) stop('protection 282 legacy');
+  return selectPublishedRows(rows, json(MAP), approved);
 }
 
 function projectPages(exportRoot) {
-  const {allowed, removals, legacy, day} = context();
+  const {allowed, removals, legacy, day, approved} = context();
   const old = JSON.parse(baseline(MAP));
   const manifest = json(path.join(exportRoot, 'event-pages-manifest.json')).events;
-  const source = json(path.join(exportRoot, 'public-events-source.json'));
-  if (!Array.isArray(source) || new Set(source.map(event => event.id)).size !== source.length
+  const captured = json(path.join(exportRoot, 'public-events-source.json'));
+  if (!Array.isArray(captured)) stop('source publique générée incohérente');
+  const source = selectPublishedRows(captured, old, approved);
+  if (new Set(source.map(event => event.id)).size !== source.length
       || !sameSet(new Set(Object.keys(manifest)), new Set(source.map(event => event.id)))) stop('source publique générée incohérente');
   assertManifest(old, manifest, allowed, legacy);
   for (const id of removals) if (manifest[id]) stop(`dépublication toujours publique : ${id}`);
@@ -175,7 +248,7 @@ function projectPages(exportRoot) {
   }
   for (const id of allowed) {
     const oldPath = old[id], freshPath = manifest[id] && `evenement/${manifest[id]}.html`;
-    if (oldPath && freshPath) assertEnrichment(read(oldPath), read(path.join(exportRoot, freshPath)));
+    if (oldPath && freshPath) assertEnrichment(read(oldPath), read(path.join(exportRoot, freshPath)), id);
     if (freshPath && !fs.existsSync(path.join(exportRoot, freshPath))) stop(`fiche générée absente : ${id}`);
   }
   const generatedIndex = read(path.join(exportRoot, INDEX));

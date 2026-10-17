@@ -23,6 +23,42 @@ MANIFEST = (
 
 PROGRESSIVE_MANIFEST = HERE / "progressive-events.json"
 
+FINISTELLAIRE_EDIT = {
+    "id": "a47786e2-16b0-4c0f-abae-a5ba698830ec",
+    "event_id": "316861b7-0dd1-4ea7-b458-9fd8da849881",
+    "reason": "edit",
+    "canonical": "evenement/festival-finistellaire-2026-quimper-3479.html",
+}
+
+
+def authorized_legacy_edit():
+    raw = os.environ.get("PUBLICATION_JOBS")
+    if not raw:
+        return None
+    try:
+        jobs = json.loads(raw)
+    except ValueError as exc:
+        raise RuntimeError("jobs de publication invalides") from exc
+    if not isinstance(jobs, list) or any(not isinstance(row, dict) for row in jobs):
+        raise RuntimeError("jobs de publication invalides")
+    selected = [row for row in jobs if row.get("id") == FINISTELLAIRE_EDIT["id"]
+                or row.get("event_id") == FINISTELLAIRE_EDIT["event_id"]]
+    if not selected:
+        return None
+    row = selected[0]
+    if (len(jobs) != 1 or row.get("id") != FINISTELLAIRE_EDIT["id"]
+            or row.get("event_id") != FINISTELLAIRE_EDIT["event_id"]
+            or row.get("reason") != FINISTELLAIRE_EDIT["reason"]
+            or os.environ.get("PUBLICATION_MANUAL_MODE") != "execute"
+            or os.environ.get("PUBLICATION_AUTOMATION_ENABLED") != "false"):
+        raise RuntimeError("exception legacy Finistellaire invalide")
+    canonical = json.loads((ROOT / "docs/territoires/event-canonical-map.json").read_text(encoding="utf-8"))
+    legacy = json.loads(MANIFEST.read_text(encoding="utf-8"))["events"]
+    if (canonical.get(row["event_id"]) != FINISTELLAIRE_EDIT["canonical"]
+            or legacy.get(row["event_id"]) != Path(FINISTELLAIRE_EDIT["canonical"]).name):
+        raise RuntimeError("canonical legacy Finistellaire invalide")
+    return row["event_id"]
+
 
 def progressive_event_ids(path=None):
     path = path or PROGRESSIVE_MANIFEST
@@ -459,6 +495,7 @@ def preserve_unchanged_sitemap_lastmod(
 def preserve_pages(
     output_root,
     retired_paths=frozenset(),
+    edited_legacy_event_id=None,
 ):
     data = json.loads(
         MANIFEST.read_text(
@@ -493,7 +530,17 @@ def preserve_pages(
 
     legacy_count = 0
 
-    for _event_id, filename in (
+    if edited_legacy_event_id:
+        manifest = json.loads((output_root / "event-pages-manifest.json").read_text(encoding="utf-8"))["events"]
+        filename = events[edited_legacy_event_id]
+        generated = destination_dir / filename
+        html = generated.read_text(encoding="utf-8") if generated.is_file() else ""
+        if (manifest.get(edited_legacy_event_id) != Path(filename).stem
+                or f'data-event-id="{edited_legacy_event_id}"' not in html
+                or f'https://dedicalivres.fr/evenement/{filename}' not in html):
+            raise RuntimeError("fiche Finistellaire générée ou canonical invalide")
+
+    for event_id, filename in (
         events.items()
     ):
         source = (
@@ -511,6 +558,9 @@ def preserve_pages(
                 "page legacy absente : "
                 + filename
             )
+
+        if event_id == edited_legacy_event_id:
+            continue
 
         shutil.copy2(
             source,
@@ -586,7 +636,10 @@ def main():
     )
 
     selected = progressive_event_ids()
+    edited_legacy_event_id = authorized_legacy_edit()
     authorized = authorized_pilot_depublications(selected)
+    if edited_legacy_event_id:
+        argv.append("--finistellaire-legacy-edit")
     for event_id in selected:
         argv.extend(["--progressive-event-id", event_id])
     for event_id in sorted(authorized):
@@ -709,6 +762,7 @@ def main():
     ) = preserve_pages(
         output_root,
         retired_paths,
+        edited_legacy_event_id,
     )
 
     sitemap_lastmod_preserved = (

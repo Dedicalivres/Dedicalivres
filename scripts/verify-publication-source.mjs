@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {PUBLIC_EVENT_FIELDS} from './territorial-catalog.mjs';
+import {publishedEventRows} from './project-targeted-publication.mjs';
 
 export const FIELDS = [...new Set([
   ...PUBLIC_EVENT_FIELDS.split(','),
@@ -54,6 +55,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const current = await fetchSource(process.env.DEDICALIVRES_SUPABASE_URL, process.env.DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY);
   assertSourceSame(captured, current);
   const territorial = JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json', 'utf8'));
-  assertTerritorialSame(territorial, current);
+  assertTerritorialSame(territorial,
+    process.env.PUBLICATION_TARGETED === 'true' ? publishedEventRows(current) : current);
   console.log(`PASS source publique inchangée : ${current.length} événements`);
 }
