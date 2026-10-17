@@ -49,6 +49,89 @@
 
   const listeners = new Set();
   let authSubscription = null;
+  let authEpoch = 0;
+  let expiryTimer = null;
+
+  function expiresAtMs(session) {
+    const seconds = session?.expires_at;
+    return Number.isFinite(seconds) && seconds > 0
+      ? seconds * 1000
+      : null;
+  }
+
+  function cancelExpiryTimer() {
+    if (expiryTimer !== null) window.clearTimeout(expiryTimer);
+    expiryTimer = null;
+  }
+
+  function lockIfExpired() {
+    if (state.authenticated !== true) return false;
+    const deadline = expiresAtMs(state.session);
+    if (deadline !== null && Date.now() < deadline) return false;
+    authEpoch += 1;
+    cancelExpiryTimer();
+    clearPrivateState({ status: "expired", error: null });
+    return true;
+  }
+
+  function scheduleExpiry(session) {
+    cancelExpiryTimer();
+    const deadline = expiresAtMs(session);
+    if (deadline === null) return;
+    const epoch = authEpoch;
+    const token = session.access_token;
+    const check = () => {
+      if (epoch !== authEpoch || state.session?.access_token !== token) return;
+      if (!lockIfExpired()) {
+        expiryTimer = window.setTimeout(check,
+          Math.min(Math.max(1, deadline - Date.now()), 2147483647));
+      }
+    };
+    expiryTimer = window.setTimeout(check,
+      Math.min(Math.max(1, deadline - Date.now()), 2147483647));
+  }
+
+  function canCommit(epoch) {
+    return !lockIfExpired() && epoch === authEpoch && state.authenticated === true;
+  }
+
+  function clearPrivateState(values = {}) {
+    cancelExpiryTimer();
+    state.events = [];
+    state.metrics = {
+      eventsTotal: null,
+      eventsPending: null,
+      eventsValidated: null,
+      eventsRejected: null,
+      eventsActive: null,
+      qualityMissingImage: null,
+      qualityMissingCoords: null,
+      qualityMissingWebsite: null,
+      qualitySoon: null,
+      qualityFeaturedPast: null,
+      visitsToday: null,
+      visits7d: null,
+      visits30d: null,
+      visitsTotal: null,
+      visitsStatus: "Chargement du trafic"
+    };
+    state.trafficDetails = { topPages: [], topReferrers: [] };
+    state.community = { presences: [], authors: [], testimonials: [] };
+    state.communityMetrics = {
+      presenceTotal: null,
+      presencePending: null,
+      presenceValidated: null,
+      presenceRejected: null,
+      authorsTotal: null,
+      testimonialsTotal: null
+    };
+    setState({
+      authenticated: false,
+      session: null,
+      refreshedAt: null,
+      ...values
+    });
+  }
 
   function snapshot() {
     return {
@@ -130,23 +213,23 @@
     }
 
     const result = client.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        setState({
-          authenticated: false,
-          session: null,
-          status: "unauthenticated",
-          error: null,
-          refreshedAt: null
-        });
+      if (event === "SIGNED_OUT" ||
+          (["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event) && !session)) {
+        authEpoch += 1;
+        clearPrivateState({ status: "unauthenticated", error: null });
         return;
       }
 
-      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-        setState({
-          authenticated: true,
-          session,
-          error: null
-        });
+      if (["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
+        // Supabase auth callbacks must not await another auth request.
+        authEpoch += 1;
+        const eventEpoch = authEpoch;
+        clearPrivateState({ status: "loading", error: null });
+        window.setTimeout(() => {
+          if (eventEpoch === authEpoch) {
+            authorizeSession(session).catch(console.error);
+          }
+        }, 0);
       }
     });
 
@@ -276,7 +359,7 @@
   }
 
 
-  async function loadGlobalEventMetrics() {
+  async function loadGlobalEventMetrics(epoch) {
     const client = getClient();
 
     if (!client) {
@@ -324,13 +407,15 @@
       throw failed.error;
     }
 
+    if (!canCommit(epoch)) return;
+
     state.metrics.eventsTotal = totalResult.count || 0;
     state.metrics.eventsValidated = validatedResult.count || 0;
     state.metrics.eventsPending = pendingResult.count || 0;
     state.metrics.eventsRejected = rejectedResult.count || 0;
   }
 
-  async function loadTrafficMetrics() {
+  async function loadTrafficMetrics(epoch) {
     const client = getClient();
 
     if (!client) {
@@ -382,6 +467,8 @@
 
     const failed = results.find((item) => item.error);
 
+    if (!canCommit(epoch)) return;
+
     if (failed) {
       state.metrics.visitsStatus = "Tracking indisponible";
       return;
@@ -395,7 +482,7 @@
   }
 
 
-  async function loadTrafficDetails() {
+  async function loadTrafficDetails(epoch) {
     const client = getClient();
 
     if (!client) {
@@ -412,6 +499,8 @@
       .gte("created_at", since.toISOString())
       .order("created_at", { ascending: false })
       .limit(2000);
+
+    if (!canCommit(epoch)) return;
 
     if (response.error || !Array.isArray(response.data)) {
       state.trafficDetails = {
@@ -485,7 +574,7 @@
   }
 
 
-  async function loadCommunity() {
+  async function loadCommunity(epoch) {
     const client = getClient();
 
     if (!client) {
@@ -604,6 +693,8 @@
       throw testimonialsResult.error;
     }
 
+    if (!canCommit(epoch)) return;
+
     state.community.presences =
       Array.isArray(presencesResult.data)
         ? presencesResult.data.filter((item) => !item.archived_at)
@@ -644,7 +735,7 @@
     };
   }
 
-  async function loadEvents() {
+  async function loadEvents(epoch) {
     const client = getClient();
 
     if (!client) {
@@ -714,6 +805,8 @@
       throw response.error;
     }
 
+    if (!canCommit(epoch)) return;
+
     const events =
       response && Array.isArray(response.data)
         ? response.data
@@ -729,6 +822,8 @@
       if (contactResponse.error) {
         throw contactResponse.error;
       }
+
+      if (!canCommit(epoch)) return;
 
       contacts = Array.isArray(contactResponse.data)
         ? contactResponse.data
@@ -748,9 +843,10 @@
   }
 
   async function refresh() {
-    if (state.authenticated === false) {
+    if (lockIfExpired() || state.authenticated !== true) {
       return snapshot();
     }
+    const epoch = authEpoch;
 
     setState({
       status: "loading",
@@ -760,7 +856,7 @@
     let watchdogTriggered = false;
 
     const watchdog = window.setTimeout(() => {
-      if (state.status === "loading") {
+      if (epoch === authEpoch && state.status === "loading") {
         watchdogTriggered = true;
 
         setState({
@@ -774,14 +870,14 @@
 
     try {
       await Promise.all([
-        loadEvents(),
-        loadGlobalEventMetrics(),
-        loadTrafficMetrics(),
-        loadTrafficDetails(),
-        loadCommunity()
+        loadEvents(epoch),
+        loadGlobalEventMetrics(epoch),
+        loadTrafficMetrics(epoch),
+        loadTrafficDetails(epoch),
+        loadCommunity(epoch)
       ]);
 
-      if (!watchdogTriggered) {
+      if (!watchdogTriggered && canCommit(epoch)) {
         setState({
           status: "ready",
           error: null,
@@ -789,10 +885,17 @@
         });
       }
     } catch (error) {
-      setState({
-        status: "error",
-        error
-      });
+      if (canCommit(epoch)) {
+        if ([401, 403].includes(Number(error?.status))) {
+          authEpoch += 1;
+          clearPrivateState({
+            status: Number(error.status) === 403 ? "forbidden" : "unauthenticated",
+            error: null
+          });
+        } else {
+          setState({ status: "error", error });
+        }
+      }
     } finally {
       window.clearTimeout(watchdog);
     }
@@ -800,8 +903,68 @@
     return snapshot();
   }
 
+  async function authorizeSession(session) {
+    const epoch = ++authEpoch;
+    clearPrivateState({ status: "loading", error: null });
+
+    if (expiresAtMs(session) === null || Date.now() >= expiresAtMs(session)) {
+      clearPrivateState({ status: "expired", error: null });
+      return snapshot();
+    }
+
+    try {
+      const client = getClient();
+      const identity = await client.auth.getUser();
+      if (epoch !== authEpoch) return snapshot();
+      if (Date.now() >= expiresAtMs(session)) {
+        clearPrivateState({ status: "expired", error: null });
+        return snapshot();
+      }
+
+      if (identity.error || !identity.data?.user) {
+        const error = identity.error;
+        if (error && ![401, 403].includes(error.status)) throw error;
+        clearPrivateState({ status: "unauthenticated", error: null });
+        return snapshot();
+      }
+
+      const userId = identity.data.user.id;
+      if (!session?.user || session.user.id !== userId) {
+        clearPrivateState({ status: "unauthenticated", error: null });
+        return snapshot();
+      }
+
+      // Existing admin_users SELECT policy returns only the caller's row.
+      const result = await client.from("admin_users")
+        .select("user_id")
+        .eq("user_id", userId)
+        .limit(1);
+      if (epoch !== authEpoch) return snapshot();
+      if (Date.now() >= expiresAtMs(session)) {
+        clearPrivateState({ status: "expired", error: null });
+        return snapshot();
+      }
+      if (result.error) throw result.error;
+
+      if (!result.data?.some((row) => row.user_id === userId)) {
+        clearPrivateState({ status: "forbidden", session, error: null });
+        return snapshot();
+      }
+
+      setState({ authenticated: true, session, status: "loading", error: null });
+      scheduleExpiry(session);
+      return await refresh();
+    } catch (error) {
+      if (epoch === authEpoch) {
+        clearPrivateState({ status: "error", session, error });
+      }
+      return snapshot();
+    }
+  }
+
   async function restoreSession() {
     const client = getClient();
+    const epoch = authEpoch;
 
     if (!client) {
       setState({
@@ -817,37 +980,23 @@
 
     try {
       const result = await client.auth.getSession();
+      if (epoch !== authEpoch) return snapshot();
       const session =
         result && result.data
           ? result.data.session
           : null;
 
       if (!session) {
-        setState({
-          status: "unauthenticated",
-          authenticated: false,
-          session: null,
-          error: null
-        });
+        clearPrivateState({ status: "unauthenticated", error: null });
 
         return snapshot();
       }
 
-      setState({
-        status: "loading",
-        authenticated: true,
-        session,
-        error: null
-      });
-
-      return await refresh();
+      return await authorizeSession(session);
     } catch (error) {
-      setState({
-        status: "error",
-        authenticated: false,
-        session: null,
-        error
-      });
+      if (epoch === authEpoch) {
+        clearPrivateState({ status: "error", error });
+      }
 
       return snapshot();
     }
@@ -855,6 +1004,7 @@
 
   async function signIn(email, password) {
     const client = getClient();
+    const epoch = authEpoch;
 
     if (!client) {
       throw new Error("Client Supabase indisponible");
@@ -870,44 +1020,30 @@
       throw result.error;
     }
 
-    setState({
-      authenticated: true,
-      session: result.data.session || null,
-      status: "loading",
-      error: null
-    });
+    if (epoch !== authEpoch) return snapshot();
 
-    return await refresh();
+    return await authorizeSession(result.data.session || null);
   }
 
   async function signOut() {
     const client = getClient();
-
+    const session = state.session;
+    authEpoch += 1;
+    const epoch = authEpoch;
+    clearPrivateState({ status: "loading", session, error: null });
     if (client) {
-      await client.auth.signOut();
+      const result = await client.auth.signOut();
+      if (result?.error) {
+        if (epoch === authEpoch) {
+          clearPrivateState({ status: "error", session, error: result.error });
+        }
+        throw result.error;
+      }
     }
 
-    state.events = [];
-    state.metrics = {
-      eventsTotal: null,
-      eventsPending: null,
-      eventsValidated: null,
-      eventsRejected: null,
-      eventsActive: null,
-      visitsToday: null,
-      visits7d: null,
-      visits30d: null,
-      visitsTotal: null,
-      visitsStatus: "Chargement du trafic"
-    };
-
-    setState({
-      authenticated: false,
-      session: null,
-      status: "unauthenticated",
-      error: null,
-      refreshedAt: null
-    });
+    if (epoch === authEpoch) {
+      clearPrivateState({ status: "unauthenticated", error: null });
+    }
 
     return snapshot();
   }
@@ -922,7 +1058,10 @@
   }
 
   window.DEDICALIVRES_ADMIN_CONTEXT = {
-    getState: snapshot,
+    getState() {
+      lockIfExpired();
+      return snapshot();
+    },
     getClient,
     refresh,
     restoreSession,
@@ -930,4 +1069,18 @@
     signOut,
     subscribe
   };
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") lockIfExpired();
+    });
+    for (const event of ["pointerdown", "keydown", "submit"]) {
+      document.addEventListener(event, (input) => {
+        if (lockIfExpired()) {
+          input.preventDefault();
+          input.stopImmediatePropagation();
+        }
+      }, true);
+    }
+  }
 })();

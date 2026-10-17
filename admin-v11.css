@@ -571,6 +571,11 @@ button {
 
   .v11-topbar {
     margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .v11-top-actions {
+    flex-wrap: wrap;
   }
 
   .v11-topbar h1 {
@@ -579,10 +584,6 @@ button {
 
   .v11-topbar p:not(.v11-eyebrow) {
     font-size: 13px;
-  }
-
-  .v11-icon-button {
-    display: none;
   }
 
   .v11-priority {
@@ -1874,6 +1875,15 @@ button {
 
 
 /* V11.7 — contexte réel et authentification */
+
+body:not(.v11-is-authorized) .v11-app {
+  display: none;
+}
+
+.v11-auth-form[hidden],
+.v11-denied-logout[hidden] {
+  display: none;
+}
 
 .v11-auth-gate {
   position: fixed;

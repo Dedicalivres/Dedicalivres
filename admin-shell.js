@@ -34,6 +34,10 @@
   const loginFeedback =
     document.getElementById("v11-login-feedback");
 
+  const authTitle = document.getElementById("v11-auth-title");
+  const authCopy = document.getElementById("v11-auth-copy");
+  const deniedLogout = document.getElementById("v11-denied-logout");
+
   const refreshButton =
     document.getElementById("v11-refresh");
 
@@ -12343,6 +12347,10 @@ function openCommunityView(name) {
       "v11-chip warning";
   }
 
+  let hadAuthorizedView = false;
+  let authorizedUserId = null;
+  let parkedApp = null;
+
   function renderState(state) {
     const loading =
       state.status === "loading" ||
@@ -12353,8 +12361,66 @@ function openCommunityView(name) {
       loading
     );
 
-    const showAuth =
-      state.authenticated === false;
+    const userId = state.session?.user?.id || null;
+    const authorized =
+      state.authenticated === true && state.status === "ready" && Boolean(userId);
+    if (authorized && !parkedApp && !document.querySelector(".v11-app")) {
+      window.location.reload();
+      return;
+    }
+    if (hadAuthorizedView && state.status === "ready" && !authorized) {
+      parkedApp = null;
+      window.location.reload();
+      return;
+    }
+    if (authorized && parkedApp) {
+      if (userId !== authorizedUserId) {
+        parkedApp = null;
+        window.location.reload();
+        return;
+      }
+      document.body.prepend(parkedApp);
+      parkedApp = null;
+    }
+    const showAuth = !authorized;
+    document.body.classList.toggle("v11-is-authorized", authorized);
+
+    if (authorized) {
+      hadAuthorizedView = true;
+      authorizedUserId = userId;
+    }
+    if (hadAuthorizedView && state.authenticated !== true) {
+      // Keep the live UI detached until this same user is authorized again.
+      if (!parkedApp) {
+        parkedApp = document.querySelector(".v11-app");
+        parkedApp?.remove();
+      }
+    }
+    if (hadAuthorizedView && state.authenticated !== true &&
+        state.status !== "loading") {
+      hadAuthorizedView = false;
+      authorizedUserId = null;
+      parkedApp = null;
+      if (state.status !== "expired") {
+        window.location.reload();
+        return;
+      }
+    }
+
+    if (authTitle && authCopy && loginForm) {
+      const forbidden = state.status === "forbidden";
+      authTitle.textContent = forbidden ? "Accès refusé"
+        : state.status === "expired" ? "Session expirée" : "Connexion";
+      authCopy.textContent = forbidden
+        ? "Ce compte ne dispose pas des droits d’administration."
+        : state.status === "expired"
+          ? "Votre session a expiré. Connectez-vous de nouveau."
+        : state.status === "error"
+          ? "Vérification indisponible. Réessayez après le rétablissement du service."
+          : "Accès réservé à l’administration Dédicalivres.";
+      loginForm.hidden = forbidden || loading;
+      if (deniedLogout) deniedLogout.hidden = !(forbidden || state.session);
+    }
 
     if (authGate) {
       authGate.hidden = !showAuth;
@@ -12367,6 +12433,8 @@ function openCommunityView(name) {
         showAuth ? "false" : "true"
       );
     }
+
+    if (!authorized) return;
 
     if (state.communityMetrics) {
       const communityMetrics = state.communityMetrics;
@@ -12717,15 +12785,13 @@ function openCommunityView(name) {
           "Connexion...";
 
         try {
-          await context.signIn(
+          const state = await context.signIn(
             email,
             password
           );
 
           loginForm.reset();
-          toast(
-            "Connexion réussie"
-          );
+          if (state.status === "ready") toast("Connexion réussie");
         } catch (error) {
           console.error(error);
 
@@ -12778,15 +12844,18 @@ function openCommunityView(name) {
     );
   }
 
-  if (logoutButton) {
-    logoutButton.addEventListener(
-      "click",
-      async () => {
-        await context.signOut();
-        toast("Déconnecté");
-      }
-    );
+  async function signOutAndClear() {
+    try {
+      await context.signOut();
+      // Reload destroys private DOM nodes and module-level caches after sign-out.
+      window.location.reload();
+    } catch (error) {
+      toast(v11ErrorMessage(error, "Déconnexion impossible. Réessayez."), "error");
+    }
   }
+
+  logoutButton?.addEventListener("click", signOutAndClear);
+  deniedLogout?.addEventListener("click", signOutAndClear);
 
   window.addEventListener("offline", () => {
     renderSupabaseStatus(context.getState());
