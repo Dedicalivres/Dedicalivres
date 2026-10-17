@@ -50,12 +50,53 @@
   const listeners = new Set();
   let authSubscription = null;
   let authEpoch = 0;
+  let expiryTimer = null;
+
+  function expiresAtMs(session) {
+    const seconds = session?.expires_at;
+    return Number.isFinite(seconds) && seconds > 0
+      ? seconds * 1000
+      : null;
+  }
+
+  function cancelExpiryTimer() {
+    if (expiryTimer !== null) window.clearTimeout(expiryTimer);
+    expiryTimer = null;
+  }
+
+  function lockIfExpired() {
+    if (state.authenticated !== true) return false;
+    const deadline = expiresAtMs(state.session);
+    if (deadline !== null && Date.now() < deadline) return false;
+    authEpoch += 1;
+    cancelExpiryTimer();
+    clearPrivateState({ status: "expired", error: null });
+    return true;
+  }
+
+  function scheduleExpiry(session) {
+    cancelExpiryTimer();
+    const deadline = expiresAtMs(session);
+    if (deadline === null) return;
+    const epoch = authEpoch;
+    const token = session.access_token;
+    const check = () => {
+      if (epoch !== authEpoch || state.session?.access_token !== token) return;
+      if (!lockIfExpired()) {
+        expiryTimer = window.setTimeout(check,
+          Math.min(Math.max(1, deadline - Date.now()), 2147483647));
+      }
+    };
+    expiryTimer = window.setTimeout(check,
+      Math.min(Math.max(1, deadline - Date.now()), 2147483647));
+  }
 
   function canCommit(epoch) {
-    return epoch === authEpoch && state.authenticated === true;
+    return !lockIfExpired() && epoch === authEpoch && state.authenticated === true;
   }
 
   function clearPrivateState(values = {}) {
+    cancelExpiryTimer();
     state.events = [];
     state.metrics = {
       eventsTotal: null,
@@ -802,7 +843,7 @@
   }
 
   async function refresh() {
-    if (state.authenticated !== true) {
+    if (lockIfExpired() || state.authenticated !== true) {
       return snapshot();
     }
     const epoch = authEpoch;
@@ -836,7 +877,7 @@
         loadCommunity(epoch)
       ]);
 
-      if (!watchdogTriggered && epoch === authEpoch && state.authenticated) {
+      if (!watchdogTriggered && canCommit(epoch)) {
         setState({
           status: "ready",
           error: null,
@@ -844,7 +885,7 @@
         });
       }
     } catch (error) {
-      if (epoch === authEpoch && state.authenticated) {
+      if (canCommit(epoch)) {
         if ([401, 403].includes(Number(error?.status))) {
           authEpoch += 1;
           clearPrivateState({
@@ -866,10 +907,19 @@
     const epoch = ++authEpoch;
     clearPrivateState({ status: "loading", error: null });
 
+    if (expiresAtMs(session) === null || Date.now() >= expiresAtMs(session)) {
+      clearPrivateState({ status: "expired", error: null });
+      return snapshot();
+    }
+
     try {
       const client = getClient();
       const identity = await client.auth.getUser();
       if (epoch !== authEpoch) return snapshot();
+      if (Date.now() >= expiresAtMs(session)) {
+        clearPrivateState({ status: "expired", error: null });
+        return snapshot();
+      }
 
       if (identity.error || !identity.data?.user) {
         const error = identity.error;
@@ -890,6 +940,10 @@
         .eq("user_id", userId)
         .limit(1);
       if (epoch !== authEpoch) return snapshot();
+      if (Date.now() >= expiresAtMs(session)) {
+        clearPrivateState({ status: "expired", error: null });
+        return snapshot();
+      }
       if (result.error) throw result.error;
 
       if (!result.data?.some((row) => row.user_id === userId)) {
@@ -898,6 +952,7 @@
       }
 
       setState({ authenticated: true, session, status: "loading", error: null });
+      scheduleExpiry(session);
       return await refresh();
     } catch (error) {
       if (epoch === authEpoch) {
@@ -1003,7 +1058,10 @@
   }
 
   window.DEDICALIVRES_ADMIN_CONTEXT = {
-    getState: snapshot,
+    getState() {
+      lockIfExpired();
+      return snapshot();
+    },
     getClient,
     refresh,
     restoreSession,
@@ -1011,4 +1069,18 @@
     signOut,
     subscribe
   };
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") lockIfExpired();
+    });
+    for (const event of ["pointerdown", "keydown", "submit"]) {
+      document.addEventListener(event, (input) => {
+        if (lockIfExpired()) {
+          input.preventDefault();
+          input.stopImmediatePropagation();
+        }
+      }, true);
+    }
+  }
 })();

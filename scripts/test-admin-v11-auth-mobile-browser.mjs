@@ -145,6 +145,20 @@ try {
         await page.waitForFunction(previous => window.__pageLoads > previous, pageLoads);
         assert.equal(await page.locator("body").textContent().then(text => text.includes("private-marker")), false,
           `${name} ${width} previous user's DOM removed`);
+        await page.locator("#v11-email").fill("admin@example.test");
+        await page.locator("#v11-password").fill("local-test");
+        await page.locator("#v11-login-form button[type=submit]").click();
+        await page.waitForFunction(() => document.body.classList.contains("v11-is-authorized"));
+        const loadsBeforeExpiry = await page.evaluate(() => window.__pageLoads);
+        await page.evaluate(() => {
+          document.getElementById("v11-events-list").textContent = "private-marker";
+          window.__publishAuth({ status: "expired", authenticated: false, session: null, events: [] });
+        });
+        assert.equal(await page.evaluate(() => window.__pageLoads), loadsBeforeExpiry);
+        assert.equal(await page.locator("#v11-auth-title").textContent(), "Session expirée");
+        assert.equal(await page.locator(".v11-app").count(), 0);
+        assert.equal(await page.locator("body").textContent().then(text => text.includes("private-marker")), false);
+        assert.equal(await page.locator("#v11-login-form").isVisible(), true);
       }
       assert.deepEqual(errors, [], `${name} ${width} page errors`);
       await page.close();

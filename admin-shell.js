@@ -12364,6 +12364,10 @@ function openCommunityView(name) {
     const userId = state.session?.user?.id || null;
     const authorized =
       state.authenticated === true && state.status === "ready" && Boolean(userId);
+    if (authorized && !parkedApp && !document.querySelector(".v11-app")) {
+      window.location.reload();
+      return;
+    }
     if (hadAuthorizedView && state.status === "ready" && !authorized) {
       parkedApp = null;
       window.location.reload();
@@ -12397,15 +12401,20 @@ function openCommunityView(name) {
       hadAuthorizedView = false;
       authorizedUserId = null;
       parkedApp = null;
-      window.location.reload();
-      return;
+      if (state.status !== "expired") {
+        window.location.reload();
+        return;
+      }
     }
 
     if (authTitle && authCopy && loginForm) {
       const forbidden = state.status === "forbidden";
-      authTitle.textContent = forbidden ? "Accès refusé" : "Connexion";
+      authTitle.textContent = forbidden ? "Accès refusé"
+        : state.status === "expired" ? "Session expirée" : "Connexion";
       authCopy.textContent = forbidden
         ? "Ce compte ne dispose pas des droits d’administration."
+        : state.status === "expired"
+          ? "Votre session a expiré. Connectez-vous de nouveau."
         : state.status === "error"
           ? "Vérification indisponible. Réessayez après le rétablissement du service."
           : "Accès réservé à l’administration Dédicalivres.";

@@ -76,3 +76,15 @@ for (const scenario of ["SIGNED_OUT", "new-user", "admin-revoked"]) {
   assert.equal(lab.reloads, 1, `${scenario}: reload after confirmed transition`);
   console.log(`PASS ${scenario}: old private DOM removed`);
 }
+
+{
+  const lab = fixture();
+  lab.render(state("ready", true, "admin"));
+  lab.render(state("expired", false));
+  assert.equal(lab.attached, false, "expired: private DOM detached");
+  assert.equal(lab.authorized, false);
+  assert.equal(lab.reloads, 0, "expired: login gate can be shown without reload");
+  lab.render(state("ready", true, "admin"));
+  assert.equal(lab.reloads, 1, "new login reloads clean private DOM");
+  console.log("PASS expiry: private DOM removed, login remains available, fresh login reloads");
+}

@@ -4,7 +4,8 @@ import vm from "node:vm";
 
 const source = fs.readFileSync("admin-context.js", "utf8");
 const user = { id: "11111111-1111-4111-8111-111111111111" };
-const session = { access_token: "local-test-token", user };
+const session = { access_token: "local-test-token", user,
+  expires_at: Math.floor(Date.now() / 1000) + 3600 };
 let currentSession = null;
 let admin = false;
 let networkError = null;

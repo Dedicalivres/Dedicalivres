@@ -6,7 +6,7 @@ const source = fs.readFileSync("admin-context.js", "utf8");
 const oldUser = { id: "old-admin" };
 const nextUser = { id: "next-admin" };
 const reader = { id: "reader" };
-const session = user => ({ access_token: user.id, user });
+const session = user => ({ access_token: user.id, user, expires_at: Math.floor(Date.now() / 1000) + 3600 });
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function waitFor(predicate) {
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -112,7 +112,8 @@ function fixture() {
     else admins.delete(user.id);
   };
   const changeUser = (user, event = user ? "SIGNED_IN" : "SIGNED_OUT") => {
-    currentSession = user ? { access_token: `${user.id}-${event}`, user } : null;
+    currentSession = user ? { access_token: `${user.id}-${event}`, user,
+      expires_at: Math.floor(Date.now() / 1000) + 3600 } : null;
     listener(event, currentSession);
   };
   return { context, pending, reads, completeOldReads, releaseNewReads,
