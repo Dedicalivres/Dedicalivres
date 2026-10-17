@@ -51,6 +51,10 @@
   let authSubscription = null;
   let authEpoch = 0;
 
+  function canCommit(epoch) {
+    return epoch === authEpoch && state.authenticated === true;
+  }
+
   function clearPrivateState(values = {}) {
     state.events = [];
     state.metrics = {
@@ -178,9 +182,12 @@
       if (["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
         // Supabase auth callbacks must not await another auth request.
         authEpoch += 1;
+        const eventEpoch = authEpoch;
         clearPrivateState({ status: "loading", error: null });
         window.setTimeout(() => {
-          authorizeSession(session).catch(console.error);
+          if (eventEpoch === authEpoch) {
+            authorizeSession(session).catch(console.error);
+          }
         }, 0);
       }
     });
@@ -311,7 +318,7 @@
   }
 
 
-  async function loadGlobalEventMetrics() {
+  async function loadGlobalEventMetrics(epoch) {
     const client = getClient();
 
     if (!client) {
@@ -359,13 +366,15 @@
       throw failed.error;
     }
 
+    if (!canCommit(epoch)) return;
+
     state.metrics.eventsTotal = totalResult.count || 0;
     state.metrics.eventsValidated = validatedResult.count || 0;
     state.metrics.eventsPending = pendingResult.count || 0;
     state.metrics.eventsRejected = rejectedResult.count || 0;
   }
 
-  async function loadTrafficMetrics() {
+  async function loadTrafficMetrics(epoch) {
     const client = getClient();
 
     if (!client) {
@@ -417,6 +426,8 @@
 
     const failed = results.find((item) => item.error);
 
+    if (!canCommit(epoch)) return;
+
     if (failed) {
       state.metrics.visitsStatus = "Tracking indisponible";
       return;
@@ -430,7 +441,7 @@
   }
 
 
-  async function loadTrafficDetails() {
+  async function loadTrafficDetails(epoch) {
     const client = getClient();
 
     if (!client) {
@@ -447,6 +458,8 @@
       .gte("created_at", since.toISOString())
       .order("created_at", { ascending: false })
       .limit(2000);
+
+    if (!canCommit(epoch)) return;
 
     if (response.error || !Array.isArray(response.data)) {
       state.trafficDetails = {
@@ -520,7 +533,7 @@
   }
 
 
-  async function loadCommunity() {
+  async function loadCommunity(epoch) {
     const client = getClient();
 
     if (!client) {
@@ -639,6 +652,8 @@
       throw testimonialsResult.error;
     }
 
+    if (!canCommit(epoch)) return;
+
     state.community.presences =
       Array.isArray(presencesResult.data)
         ? presencesResult.data.filter((item) => !item.archived_at)
@@ -679,7 +694,7 @@
     };
   }
 
-  async function loadEvents() {
+  async function loadEvents(epoch) {
     const client = getClient();
 
     if (!client) {
@@ -749,6 +764,8 @@
       throw response.error;
     }
 
+    if (!canCommit(epoch)) return;
+
     const events =
       response && Array.isArray(response.data)
         ? response.data
@@ -764,6 +781,8 @@
       if (contactResponse.error) {
         throw contactResponse.error;
       }
+
+      if (!canCommit(epoch)) return;
 
       contacts = Array.isArray(contactResponse.data)
         ? contactResponse.data
@@ -810,11 +829,11 @@
 
     try {
       await Promise.all([
-        loadEvents(),
-        loadGlobalEventMetrics(),
-        loadTrafficMetrics(),
-        loadTrafficDetails(),
-        loadCommunity()
+        loadEvents(epoch),
+        loadGlobalEventMetrics(epoch),
+        loadTrafficMetrics(epoch),
+        loadTrafficDetails(epoch),
+        loadCommunity(epoch)
       ]);
 
       if (!watchdogTriggered && epoch === authEpoch && state.authenticated) {
@@ -826,7 +845,15 @@
       }
     } catch (error) {
       if (epoch === authEpoch && state.authenticated) {
-        setState({ status: "error", error });
+        if ([401, 403].includes(Number(error?.status))) {
+          authEpoch += 1;
+          clearPrivateState({
+            status: Number(error.status) === 403 ? "forbidden" : "unauthenticated",
+            error: null
+          });
+        } else {
+          setState({ status: "error", error });
+        }
       }
     } finally {
       window.clearTimeout(watchdog);
@@ -882,6 +909,7 @@
 
   async function restoreSession() {
     const client = getClient();
+    const epoch = authEpoch;
 
     if (!client) {
       setState({
@@ -897,6 +925,7 @@
 
     try {
       const result = await client.auth.getSession();
+      if (epoch !== authEpoch) return snapshot();
       const session =
         result && result.data
           ? result.data.session
@@ -910,7 +939,9 @@
 
       return await authorizeSession(session);
     } catch (error) {
-      clearPrivateState({ status: "error", error });
+      if (epoch === authEpoch) {
+        clearPrivateState({ status: "error", error });
+      }
 
       return snapshot();
     }
@@ -918,6 +949,7 @@
 
   async function signIn(email, password) {
     const client = getClient();
+    const epoch = authEpoch;
 
     if (!client) {
       throw new Error("Client Supabase indisponible");
@@ -933,6 +965,8 @@
       throw result.error;
     }
 
+    if (epoch !== authEpoch) return snapshot();
+
     return await authorizeSession(result.data.session || null);
   }
 
@@ -940,16 +974,21 @@
     const client = getClient();
     const session = state.session;
     authEpoch += 1;
+    const epoch = authEpoch;
     clearPrivateState({ status: "loading", session, error: null });
     if (client) {
       const result = await client.auth.signOut();
       if (result?.error) {
-        clearPrivateState({ status: "error", session, error: result.error });
+        if (epoch === authEpoch) {
+          clearPrivateState({ status: "error", session, error: result.error });
+        }
         throw result.error;
       }
     }
 
-    clearPrivateState({ status: "unauthenticated", error: null });
+    if (epoch === authEpoch) {
+      clearPrivateState({ status: "unauthenticated", error: null });
+    }
 
     return snapshot();
   }

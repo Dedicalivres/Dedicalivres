@@ -12365,7 +12365,12 @@ function openCommunityView(name) {
     document.body.classList.toggle("v11-is-authorized", authorized);
 
     if (authorized) hadAuthorizedView = true;
-    if (hadAuthorizedView && state.status === "unauthenticated") {
+    if (hadAuthorizedView && state.authenticated !== true) {
+      // Remove rendered private data immediately, including while auth rechecks.
+      document.querySelector(".v11-app")?.remove();
+    }
+    if (hadAuthorizedView && state.authenticated !== true &&
+        (state.status !== "loading" || !state.session)) {
       hadAuthorizedView = false;
       window.location.reload();
       return;

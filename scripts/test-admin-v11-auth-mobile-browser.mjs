@@ -28,6 +28,7 @@ try {
           communityMetrics: {}, trafficDetails: { topPages: [], topReferrers: [] } };
         const listeners = [];
         const publish = patch => { state = { ...state, ...patch }; listeners.forEach(fn => fn(state)); return state; };
+        window.__publishAuth = publish;
         window.__calls = { signOut: Number(sessionStorage.getItem("signOutCount") || 0) };
         window.DEDICALIVRES_ADMIN_CONTEXT = {
           getState: () => state,
@@ -90,6 +91,20 @@ try {
       await page.waitForFunction(() => sessionStorage.getItem("signOutCount") === "2" &&
         document.querySelector("#v11-email")?.offsetParent !== null);
       assert.equal(await page.locator("body").textContent().then(text => text.includes("private-marker")), false);
+      if (width === 390 || width === 1024) {
+        await page.locator("#v11-email").fill("admin@example.test");
+        await page.locator("#v11-password").fill("local-test");
+        await page.locator("#v11-login-form button[type=submit]").click();
+        await page.waitForFunction(() => document.body.classList.contains("v11-is-authorized"));
+        await page.evaluate(() => {
+          document.getElementById("v11-events-list").textContent = "private-marker";
+          window.__publishAuth({ status: "forbidden", authenticated: false,
+            session: { user: { id: "reader" } } });
+          if (document.querySelector(".v11-app")) throw new Error("private DOM retained");
+        });
+        await page.waitForFunction(() => document.querySelector("#v11-email")?.offsetParent !== null);
+        assert.equal(await page.locator("body").textContent().then(text => text.includes("private-marker")), false);
+      }
       assert.deepEqual(errors, [], `${name} ${width} page errors`);
       await page.close();
       console.log(`PASS mock Chromium ${name} ${width}px: gate, denial, 44px controls, signOut`);

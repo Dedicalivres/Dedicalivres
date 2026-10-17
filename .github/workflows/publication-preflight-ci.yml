@@ -18,6 +18,11 @@ jobs:
       - name: Show preinstalled Node version
         run: node --version
 
+      - name: Test Admin V11 session isolation
+        run: |
+          node scripts/test-admin-v11-session-resilience.mjs
+          node scripts/test-admin-v11-late-requests.mjs
+
       - name: Test batch limit and preflight
         run: node scripts/test-publication-batch-preflight.mjs
 
