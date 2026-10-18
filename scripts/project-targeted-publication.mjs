@@ -37,6 +37,21 @@ export const metadataOnlyAggregate = (old, fresh) =>
   && JSON.stringify(previewIds(old)) === JSON.stringify(previewIds(fresh))
   && normalizeMetadata(old) === normalizeMetadata(fresh);
 
+export function temporalArchivePreview(old, fresh, before, after, oldDay, day) {
+  const label = '<p class="static-event-preview-label">Événements récemment référencés</p>\n';
+  const opening = '<div id="seo-events" class="events-grid">\n';
+  const ids = previewIds(old);
+  const city = field(old, /data-city="([^"]+)"/);
+  const normalizeCity = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').trim();
+  return validDate(oldDay) && validDate(day) && day > oldDay && Boolean(city) && ids.length > 0
+    && !old.includes(label) && fresh.split(label).length === 2
+    && normalizeMetadata(old.replace(opening, opening + label)) === normalizeMetadata(fresh)
+    && ids.every(id => before.has(id) && after.has(id) && temporalStatus(after.get(id), day) === 'past')
+    && ids.some(id => ['future', 'ongoing'].includes(temporalStatus(before.get(id), oldDay)))
+    && [...after.values()].filter(event => normalizeCity(event.city) === normalizeCity(city))
+      .every(event => temporalStatus(event, day) === 'past');
+}
+
 export function parseJobs(raw) {
   let rows;
   try { rows = JSON.parse(raw); } catch { stop('PUBLICATION_JOBS invalide'); }
@@ -288,12 +303,92 @@ function projectPages(exportRoot) {
   console.log(`PASS projection ciblée : ${allowed.size} événement(s), fiches tierces conservées`);
 }
 
+// Only the France archive series may grow without a newly authorized event.
+// Check both complete editions, rather than trusting the new page in isolation.
+export function assertNewFranceArchives(oldPages, freshPages, before, after, published, oldDay, day, oldXml, freshXml) {
+  const added = new Set([...freshPages.keys()].filter(file => !oldPages.has(file)));
+  const archive = /^evenements-litteraires-france-archives-[1-9]\d*\.html$/;
+  const france = 'evenements-litteraires-france.html';
+  const archiveFile = number => `evenements-litteraires-france-archives-${number}.html`;
+  if ([...added].some(file => !archive.test(file))) stop('nouvel agrégat hors archives France');
+  if (!added.size) return added;
+  if (!validDate(oldDay) || !validDate(day) || day <= oldDay
+      || !sameSet(new Set(before.keys()), new Set(after.keys()))
+      || !sameSet(new Set(before.keys()), published)) stop('transition archives hors corpus publié ou date');
+  const rows = (events, date) => [...events.values()]
+    .filter(event => event.validated === true && event.rejected === false && event.country_code === 'FR')
+    .sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999')
+      || String(a.title || '').localeCompare(String(b.title || ''), 'fr') || String(a.id).localeCompare(String(b.id)))
+    .map(event => [event.id, temporalStatus(event, date)]);
+  const pastIds = items => items.filter(([, status]) => status === 'past').map(([id]) => id).reverse();
+  const oldRows = rows(before, oldDay), freshRows = rows(after, day);
+  const oldPast = pastIds(oldRows), freshPast = pastIds(freshRows);
+  if (JSON.stringify(pastIds(rows(before, day))) !== JSON.stringify(freshPast)
+      || freshPast.length <= oldPast.length) stop('archives non issues du seul passage du temps');
+  const checkEdition = (pages, items, past) => {
+    const count = Math.ceil(past.length / 50);
+    const expectedFiles = new Set(Array.from({length:count}, (_, i) => archiveFile(i + 1)));
+    const actualFiles = new Set([...pages.keys()].filter(file => file.startsWith('evenements-litteraires-france-archives-')));
+    if (!sameSet(actualFiles, expectedFiles) || !pages.has(france)) stop('pagination archives incohérente');
+    const national = pages.get(france), nationalItems = pageItems(national);
+    const nonPast = new Map(items.filter(([, status]) => status !== 'past'));
+    if (field(national, /data-archive-pages="(\d+)"/) !== String(count)
+        || nationalItems.length !== nonPast.size
+        || nationalItems.some(([id, status]) => nonPast.get(id) !== status)
+        || new Set(nationalItems.map(([id]) => id)).size !== nonPast.size
+        || (count && !national.includes(`href="${archiveFile(1)}"`))) stop('couverture agenda France incohérente');
+    for (let number = 1; number <= count; number++) {
+      const file = archiveFile(number), html = pages.get(file), entries = pageItems(html);
+      const expected = past.slice((number - 1) * 50, number * 50);
+      if (entries.some(([id, status]) => !published.has(id) || status !== 'past')
+          || JSON.stringify(entries.map(([id]) => id)) !== JSON.stringify(expected)) {
+        stop(`événement inconnu, non passé, dupliqué ou perdu dans les archives : ${file}`);
+      }
+      const canonical = `https://dedicalivres.fr/${file}`;
+      const canonicals = [...html.matchAll(/<link rel="canonical" href="([^"]+)"/g)].map(match => match[1]);
+      const pagination = field(html, /<nav aria-label="Pagination des archives">([\s\S]*?)<\/nav>/);
+      const links = [...pagination.matchAll(/href="([^"]+)"/g)].map(match => match[1]);
+      const expectedLinks = [...(number > 1 ? [archiveFile(number - 1)] : []), france,
+        ...(number < count ? [archiveFile(number + 1)] : [])];
+      if (JSON.stringify(canonicals) !== JSON.stringify([canonical])
+          || field(html, /data-archive-page="(\d+)"/) !== String(number)
+          || !html.includes(`Page ${number} sur ${count}.`)
+          || JSON.stringify(links) !== JSON.stringify(expectedLinks)) stop(`pagination ou canonical archives incohérent : ${file}`);
+    }
+    return count;
+  };
+  const oldCount = checkEdition(oldPages, oldRows, oldPast);
+  const freshCount = checkEdition(freshPages, freshRows, freshPast);
+  const expectedAdded = new Set(Array.from({length:Math.max(0, freshCount - oldCount)}, (_, i) => archiveFile(oldCount + i + 1)));
+  if (!sameSet(added, expectedAdded)) stop('création archives hors pagination attendue');
+  const urls = xml => {
+    const entries = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
+    if (entries.length !== new Set(entries).size) stop('URL sitemap territorial dupliquée');
+    return new Set(entries);
+  };
+  const oldUrls = urls(oldXml), freshUrls = urls(freshXml);
+  const archiveUrls = count => Array.from({length:count}, (_, i) => `https://dedicalivres.fr/${archiveFile(i + 1)}`);
+  const inSeries = url => url.startsWith('https://dedicalivres.fr/evenements-litteraires-france-archives-');
+  if (!sameSet(new Set([...oldUrls].filter(inSeries)), new Set(archiveUrls(oldCount)))
+      || !sameSet(new Set([...freshUrls].filter(inSeries)), new Set(archiveUrls(freshCount)))
+      || !sameSet(freshUrls, new Set([...oldUrls, ...[...added].map(file => `https://dedicalivres.fr/${file}`)]))) {
+    stop('sitemap territorial incohérent avec les archives');
+  }
+  return added;
+}
+
 function projectAggregates() {
   const {allowed, day} = context();
   const previous = JSON.parse(baseline(SNAPSHOT)), current = json(SNAPSHOT);
   const {before, after} = assertCatalog(previous, current, allowed);
   const oldDate = JSON.parse(baseline('docs/territoires/audit.json')).today;
   if (!validDate(oldDate)) stop('date historique invalide');
+  const aggregatePath = value => /^evenements-litteraires-.*\.html$/.test(value);
+  const oldPages = new Map(execFileSync('git', ['ls-tree', '--name-only', 'HEAD'], {encoding:'utf8'})
+    .trim().split('\n').filter(aggregatePath).map(file => [file, baseline(file)]));
+  const freshPages = new Map(fs.readdirSync('.').filter(aggregatePath).map(file => [file, read(file)]));
+  const newArchives = assertNewFranceArchives(oldPages, freshPages, before, after,
+    new Set(Object.keys(JSON.parse(baseline(MAP)))), oldDate, day, baseline('sitemap.xml'), read('sitemap.xml'));
   const oldCards = new Map(), newCards = new Map();
   const collect = (target, items) => {
     for (const [id, , markup] of items) {
@@ -304,11 +399,10 @@ function projectAggregates() {
     }
   };
   const restored = new Set(), changed = new Set();
-  for (const file of fs.readdirSync('.').filter(value => /^evenements-litteraires-.*\.html$/.test(value))) {
-    let old;
-    try { old = baseline(file); } catch { old = null; }
-    const fresh = read(file), oldItems = old ? pageItems(old) : [], newItems = pageItems(fresh);
-    if (old === null && newItems.some(([id]) => !allowed.has(id))) stop(`nouvel agrégat tiers : ${file}`);
+  for (const [file, fresh] of freshPages) {
+    const old = oldPages.get(file) ?? null;
+    const oldItems = old ? pageItems(old) : [], newItems = pageItems(fresh);
+    if (old === null && newItems.some(([id]) => !allowed.has(id)) && !newArchives.has(file)) stop(`nouvel agrégat tiers : ${file}`);
     collect(oldCards, oldItems); collect(newCards, newItems);
     for (const [id, status] of oldItems) if (!before.has(id) || temporalStatus(before.get(id), oldDate) !== status) stop(`statut historique incohérent : ${file}/${id}`);
     for (const [id, status] of newItems) if (!after.has(id) || temporalStatus(after.get(id), day) !== status) stop(`statut projeté incohérent : ${file}/${id}`);
@@ -320,6 +414,7 @@ function projectAggregates() {
     if (old === fresh) { restored.add(file); continue; }
     if (old && JSON.stringify(oldItems) === JSON.stringify(newItems)
         && JSON.stringify(previewIds(old)) === JSON.stringify(previewIds(fresh))) {
+      if (temporalArchivePreview(old, fresh, before, after, oldDate, day)) { changed.add(file); continue; }
       if (!metadataOnlyAggregate(old, fresh)) stop(`agrégat modifié sans événement : ${file}`);
       fs.writeFileSync(file, old); restored.add(file);
     } else changed.add(file);
