@@ -42,6 +42,7 @@ jobs:
 
       - name: Test publication lifecycle recipes
         run: |
+          python3 scripts/event-publisher/test-refresh-index.py
           node scripts/test-targeted-publication.mjs
           node scripts/test-event-edit-canonical-cleanup.mjs
           node scripts/test-publication-jobs-canonical.mjs
