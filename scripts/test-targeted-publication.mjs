@@ -154,20 +154,12 @@ try {
         PUBLICATION_JOBS:jobs(row)},
     });
   const approved = job(jobId, id, 'edit');
-  const approvedResult = check(approved);
-  assert.equal(approvedResult.status, 0, approvedResult.stderr);
-  assert.match(approvedResult.stdout, /fiches legacy modifiées : 1\/282/);
-  assert.match(check(job(jobId, id, 'validation')).stderr, /exception legacy Finistellaire invalide/);
+  assert.match(check(approved).stderr, /fiche legacy sélectionnée/);
+  assert.match(check(job(jobId, id, 'validation')).stderr, /fiche legacy sélectionnée/);
   assert.match(check(job(jobId, other, 'edit')).stderr, /fiches tierces modifiées/);
-  const correctedPage = fs.readFileSync(path.join(finistellaireFixture, page), 'utf8');
-  write(page, correctedPage.replace('17 ter rue Stang Bihan', '18 rue Stang Bihan'));
-  assert.match(check(approved).stderr, /correction documentée du lieu/);
-  write(page, correctedPage.replace('<b>Lieu</b> Espace Dan Ar Braz', '<b>Lieu</b> Quimper'));
-  assert.match(check(approved).stderr, /correction documentée du lieu/);
-  write(page, correctedPage);
   write(`evenement/${legacy['legacy-0']}`, 'Fiche tierce changée');
-  assert.match(check(approved).stderr, /fiche legacy protégée|fiches tierces modifiées/);
-  console.log('PASS exception Finistellaire : diff unique, 281 autres protégées');
+  assert.match(check(job(jobId, other, 'edit')).stderr, /fiches tierces modifiées/);
+  console.log('PASS 282 fiches legacy : aucune édition sélectionnée');
 } finally {
   fs.rmSync(finistellaireFixture, {recursive:true, force:true});
 }

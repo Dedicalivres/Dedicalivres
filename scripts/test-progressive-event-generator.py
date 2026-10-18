@@ -370,43 +370,19 @@ with tempfile.TemporaryDirectory() as directory:
     fixture_root = Path(directory) / "site"
     source = fixture_root / "evenement"
     source.mkdir(parents=True)
-    (fixture_root / "docs/territoires").mkdir(parents=True)
-    shutil.copy2(ROOT / "docs/territoires/event-canonical-map.json",
-                 fixture_root / "docs/territoires/event-canonical-map.json")
     protected = json.loads((PUBLISHER / "legacy-enriched-events.json").read_text())["events"]
     for filename in protected.values():
         shutil.copy2(ROOT / "evenement" / filename, source / filename)
-    target_id = "316861b7-0dd1-4ea7-b458-9fd8da849881"
-    target_file = protected[target_id]
+    target_id, target_file = next(iter(protected.items()))
     output = Path(directory) / "generated"
     (output / "evenement").mkdir(parents=True)
-    (output / "event-pages-manifest.json").write_text(
-        json.dumps({"events": {target_id: Path(target_file).stem}}))
     generated = output / "evenement" / target_file
-    fresh = (f'<link rel="canonical" href="https://dedicalivres.fr/evenement/{target_file}">'
-             f'<article data-event-id="{target_id}">DONNÉE CORRIGÉE</article>')
-    generated.write_text(fresh)
-    job = {"id": "a47786e2-16b0-4c0f-abae-a5ba698830ec",
-           "event_id": target_id, "reason": "edit", "attempt_count": 1}
-    environment = {"PUBLICATION_JOBS": json.dumps([job]),
-                   "PUBLICATION_MANUAL_MODE": "execute",
-                   "PUBLICATION_AUTOMATION_ENABLED": "false"}
-    with patch.object(cloud, "ROOT", fixture_root), patch.dict(cloud.os.environ, environment):
-        assert cloud.authorized_legacy_edit() == target_id
-        assert cloud.preserve_pages(output, edited_legacy_event_id=target_id)[0] == 281
-        assert generated.read_text() == fresh
-        assert all((output / "evenement" / filename).read_bytes()
-                   == (source / filename).read_bytes()
-                   for identifier, filename in protected.items() if identifier != target_id)
-        for change in ({"reason": "validation"}, {"event_id": next(
-                identifier for identifier in protected if identifier != target_id)},
-                       {"id": "00000000-0000-4000-8000-000000000001"}):
-            with patch.dict(cloud.os.environ, {"PUBLICATION_JOBS": json.dumps([{**job, **change}])}):
-                try:
-                    cloud.authorized_legacy_edit()
-                except RuntimeError:
-                    pass
-                else:
-                    raise AssertionError("mauvaise identité Finistellaire acceptée")
+    generated.write_text("MODIFICATION NON AUTORISÉE", encoding="utf-8")
+    with patch.object(cloud, "ROOT", fixture_root):
+        assert cloud.preserve_pages(output)[0] == 282
+    assert generated.read_bytes() == (source / target_file).read_bytes()
+    assert all((output / "evenement" / filename).read_bytes()
+               == (source / filename).read_bytes()
+               for filename in protected.values())
 
 print("progressive event generator: PASS")
