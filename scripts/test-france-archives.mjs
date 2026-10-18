@@ -78,7 +78,10 @@ assert.equal(live.stats.upcoming,stats.upcoming+1);
 
 // Exercise the actual browser entry point without installing a browser package.
 const pastEvent=rows.find(e=>e.status==='past');
-const futureEvent=rows.find(e=>e.status==='future');
+const futureEvent={...rows.find(e=>e.status==='future')};
+const futureDate=new Date(Date.now()+2*86400000).toISOString().slice(0,10);
+futureEvent.start_date=futureDate;
+futureEvent.end_date=futureDate;
 const mockEvents=[pastEvent,futureEvent].sort((a,b)=>a.id.localeCompare(b.id));
 let rendered='',supabaseReads=0;
 const content={dataset:{territoryId:'FR'},set outerHTML(value){rendered=value;}};
