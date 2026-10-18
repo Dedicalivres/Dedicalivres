@@ -14,11 +14,6 @@ const FINISTELLAIRE_EDIT = {
   reason: 'edit',
   canonical: 'evenement/festival-finistellaire-2026-quimper-3479.html',
 };
-const FINISTELLAIRE_PENDING = new Set([
-  '3807ee7e-96fd-49bd-b909-0708f0fcf131',
-  '9acc76bd-9356-485f-a8fb-f95d6cfad346',
-  '77ccedcc-655f-424b-a8fe-829115b93ed6',
-]);
 const read = file => fs.readFileSync(file, 'utf8');
 const json = file => JSON.parse(read(file));
 const baseline = file => execFileSync('git', ['show', `HEAD:${file}`], {encoding:'utf8'});
@@ -99,16 +94,38 @@ export function assertManifest(old, manifest, allowed, legacy) {
   }
 }
 
-export function selectPublishedRows(rows, canonical, approved) {
-  if (!approved) return rows;
-  const ids = new Set(rows.map(row => row.id));
-  const extra = [...ids].filter(id => !(id in canonical));
-  if (Object.keys(canonical).length !== 625 || rows.length !== 628 || ids.size !== rows.length
-      || [...Object.keys(canonical)].some(id => !ids.has(id))
-      || !sameSet(new Set(extra), FINISTELLAIRE_PENDING)) {
-    stop('écart canonique Finistellaire différent des trois jobs PENDING identifiés');
+export function selectPublishedRows(rows, canonical, jobs) {
+  if (!Array.isArray(rows) || !canonical || Array.isArray(canonical)
+      || typeof canonical !== 'object' || !jobs || !Array.isArray(jobs.rows)) {
+    stop('sélection publique invalide');
   }
-  return rows.filter(row => !FINISTELLAIRE_PENDING.has(row.id));
+  const selectedJobs = parseJobs(JSON.stringify(jobs.rows));
+  const canonicalIds = new Set(Object.keys(canonical));
+  const canonicalPaths = Object.values(canonical);
+  if (canonicalPaths.some(value => typeof value !== 'string' || !validPath(value))
+      || new Set(canonicalPaths).size !== canonicalPaths.length) stop('canonical publié invalide');
+  const sourceIds = new Set();
+  for (const row of rows) {
+    if (!row || typeof row.id !== 'string' || !/^[0-9a-f-]{36}$/.test(row.id)
+        || sourceIds.has(row.id)) stop('source publique incomplète ou dupliquée');
+    sourceIds.add(row.id);
+  }
+  const expected = new Set(canonicalIds);
+  const selectedIds = new Set();
+  for (const job of selectedJobs.rows) {
+    if (!job.event_id) continue;
+    if (selectedIds.has(job.event_id)) stop('job sélectionné dupliqué');
+    selectedIds.add(job.event_id);
+    if (selectedJobs.removals.has(job.event_id)) {
+      if (!canonicalIds.has(job.event_id)) stop('dépublication sans canonical publié');
+      expected.delete(job.event_id);
+    } else if (!canonicalIds.has(job.event_id)) {
+      if (job.reason !== 'validation') stop('nouvelle publication non autorisée');
+      expected.add(job.event_id);
+    }
+  }
+  if ([...expected].some(id => !sourceIds.has(id))) stop('source publique incomplète');
+  return rows.filter(row => expected.has(row.id));
 }
 
 function finistellaireApproved(jobs, legacyFiles, canonical) {
@@ -236,16 +253,34 @@ export function publishedEventRows(rows) {
   const approved = finistellaireApproved(jobs, legacyFiles, json(MAP));
   if (Object.keys(legacyFiles).length !== 282 || (selectedLegacy.length
       && !(selectedLegacy.length === 1 && approved))) stop('protection 282 legacy');
-  return selectPublishedRows(rows, json(MAP), approved);
+  const current = json(MAP);
+  let canonical = current;
+  if ([...jobs.removals].some(id => !(id in current))) {
+    // Source rechecks run both before and after the publication commit.
+    // Recover only the immediately preceding canonical map, and only when
+    // every difference belongs to the selected jobs.
+    for (const ref of [`HEAD:${MAP}`, `HEAD^:${MAP}`]) {
+      let previous;
+      try { previous = JSON.parse(execFileSync('git', ['show', ref], {encoding:'utf8', stdio:['ignore', 'pipe', 'ignore']})); }
+      catch { continue; }
+      const ids = new Set([...Object.keys(previous), ...Object.keys(current)]);
+      if ([...jobs.removals].every(id => id in previous)
+          && [...ids].every(id => jobs.allowed.has(id) || previous[id] === current[id])) {
+        canonical = previous;
+        break;
+      }
+    }
+  }
+  return selectPublishedRows(rows, canonical, jobs);
 }
 
 function projectPages(exportRoot) {
-  const {allowed, removals, legacy, day, approved} = context();
+  const {allowed, removals, rows, legacy, day} = context();
   const old = JSON.parse(baseline(MAP));
   const manifest = json(path.join(exportRoot, 'event-pages-manifest.json')).events;
   const captured = json(path.join(exportRoot, 'public-events-source.json'));
   if (!Array.isArray(captured)) stop('source publique générée incohérente');
-  const source = selectPublishedRows(captured, old, approved);
+  const source = selectPublishedRows(captured, old, {allowed, removals, rows});
   if (new Set(source.map(event => event.id)).size !== source.length
       || !sameSet(new Set(Object.keys(manifest)), new Set(source.map(event => event.id)))) stop('source publique générée incohérente');
   assertManifest(old, manifest, allowed, legacy);

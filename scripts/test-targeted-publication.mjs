@@ -7,7 +7,7 @@ import {execFileSync, spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {
   parseJobs, assertCatalog, assertManifest, assertEnrichment, assertIndex, assertSitemap, metadataOnlyAggregate,
-  selectPublishedRows,
+  selectPublishedRows, publishedEventRows,
 } from './project-targeted-publication.mjs';
 import {assertSourceSame, assertTerritorialSame, FIELDS, fetchSource} from './verify-publication-source.mjs';
 import {PUBLIC_EVENT_FIELDS} from './territorial-catalog.mjs';
@@ -173,15 +173,63 @@ try {
 }
 console.log('PASS 15 scénarios de publication ciblée');
 
-run('écart canonique exact : trois jobs exclus, aucun autre', () => {
-  const excluded = ['3807ee7e-96fd-49bd-b909-0708f0fcf131',
-    '9acc76bd-9356-485f-a8fb-f95d6cfad346', '77ccedcc-655f-424b-a8fe-829115b93ed6'];
-  const canonical = Object.fromEntries(Array.from({length:625}, (_, i) => [`known-${i}`, `evenement/known-${i}.html`]));
-  const rows = [...Object.keys(canonical), ...excluded].map(id => ({id}));
-  assert.equal(selectPublishedRows(rows, canonical, true).length, 625);
-  assert.throws(() => selectPublishedRows(rows.slice(0, -1), canonical, true), /écart canonique/);
-  assert.throws(() => selectPublishedRows([...rows.slice(0, -1), {id:otherId}], canonical, true), /écart canonique/);
-  assert.equal(selectPublishedRows(rows, canonical, false).length, 628);
+run('sélection générale : édition, validation, exclusion, retrait et stabilité', () => {
+  const canonical = {[ownId]:'evenement/own.html', [otherId]:'evenement/other.html'};
+  const pending = [thirdId, 'dddddddd-dddd-4ddd-dddd-dddddddddddd',
+    'eeeeeeee-eeee-4eee-eeee-eeeeeeeeeeee'];
+  const unexpected = 'ffffffff-ffff-4fff-ffff-ffffffffffff';
+  const rows = [ownId, otherId, ...pending, unexpected].map(id => ({id}));
+  const select = (...selected) => selectPublishedRows(rows, canonical, parseJobs(jobs(...selected)));
+  const edit = select(job(ownId, ownId, 'edit'));
+  assert.deepEqual(edit.map(row => row.id), [ownId, otherId]);
+  assert.deepEqual(selectPublishedRows(rows, canonical, parseJobs(jobs(job(ownId, ownId, 'edit')))), edit);
+  assert.deepEqual(select(job(ownId, thirdId, 'validation')).map(row => row.id), [ownId, otherId, thirdId]);
+  assert.deepEqual(select(job(ownId, ownId, 'unpublish')).map(row => row.id), [otherId]);
+  assert.deepEqual(select(job(ownId, null, 'manual')).map(row => row.id), [ownId, otherId]);
+  assert.throws(() => selectPublishedRows(rows.filter(row => row.id !== otherId), canonical,
+    parseJobs(jobs(job(ownId, ownId, 'edit')))), /incomplète/);
+  assert.throws(() => selectPublishedRows([...rows, rows[0]], canonical,
+    parseJobs(jobs(job(ownId, ownId, 'edit')))), /dupliquée/);
+  assert.throws(() => selectPublishedRows(rows, {[ownId]:'evenement/index.html'},
+    parseJobs(jobs(job(ownId, ownId, 'edit')))), /canonical/);
+  assert.throws(() => select(job(ownId, thirdId, 'edit')), /nouvelle publication/);
+  assert.throws(() => select(job(ownId, thirdId, 'unpublish')), /dépublication sans canonical/);
+  assert.throws(() => select(job(ownId, ownId, 'edit'), job(otherId, ownId, 'edit')), /dupliqué/);
+});
+
+run('relecture source après dépublication : canonical précédent vérifié', () => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'publication-source-after-'));
+  const cwd = process.cwd();
+  const previousJobs = process.env.PUBLICATION_JOBS;
+  try {
+    const write = (name, value) => {
+      const target = path.join(fixture, name);
+      fs.mkdirSync(path.dirname(target), {recursive:true});
+      fs.writeFileSync(target, value);
+    };
+    const git = (...args) => execFileSync('git', args, {cwd:fixture, stdio:'ignore'});
+    git('init', '-q');
+    git('config', 'user.email', 'test@example.invalid');
+    git('config', 'user.name', 'test');
+    write('scripts/event-publisher/legacy-enriched-events.json', JSON.stringify({events:
+      Object.fromEntries(Array.from({length:282}, (_, i) => [`legacy-${i}`, `legacy-${i}.html`]))}));
+    const mapPath = 'docs/territoires/event-canonical-map.json';
+    write(mapPath, JSON.stringify({[ownId]:'evenement/own.html'}));
+    git('add', '-A'); git('commit', '-qm', 'baseline');
+    write(mapPath, '{}');
+    process.chdir(fixture);
+    process.env.PUBLICATION_JOBS = jobs(job(otherId, ownId, 'unpublish'));
+    assert.deepEqual(publishedEventRows([{id:otherId}]), []);
+    git('add', '-A'); git('commit', '-qm', 'publication');
+    assert.deepEqual(publishedEventRows([{id:otherId}]), []);
+    process.env.PUBLICATION_JOBS = jobs(job(otherId, thirdId, 'unpublish'));
+    assert.throws(() => publishedEventRows([{id:otherId}]), /dépublication sans canonical/);
+  } finally {
+    process.chdir(cwd);
+    if (previousJobs === undefined) delete process.env.PUBLICATION_JOBS;
+    else process.env.PUBLICATION_JOBS = previousJobs;
+    fs.rmSync(fixture, {recursive:true, force:true});
+  }
 });
 
 run('16 source complète générateur et territoires', () => {
