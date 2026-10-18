@@ -7,7 +7,7 @@ import {execFileSync, spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {
   parseJobs, assertCatalog, assertManifest, assertEnrichment, assertIndex, assertSitemap, metadataOnlyAggregate,
-  selectPublishedRows,
+  selectPublishedRows, publishedEventRows,
 } from './project-targeted-publication.mjs';
 import {assertSourceSame, assertTerritorialSame, FIELDS, fetchSource} from './verify-publication-source.mjs';
 import {PUBLIC_EVENT_FIELDS} from './territorial-catalog.mjs';
@@ -185,6 +185,7 @@ run('sélection générale : édition, validation, exclusion, retrait et stabili
   assert.deepEqual(selectPublishedRows(rows, canonical, parseJobs(jobs(job(ownId, ownId, 'edit')))), edit);
   assert.deepEqual(select(job(ownId, thirdId, 'validation')).map(row => row.id), [ownId, otherId, thirdId]);
   assert.deepEqual(select(job(ownId, ownId, 'unpublish')).map(row => row.id), [otherId]);
+  assert.deepEqual(select(job(ownId, null, 'manual')).map(row => row.id), [ownId, otherId]);
   assert.throws(() => selectPublishedRows(rows.filter(row => row.id !== otherId), canonical,
     parseJobs(jobs(job(ownId, ownId, 'edit')))), /incomplète/);
   assert.throws(() => selectPublishedRows([...rows, rows[0]], canonical,
@@ -192,6 +193,43 @@ run('sélection générale : édition, validation, exclusion, retrait et stabili
   assert.throws(() => selectPublishedRows(rows, {[ownId]:'evenement/index.html'},
     parseJobs(jobs(job(ownId, ownId, 'edit')))), /canonical/);
   assert.throws(() => select(job(ownId, thirdId, 'edit')), /nouvelle publication/);
+  assert.throws(() => select(job(ownId, thirdId, 'unpublish')), /dépublication sans canonical/);
+  assert.throws(() => select(job(ownId, ownId, 'edit'), job(otherId, ownId, 'edit')), /dupliqué/);
+});
+
+run('relecture source après dépublication : canonical précédent vérifié', () => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'publication-source-after-'));
+  const cwd = process.cwd();
+  const previousJobs = process.env.PUBLICATION_JOBS;
+  try {
+    const write = (name, value) => {
+      const target = path.join(fixture, name);
+      fs.mkdirSync(path.dirname(target), {recursive:true});
+      fs.writeFileSync(target, value);
+    };
+    const git = (...args) => execFileSync('git', args, {cwd:fixture, stdio:'ignore'});
+    git('init', '-q');
+    git('config', 'user.email', 'test@example.invalid');
+    git('config', 'user.name', 'test');
+    write('scripts/event-publisher/legacy-enriched-events.json', JSON.stringify({events:
+      Object.fromEntries(Array.from({length:282}, (_, i) => [`legacy-${i}`, `legacy-${i}.html`]))}));
+    const mapPath = 'docs/territoires/event-canonical-map.json';
+    write(mapPath, JSON.stringify({[ownId]:'evenement/own.html'}));
+    git('add', '-A'); git('commit', '-qm', 'baseline');
+    write(mapPath, '{}');
+    process.chdir(fixture);
+    process.env.PUBLICATION_JOBS = jobs(job(otherId, ownId, 'unpublish'));
+    assert.deepEqual(publishedEventRows([{id:otherId}]), []);
+    git('add', '-A'); git('commit', '-qm', 'publication');
+    assert.deepEqual(publishedEventRows([{id:otherId}]), []);
+    process.env.PUBLICATION_JOBS = jobs(job(otherId, thirdId, 'unpublish'));
+    assert.throws(() => publishedEventRows([{id:otherId}]), /dépublication sans canonical/);
+  } finally {
+    process.chdir(cwd);
+    if (previousJobs === undefined) delete process.env.PUBLICATION_JOBS;
+    else process.env.PUBLICATION_JOBS = previousJobs;
+    fs.rmSync(fixture, {recursive:true, force:true});
+  }
 });
 
 run('16 source complète générateur et territoires', () => {

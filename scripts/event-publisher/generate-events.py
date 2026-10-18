@@ -808,20 +808,32 @@ def select_published_rows(rows, canonical, jobs):
             raise GenerationSeoError('source publique incomplète ou dupliquée')
         source_ids.add(event_id)
     expected = set(canonical)
+    selected_job_ids = set()
     selected_ids = set()
     for job in jobs:
-        if (not isinstance(job, dict) or not isinstance(job.get('event_id'), str)
-                or job.get('reason') not in ('validation', 'edit', 'unpublish', 'delete')
-                or job['event_id'] in selected_ids):
+        if not isinstance(job, dict):
             raise GenerationSeoError('job sélectionné invalide')
-        event_id = job['event_id']
+        job_id, event_id, reason = job.get('id'), job.get('event_id'), job.get('reason')
+        if (not isinstance(job_id, str) or not re.fullmatch(r'[0-9a-f-]{36}', job_id)
+                or job_id in selected_job_ids
+                or reason not in ('validation', 'edit', 'unpublish', 'delete', 'manual')
+                or 'event_id' not in job
+                or (reason == 'manual' and event_id is not None)
+                or (reason != 'manual' and (not isinstance(event_id, str)
+                    or not re.fullmatch(r'[0-9a-f-]{36}', event_id)))):
+            raise GenerationSeoError('job sélectionné invalide')
+        selected_job_ids.add(job_id)
+        if event_id is None:
+            continue
+        if event_id in selected_ids:
+            raise GenerationSeoError('job sélectionné dupliqué')
         selected_ids.add(event_id)
-        if job['reason'] in ('unpublish', 'delete'):
+        if reason in ('unpublish', 'delete'):
             if event_id not in canonical:
                 raise GenerationSeoError('dépublication sans canonical publié')
             expected.discard(event_id)
         elif event_id not in canonical:
-            if job['reason'] != 'validation':
+            if reason != 'validation':
                 raise GenerationSeoError('nouvelle publication non autorisée')
             expected.add(event_id)
     if not expected <= source_ids:

@@ -99,6 +99,7 @@ export function selectPublishedRows(rows, canonical, jobs) {
       || typeof canonical !== 'object' || !jobs || !Array.isArray(jobs.rows)) {
     stop('sélection publique invalide');
   }
+  const selectedJobs = parseJobs(JSON.stringify(jobs.rows));
   const canonicalIds = new Set(Object.keys(canonical));
   const canonicalPaths = Object.values(canonical);
   if (canonicalPaths.some(value => typeof value !== 'string' || !validPath(value))
@@ -111,11 +112,12 @@ export function selectPublishedRows(rows, canonical, jobs) {
   }
   const expected = new Set(canonicalIds);
   const selectedIds = new Set();
-  for (const job of jobs.rows) {
+  for (const job of selectedJobs.rows) {
     if (!job.event_id) continue;
     if (selectedIds.has(job.event_id)) stop('job sélectionné dupliqué');
     selectedIds.add(job.event_id);
-    if (jobs.removals.has(job.event_id)) {
+    if (selectedJobs.removals.has(job.event_id)) {
+      if (!canonicalIds.has(job.event_id)) stop('dépublication sans canonical publié');
       expected.delete(job.event_id);
     } else if (!canonicalIds.has(job.event_id)) {
       if (job.reason !== 'validation') stop('nouvelle publication non autorisée');
@@ -251,7 +253,25 @@ export function publishedEventRows(rows) {
   const approved = finistellaireApproved(jobs, legacyFiles, json(MAP));
   if (Object.keys(legacyFiles).length !== 282 || (selectedLegacy.length
       && !(selectedLegacy.length === 1 && approved))) stop('protection 282 legacy');
-  return selectPublishedRows(rows, json(MAP), jobs);
+  const current = json(MAP);
+  let canonical = current;
+  if ([...jobs.removals].some(id => !(id in current))) {
+    // Source rechecks run both before and after the publication commit.
+    // Recover only the immediately preceding canonical map, and only when
+    // every difference belongs to the selected jobs.
+    for (const ref of [`HEAD:${MAP}`, `HEAD^:${MAP}`]) {
+      let previous;
+      try { previous = JSON.parse(execFileSync('git', ['show', ref], {encoding:'utf8', stdio:['ignore', 'pipe', 'ignore']})); }
+      catch { continue; }
+      const ids = new Set([...Object.keys(previous), ...Object.keys(current)]);
+      if ([...jobs.removals].every(id => id in previous)
+          && [...ids].every(id => jobs.allowed.has(id) || previous[id] === current[id])) {
+        canonical = previous;
+        break;
+      }
+    }
+  }
+  return selectPublishedRows(rows, canonical, jobs);
 }
 
 function projectPages(exportRoot) {

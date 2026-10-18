@@ -47,17 +47,24 @@ pending = ['00000000-0000-4000-8000-000000000001',
 surprise = '00000000-0000-4000-8000-000000000004'
 source = [{'id': identifier} for identifier in [known, other, *pending, surprise]]
 canonical = {known: 'evenement/known.html', other: 'evenement/other.html'}
+job_id = '11111111-1111-4111-8111-111111111111'
+other_job_id = '22222222-2222-4222-8222-222222222222'
+def job(reason, identifier, identifier_job=job_id):
+    return {'id': identifier_job, 'event_id': identifier, 'reason': reason}
 def selected(reason, identifier):
-    return module.select_published_rows(source, canonical, [{'event_id': identifier, 'reason': reason}])
+    return module.select_published_rows(source, canonical, [job(reason, identifier)])
 assert [row['id'] for row in selected('edit', known)] == [known, other]
 assert [row['id'] for row in selected('validation', pending[0])] == [known, other, pending[0]]
 assert [row['id'] for row in selected('unpublish', known)] == [other]
+assert [row['id'] for row in selected('manual', None)] == [known, other]
 assert selected('edit', known) == selected('edit', known)
 for invalid_source, invalid_canonical, selected_jobs in [
-    (source[:-1] + [source[0]], canonical, [{'event_id': known, 'reason': 'edit'}]),
-    (source[1:], canonical, [{'event_id': known, 'reason': 'edit'}]),
-    (source, {known: 'evenement/index.html'}, [{'event_id': known, 'reason': 'edit'}]),
-    (source, canonical, [{'event_id': pending[0], 'reason': 'edit'}]),
+    (source[:-1] + [source[0]], canonical, [job('edit', known)]),
+    (source[1:], canonical, [job('edit', known)]),
+    (source, {known: 'evenement/index.html'}, [job('edit', known)]),
+    (source, canonical, [job('edit', pending[0])]),
+    (source, canonical, [job('unpublish', pending[0])]),
+    (source, canonical, [job('edit', known), job('edit', known, other_job_id)]),
 ]:
     try:
         module.select_published_rows(invalid_source, invalid_canonical, selected_jobs)
