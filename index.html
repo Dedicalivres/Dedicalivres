@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="public-ux">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -60,17 +60,17 @@
 
   <link rel="preload" as="image" href="assets/brand/logo-3d-clair.webp?v=logo3d-1" />
 
-  <link rel="stylesheet" href="style.css?v=regions-entry-1" />
+  <link rel="stylesheet" href="style.css?v=site-ux-01" />
   <link rel="stylesheet" href="mascot-guide.css?v=guide-6" />
-  <link rel="stylesheet" href="ludique.css?v=ludique-23-ticker-overflow-p1-6c-2c" />
-  <link rel="stylesheet" href="accessibilite.css?v=a11y-9" />
+  <link rel="stylesheet" href="ludique.css?v=site-ux-01" />
+  <link rel="stylesheet" href="accessibilite.css?v=site-ux-01" />
   <link rel="stylesheet" href="agenda-premium.css?v=premium-1-p1-6b-1" />
-  <link rel="stylesheet" href="local-preferences.css?v=3" />
+  <link rel="stylesheet" href="local-preferences.css?v=site-ux-01" />
 </head>
 
 <body data-agenda-mode="global">
 
-<header class="header">
+<header class="header public-header">
   <div class="container header-inner">
 
     <a href="index.html" aria-label="Accueil Dédicalivres">
@@ -78,7 +78,7 @@
     </a>
 
     <nav aria-label="Navigation principale">
-      <a href="index.html#agenda">
+      <a href="index.html#agenda" aria-current="page">
         <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 9h16M8 3v4M16 3v4" stroke-linecap="round"/><rect x="7.5" y="12" width="2.4" height="2.4" rx=".5" stroke="none" fill="currentColor"/><rect x="14.1" y="12" width="2.4" height="2.4" rx=".5" stroke="none" fill="currentColor"/></svg>
         <span>Agenda</span>
       </a>
@@ -179,7 +179,7 @@
         <strong>Événements à venir</strong>
       </a>
       <a class="home-magazine-tile purple" href="#saved-events">
-        <strong>Mes événements sauvegardés</strong>
+        <strong>Mes repères</strong>
       </a>
       <a class="home-magazine-tile" href="#agenda-map">
         <strong>Carte en direct</strong>
@@ -189,6 +189,25 @@
 </section>
 
 <main class="container">
+  <section id="current-events" class="section current-events" aria-labelledby="current-events-title">
+    <h2 id="current-events-title">Aujourd’hui et en cours</h2>
+    <p>Les dates annoncées, sans indication des horaires d’ouverture.</p>
+    <div id="current-events-grid" class="events-grid" aria-live="polite"><p>Consultez <a href="#agenda">les prochains événements</a> pendant le chargement de l’agenda.</p></div>
+  </section>
+  <section class="home-discovery section" aria-label="Découvrir les événements">
+    <form action="index.html#agenda" method="get" class="discovery-geography">
+      <label>Pays<select id="discovery-country" name="country"><option value="">Tous les pays</option></select></label>
+      <label>Région<select id="discovery-region" name="region"><option value="">Toutes les régions</option></select></label>
+      <button type="submit" class="btn-secondary">Voir les événements</button>
+    </form>
+    <form action="agenda.html" method="get" class="discovery-nearby">
+      <input type="hidden" name="autour" value="1" />
+      <label>Autour de moi — rayon<select name="rayon" aria-label="Rayon autour de moi"><option value="10">10 km</option><option value="25" selected>25 km</option><option value="50">50 km</option><option value="100">100 km</option></select></label>
+      <button type="submit" class="btn-secondary">Ouvrir l’agenda à proximité</button>
+      <small>Votre position ne sera demandée qu’après un clic sur « Autour de moi » dans l’agenda.</small>
+    </form>
+  </section>
+
 
   <section id="agenda" class="section">
 
@@ -294,7 +313,9 @@
       </div>
     </div>
 
-    <section id="saved-events" class="section saved-events-section is-empty" aria-labelledby="saved-events-title">
+    <details id="saved-events" class="section saved-events-section is-empty" aria-labelledby="saved-events-title">
+      <summary><strong>Mes repères</strong><span id="saved-summary-count">0 favoris · 0 critères suivis</span><span class="saved-panel-hint">Cliquer pour développer</span></summary>
+      <div class="saved-events-body">
       <div class="saved-events-head">
         <div>
           <p class="category-kicker">Mes repères</p>
@@ -329,7 +350,8 @@
       <button id="local-clear" class="btn-secondary" type="button">Effacer mes données locales de favoris et d’auteur</button>
       </details>
     </section>
-    </section>
+      </div>
+    </details>
 
     <p id="results-count" data-static-event-preview-count="true">Aperçu des prochains événements</p>
 
@@ -371,6 +393,8 @@
 
     </div>
 
+    <details id="upcoming-preview" class="upcoming-preview">
+      <summary>Prochains événements — développer le catalogue</summary>
     <!-- STATIC-EVENT-PREVIEW:home:START -->
 <section id="events-grid" class="events-grid" aria-live="polite">
 <article class="event-card type-festival" data-event-id="d6a26b59-1e6d-45ad-9501-a6750e2f875f" data-static-event-preview="true">
@@ -567,6 +591,7 @@
 </article>
 </section>
 <!-- STATIC-EVENT-PREVIEW:home:END -->
+    </details>
 
     <details id="past-events" class="past-events-section">
       <summary>
@@ -638,13 +663,13 @@
 <script src="config.js?v=shared-client-1"></script>
 <script src="geography.js?v=v1-francophone-20260620-map-authors"></script>
 <script src="event-canonical.js?v=1"></script>
-<script src="local-preferences.js?v=2"></script>
-<script src="app.js?v=geography-coherence-1-p1-6b-2"></script>
+<script src="local-preferences.js?v=site-ux-01"></script>
+<script src="app.js?v=site-ux-01"></script>
 
 <script src="tracking-v4.js?v=shared-client-1"></script>
 <script src="ui-effects-v6.js?v=7.7.5"></script>
-<script src="ludique.js?v=ludique-21-p1-6b-1" defer></script>
-<script src="accessibilite.js?v=a11y-8-p1-6c-2b" defer></script>
+<script src="ludique.js?v=site-ux-01" defer></script>
+<script src="accessibilite.js?v=site-ux-01" defer></script>
 <script src="agenda-premium.js?v=premium-1-p1-6b-1" defer></script>
 
 <script>

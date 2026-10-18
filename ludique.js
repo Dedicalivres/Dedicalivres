@@ -80,7 +80,6 @@
     setupStamp();            // n°8
     setupHighlighter();      // n°9
     setupFavoriteCorner();   // n°3 persistant
-    setupBackTop();
     setupCalendarStagger();
     setupPageRain();         // easter egg
     injectWidgetLink();      // lien partenaires dans le footer
@@ -561,23 +560,6 @@
 
 
 
-
-  /* ---------- Bouton retour en haut (conservé) ---------- */
-  function setupBackTop() {
-    if (document.getElementById("lud-back-top")) return;
-    var btn = document.createElement("button");
-    btn.id = "lud-back-top";
-    btn.type = "button";
-    btn.setAttribute("aria-label", "Retour en haut de page");
-    btn.textContent = "↑";
-    document.body.appendChild(btn);
-    window.addEventListener("scroll", function () {
-      btn.classList.toggle("lud-show", window.scrollY > 600);
-    }, { passive: true });
-    btn.addEventListener("click", function () {
-      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-    });
-  }
 
   /* ---------- Cascade du calendrier (conservée) ---------- */
   function staggerCalendar() {

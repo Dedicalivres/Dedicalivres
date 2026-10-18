@@ -295,7 +295,7 @@
           </div>
 
           <div class="regional-map-panel-actions">
-            <a class="btn-primary" href="${getAgendaHref()}">Voir dans l’agenda</a>
+            <a class="btn-primary" href="${getAgendaHref()}">${selectedCount} événements trouvés — Voir les résultats ↓</a>
             <a class="btn-secondary" href="soumettre.html">Proposer un événement</a>
           </div>
         </aside>
@@ -365,7 +365,7 @@
     const href = getAgendaHref();
     const url = new URL(href, window.location.href);
 
-    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${window.location.hash}`);
     window.dispatchEvent(new CustomEvent("dedicalivres:regional-selection", {
       detail: {
         countryCode: state.countryCode,
@@ -376,7 +376,6 @@
     const agenda = document.getElementById("agenda");
 
     if (agenda) {
-      agenda.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
 

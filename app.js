@@ -149,6 +149,7 @@
 
   function init() {
     initGeographyControls();
+    initHomeDiscovery();
     bindEvents();
     bindFavorites();
     bindImagePreview();
@@ -692,6 +693,9 @@
           zoom: 5
         };
         map = L.map("map").setView(mapView.center, mapView.zoom);
+        const updateEuropeMinZoom = () => map.setMinZoom(Math.max(2, map.getBoundsZoom([[34, -15], [72, 40]])));
+        updateEuropeMinZoom();
+        if ("ResizeObserver" in window) new ResizeObserver(updateEuropeMinZoom).observe(mapElement);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution: "&copy; OpenStreetMap contributors"
         }).addTo(map);
@@ -730,7 +734,7 @@
   async function loadEvents() {
     setLoadingState();
 
-    const legacyColumns = "id,title,type,country_code,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng";
+    const legacyColumns = "id,title,validated,rejected,type,country_code,region,city,start_date,end_date,price,website,description,image_url,featured,verified,lat,lng";
     const registrationColumns = "registration_enabled,registration_open_date,registration_deadline,registration_url,registration_audience,registration_note,registration_force_status";
     let response = await fetchPublicCatalog(`${legacyColumns},${registrationColumns}`);
 
@@ -773,6 +777,7 @@
     window.dispatchEvent(new CustomEvent('dedicalivres:catalog-loaded', { detail: allEvents.filter(event => !isPastEvent(event)).map(event => ({ ...event, country_code: geo?.getCountryCode(event) || event.country_code })) }));
     renderFilteredEvents();
     renderSavedFavorites();
+    renderCurrentEvents();
   }
 
   function renderFilteredEvents() {
@@ -1092,6 +1097,55 @@
     ].join("-");
   }
 
+  function parisDateKey(now = new Date()) {
+    const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+    const value = type => parts.find(part => part.type === type).value;
+    return `${value("year")}-${value("month")}-${value("day")}`;
+  }
+
+  function selectCurrentEvents(events, today = parisDateKey()) {
+    const validDate = value => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+    const seen = new Set();
+    return events.filter(event => {
+      const end = event.end_date || event.start_date;
+      if (!event.id || seen.has(String(event.id)) || event.validated !== true || event.rejected !== false || !validDate(event.start_date) || !validDate(end) || event.start_date > today || end < today || end < event.start_date) return false;
+      seen.add(String(event.id));
+      return true;
+    }).sort((a, b) => Number(b.start_date === today) - Number(a.start_date === today) || a.start_date.localeCompare(b.start_date) || String(a.id).localeCompare(String(b.id))).slice(0, 4);
+  }
+
+  function renderCurrentEvents() {
+    const grid = document.getElementById("current-events-grid");
+    if (!grid) return;
+    const today = parisDateKey();
+    const events = selectCurrentEvents(allEvents, today);
+    grid.innerHTML = events.length ? events.map(event => `<div class="current-event"><p class="current-event-label">${event.start_date === today ? "Commence aujourd’hui" : "En cours"}</p>${renderEventCard(event)}</div>`).join("") : '<p>Aucun événement annoncé aujourd’hui. <a href="#events-grid">Voir les prochains événements</a>.</p>';
+    refreshFavoriteButtons();
+  }
+
+  function initHomeDiscovery() {
+    const country = document.getElementById("discovery-country");
+    const region = document.getElementById("discovery-region");
+    if (country && region && geo) {
+      geo.populateCountrySelect(country, { includeAll: true, selected: "", allLabel: "Tous les pays" });
+      const update = () => { geo.populateSubdivisionSelect(region, country.value); region.disabled = !country.value; };
+      country.addEventListener("change", update);
+      update();
+    }
+    const preview = document.getElementById("upcoming-preview");
+    const filters = document.getElementById("agenda-filters");
+    if (preview && filters) {
+      const requested = new URLSearchParams(window.location.search);
+      if (["country", "region", "type", "q", "month"].some(key => requested.get(key))) preview.open = true;
+      const openPreviewAnchor = () => { if (["#events-grid", "#upcoming-preview"].includes(window.location.hash)) preview.open = true; };
+      window.addEventListener("hashchange", openPreviewAnchor);
+      openPreviewAnchor();
+      filters.addEventListener("change", () => { preview.open = true; });
+      filters.addEventListener("click", event => { if (event.target.closest("button")) preview.open = true; });
+      filters.addEventListener("input", () => { preview.open = true; });
+    }
+  }
+
   function isPastEvent(event) {
     const eventEnd = parseLocalDate(event.end_date || event.start_date);
 
@@ -1361,6 +1415,7 @@
     }
 
     eventsGrid?.addEventListener("click", handleFavoriteClick);
+    document.getElementById("current-events-grid")?.addEventListener("click", handleFavoriteClick);
     favoritesList?.addEventListener("click", handleFavoriteClick);
 
     window.addEventListener("storage", (event) => {

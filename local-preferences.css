@@ -25,3 +25,16 @@
 #local-discoveries .local-criteria-picker label { display: grid; gap: 6px; font-weight: 600; min-width: 0; }
 #local-discoveries .local-criteria-picker select { width: 100%; min-width: 0; min-height: 44px; font: inherit; padding: 8px; border: 1px solid #b8a6cd; border-radius: 8px; }
 @media (max-width: 600px) { #local-discoveries .local-criteria-picker { grid-template-columns: 1fr; } }
+
+/* Native disclosure keeps every local action and its existing storage contract. */
+details#saved-events { padding:14px 16px; }
+#saved-events > summary { cursor:pointer; min-height:44px; line-height:1.6; }
+#saved-events > summary strong { font-size:1.1rem; margin-right:12px; }
+#saved-summary-count { display:inline-block; }
+.saved-panel-hint { display:block; font-size:.9rem; color:var(--muted); }
+#saved-events .saved-events-body { padding-top:16px; }
+#saved-events .saved-events-head { margin-bottom:12px; }
+#saved-events.is-empty .favorites-list { display:block; }
+#saved-events.is-empty h2::after { content:none; }
+#saved-events:target { scroll-margin-top:130px; }
+@media (max-width:680px) { #saved-events:target { scroll-margin-top:16px; } }

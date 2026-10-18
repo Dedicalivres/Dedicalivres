@@ -212,9 +212,9 @@
 
 /* ---------- Rubans défilants cliquables ---------- */
 .lud-ticker{
-  background:#3a1c71; color:#fff; overflow:hidden; padding:11px 0;
+  background:#3a1c71; color:#fff; overflow:hidden; padding:8px 0;
   transform: rotate(-1.1deg) scale(1.02);
-  margin:18px 0 8px;
+  margin:12px 0 6px;
   box-shadow:0 14px 34px rgba(58,28,113,.28);
   position:relative; z-index:3;
 }
@@ -261,7 +261,7 @@
   opacity:.85; font-weight:600; margin-right:8px;
 }
 /* si le ruban événements est absent, redonner sa marge au ruban pays */
-.lud-ticker:last-of-type{ margin-bottom:46px }
+.lud-ticker:last-of-type{ margin-bottom:24px }
 
 /* ---------- Divers conservés ---------- */
 .btn-primary, .btn-secondary{
@@ -283,17 +283,6 @@
 }
 .agenda-calendar-day:not(.is-empty):hover{ transform:scale(1.12); z-index:2 }
 
-#lud-back-top{
-  position:fixed; bottom:24px; right:24px; width:54px; height:54px;
-  border-radius:50%; border:none; z-index:900;
-  background:linear-gradient(135deg,#ff6b35,#e95825); color:#fff;
-  font-size:22px; cursor:pointer;
-  box-shadow:0 12px 28px rgba(255,107,53,.45);
-  opacity:0; pointer-events:none; transform:translateY(20px);
-  transition: opacity .3s, transform .4s var(--lud-boing);
-}
-#lud-back-top.lud-show{ opacity:1; pointer-events:auto; transform:translateY(0) }
-#lud-back-top:hover{ transform:translateY(-5px) scale(1.08) }
 
 /* ---------- Mobile ---------- */
 @media (max-width: 680px){

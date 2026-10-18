@@ -49,6 +49,8 @@ try {
   });
   const home = await context.newPage();
   await home.goto('http://local.test/index.html');
+  if (!await home.locator('#upcoming-preview').evaluate(el => el.open)) await home.locator('#upcoming-preview > summary').click();
+  await home.locator('#saved-events > summary').click();
   await home.locator('#events-grid [data-favorite-id="1"]').waitFor();
   await home.selectOption('#country-filter', 'FR');
   await home.selectOption('#region-filter', 'Bretagne');
@@ -63,6 +65,7 @@ try {
   assert.equal(await home.locator('#local-rules li').count(), 2);
   assert.match(await home.locator('#local-feedback').textContent(), /déjà enregistré/);
   await home.reload();
+  if (!await home.locator('#upcoming-preview').evaluate(el => el.open)) await home.locator('#upcoming-preview > summary').click();
   await home.locator('#events-grid [data-favorite-id="1"]').waitFor();
   assert.equal(await home.locator('#local-rules li').count(), 2);
   await home.locator('#local-rules li').nth(1).locator('button').click();
@@ -91,6 +94,7 @@ try {
   assert.equal(await detail.locator('[name=legal_accept]').isChecked(), false);
   catalog = [base, { ...base, id: '2', title: 'Nouvelle rencontre littéraire à Rennes' }, { ...base, id: '3', country_code: 'BE' }];
   await home.reload();
+  if (!await home.locator('#upcoming-preview').evaluate(el => el.open)) await home.locator('#upcoming-preview > summary').click();
   await home.locator('#local-results a').waitFor();
   assert.equal(await home.locator('#local-results a').count(), 1);
   // Freeze decorative movement for reproducible captures, keeping the real CSS layout.
@@ -103,6 +107,7 @@ try {
   await home.locator('#saved-events').screenshot({ path: path.join(output, engine + '-favoris-desktop.png') });
   await home.click('#local-seen');
   await home.reload();
+  if (!await home.locator('#upcoming-preview').evaluate(el => el.open)) await home.locator('#upcoming-preview > summary').click();
   await home.waitForFunction(() => document.querySelector('#local-count')?.textContent === 'Vous êtes à jour');
   await home.locator('#local-discoveries summary').click();
   home.on('dialog', d => d.accept());

@@ -8611,6 +8611,66 @@ html.a11y-soir .participant-option-artist { color: #d5b3ff; }
   }
 }
 
+/* SITE-UX-01: primary public header, separate from generated-page navigation. */
+.header.public-header .header-inner { min-height: 112px; gap: 24px; padding-block: 8px; }
+.header.public-header .logo { width: auto; height: 96px; max-width: 160px; object-fit: contain; }
+.header.public-header nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(800px, 78%); gap: 8px; }
+.header.public-header nav > a,
+.header.public-header nav > .a11y-nav-btn { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; border-radius: 12px; box-sizing: border-box; font-size: .86rem; line-height: 1.25; text-align: center; white-space: normal; }
+.header.public-header nav span { display: inline; min-width: 0; overflow-wrap: anywhere; }
+.header.public-header nav a[aria-current="page"] { background: rgba(58,28,113,.1); box-shadow: inset 0 0 0 2px currentColor; }
+.header.public-header nav a.nav-submit-link { background: #f36a2c; color: #fff; }
+.header.public-header nav .nav-ico { flex: none; width: 18px; height: 18px; }
+.header.public-header nav :focus-visible { outline: 3px solid #8e3e00; outline-offset: 3px; }
+html.public-ux { scroll-padding-top: 130px; }
+html.public-ux body .section { margin-block: 24px; }
+html.public-ux body .seo-hero { padding: 22px; margin-block: 22px; }
+html.public-ux body .seo-hero h1,
+html.public-ux body .wg-hero h1 { font-size: clamp(1.65rem, 3vw, 2.35rem); line-height: 1.25; }
+html.public-ux body .seo-hero p { margin-block: 10px; }
+.home-magazine .home-magazine-card { display: block; padding: clamp(18px, 3vw, 28px); }
+.home-magazine h1 { font-size: clamp(1.55rem, 2.6vw, 2.15rem); line-height: 1.25; }
+.home-magazine .home-magazine-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.home-magazine .home-magazine-tile { min-height: 44px; padding: 10px 16px; border-radius: 12px; }
+.home-magazine .home-magazine-tile strong { font-size: .95rem; }
+.home-magazine .home-magazine-tile:hover { transform: none; }
+.home-magazine .home-magazine-actions { gap: 10px; margin-top: 14px; }
+.current-events > p { margin: 8px 0 16px; color: var(--muted); }
+.current-events .events-grid { grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+.current-event { min-width: 0; }
+.current-event-label { font-weight: 800; margin: 0 0 8px; color: var(--purple); }
+.current-events .event-card { margin: 0; }
+.home-discovery { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.home-discovery form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; padding: 16px; border: 1px solid #b8a6cd; border-radius: 16px; }
+.home-discovery label { flex: 1 1 140px; display: grid; gap: 6px; min-width: 0; font-weight: 700; }
+.home-discovery select { width: 100%; min-width: 0; min-height: 44px; padding: 8px; font: inherit; color: inherit; background: var(--card, #fff); border: 1px solid #b8a6cd; border-radius: 8px; }
+.home-discovery small { flex-basis: 100%; }
+.upcoming-preview > summary { cursor: pointer; min-height: 44px; padding: 12px; font-weight: 800; color: var(--purple); }
+.upcoming-preview[open] > summary { margin-bottom: 16px; }
+.community-invitation { max-width: 75ch; margin: 0 0 18px; line-height: 1.6; }
+.testimonials-page .testimonial-hero-card { padding: 18px; margin-top: 14px; }
+.testimonials-page .testimonial-form-card,
+.submit-page-main .submission-form-card { padding: clamp(16px, 3vw, 26px); }
+.wg-page { padding-top: 24px; }
+@media (max-width: 900px) {
+  .header.public-header .header-inner { gap: 14px; }
+  .header.public-header .logo { height: 80px; max-width: 120px; }
+  .header.public-header nav { width: 100%; }
+  .header.public-header nav > a, .header.public-header nav > .a11y-nav-btn { font-size: .8rem; padding-inline: 6px; }
+}
+@media (max-width: 680px) {
+  .header.public-header { position: relative; }
+  .header.public-header .header-inner { flex-direction: column; padding-block: 10px; gap: 10px; }
+  .header.public-header .logo { height: 58px; max-width: 140px; }
+  .header.public-header nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .header.public-header nav > a, .header.public-header nav > .a11y-nav-btn { min-height: 44px; font-size: .84rem; }
+  html.public-ux { scroll-padding-top: 16px; }
+  .home-discovery { grid-template-columns: 1fr; }
+  .home-magazine .home-magazine-grid { gap: 8px; }
+  .home-magazine .home-magazine-tile { flex: 1 1 130px; }
+  html.public-ux body .seo-hero { padding: 18px; }
+}
+
 /* =========================================================
    PRÉSENCES DÉCLARÉES — identité visuelle par profil
    Auteur / Artiste-auteur / Hybride / Maison d’édition

@@ -291,6 +291,21 @@
       '<a class="w-foot" href="' + SITE + '" target="_blank" rel="noopener">Voir tout l\u2019agenda \u2192 dedicalivres.fr</a>' +
       "</div>";
     var list = root.querySelector(".w-list");
+    if (el.id === "agenda-widget" && /\/agenda\.html$/.test(location.pathname)) {
+      var comfortStyles = document.createElement("style");
+      comfortStyles.textContent = ".w.dyslexie,.w.dyslexie *{font-family:OpenDyslexic,system-ui,sans-serif!important;letter-spacing:.06em;line-height:1.6} .w.daltonien{color:#172d42} .w.daltonien .w-head,.w.daltonien .w-geo{background:#0072b2} .w.soir.daltonien{color:#f1eafb}";
+      root.appendChild(comfortStyles);
+      function syncComfort() {
+        var classes = document.documentElement.classList;
+        var shell = root.querySelector(".w");
+        shell.classList.toggle("soir", classes.contains("a11y-soir"));
+        shell.classList.toggle("clair", !classes.contains("a11y-soir"));
+        shell.classList.toggle("dyslexie", classes.contains("a11y-dyslexie"));
+        shell.classList.toggle("daltonien", classes.contains("a11y-daltonien"));
+      }
+      syncComfort();
+      window.addEventListener("dedicalivres:comfort", syncComfort);
+    }
 
     function paint(events) {
       var vus = events.slice(0, cfg.limit);  // le pool sert au tri, on n'affiche que cfg.limit
@@ -331,15 +346,20 @@
               return !cfg.rayon || e.__dist <= cfg.rayon;
             }).sort(function (a, b) { return a.__dist - b.__dist; });
 
-            paint(near.length ? near : pool.slice(0));
+            paint(near);
             btn.disabled = false;
             btn.querySelector("span").textContent = near.length
               ? "Trié par distance"
               : (cfg.rayon ? "Rien \u00e0 moins de " + cfg.rayon + " km" : "Autour de moi");
+          }).catch(function () {
+            paint([]);
+            btn.disabled = false;
+            btn.querySelector("span").textContent = "Agenda momentanément indisponible";
           });
-        }, function () {
+        }, function (error) {
+          paint([]);
           btn.disabled = false;
-          btn.querySelector("span").textContent = "Localisation refus\u00e9e";
+          btn.querySelector("span").textContent = error.code === 1 ? "Localisation refusée" : "Position indisponible";
         }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
       };
 
