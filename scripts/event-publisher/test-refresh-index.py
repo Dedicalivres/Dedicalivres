@@ -1,6 +1,7 @@
 import datetime as dt
 import importlib.util
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -165,17 +166,31 @@ class RefreshIndexTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'non suivi'):
                     refresh.verify_git_diff(root, dt.date(2026, 10, 10))
 
-    def test_paris_date_and_production_sitemap_count(self):
+    def test_paris_date_and_production_sitemap_invariants(self):
         instant = dt.datetime(2026, 10, 17, 22, 30, tzinfo=dt.timezone.utc)
         self.assertEqual(refresh.paris_today(instant), dt.date(2026, 10, 18))
         source = (HERE.parent.parent / 'sitemap-evenements.xml').read_text()
-        self.assertEqual(refresh.sitemap_index_entry(source, INDEX_URL), '2026-10-18')
-        self.assertEqual(source.count('<url>'), 626)
-        self.assertEqual(refresh.updated_sitemap(source, INDEX_URL, dt.date(2026, 10, 18)), source)
-        tomorrow = refresh.updated_sitemap(source, INDEX_URL, dt.date(2026, 10, 19))
-        self.assertEqual(tomorrow.count('<url>'), 626)
-        self.assertEqual(tomorrow.replace('<lastmod>2026-10-19</lastmod>',
-                                          '<lastmod>2026-10-18</lastmod>', 1), source)
+        lastmod = dt.date.fromisoformat(refresh.sitemap_index_entry(source, INDEX_URL))
+        self.assertEqual(refresh.updated_sitemap(source, INDEX_URL, lastmod), source)
+
+        next_date = lastmod + dt.timedelta(days=1)
+        updated = refresh.updated_sitemap(source, INDEX_URL, next_date)
+        self.assertEqual(refresh.sitemap_index_entry(updated, INDEX_URL), next_date.isoformat())
+        self.assertEqual(refresh.updated_sitemap(updated, INDEX_URL, next_date), updated)
+
+        blocks = lambda text: re.findall(r'<url>.*?</url>', text, re.S)
+        before, after = blocks(source), blocks(updated)
+        self.assertGreater(len(before), 1)
+        self.assertEqual(len(after), len(before))
+        urls = lambda entries: [re.search(r'<loc>([^<]+)</loc>', entry).group(1)
+                                for entry in entries]
+        self.assertEqual(urls(after), urls(before))
+        for url, original, refreshed in zip(urls(before), before, after):
+            if url == INDEX_URL:
+                self.assertEqual(refreshed.replace(f'<lastmod>{next_date}</lastmod>',
+                                                   f'<lastmod>{lastmod}</lastmod>'), original)
+            else:
+                self.assertEqual(refreshed, original)
 
 
 if __name__ == '__main__':
