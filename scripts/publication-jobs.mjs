@@ -36,18 +36,6 @@ const DOUAI_JOB = {
   reason: "validation",
 };
 
-const FINISTELLAIRE_EDIT = {
-  id: "a47786e2-16b0-4c0f-abae-a5ba698830ec",
-  eventId: "316861b7-0dd1-4ea7-b458-9fd8da849881",
-  reason: "edit",
-  canonical: "evenement/festival-finistellaire-2026-quimper-3479.html",
-};
-
-const FINISTELLAIRE_EXCLUDED_JOBS = [
-  { id: "8c3a9b53-fae8-482e-bfa9-be1c2cb2d397", eventId: "3807ee7e-96fd-49bd-b909-0708f0fcf131" },
-  { id: "18d9141a-917e-42d2-9f41-c598231ef6f3", eventId: "9acc76bd-9356-485f-a8fb-f95d6cfad346" },
-  { id: "dca88c9e-cffb-44e5-9453-e03bbf6bf0a4", eventId: "77ccedcc-655f-424b-a8fe-829115b93ed6" },
-];
 
 const AUTOMATIC_BATCH_LIMIT = 3;
 
@@ -124,16 +112,6 @@ function targetEventId(
   );
 }
 
-function isFinistellaireEdit(row) {
-  return row?.id === FINISTELLAIRE_EDIT.id
-    && row.event_id === FINISTELLAIRE_EDIT.eventId
-    && row.target_event_id === FINISTELLAIRE_EDIT.eventId
-    && row.reason === FINISTELLAIRE_EDIT.reason
-    && legacyEvents[FINISTELLAIRE_EDIT.eventId]
-      === FINISTELLAIRE_EDIT.canonical.replace("evenement/", "")
-    && canonicalMap[FINISTELLAIRE_EDIT.eventId] === FINISTELLAIRE_EDIT.canonical;
-}
-
 
 function isDepublicationReason(
   reason
@@ -152,7 +130,6 @@ function shouldAuthorizeCanonicalRemoval(
     isDepublicationReason(row.reason)
     || (
       row.reason === "edit"
-      && !isFinistellaireEdit(row)
       && canonicalDepublicationPath(row) !== null
     )
   );
@@ -513,24 +490,6 @@ async function readSelection(path) {
   catch { throw new Error("STOP manuel : lecture Supabase impossible"); }
 }
 
-async function readFinistellaireExcludedJobs() {
-  const ids = FINISTELLAIRE_EXCLUDED_JOBS.map((job) => job.eventId).join(",");
-  const rows = await readSelection("event_publication_jobs?or=(event_id.in.("
-    + ids + "),target_event_id.in.(" + ids + "))"
-    + "&select=id,event_id,target_event_id,reason,status,attempt_count,batch_id,commit_sha");
-  if (!Array.isArray(rows) || rows.length !== FINISTELLAIRE_EXCLUDED_JOBS.length
-      || new Set(rows.map((row) => row.id)).size !== rows.length
-      || FINISTELLAIRE_EXCLUDED_JOBS.some((expected) => !rows.some((row) =>
-        row.id === expected.id && row.event_id === expected.eventId
-        && row.target_event_id === expected.eventId
-        && row.reason === "validation" && row.status === "PENDING"
-        && row.attempt_count === 0
-        && row.batch_id === null && row.commit_sha === null))) {
-    throw new Error("STOP Finistellaire : les trois jobs exclus ont changé");
-  }
-  return rows.sort((a, b) => a.id.localeCompare(b.id));
-}
-
 async function selectedBatch(execute) {
   if (PREACTIVATION_TEST || P0_RECOVERY || DOUAI_MANUAL
       || !["false", "true"].includes(process.env.PUBLICATION_AUTOMATION_ENABLED)) {
@@ -560,11 +519,7 @@ async function selectedBatch(execute) {
       || !row.target_event_id || !row.requested_at
       || (row.event_id !== null && row.event_id !== row.target_event_id)
       || (row.reason === "delete" && row.event_id !== null)
-      || (row.id === FINISTELLAIRE_EDIT.id && !isFinistellaireEdit(row))
-      || (legacyEvents[row.target_event_id] && !isDepublicationReason(row.reason)
-        && !(ids.length === 1
-          && process.env.PUBLICATION_AUTOMATION_ENABLED === "false"
-          && isFinistellaireEdit(row)))
+      || (legacyEvents[row.target_event_id] && !isDepublicationReason(row.reason))
       || (shouldAuthorizeCanonicalRemoval(row) && !canonicalDepublicationPath(row)))) {
     throw new Error("STOP manuel : job PENDING incompatible");
   }
@@ -585,9 +540,6 @@ async function selectedBatch(execute) {
   const fingerprintData = {
     ids, jobs, events: eventIds.map((id) => eventById.get(id) || null),
   };
-  if (jobs.some(isFinistellaireEdit)) {
-    fingerprintData.excludedJobs = await readFinistellaireExcludedJobs();
-  }
   const fingerprint = createHash("sha256")
     .update(JSON.stringify(stable(fingerprintData))).digest("hex");
   if (execute && fingerprint !== MANUAL_FINGERPRINT) {
@@ -640,42 +592,6 @@ async function claimSelected() {
   setOutput("job_count", String(claimed.length));
   setOutput("blocked_count", "0");
   console.log(`Batch ${batchId} : ${claimed.length} job(s) manuel(s) réservé(s)`);
-}
-
-async function verifyFinistellaireExcluded() {
-  let claimed;
-  try { claimed = JSON.parse(process.env.PUBLICATION_JOBS || "[]"); }
-  catch { throw new Error("STOP Finistellaire : identité de publication invalide"); }
-  if (!Array.isArray(claimed)) throw new Error("STOP Finistellaire : identité de publication invalide");
-  if (!claimed.some((row) => row.id === FINISTELLAIRE_EDIT.id
-      || row.event_id === FINISTELLAIRE_EDIT.eventId)) return;
-  const row = claimed[0];
-  const batchId = process.env.PUBLICATION_BATCH_ID;
-  if (claimed.length !== 1 || row.id !== FINISTELLAIRE_EDIT.id
-      || row.event_id !== FINISTELLAIRE_EDIT.eventId
-      || row.reason !== FINISTELLAIRE_EDIT.reason
-      || row.attempt_count !== 1 || !batchId
-      || process.env.PUBLICATION_MANUAL_MODE !== "execute"
-      || process.env.PUBLICATION_AUTOMATION_ENABLED !== "false") {
-    throw new Error("STOP Finistellaire : identité de publication invalide");
-  }
-  const running = await readSelection("event_publication_jobs?status=eq.RUNNING&select=id,batch_id&limit=2");
-  if (!Array.isArray(running) || running.length !== 1
-      || running[0].id !== row.id || running[0].batch_id !== batchId) {
-    throw new Error("STOP Finistellaire : publication concurrente");
-  }
-  const own = await readSelection("event_publication_jobs?id=eq."
-    + row.id + "&select=id,event_id,target_event_id,reason,status,attempt_count,batch_id,commit_sha");
-  if (!Array.isArray(own) || own.length !== 1
-      || own[0].event_id !== FINISTELLAIRE_EDIT.eventId
-      || own[0].target_event_id !== FINISTELLAIRE_EDIT.eventId
-      || own[0].reason !== "edit" || own[0].status !== "RUNNING"
-      || own[0].attempt_count !== 1
-      || own[0].batch_id !== batchId || own[0].commit_sha !== null) {
-    throw new Error("STOP Finistellaire : réservation modifiée");
-  }
-  await readFinistellaireExcludedJobs();
-  console.log("PASS Finistellaire : trois jobs exclus inchangés avant publication");
 }
 
 
@@ -1279,11 +1195,6 @@ if (
   await claim();
 
 } else if (
-  command === "verify-finistellaire-excluded"
-) {
-  await verifyFinistellaireExcluded();
-
-} else if (
   command === "canary-incident"
 ) {
   await canaryIncident();
@@ -1306,6 +1217,6 @@ if (
 } else {
   throw new Error(
     "Commande attendue : "
-    + "preflight | preview-selected | claim | verify-finistellaire-excluded | success | fail | verify-recovery"
+    + "preflight | preview-selected | claim | success | fail | verify-recovery"
   );
 }

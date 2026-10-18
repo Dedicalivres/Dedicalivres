@@ -854,7 +854,6 @@ def main():
     ap.add_argument('--dry-run', action='store_true', help='valider sans remplacer la sortie locale')
     ap.add_argument('--progressive-event-id', action='append', default=[], help='activer le nouveau HTML uniquement pour cet ID public non legacy ; option absente par défaut')
     ap.add_argument('--authorized-depublication-event-id', action='append', default=[], help='ID du job de dépublication autorisé, vérifié par le wrapper cloud')
-    ap.add_argument('--finistellaire-legacy-edit', action='store_true', help='exception ciblée vérifiée par le wrapper cloud')
     args = ap.parse_args()
     expected_output = (project_root / 'exports' / 'site-seo').resolve()
     output = Path(args.sortie).expanduser().resolve()
@@ -868,30 +867,7 @@ def main():
             canonical = json.loads((source_root.parent.parent / 'docs/territoires/event-canonical-map.json').read_text(encoding='utf-8'))
             jobs = json.loads(os.environ.get('PUBLICATION_JOBS') or '[]')
             selected_rows = select_published_rows(rows, canonical, jobs)
-        if args.finistellaire_legacy_edit:
-            job = json.loads(os.environ.get('PUBLICATION_JOBS') or '[]')
-            target = '316861b7-0dd1-4ea7-b458-9fd8da849881'
-            canonical = json.loads((source_root.parent.parent / 'docs/territoires/event-canonical-map.json').read_text(encoding='utf-8'))
-            if not (isinstance(job, list) and len(job) == 1 and isinstance(job[0], dict)
-                    and all(job[0].get(k) == v for k, v in {
-                        'id': 'a47786e2-16b0-4c0f-abae-a5ba698830ec',
-                        'event_id': target, 'reason': 'edit'}.items())):
-                raise GenerationSeoError('exception Finistellaire : job invalide')
-            if (os.environ.get('PUBLICATION_MANUAL_MODE') != 'execute'
-                    or os.environ.get('PUBLICATION_AUTOMATION_ENABLED') != 'false'
-                    or canonical.get(target) != 'evenement/festival-finistellaire-2026-quimper-3479.html'
-                    or target not in {row['id'] for row in selected_rows}):
-                raise GenerationSeoError('exception Finistellaire : écart canonique inattendu')
         events = [normaliser_evenement_public(row) for row in selected_rows]
-        if args.finistellaire_legacy_edit:
-            target_event = next(event for event in events if event['id'] == target)
-            source = next(row for row in rows if row['id'] == target)
-            if (target_event['date_debut'] != '2026-11-14' or target_event['date_fin'] != '2026-11-15'
-                    or 'Dan Ar Braz' not in target_event['description']
-                    or source.get('website') != 'https://www.la29emedimension.fr/le-finistellaire/le-finistellaire-5-2026/'):
-                raise GenerationSeoError('exception Finistellaire : source publique incohérente')
-            # Lieu 2026 confirmé par l'organisateur et la Ville de Quimper.
-            target_event.update(lieu='Espace Dan Ar Braz', adresse='17 ter rue Stang Bihan', code_postal='29000')
         slug_sources = appliquer_indices_slugs_sqlite(events, args.db)
         static_slugs = appliquer_slugs_statiques_existants(events, args.existing_event_pages) if args.existing_event_pages else 0
         attribuer_slugs(events)

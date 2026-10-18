@@ -8,12 +8,6 @@ const MAP = 'docs/territoires/event-canonical-map.json';
 const SNAPSHOT = 'docs/territoires/catalogue-public.json';
 const INDEX = 'evenement/index.html';
 const SITEMAP = 'sitemap-evenements.xml';
-const FINISTELLAIRE_EDIT = {
-  id: 'a47786e2-16b0-4c0f-abae-a5ba698830ec',
-  eventId: '316861b7-0dd1-4ea7-b458-9fd8da849881',
-  reason: 'edit',
-  canonical: 'evenement/festival-finistellaire-2026-quimper-3479.html',
-};
 const read = file => fs.readFileSync(file, 'utf8');
 const json = file => JSON.parse(read(file));
 const baseline = file => execFileSync('git', ['show', `HEAD:${file}`], {encoding:'utf8'});
@@ -128,18 +122,6 @@ export function selectPublishedRows(rows, canonical, jobs) {
   return rows.filter(row => expected.has(row.id));
 }
 
-function finistellaireApproved(jobs, legacyFiles, canonical) {
-  const edit = jobs.rows[0];
-  return jobs.rows.length === 1
-    && process.env.PUBLICATION_MANUAL_MODE === 'execute'
-    && process.env.PUBLICATION_AUTOMATION_ENABLED === 'false'
-    && edit?.id === FINISTELLAIRE_EDIT.id
-    && edit.event_id === FINISTELLAIRE_EDIT.eventId
-    && edit.reason === FINISTELLAIRE_EDIT.reason
-    && legacyFiles[FINISTELLAIRE_EDIT.eventId] === path.basename(FINISTELLAIRE_EDIT.canonical)
-    && canonical[FINISTELLAIRE_EDIT.eventId] === FINISTELLAIRE_EDIT.canonical;
-}
-
 const field = (html, expression) => html.match(expression)?.[1] || '';
 const schema = html => {
   try { return JSON.parse(field(html, /<script type="application\/ld\+json">([^<]*)<\/script>/)); }
@@ -156,29 +138,8 @@ export function assertEnrichment(oldHtml, freshHtml, eventId) {
   const freshPlace = fresh.location?.name;
   const oldCity = oldAddress.addressLocality;
   const freshCity = newAddress.addressLocality;
-  const verifiedFinistellaire = eventId === FINISTELLAIRE_EDIT.eventId;
-  if (verifiedFinistellaire) {
-    const canonical = `https://dedicalivres.fr/${FINISTELLAIRE_EDIT.canonical}`;
-    const organizer = 'https://www.la29emedimension.fr/le-finistellaire/le-finistellaire-5-2026/';
-    if (![oldHtml, freshHtml].every(html => html.includes(`data-event-id="${eventId}"`)
-        && html.includes(`rel="canonical" href="${canonical}"`))
-        || comparable(oldPlace) !== comparable('Pôle Culturel Max Jacob')
-        || comparable(oldAddress.streetAddress) !== comparable('4 boulevard Dupleix')
-        || comparable(freshPlace) !== comparable('Espace Dan Ar Braz')
-        || comparable(newAddress.streetAddress) !== comparable('17 ter rue Stang Bihan')
-        || comparable(newAddress.postalCode) !== '29000'
-        || fresh.startDate !== '2026-11-14' || fresh.endDate !== '2026-11-15'
-        || fresh.organizer?.url !== organizer
-        || !String(fresh.description || '').includes('Finistellaire #5')
-        || !freshHtml.includes('<b>Lieu</b> Espace Dan Ar Braz, Bretagne')
-        || !freshHtml.includes('<b>Adresse</b> 17 ter rue Stang Bihan, 29000')
-        || freshHtml.includes('Pôle Culturel Max Jacob') || freshHtml.includes('4 boulevard Dupleix')) {
-      stop('correction documentée du lieu Finistellaire absente ou élargie');
-    }
-  }
   if (rich(oldPlace) && !rich(freshPlace)) stop("perte d'enrichissement : nom du lieu");
   if (rich(oldPlace) && comparable(oldPlace) !== comparable(freshPlace)
-      && !verifiedFinistellaire
       && !(comparable(oldPlace) === comparable(oldCity)
         && comparable(freshPlace) === comparable(freshCity))) {
     stop('lieu précis modifié sans preuve : la source publique ne fournit pas de nom de lieu');
@@ -186,8 +147,7 @@ export function assertEnrichment(oldHtml, freshHtml, eventId) {
   for (const [label, before, after] of [
     ['adresse', oldAddress.streetAddress, newAddress.streetAddress],
     ['code postal', oldAddress.postalCode, newAddress.postalCode],
-  ]) if (rich(before) && comparable(before) !== comparable(after)
-      && !(verifiedFinistellaire && label === 'adresse')) {
+  ]) if (rich(before) && comparable(before) !== comparable(after)) {
     stop(`${label} enrichi modifié sans preuve : la source publique ne fournit pas cette donnée`);
   }
   for (const [label, before, after] of [
@@ -238,21 +198,17 @@ export function context() {
   const legacyFiles = json('scripts/event-publisher/legacy-enriched-events.json').events;
   const legacy = new Set(Object.keys(legacyFiles));
   const selectedLegacy = [...jobs.allowed].filter(id => legacy.has(id));
-  const approved = finistellaireApproved(jobs, legacyFiles, json(MAP));
-  if (legacy.size !== 282 || (selectedLegacy.length > 0
-      && !(selectedLegacy.length === 1 && approved))) stop('protection 282 legacy');
+  if (legacy.size !== 282 || selectedLegacy.length > 0) stop('protection 282 legacy');
   const day = process.env.PUBLICATION_REFERENCE_DATE;
   if (!validDate(day)) stop('date Europe/Paris invalide');
-  return {...jobs, legacy, day, approved};
+  return {...jobs, legacy, day};
 }
 
 export function publishedEventRows(rows) {
   const jobs = parseJobs(process.env.PUBLICATION_JOBS || '');
   const legacyFiles = json('scripts/event-publisher/legacy-enriched-events.json').events;
   const selectedLegacy = [...jobs.allowed].filter(id => id in legacyFiles);
-  const approved = finistellaireApproved(jobs, legacyFiles, json(MAP));
-  if (Object.keys(legacyFiles).length !== 282 || (selectedLegacy.length
-      && !(selectedLegacy.length === 1 && approved))) stop('protection 282 legacy');
+  if (Object.keys(legacyFiles).length !== 282 || selectedLegacy.length) stop('protection 282 legacy');
   const current = json(MAP);
   let canonical = current;
   if ([...jobs.removals].some(id => !(id in current))) {
