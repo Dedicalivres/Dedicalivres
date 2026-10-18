@@ -45,12 +45,42 @@
   const store = createStore(storage);
   let catalog = null;
   const panel = document.getElementById('local-discoveries');
+  function refreshSavedSummary() {
+    const summary = document.getElementById('saved-summary-count');
+    if (!summary) return;
+    let count = 0;
+    try { const ids = JSON.parse(storage.getItem('dedicalivres_favorites') || '[]'); count = Array.isArray(ids) ? ids.length : 0; } catch (_) {}
+    const follows = store.read().rules.length;
+    summary.textContent = `${count} favori${count === 1 ? '' : 's'} · ${follows} critère${follows === 1 ? ' suivi' : 's suivis'}`;
+  }
+  const savedPanel = document.getElementById('saved-events');
+  if (savedPanel?.tagName === 'DETAILS') {
+    const openAnchor = () => {
+      const hash = location.hash;
+      if (hash === '#saved-events' || (/^#[a-z][a-z0-9-]*$/i.test(hash) && savedPanel.querySelector(hash))) savedPanel.open = true;
+    };
+    try { savedPanel.open = sessionStorage.getItem('dedicalivres-saved-panel-open') === '1'; } catch (_) {}
+    openAnchor();
+    root.addEventListener('hashchange', openAnchor);
+    root.addEventListener('pagehide', () => {
+      try { sessionStorage.setItem('dedicalivres-saved-panel-open', savedPanel.open ? '1' : '0'); } catch (_) {}
+    });
+    savedPanel.addEventListener('toggle', () => {
+      const hint = savedPanel.querySelector('.saved-panel-hint');
+      if (hint) hint.textContent = savedPanel.open ? 'Cliquer pour replier' : 'Cliquer pour développer';
+      try { sessionStorage.setItem('dedicalivres-saved-panel-open', savedPanel.open ? '1' : '0'); } catch (_) {}
+    });
+    const favorites = document.getElementById('favorites-list');
+    if (favorites) new MutationObserver(refreshSavedSummary).observe(favorites, { childList: true });
+    root.addEventListener('storage', refreshSavedSummary);
+  }
   function status(text) { document.getElementById('local-feedback').textContent = text; }
   function render() {
     if (!panel) return;
     const list = document.getElementById('local-rules');
     list.replaceChildren();
     const rules = store.read().rules;
+    refreshSavedSummary();
     const count = document.getElementById('local-rule-count');
     if (count) count.textContent = `${rules.length} suivi${rules.length > 1 ? 's' : ''} enregistré${rules.length > 1 ? 's' : ''} sur 20`;
     rules.forEach((rule, index) => {

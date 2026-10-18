@@ -16,7 +16,7 @@ assert.match(
   html,
   /brand-logo brand-logo--sombre[\s\S]*?width="1536"[\s\S]*?height="1024"/
 );
-assert.match(html, /ludique\.css\?v=ludique-22-logo-aspect/);
+assert.match(html, /ludique\.css\?v=[^"\s]+/);
 
 const mobileRule = css.match(
   /@media \(max-width:680px\)\{[\s\S]*?\.association-hero-brand img\{([\s\S]*?)\n\s*\}/

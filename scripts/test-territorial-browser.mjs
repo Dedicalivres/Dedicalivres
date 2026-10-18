@@ -1,5 +1,8 @@
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
+const canonical = {};
+vm.runInNewContext(await fs.readFile('event-canonical.js', 'utf8'), canonical);
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
 const audit=JSON.parse(await fs.readFile('docs/territoires/audit.json','utf8'));
 const out=process.env.TEST_OUTPUT||'../../outputs';await fs.mkdir(out,{recursive:true});
@@ -9,7 +12,7 @@ try{
  for(const javaScriptEnabled of [false,true])for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
   const context=await browser.newContext({javaScriptEnabled,viewport});
   // Prevent analytics/third-party requests during local verification.
-  await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
+  await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.fulfill({status:200,contentType:route.request().url().includes('.css')?'text/css':'application/javascript',body:''}));
   const page=await context.newPage();
   const runtimeErrors=[];
   page.on('pageerror',error=>runtimeErrors.push(error.message));
@@ -32,8 +35,9 @@ try{
    assert(archiveBox.y>=-1 && archiveBox.y<viewport.height);
    if(!javaScriptEnabled)await page.screenshot({path:`${out}/${p.id}-${viewport.width}-archives.png`});
    const href=await page.locator('[data-event-id] a').first().getAttribute('href');
-   const id=new URL(href,'http://local/').searchParams.get('id');
+   const id=await page.locator('[data-event-id]').first().getAttribute('data-event-id');
    assert(p.ids.includes(id));
+   assert.equal(new URL(href,'http://local/').pathname + new URL(href,'http://local/').search, canonical.DEDICALIVRES_EVENT_CANONICAL.href(id));
    assert.deepEqual(runtimeErrors,[],`${p.label}: JavaScript errors`);
    results.push({territory:p.id,width:viewport.width,javaScriptEnabled,events:p.total,overflow});
   }
@@ -51,7 +55,7 @@ try{
    return q;
   },rpc(){return Promise.resolve({data:null,error:null})}}}};
  },event);
- await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
+ await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.fulfill({status:200,contentType:route.request().url().includes('.css')?'text/css':'application/javascript',body:''}));
  const detail=await context.newPage();
  await detail.goto('http://127.0.0.1:8765/evenements-litteraires-wallonie.html');
  await detail.locator(`[data-event-id="${event.id}"] h3 a`).click();

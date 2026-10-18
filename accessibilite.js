@@ -37,6 +37,7 @@
       }
     }
     root.dataset.ambiance = state.ambiance;
+    window.dispatchEvent(new CustomEvent("dedicalivres:comfort", { detail: { ...state } }));
     window.dispatchEvent(new CustomEvent("dedicalivres:ambiance", { detail: { ambiance: state.ambiance } }));
   }
 
@@ -96,6 +97,8 @@
       '<span class="a11y-live" role="status" aria-live="polite"></span>';
 
     document.body.appendChild(panel);
+    var menu = panel.querySelector(".a11y-menu");
+    menu.hidden = true;
 
     /* Entr\u00e9e \u00ab Confort \u00bb dans le menu du header ; le bouton
        flottant ne sert que de repli si le header est absent. */
@@ -155,11 +158,23 @@
 
     /* Ouverture / fermeture du panneau */
     function setOpen(open) {
+      menu.hidden = !open;
       panel.classList.toggle("is-open", open);
+      if (open) { positionMenu(); menu.querySelector("button")?.focus(); }
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       if (navBtn) navBtn.setAttribute("aria-expanded", open ? "true" : "false");
 
     }
+    function positionMenu() {
+      if (!navBtn) return;
+      var bottom = document.querySelector(".header").getBoundingClientRect().bottom;
+      var top = Math.max(8, bottom + 8);
+      panel.style.top = top + "px";
+      menu.style.maxHeight = Math.max(80, window.innerHeight - top - 12) + "px";
+    }
+    if (navBtn && "ResizeObserver" in window) new ResizeObserver(function () { if (!menu.hidden) positionMenu(); }).observe(document.querySelector(".header"));
+    window.addEventListener("resize", function () { if (!menu.hidden) positionMenu(); });
+    window.addEventListener("scroll", function () { if (!menu.hidden) positionMenu(); }, { passive: true });
     function flip() { setOpen(!panel.classList.contains("is-open")); }
     toggle.addEventListener("click", flip);
 
@@ -181,6 +196,7 @@
         applyState();
         save();
         refreshButtons();
+        positionMenu();
         var labels = {
           daltonien: "Confort daltonien",
           dyslexie: "Confort dyslexie",
@@ -191,100 +207,5 @@
     });
   });
 
-  /* =========================================================
-     SECTION « CONFORT & AMBIANCE » — vitrine avec aperçus
-     Injectée au-dessus du footer sur toutes les pages.
-     Partage le même état mémorisé que le panneau du menu.
-  ========================================================= */
-  document.addEventListener("DOMContentLoaded", function () {
-    var footer = document.querySelector(".site-footer") || document.querySelector("footer");
-    var sec = document.querySelector(".a11y-showcase");
-    if (!footer && !sec) return;
-
-    if (!sec) {
-      sec = document.createElement("section");
-      sec.className = "a11y-showcase";
-      sec.setAttribute("aria-label", "Confort de lecture et ambiance");
-      sec.innerHTML =
-      '<div class="a11y-showcase-head">' +
-        '<h2>Un site confortable pour chaque lecteur</h2>' +
-        '<p>Choisissez votre confort : le r\u00e9glage s\u2019applique imm\u00e9diatement, ' +
-        'partout sur le site, et sera retenu pour vos prochaines visites.</p>' +
-      '</div>' +
-      '<div class="a11y-showcase-grid">' +
-
-        '<button type="button" class="a11y-card" data-mode="daltonien" aria-pressed="false">' +
-          '<span class="a11y-card-preview" aria-hidden="true">' +
-            '<i style="background:#0072B2"></i><i style="background:#E69F00"></i>' +
-            '<i style="background:#CC79A7"></i><i style="background:#009E73"></i>' +
-          '</span>' +
-          '<strong>Confort daltonien</strong>' +
-          '<small>Palette Okabe-Ito : les types d\u2019\u00e9v\u00e9nements restent distinguables dans toutes les formes de daltonisme.</small>' +
-          '<span class="a11y-card-state"></span>' +
-        '</button>' +
-
-        '<button type="button" class="a11y-card" data-mode="dyslexie" aria-pressed="false">' +
-          '<span class="a11y-card-preview a11y-prev-dys" aria-hidden="true">Aa Bb Cc</span>' +
-          '<strong>Confort dyslexie</strong>' +
-          '<small>Police d\u00e9di\u00e9e, lettres espac\u00e9es, textes immobiles et jamais justifi\u00e9s.</small>' +
-          '<span class="a11y-card-state"></span>' +
-        '</button>' +
-
-        '<button type="button" class="a11y-card" data-mode="soir" aria-pressed="false">' +
-          '<span class="a11y-card-preview a11y-prev-soir" aria-hidden="true"><b></b><i></i><i></i></span>' +
-          '<strong>Mode soir</strong>' +
-          '<small>Papier encre et texte cr\u00e8me pour lire sans \u00e9blouir, \u00e0 la lampe de chevet.</small>' +
-          '<span class="a11y-card-state"></span>' +
-        '</button>' +
-
-        '<div class="a11y-card a11y-card--amb">' +
-          '<strong>Ambiance de fond</strong>' +
-          '<div class="a11y-amb-choices">' +
-            '<button type="button" class="a11y-amb" data-ambiance="aquarelle" aria-pressed="false">' +
-              '<span class="a11y-card-preview a11y-prev-aqua" aria-hidden="true"></span>Aquarelle</button>' +
-            '<button type="button" class="a11y-amb" data-ambiance="papier" aria-pressed="false">' +
-              '<span class="a11y-card-preview a11y-prev-papier" aria-hidden="true"></span>Papier \u00e0 lettres</button>' +
-          '</div>' +
-        '</div>' +
-
-      '</div>';
-      footer.parentNode.insertBefore(sec, footer);
-    }
-    sec.querySelectorAll("button[disabled]").forEach(function (button) {
-      button.disabled = false;
-    });
-
-    function refreshShowcase() {
-      sec.querySelectorAll(".a11y-card[data-mode]").forEach(function (c) {
-        var on = state[c.dataset.mode];
-        c.setAttribute("aria-pressed", on ? "true" : "false");
-        c.querySelector(".a11y-card-state").textContent = on ? "Activ\u00e9 \u2713" : "Activer";
-      });
-      sec.querySelectorAll(".a11y-amb").forEach(function (b) {
-        b.setAttribute("aria-pressed", b.dataset.ambiance === state.ambiance ? "true" : "false");
-      });
-    }
-    refreshShowcase();
-    /* applyState d\u00e9clenche cet \u00e9v\u00e9nement \u00e0 chaque changement, d'o\u00f9 qu'il vienne */
-    window.addEventListener("dedicalivres:ambiance", refreshShowcase);
-
-    function syncPanel() {
-      document.querySelectorAll(".a11y-option[data-mode]").forEach(function (btn) {
-        btn.setAttribute("aria-pressed", state[btn.dataset.mode] ? "true" : "false");
-      });
-      document.querySelectorAll(".a11y-chip[data-ambiance]").forEach(function (chip) {
-        chip.setAttribute("aria-pressed", chip.dataset.ambiance === state.ambiance ? "true" : "false");
-      });
-    }
-
-    sec.addEventListener("click", function (e) {
-      var mode = e.target.closest(".a11y-card[data-mode]");
-      var amb = e.target.closest(".a11y-amb");
-      if (mode) { state[mode.dataset.mode] = !state[mode.dataset.mode]; }
-      else if (amb) { state.ambiance = amb.dataset.ambiance; }
-      else return;
-      applyState(); save(); refreshShowcase(); syncPanel();
-    });
-  });
 
 })();
