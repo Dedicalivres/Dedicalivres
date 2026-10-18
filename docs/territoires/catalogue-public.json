@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-13T20:48:46.057Z",
+  "capturedAt": "2026-10-18T08:36:34.410Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1722,7 +1722,7 @@
       "validated": true,
       "rejected": false,
       "registration_force_status": null,
-      "website": "https://www.rom-game.fr/agenda/6530-festival+finistellaire.html"
+      "website": "https://www.la29emedimension.fr/le-finistellaire/le-finistellaire-5-2026/"
     },
     {
       "id": "31f9ccc2-fd42-41b4-abfc-631075a6288a",
