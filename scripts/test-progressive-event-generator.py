@@ -38,6 +38,34 @@ events = [
 ]
 events[0].update(adresse="12 rue de Test", code_postal="03000", auteurs="Autrice de test")
 base_url = "https://dedicalivres.fr"
+
+# Le catalogue canonique et les seuls jobs sélectionnés définissent la sortie.
+known, other = events[0]['id'], events[1]['id']
+pending = ['00000000-0000-4000-8000-000000000001',
+           '00000000-0000-4000-8000-000000000002',
+           '00000000-0000-4000-8000-000000000003']
+surprise = '00000000-0000-4000-8000-000000000004'
+source = [{'id': identifier} for identifier in [known, other, *pending, surprise]]
+canonical = {known: 'evenement/known.html', other: 'evenement/other.html'}
+def selected(reason, identifier):
+    return module.select_published_rows(source, canonical, [{'event_id': identifier, 'reason': reason}])
+assert [row['id'] for row in selected('edit', known)] == [known, other]
+assert [row['id'] for row in selected('validation', pending[0])] == [known, other, pending[0]]
+assert [row['id'] for row in selected('unpublish', known)] == [other]
+assert selected('edit', known) == selected('edit', known)
+for invalid_source, invalid_canonical, selected_jobs in [
+    (source[:-1] + [source[0]], canonical, [{'event_id': known, 'reason': 'edit'}]),
+    (source[1:], canonical, [{'event_id': known, 'reason': 'edit'}]),
+    (source, {known: 'evenement/index.html'}, [{'event_id': known, 'reason': 'edit'}]),
+    (source, canonical, [{'event_id': pending[0], 'reason': 'edit'}]),
+]:
+    try:
+        module.select_published_rows(invalid_source, invalid_canonical, selected_jobs)
+    except module.GenerationSeoError:
+        pass
+    else:
+        raise AssertionError('sélection publique invalide acceptée')
+
 for current in events:
     old = module.page_event(current, base_url)
     assert old == module.page_event(current, base_url, progressive=False)

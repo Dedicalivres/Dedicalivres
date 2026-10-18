@@ -173,15 +173,25 @@ try {
 }
 console.log('PASS 15 scénarios de publication ciblée');
 
-run('écart canonique exact : trois jobs exclus, aucun autre', () => {
-  const excluded = ['3807ee7e-96fd-49bd-b909-0708f0fcf131',
-    '9acc76bd-9356-485f-a8fb-f95d6cfad346', '77ccedcc-655f-424b-a8fe-829115b93ed6'];
-  const canonical = Object.fromEntries(Array.from({length:625}, (_, i) => [`known-${i}`, `evenement/known-${i}.html`]));
-  const rows = [...Object.keys(canonical), ...excluded].map(id => ({id}));
-  assert.equal(selectPublishedRows(rows, canonical, true).length, 625);
-  assert.throws(() => selectPublishedRows(rows.slice(0, -1), canonical, true), /écart canonique/);
-  assert.throws(() => selectPublishedRows([...rows.slice(0, -1), {id:otherId}], canonical, true), /écart canonique/);
-  assert.equal(selectPublishedRows(rows, canonical, false).length, 628);
+run('sélection générale : édition, validation, exclusion, retrait et stabilité', () => {
+  const canonical = {[ownId]:'evenement/own.html', [otherId]:'evenement/other.html'};
+  const pending = [thirdId, 'dddddddd-dddd-4ddd-dddd-dddddddddddd',
+    'eeeeeeee-eeee-4eee-eeee-eeeeeeeeeeee'];
+  const unexpected = 'ffffffff-ffff-4fff-ffff-ffffffffffff';
+  const rows = [ownId, otherId, ...pending, unexpected].map(id => ({id}));
+  const select = (...selected) => selectPublishedRows(rows, canonical, parseJobs(jobs(...selected)));
+  const edit = select(job(ownId, ownId, 'edit'));
+  assert.deepEqual(edit.map(row => row.id), [ownId, otherId]);
+  assert.deepEqual(selectPublishedRows(rows, canonical, parseJobs(jobs(job(ownId, ownId, 'edit')))), edit);
+  assert.deepEqual(select(job(ownId, thirdId, 'validation')).map(row => row.id), [ownId, otherId, thirdId]);
+  assert.deepEqual(select(job(ownId, ownId, 'unpublish')).map(row => row.id), [otherId]);
+  assert.throws(() => selectPublishedRows(rows.filter(row => row.id !== otherId), canonical,
+    parseJobs(jobs(job(ownId, ownId, 'edit')))), /incomplète/);
+  assert.throws(() => selectPublishedRows([...rows, rows[0]], canonical,
+    parseJobs(jobs(job(ownId, ownId, 'edit')))), /dupliquée/);
+  assert.throws(() => selectPublishedRows(rows, {[ownId]:'evenement/index.html'},
+    parseJobs(jobs(job(ownId, ownId, 'edit')))), /canonical/);
+  assert.throws(() => select(job(ownId, thirdId, 'edit')), /nouvelle publication/);
 });
 
 run('16 source complète générateur et territoires', () => {

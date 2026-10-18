@@ -794,6 +794,41 @@ def _print_report(report, *, dry_run):
     print(f"ENTREES_SITEMAP={report['sitemap_entries']}")
     print('ERREURS=0')
 
+def select_published_rows(rows, canonical, jobs):
+    if not isinstance(rows, list) or not isinstance(canonical, dict) or not isinstance(jobs, list) or not jobs:
+        raise GenerationSeoError('sélection publique invalide')
+    paths = list(canonical.values())
+    if any(not isinstance(path, str) or not re.fullmatch(r'evenement/[^/]+\.html', path)
+           or path == 'evenement/index.html' for path in paths) or len(set(paths)) != len(paths):
+        raise GenerationSeoError('canonical publié invalide')
+    source_ids = set()
+    for row in rows:
+        event_id = row.get('id') if isinstance(row, dict) else None
+        if not isinstance(event_id, str) or not re.fullmatch(r'[0-9a-f-]{36}', event_id) or event_id in source_ids:
+            raise GenerationSeoError('source publique incomplète ou dupliquée')
+        source_ids.add(event_id)
+    expected = set(canonical)
+    selected_ids = set()
+    for job in jobs:
+        if (not isinstance(job, dict) or not isinstance(job.get('event_id'), str)
+                or job.get('reason') not in ('validation', 'edit', 'unpublish', 'delete')
+                or job['event_id'] in selected_ids):
+            raise GenerationSeoError('job sélectionné invalide')
+        event_id = job['event_id']
+        selected_ids.add(event_id)
+        if job['reason'] in ('unpublish', 'delete'):
+            if event_id not in canonical:
+                raise GenerationSeoError('dépublication sans canonical publié')
+            expected.discard(event_id)
+        elif event_id not in canonical:
+            if job['reason'] != 'validation':
+                raise GenerationSeoError('nouvelle publication non autorisée')
+            expected.add(event_id)
+    if not expected <= source_ids:
+        raise GenerationSeoError('source publique incomplète')
+    return [row for row in rows if row['id'] in expected]
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     source_root = Path(__file__).resolve().parent
@@ -817,16 +852,14 @@ def main():
         (url, key) = _load_credentials(Path(args.config).expanduser().resolve())
         rows = charger_evenements_publics(url, key)
         selected_rows = rows
+        if os.environ.get('PUBLICATION_TARGETED') == 'true':
+            canonical = json.loads((source_root.parent.parent / 'docs/territoires/event-canonical-map.json').read_text(encoding='utf-8'))
+            jobs = json.loads(os.environ.get('PUBLICATION_JOBS') or '[]')
+            selected_rows = select_published_rows(rows, canonical, jobs)
         if args.finistellaire_legacy_edit:
             job = json.loads(os.environ.get('PUBLICATION_JOBS') or '[]')
             target = '316861b7-0dd1-4ea7-b458-9fd8da849881'
-            pending = {
-                '3807ee7e-96fd-49bd-b909-0708f0fcf131',
-                '9acc76bd-9356-485f-a8fb-f95d6cfad346',
-                '77ccedcc-655f-424b-a8fe-829115b93ed6',
-            }
             canonical = json.loads((source_root.parent.parent / 'docs/territoires/event-canonical-map.json').read_text(encoding='utf-8'))
-            ids = {row['id'] for row in rows}
             if not (isinstance(job, list) and len(job) == 1 and isinstance(job[0], dict)
                     and all(job[0].get(k) == v for k, v in {
                         'id': 'a47786e2-16b0-4c0f-abae-a5ba698830ec',
@@ -835,10 +868,8 @@ def main():
             if (os.environ.get('PUBLICATION_MANUAL_MODE') != 'execute'
                     or os.environ.get('PUBLICATION_AUTOMATION_ENABLED') != 'false'
                     or canonical.get(target) != 'evenement/festival-finistellaire-2026-quimper-3479.html'
-                    or len(canonical) != 625 or len(rows) != 628
-                    or ids - set(canonical) != pending or not set(canonical) <= ids):
+                    or target not in {row['id'] for row in selected_rows}):
                 raise GenerationSeoError('exception Finistellaire : écart canonique inattendu')
-            selected_rows = [row for row in rows if row['id'] not in pending]
         events = [normaliser_evenement_public(row) for row in selected_rows]
         if args.finistellaire_legacy_edit:
             target_event = next(event for event in events if event['id'] == target)
