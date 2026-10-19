@@ -96,15 +96,79 @@ class TemporalTests(unittest.TestCase):
                 page.write_text(invalid)
                 with self.assertRaises(ValueError): temporal.assert_france_archives(stage, day)
 
-    def test_workflow_preview_only_same_lock(self):
+    def test_workflow_separates_index_write_and_projection_read(self):
         workflow = (ROOT / '.github/workflows/refresh-event-index.yml').read_text()
-        self.assertIn('contents: read', workflow)
-        self.assertIn('group: dedicalivres-event-publication', workflow)
-        self.assertIn("cron: '30 2 * * *'", workflow)
-        self.assertIn('actions/upload-artifact@v4', workflow)
-        for forbidden in ('git push', 'git commit', 'SUPABASE', 'EXECUTE', 'contents: write'):
+        global_part, jobs = workflow.split('jobs:', 1)
+        index, projection = jobs.split('  project-temporal:', 1)
+        self.assertIn('permissions:\n  contents: read', global_part)
+        self.assertIn('group: dedicalivres-event-publication', global_part)
+        self.assertIn('cancel-in-progress: false', global_part)
+        self.assertEqual(workflow.count("cron: '30 2 * * *'"), 1)
+        self.assertIn('contents: write', index)
+        self.assertIn('refresh-index.py --verify-diff', index)
+        self.assertLess(index.index('refresh-index.py --verify-diff'), index.index('git add --'))
+        self.assertEqual(re.findall(r'git add -- (.+)', index), ['evenement/index.html sitemap-evenements.xml'])
+        self.assertIn('git diff --cached --check', index)
+        self.assertIn('git push origin HEAD:main', index)
+        self.assertIn('main_sha: ${{ steps.main.outputs.sha }}', index)
+        self.assertIn('needs: refresh-index', projection)
+        self.assertIn('contents: read', projection)
+        self.assertIn('ref: main', projection)
+        self.assertIn('persist-credentials: false', projection)
+        self.assertIn('EXPECTED_MAIN_SHA: ${{ needs.refresh-index.outputs.main_sha }}', projection)
+        self.assertIn('test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"', projection)
+        self.assertIn('actions/upload-artifact@v4', projection)
+        for forbidden in ('git push', 'git commit', 'git add', 'contents: write', 'git apply'):
+            self.assertNotIn(forbidden, projection)
+        for forbidden in ('SUPABASE', 'EXECUTE', 'capture-', 'PUBLICATION_AUTOMATION_ENABLED'):
             self.assertNotIn(forbidden, workflow)
-        self.assertNotIn('capture-', (ROOT / 'scripts/refresh-temporal-catalogues.py').read_text())
+
+    def test_index_refresh_then_projection_from_updated_main(self):
+        with tempfile.TemporaryDirectory() as temp:
+            stage = Path(temp) / 'repo'
+            temporal.run(ROOT, 'git', 'clone', '--quiet', '--no-hardlinks', str(ROOT), str(stage))
+            day = dt.date(2026, 10, 20)
+            temporal.refresh.rebuild(stage, day)
+            temporal.refresh.verify_git_diff(stage, day)
+            changed = temporal.run(stage, 'git', 'diff', '--name-only').decode().splitlines()
+            self.assertEqual(set(changed), {'evenement/index.html', 'sitemap-evenements.xml'})
+            temporal.run(stage, 'git', 'add', '--', *changed)
+            temporal.run(stage, 'git', '-c', 'user.name=Offline Test', '-c', 'user.email=test@example.invalid',
+                         'commit', '--quiet', '-m', 'test: refreshed index in disposable clone')
+            updated_sha = temporal.run(stage, 'git', 'rev-parse', 'HEAD').decode().strip()
+            report = temporal.project(stage, Path(temp) / 'projection', day)
+            self.assertEqual(report['base'], updated_sha)
+            self.assertNotIn('evenement/index.html', report['files'])
+            self.assertNotIn('sitemap-evenements.xml', report['files'])
+            self.assertEqual(temporal.run(stage, 'git', 'status', '--porcelain'), b'')
+
+    def test_city_selection_matches_generic_heading(self):
+        # Extract the existing pure selection function, without running builders.
+        script = r"""
+import fs from 'node:fs';import vm from 'node:vm';
+import {classify} from './scripts/territorial-catalog.mjs';
+const source=fs.readFileSync('scripts/build-static-agenda-previews.mjs','utf8');
+const body=source.slice(source.indexOf('function citySelection('),source.indexOf('function typeClass('));
+const today='2026-10-19';
+const upcoming=e=>e.validated===true&&e.rejected===false&&['future','ongoing'].includes(classify(e,today));
+const select=vm.runInNewContext('('+body.trim()+')',{upcoming,clean:v=>String(v||'').trim()});
+const base={validated:true,rejected:false,title:'Livre'};
+const past={...base,id:'past',start_date:'2026-10-17',end_date:'2026-10-18'};
+const ongoing={...base,id:'ongoing',start_date:today,end_date:'2026-10-20'};
+const future={...base,id:'future',start_date:'2026-10-21',end_date:'2026-10-21'};
+console.log(JSON.stringify([[past,ongoing,future],[ongoing],[past],[]].map(rows=>select(rows))));
+"""
+        selections = json.loads(subprocess.check_output(['node', '--input-type=module', '-e', script], cwd=ROOT))
+        self.assertEqual([r['id'] for r in selections[0]['rows']], ['ongoing', 'future'])
+        self.assertEqual([r['id'] for r in selections[1]['rows']], ['ongoing'])
+        self.assertEqual(selections[2]['mode'], 'archive')
+        self.assertEqual(selections[3]['mode'], 'empty')
+        cities = [p for p in ROOT.glob('evenements-litteraires-*.html') if 'data-city=' in p.read_text()]
+        self.assertTrue(cities)
+        for page in cities:
+            html = page.read_text()
+            self.assertNotRegex(html, r'(?i)prochains événements')
+            self.assertRegex(html, r'<h1>Événements littéraires à [^<]+</h1>')
 
 
 if __name__ == '__main__':

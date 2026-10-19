@@ -1,4 +1,4 @@
-name: Preview temporal catalogues
+name: Refresh event index and preview temporal catalogues
 
 env:
   PYTHONDONTWRITEBYTECODE: "1"
@@ -11,19 +11,61 @@ on:
 permissions:
   contents: read
 
-# Same lock as publication: no overlapping source/projection workflows.
+# Hold the publication lock across both jobs, including their hand-off.
 concurrency:
   group: dedicalivres-event-publication
   cancel-in-progress: false
 
 jobs:
-  refresh:
+  refresh-index:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      main_sha: ${{ steps.main.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
+      - name: Refresh from published Event pages
+        run: python3 scripts/event-publisher/refresh-index.py
+      - name: Commit only the index and its sitemap date
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/event-publisher/refresh-index.py --verify-diff
+          git diff --check
+          changes="$(git status --porcelain)"
+          if [[ -z "$changes" ]]; then
+            echo 'Index inchangé : aucun commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- evenement/index.html sitemap-evenements.xml
+          git diff --cached --check
+          git commit -m 'chore(catalogue): refresh current events index'
+          git push origin HEAD:main
+      - name: Record updated main for the read-only projection
+        id: main
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  project-temporal:
+    needs: refresh-index
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Verify updated main has not changed between jobs
+        env:
+          EXPECTED_MAIN_SHA: ${{ needs.refresh-index.outputs.main_sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
