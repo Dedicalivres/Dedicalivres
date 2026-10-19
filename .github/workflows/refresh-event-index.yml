@@ -1,4 +1,4 @@
-name: Refresh event index
+name: Preview temporal catalogues
 
 env:
   PYTHONDONTWRITEBYTECODE: "1"
@@ -9,8 +9,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
+# Same lock as publication: no overlapping source/projection workflows.
 concurrency:
   group: dedicalivres-event-publication
   cancel-in-progress: false
@@ -23,24 +24,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-
-      - name: Refresh from published Event pages
-        run: python3 scripts/event-publisher/refresh-index.py
-
-      - name: Commit only the index and its sitemap date
-        shell: bash
-        run: |
-          set -euo pipefail
-          changes="$(git status --porcelain)"
-          if [[ -z "$changes" ]]; then
-            echo 'Index inchangé : aucun commit.'
-            exit 0
-          fi
-          python3 scripts/event-publisher/refresh-index.py --verify-diff
-          git diff --check
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- evenement/index.html sitemap-evenements.xml
-          git diff --cached --check
-          git commit -m 'chore(catalogue): refresh current events index'
-          git push origin HEAD:main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Project only published temporal catalogues
+        run: python3 scripts/refresh-temporal-catalogues.py --output "$RUNNER_TEMP/temporal-preview"
+      - name: Save complete validated projection for human review
+        uses: actions/upload-artifact@v4
+        with:
+          name: temporal-catalogues-preview
+          path: ${{ runner.temp }}/temporal-preview/
+          if-no-files-found: error

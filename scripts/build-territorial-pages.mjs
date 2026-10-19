@@ -8,7 +8,7 @@ const snapshot=read('docs/territoires/catalogue-public.json');
 const registry=read('docs/territoires/referentiel.json');
 const observations=read('docs/territoires/signalements.json');
 const verified=read('docs/territoires/verifications-organisateurs.json');
-const referenceDate=process.env.PUBLICATION_REFERENCE_DATE||new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris'}).format(new Date(snapshot.capturedAt));
+const referenceDate=process.env.PUBLICATION_REFERENCE_DATE||new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris'}).format(new Date());
 if(!/^\d{4}-\d{2}-\d{2}$/.test(referenceDate)||new Date(`${referenceDate}T00:00:00Z`).toISOString().slice(0,10)!==referenceDate)throw Error('PUBLICATION_REFERENCE_DATE invalide');
 const modifiedOn=referenceDate;
 const countryLocation=p=>({FR:'en France',BE:'en Belgique',CH:'en Suisse',LU:'au Luxembourg',MC:'à Monaco'}[p.code]||`en ${p.country}`);

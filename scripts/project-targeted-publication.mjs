@@ -368,8 +368,12 @@ export function assertNewFranceArchives(oldPages, freshPages, before, after, pub
   return added;
 }
 
-function projectAggregates() {
-  const {allowed, day} = context();
+function projectAggregates(temporalOnly = false) {
+  // A temporal refresh authorizes zero event edits and never consumes a job.
+  const {allowed, day} = temporalOnly
+    ? {allowed: new Set(), day: process.env.PUBLICATION_REFERENCE_DATE}
+    : context();
+  if (!validDate(day)) stop('date Europe/Paris invalide');
   const previous = JSON.parse(baseline(SNAPSHOT)), current = json(SNAPSHOT);
   const {before, after} = assertCatalog(previous, current, allowed);
   const oldDate = JSON.parse(baseline('docs/territoires/audit.json')).today;
@@ -437,5 +441,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const [phase, exportRoot] = process.argv.slice(2);
   if (phase === 'pages' && exportRoot) projectPages(exportRoot);
   else if (phase === 'aggregates') projectAggregates();
-  else stop('usage : pages <export> | aggregates');
+  else if (phase === 'temporal-aggregates') projectAggregates(true);
+  else stop('usage : pages <export> | aggregates | temporal-aggregates');
 }

@@ -90,3 +90,22 @@ Favoris et calendrier inchangés : test du favori après rechargement et téléc
 Les contrôles ne couvrent pas toutes les erreurs éditoriales possibles. Les rattachements erronés restent visibles selon les données publiées jusqu'à une décision admin. Les anciennes fiches statiques ambiguës ne sont pas corrigées par ce lot. L'indexation et les gains SEO/GEO ne sont pas mesurés ; sitemaps et robots inchangés.
 
 Arrêt local : aucun push, fusion, déploiement, changement de schéma ou modification distante. Les deux pilotes restent le périmètre public du lot.
+
+## Rafraîchissement temporel isolé (SITE-SEO-GEO-01)
+
+La date de capture décrit la provenance du catalogue ; elle n’est pas la date du classement. Les générateurs utilisent désormais le jour Europe/Paris, ou la référence explicite `PUBLICATION_REFERENCE_DATE`. Début strictement futur : à venir ; début atteint et fin incluse : en cours ; lendemain de la fin : archives. Les aperçus « Prochains événements » excluent les événements en cours ; l’accueil dispose d’un aperçu statique séparé pour « Aujourd’hui et en cours ». Les catégories territoriales « À venir et en cours » conservent leur regroupement explicite.
+
+Préparer le diff complet, sans modifier le site ni récupérer des données métier :
+
+```sh
+python3 scripts/refresh-temporal-catalogues.py --output /tmp/dedicalivres-temporal-preview
+# Date simulée facultative : --today 2026-10-26
+```
+
+Le dossier de sortie doit être nouveau et extérieur au dépôt. Le programme clone localement la base, réutilise les générateurs existants et leur garde d’agrégats avec **zéro événement autorisé à changer**, puis vérifie une deuxième génération identique. Il produit uniquement `projection.patch` et `report.json`. Il ne réserve aucun job, ne capture pas Supabase, ne modifie aucune fiche Event ou auteur, et ne publie rien.
+
+Contrôles : corpus canonique complet, aucune suppression, aucune nouvelle page sauf pagination France justifiée, garde existante de présentation métier, statuts des aperçus et territoires, métadonnées SEO et données structurées conservées hors dateModified, liens canoniques inchangés, sitemap XML valide avec URLs uniques et ordre préservé. Le lastmod n’évolue que pour une page dont le contenu change effectivement. Les 282 fiches historiques restent couvertes par l’interdiction de modifier **toutes** les fiches Event. Les données, manifests et capturedAt restent inchangés. Toute sortie hors périmètre ou au-delà de 250 fichiers provoque STOP avant production d’un artefact valide.
+
+Le workflow `refresh-event-index.yml` conserve son calendrier quotidien existant et le verrou commun `dedicalivres-event-publication`. Conformément à l’interdiction de publication automatique, il fonctionne désormais en **projection seule** : permissions de lecture et artefact GitHub à examiner, sans commit/push vers main. Aucun nouveau calendrier, aucune modification de `publish-events.yml`, et aucune activation de `PUBLICATION_AUTOMATION_ENABLED`. Le site public ne change pas avant une livraison explicitement autorisée du diff revu. Une fraîcheur publique quotidienne entièrement automatique nécessiterait une autorisation distincte.
+
+Tests hors réseau : `python3 scripts/test-temporal-catalogues.py`. Ils couvrent les 18, 19, 20, 25 et 26 octobre 2026, les bornes inclusives, le changement d’heure, l’idempotence et les refus de périmètre/corpus/sitemap. Les rapports de projection donnent les listes exactes ; aucun nombre permanent d’événements n’est codé dans ce nouveau parcours.
