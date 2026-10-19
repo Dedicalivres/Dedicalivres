@@ -288,6 +288,32 @@ def attribuer_slugs(evs):
 def afficher_rapport_dedup(rapport):
     print(f"Déduplication exacte SEO : {rapport['avant']} fiches avant, {rapport['apres']} après, {rapport['groupes_exacts']} groupes exacts, {rapport['doublons_exacts']} doublons détectés, {rapport['consolides']} fiches consolidées, {rapport['groupes_consolides']} groupes consolidés, {rapport['groupes_proteges_resolus']} groupes protégés résolus, {rapport['groupes_multidates']} groupes multi-dates laissés intacts.", flush=True)
 
+def published_organizer(event_id):
+    """Preserve published enrichment; never infer an organization from a city.
+
+    Existing metadata is not revalidated as business truth here. Its correction
+    requires the normal authorization; new events with no known organizer omit it.
+    """
+    root = Path(__file__).resolve().parents[2]
+    try:
+        mapping = json.loads((root / 'docs/territoires/event-canonical-map.json').read_text(encoding='utf-8'))
+        relative = mapping.get(str(event_id))
+        if relative is None:
+            return None
+        if not isinstance(relative, str) or not re.fullmatch(r'evenement/[^/]+\.html', relative) or relative == 'evenement/index.html':
+            raise ValueError('chemin canonique invalide')
+        page = (root / relative).read_text(encoding='utf-8')
+        canonical = f'https://dedicalivres.fr/{relative}'
+        if re.findall(r'<link rel="canonical" href="([^"]+)">', page) != [canonical]:
+            raise ValueError('canonical publié incohérent')
+        objects = [json.loads(block) for block in re.findall(r'<script type="application/ld\+json">(.*?)</script>', page, re.S)]
+        events = [obj for obj in objects if isinstance(obj, dict) and obj.get('@type') == 'Event']
+        if len(events) != 1 or events[0].get('url') != canonical:
+            raise ValueError('Event publié absent, multiple ou incohérent')
+        return events[0].get('organizer')
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        raise GenerationSeoError(f'organisateur publié non préservable : {event_id}: {exc}') from exc
+
 def jsonld_event(ev, url):
     debut = iso_date(ev['date_debut'])
     fin = iso_date(ev['date_fin']) or debut
@@ -313,8 +339,9 @@ def jsonld_event(ev, url):
         data['image'] = ev['affiche']
     if ev['description']:
         data['description'] = ev['description'][:500]
-    if ev['site']:
-        data['organizer'] = {'@type': 'Organization', 'name': ev['ville'] or MARQUE, 'url': ev['site']}
+    organizer = published_organizer(ev['id'])
+    if organizer is not None:
+        data['organizer'] = organizer
     return json.dumps(data, ensure_ascii=False, indent=2)
 
 def jsonld_breadcrumb(ev, base_url, url):

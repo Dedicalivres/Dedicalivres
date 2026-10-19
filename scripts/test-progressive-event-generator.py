@@ -32,6 +32,60 @@ def event(identifier, image, title, city, region, start, end, description):
     }
 
 
+
+# JSON-LD must not turn a city or a website into an invented organizer.
+with tempfile.TemporaryDirectory() as tmp:
+    fixture = Path(tmp)
+    (fixture / 'docs/territoires').mkdir(parents=True)
+    (fixture / 'evenement').mkdir()
+    mapping_path = fixture / 'docs/territoires/event-canonical-map.json'
+    mapping_path.write_text('{}')
+    fresh = event('00000000-0000-4000-8000-000000000099', '', 'Salon de test', 'Senlis',
+                  'Hauts-de-France', '2026-10-03', '2026-10-04', 'Description vérifiée')
+    fresh.update(site='https://official.example/', lieu='Espace Saint-Pierre', adresse='Place Saint-Pierre', code_postal='60300')
+    url = 'https://dedicalivres.fr/evenement/' + fresh['_slug'] + '.html'
+    with patch.object(module, '__file__', str(fixture / 'scripts/event-publisher/generate-events.py')):
+        payload = json.loads(module.jsonld_event(fresh, url))
+        assert 'organizer' not in payload
+        assert payload['startDate'] == fresh['date_debut'] and payload['endDate'] == fresh['date_fin']
+        assert payload['location']['name'] == fresh['lieu']
+        assert payload['location']['address'] == {'@type':'PostalAddress', 'streetAddress':'Place Saint-Pierre',
+            'addressLocality':'Senlis', 'postalCode':'60300', 'addressRegion':'Hauts-de-France', 'addressCountry':'FR'}
+        rendered = module.page_event(fresh, 'https://dedicalivres.fr')
+        assert f'data-event-id="{fresh["id"]}"' in rendered
+        assert f'<link rel="canonical" href="{url}">' in rendered
+        assert '3 octobre 2026' in rendered and '4 octobre 2026' in rendered
+        breadcrumb = json.loads(module.jsonld_breadcrumb(fresh, 'https://dedicalivres.fr', url))
+        assert breadcrumb['@type'] == 'BreadcrumbList' and breadcrumb['itemListElement'][-1]['item'] == url
+        existing = {'@context':'https://schema.org','@type':'Event','url':url,
+                    'organizer':{'@type':'Organization','name':'Bibliothèque municipale','url':'https://organizer.example/'}}
+        path = 'evenement/' + fresh['_slug'] + '.html'
+        mapping_path.write_text(json.dumps({fresh['id']:path}))
+        def save_existing(value):
+            (fixture / path).write_text(f'<link rel="canonical" href="{url}"><script type="application/ld+json">'+json.dumps(value)+'</script>')
+        save_existing(existing)
+        assert json.loads(module.jsonld_event(fresh, url))['organizer'] == existing['organizer']
+        without = {k:v for k,v in existing.items() if k != 'organizer'}
+        save_existing(without)
+        assert 'organizer' not in json.loads(module.jsonld_event(fresh, url))
+        save_existing({**existing, 'url':'https://wrong.example/'})
+        try:
+            module.jsonld_event(fresh, url)
+        except module.GenerationSeoError:
+            pass
+        else:
+            raise AssertionError('source publiée incohérente acceptée')
+
+# All already-published organizer values remain unchanged, including unknown or
+# inaccurate values that require separately authorized business correction.
+canonical_organizers = json.loads((ROOT / 'docs/territoires/event-canonical-map.json').read_text())
+for identifier, relative in canonical_organizers.items():
+    blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', (ROOT / relative).read_text(), re.S)
+    published = next(obj for obj in map(json.loads, blocks) if isinstance(obj,dict) and obj.get('@type') == 'Event')
+    assert module.published_organizer(identifier) == published.get('organizer')
+print('PASS JSON-LD organizer: no city inference, known enrichment retained, canonical source checked')
+
+
 events = [
     event("b2bf907d-6b39-4c86-a38d-70cc73531da3", "https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev/event-images/2026/06/1780512372624-6123fda2-40f2-469c-ba5e-db6eaa78b80d.jpg", "MYTH & LOVE", "Moulins", "Auvergne-Rhône-Alpes", "2027-10-30", "2027-10-31", ""),
     event("433a1069-e745-4de8-bfc5-94ddbddb5b65", "", "Salon du livre Thornslove : Romance sous tous ses genres", "Louverné", "Pays de la Loire", "2027-09-18", "2027-09-19", "Salon littéraire spécial romance, 90 stands et animations."),
