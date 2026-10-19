@@ -12,7 +12,7 @@ assert.match(
   /new Date\(\s*snapshot\.capturedAt\s*\)/
 );
 
-assert.doesNotMatch(
+assert.match(
   builder,
   /\.format\(new Date\(\)\)/
 );

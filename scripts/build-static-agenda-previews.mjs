@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { classify } from "./territorial-catalog.mjs";
 
 const snapshot = JSON.parse(
   fs.readFileSync(
@@ -36,7 +37,7 @@ if (
 const today = process.env.PUBLICATION_REFERENCE_DATE || new Intl.DateTimeFormat(
   "sv-SE",
   { timeZone: "Europe/Paris" }
-).format(capturedAt);
+).format(new Date());
 
 if (!/^\d{4}-\d{2}-\d{2}$/.test(today) ||
     new Date(`${today}T00:00:00Z`).toISOString().slice(0, 10) !== today) {
@@ -133,21 +134,13 @@ function canonicalHref(event) {
 }
 
 function upcoming(event) {
-  const end = clean(
-    event.end_date || event.start_date
-  );
-
-  return (
-    event.validated === true &&
-    event.rejected === false &&
-    /^\d{4}-\d{2}-\d{2}$/.test(end) &&
-    end >= today
-  );
+  return event.validated === true && event.rejected === false
+    && ["future", "ongoing"].includes(classify(event, today));
 }
 
 function selectEvents(types) {
   return events
-    .filter(upcoming)
+    .filter(event => upcoming(event) && clean(event.start_date) > today)
     .filter(
       event =>
         !types || types.includes(event.type)
@@ -266,6 +259,17 @@ function card(event) {
   </div>
 </article>`;
 }
+
+// The current-events section has its own static fallback; upcoming remains strict.
+const currentRows = events.filter(event => upcoming(event) && clean(event.start_date) <= today)
+  .sort((a, b) => Number(b.start_date === today) - Number(a.start_date === today)
+    || clean(a.start_date).localeCompare(clean(b.start_date)) || clean(a.id).localeCompare(clean(b.id)))
+  .slice(0, 4);
+let home = fs.readFileSync("index.html", "utf8");
+const currentPattern = /<div id="current-events-grid"[^>]*>[\s\S]*?<\/div>(?=\s*<\/section>)/;
+if (!currentPattern.test(home)) throw new Error("Grille actuelle introuvable");
+home = home.replace(currentPattern, `<div id="current-events-grid" class="events-grid" aria-live="polite">${currentRows.length ? currentRows.map(card).join("\n") : '<p>Aucun événement annoncé aujourd’hui. <a href="#events-grid">Voir les prochains événements</a>.</p>'}</div>`);
+fs.writeFileSync("index.html", home);
 
 const targets = [
   {
