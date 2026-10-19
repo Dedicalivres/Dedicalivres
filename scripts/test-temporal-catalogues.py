@@ -112,6 +112,7 @@ class TemporalTests(unittest.TestCase):
         self.assertIn('git push origin HEAD:main', index)
         self.assertIn('main_sha: ${{ steps.main.outputs.sha }}', index)
         self.assertIn('needs: refresh-index', projection)
+        self.assertNotIn('always()', projection)  # A failure must skip B.
         self.assertIn('contents: read', projection)
         self.assertIn('ref: main', projection)
         self.assertIn('persist-credentials: false', projection)
