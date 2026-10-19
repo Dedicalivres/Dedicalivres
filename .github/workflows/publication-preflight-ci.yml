@@ -37,6 +37,9 @@ jobs:
       - name: Test selected manual PREVIEW and EXECUTE
         run: node scripts/test-publication-manual-selected.mjs
 
+      - name: Test inactive SEO-GEO edit authorization on offline fixtures
+        run: node scripts/test-seo-geo-edit-guard.mjs
+
       - name: Test publication incident observation
         run: node scripts/test-publication-incident-health.mjs
 
