@@ -632,7 +632,8 @@
   "af452e13-6b5d-4372-9c38-5caef088accb": "evenement/dedicace-de-celine-ghys-saint-etienne-du-rouvray-af452e13-6b5d-4372-9c38-5caef088accb.html",
   "6056f9f1-9c09-4327-acc2-b6b12a665b3d": "evenement/seance-de-dedicace-a-l-espace-culturel-e-leclerc-de-vierzon-18-vierzon-6056f9f1-9c09-4327-acc2-b6b12a665b3d.html",
   "a5988d56-85e0-4ccf-af66-92b22b314190": "evenement/seance-de-dedicace-au-cultura-d-auxerre-auxerre-a5988d56-85e0-4ccf-af66-92b22b314190.html",
-  "b559457b-e307-4ee2-b620-3ad3e183c0f9": "evenement/seance-de-dedicace-espace-culture-e-leclerc-d-amilly-45-amilly-b559457b-e307-4ee2-b620-3ad3e183c0f9.html"
+  "b559457b-e307-4ee2-b620-3ad3e183c0f9": "evenement/seance-de-dedicace-espace-culture-e-leclerc-d-amilly-45-amilly-b559457b-e307-4ee2-b620-3ad3e183c0f9.html",
+  "cdab0a10-81fe-467f-b759-a349b61ab5a3": "evenement/dedicace-de-maia-hoti-saint-etienne-du-rouvray-cdab0a10-81fe-467f-b759-a349b61ab5a3.html"
 });
 
   function eventId(value) {

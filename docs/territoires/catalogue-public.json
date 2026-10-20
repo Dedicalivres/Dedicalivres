@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-20T16:07:48.549Z",
+  "capturedAt": "2026-10-20T16:33:35.015Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -6805,6 +6805,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "cdab0a10-81fe-467f-b759-a349b61ab5a3",
+      "title": "Dédicace de Maia Hoti",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Normandie",
+      "city": "Saint-Étienne-du-Rouvray",
+      "start_date": "2026-10-24",
+      "end_date": "2026-10-24",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "ce0791b1-b041-402d-9f6f-cc3fe5cd6ad5",
