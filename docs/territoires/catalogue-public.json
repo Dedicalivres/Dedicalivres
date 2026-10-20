@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-20T15:19:18.924Z",
+  "capturedAt": "2026-10-20T16:07:48.549Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -3335,6 +3335,20 @@
       "website": "https://www.lesailesdubaukion.be/"
     },
     {
+      "id": "6056f9f1-9c09-4327-acc2-b6b12a665b3d",
+      "title": "Séance de dédicace à l'Espace culturel E.Leclerc de Vierzon (18)",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Centre-Val de Loire",
+      "city": "Vierzon",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://portescristallines.fr"
+    },
+    {
       "id": "606f4098-de70-4581-968b-65a3e0a4e0bc",
       "title": "Dédicace de Benoit Falaize",
       "type": "Dédicace",
@@ -5449,6 +5463,20 @@
       "website": "https://www.librairie-cheminsdencre.com/index.php"
     },
     {
+      "id": "a5988d56-85e0-4ccf-af66-92b22b314190",
+      "title": "Séance de dédicace au Cultura d'Auxerre",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Bourgogne-Franche-Comté",
+      "city": "Auxerre",
+      "start_date": "2026-11-07",
+      "end_date": "2026-11-07",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://portescristallines.fr"
+    },
+    {
       "id": "a5da59f0-94fe-4212-a34f-b17fe8851cba",
       "title": "Fête du Livre de Saint-Genest-Lerpt",
       "type": "Salon",
@@ -5993,6 +6021,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://sites.google.com/view/gabrielgachen"
+    },
+    {
+      "id": "b559457b-e307-4ee2-b620-3ad3e183c0f9",
+      "title": "Séance de dédicace - Espace culture E.Leclerc d'Amilly (45)",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Centre-Val de Loire",
+      "city": "Amilly",
+      "start_date": "2026-11-21",
+      "end_date": "2026-11-21",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://portescristallines.fr"
     },
     {
       "id": "b597c400-63c7-4664-8e2a-b78fb7b58e89",

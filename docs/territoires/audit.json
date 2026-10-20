@@ -1,8 +1,8 @@
 {
-  "base": "316760404d9134225bab12667eb87d8d537020a0",
-  "capturedAt": "2026-10-20T15:19:18.924Z",
+  "base": "238bc9ef199a478eb00a5b2f66734788d00a8ba9",
+  "capturedAt": "2026-10-20T16:07:48.549Z",
   "today": "2026-10-20",
-  "total": 627,
+  "total": 630,
   "registryCountries": [
     {
       "code": "FR",
@@ -46,7 +46,7 @@
       "id": "FR-local-02",
       "label": "Bourgogne-Franche-Comté",
       "country": "FR",
-      "count": 21
+      "count": 22
     },
     {
       "id": "FR-BRE",
@@ -58,7 +58,7 @@
       "id": "FR-local-04",
       "label": "Centre-Val de Loire",
       "country": "FR",
-      "count": 39
+      "count": 41
     },
     {
       "id": "FR-local-05",
@@ -907,8 +907,8 @@
         "Provence-Alpes-Côte d’Azur"
       ],
       "editorial": "",
-      "total": 614,
-      "upcoming": 99,
+      "total": 617,
+      "upcoming": 102,
       "ongoing": 2,
       "past": 515,
       "undated": 0,
@@ -1471,6 +1471,7 @@
         "83270534-e551-4562-8805-f10240a6007c",
         "b0f916ad-e5f9-493b-80e9-7f05e7e7d55c",
         "e319b179-8986-4543-9ace-215839fbe46e",
+        "a5988d56-85e0-4ccf-af66-92b22b314190",
         "e380c538-2bc7-4ad4-b53e-22b601fb6381",
         "ffeea6a3-0bb8-44ba-9b89-21edcd86285c",
         "15d0cd55-567c-485d-9edd-4a0b269de984",
@@ -1482,6 +1483,7 @@
         "b42163bc-bcaa-4d4d-9370-b7f72fdc3fef",
         "468975a7-7d64-473d-9b63-8c05af94d90f",
         "c4beb4b6-ca0a-4000-87c7-329542158186",
+        "6056f9f1-9c09-4327-acc2-b6b12a665b3d",
         "6ef46e3b-6bd8-46f0-ac77-52234a92810e",
         "8dbeec83-ed09-42c5-90bf-7b18d00062d5",
         "84f8e08a-0ee9-481e-8474-37a5221120ef",
@@ -1495,6 +1497,7 @@
         "34397628-f91a-40ce-bf7a-49d71ae46fd1",
         "5d3fdbb8-708e-4d79-bf5b-eec80b132d0b",
         "eb6672b2-900f-4c6a-9021-ea84c5036769",
+        "b559457b-e307-4ee2-b620-3ad3e183c0f9",
         "076053cd-b387-4a94-a61d-0e8f0b5b9784",
         "c57debb2-10df-4ee1-8e20-bb7ca0179ffe",
         "7da7140e-0a1b-4fb9-8353-a76afbd5895b",
@@ -1749,8 +1752,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Bourgogne-Franche-Comté</h2>\n    <p>La Bourgogne-Franche-Comté fait vivre le livre à travers ses librairies, médiathèques, salons, festivals et rencontres culturelles. Dédicalivres rassemble les rendez-vous littéraires de la région pour aider les lecteurs à découvrir les événements proches de chez eux.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Bourgogne-Franche-Comté</h2>\n  <p>La région Bourgogne-Franche-Comté regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-dijon.html\">Dijon</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Bourgogne-Franche-Comté. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Bourgogne-Franche-Comté</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Bourgogne-Franche-Comté ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 21,
-      "upcoming": 4,
+      "total": 22,
+      "upcoming": 5,
       "ongoing": 0,
       "past": 17,
       "undated": 0,
@@ -1776,6 +1779,7 @@
         "22a6915c-17a3-473d-9d06-6e10c6e2c259",
         "785a77fc-a308-471b-b05c-e723cdf59aaa",
         "ee1f1be2-87b2-48ee-8617-66c633ee3d0b",
+        "a5988d56-85e0-4ccf-af66-92b22b314190",
         "6ef46e3b-6bd8-46f0-ac77-52234a92810e",
         "21528c7e-c013-443e-b463-c988058ddadd"
       ]
@@ -1924,8 +1928,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Centre-Val de Loire</h2>\n    <p>Le Centre-Val de Loire accueille des événements littéraires dans ses villes, ses bibliothèques, ses salons et ses lieux culturels. Dédicalivres aide les lecteurs à repérer les dédicaces, festivals et rencontres d’auteurs organisés dans la région.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Centre-Val de Loire</h2>\n  <p>La région Centre-Val de Loire regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-tours.html\">Tours</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Centre-Val de Loire. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Centre-Val de Loire</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Centre-Val de Loire ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 39,
-      "upcoming": 11,
+      "total": 41,
+      "upcoming": 13,
       "ongoing": 1,
       "past": 28,
       "undated": 0,
@@ -1967,6 +1971,8 @@
         "a4737592-2995-4e85-a923-dc675d53d670",
         "83270534-e551-4562-8805-f10240a6007c",
         "d6644218-1307-40d7-bc34-eced6c51a6c7",
+        "6056f9f1-9c09-4327-acc2-b6b12a665b3d",
+        "b559457b-e307-4ee2-b620-3ad3e183c0f9",
         "e82fb57f-c1e7-4a0d-966d-5c18cafbaa15",
         "08ee50b4-6fac-4e18-94f2-ffb500615b49",
         "0493f323-28fa-4f54-b687-69047550b8d4",
