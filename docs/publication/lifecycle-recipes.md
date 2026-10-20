@@ -19,11 +19,35 @@ aucune migration.
 | T11 concurrence | EXISTANT | Divergence source, verrou atomique, RUNNING existant et sélection périmée provoquent un STOP. |
 | T12 legacy et fichiers tiers | EXISTANT | 282 legacy, suppressions ciblées, tiers inchangés et seuil de 250 fichiers. |
 | T13 cohérence globale | EXISTANT | Canonical, sitemap, catalogue, index et pages territoriales contrôlés. |
+| T14 lastmod auteur ciblé | CONTRÔLÉ | Seule une page auteur significativement modifiée actualise son entrée XML, à la date de publication Europe/Paris. |
 
 **État après F2 :** la migration de coalescence est installée dans Supabase. Le
 scénario PENDING `validation`/`edit`/`unpublish` puis DELETE est validé RED/GREEN
 sur PostgreSQL Docker éphémère et dans la CI. Aucun DELETE réel n'a été testé en
 production.
+
+## Lastmod auteur lors d'une publication ciblée
+
+`build-author-pages.mjs` compare les HTML existants aux rendus avant écriture.
+En mode ciblé, un changement significatif actualise uniquement le lastmod de
+la fiche concernée dans le sitemap existant ; une fiche inchangée garde sa date
+et ses octets. La date est `PUBLICATION_REFERENCE_DATE` lorsqu'elle est fournie
+par la projection, sinon le jour courant Europe/Paris. Le classement des
+présences utilise ce même jour. Une capture de données ou `published_at` ne
+remplace pas la date d'une véritable modification de contenu.
+
+Le helper réutilise le contrôle XML du rafraîchissement d'index. Il refuse les
+URL absentes, inconnues ou dupliquées et les lastmod ambigus avant toute écriture
+des pages. Les URL, leur ordre et les autres métadonnées sont conservés. Un
+changement du registre ou de l'index des auteurs en publication ciblée provoque
+STOP. Les créations ordinaires en mode non ciblé conservent le parcours existant.
+Tests : `node scripts/test-author-sitemap-lastmod.mjs`.
+
+Pour le retrait du doublon Beg-Meil, aucune page alias ni règle de redirection
+n'est prévue : après une dépublication ultérieurement autorisée, l'ancienne URL
+devrait répondre 404 sur GitHub Pages, à vérifier après déploiement. La fiche
+du même salon conservée garde son canonical. Cette recette n'autorise aucune
+publication, réservation ou modification de statut.
 
 ## Limite de preuve
 
