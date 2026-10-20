@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-20T16:33:35.015Z",
+  "capturedAt": "2026-10-20T16:50:42.221Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -4077,6 +4077,20 @@
       "website": "https://zigzag.lahague.com/"
     },
     {
+      "id": "77ccedcc-655f-424b-a8fe-829115b93ed6",
+      "title": "Salon du Livre « Corneille »",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Normandie",
+      "city": "Rouen",
+      "start_date": "2026-11-27",
+      "end_date": "2026-11-27",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
+    },
+    {
       "id": "77dea611-860a-420e-ae96-597f1564bb80",
       "title": "Faites lire! La fête de la lecture",
       "type": "Festival",
@@ -6959,6 +6973,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "http://www.totems.bzh/"
+    },
+    {
+      "id": "d1b97a71-5900-4ea1-af52-9d0b733974e9",
+      "title": "11e Salon du livre des auteurs namurois",
+      "type": "Salon",
+      "country_code": "BE",
+      "region": "Wallonie",
+      "city": "Namur",
+      "start_date": "2026-11-28",
+      "end_date": "2026-11-29",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://salondulivrenamurois.be"
     },
     {
       "id": "d2d0c8b6-7d3b-4075-a364-bcbdd2238a4c",

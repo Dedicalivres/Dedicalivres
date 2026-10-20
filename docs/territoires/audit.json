@@ -1,8 +1,8 @@
 {
-  "base": "63f465c47237c8afcaf006e1aa6db1b178889fdf",
-  "capturedAt": "2026-10-20T16:33:35.015Z",
+  "base": "aa02640acda7ef436c8448ff41af37f4d2c87117",
+  "capturedAt": "2026-10-20T16:50:42.221Z",
   "today": "2026-10-20",
-  "total": 631,
+  "total": 633,
   "registryCountries": [
     {
       "code": "FR",
@@ -88,7 +88,7 @@
       "id": "FR-local-09",
       "label": "Normandie",
       "country": "FR",
-      "count": 42
+      "count": 43
     },
     {
       "id": "FR-local-10",
@@ -130,7 +130,7 @@
       "id": "BE-WAL",
       "label": "Wallonie",
       "country": "BE",
-      "count": 4
+      "count": 5
     },
     {
       "id": "LU-local-01",
@@ -865,8 +865,8 @@
       "imageWidth": 1916,
       "imageHeight": 821,
       "editorial": "",
-      "total": 4,
-      "upcoming": 1,
+      "total": 5,
+      "upcoming": 2,
       "ongoing": 0,
       "past": 3,
       "undated": 0,
@@ -876,6 +876,7 @@
         "9f3b5d30-d3d8-4481-a69f-98b6d9820190",
         "0627ab62-44b8-4e12-baa7-c29b158ed664",
         "5f2f72d0-7f33-4f9f-b0f2-2e222dc919d0",
+        "d1b97a71-5900-4ea1-af52-9d0b733974e9",
         "f12c95d9-6cab-4210-b25b-10aa3549dcff"
       ]
     }
@@ -907,8 +908,8 @@
         "Provence-Alpes-Côte d’Azur"
       ],
       "editorial": "",
-      "total": 618,
-      "upcoming": 103,
+      "total": 619,
+      "upcoming": 104,
       "ongoing": 2,
       "past": 515,
       "undated": 0,
@@ -1502,6 +1503,7 @@
         "076053cd-b387-4a94-a61d-0e8f0b5b9784",
         "c57debb2-10df-4ee1-8e20-bb7ca0179ffe",
         "7da7140e-0a1b-4fb9-8353-a76afbd5895b",
+        "77ccedcc-655f-424b-a8fe-829115b93ed6",
         "c574ed06-0989-42bb-8bf9-2159d9ab3281",
         "aa254494-8b3a-438c-b837-5ddb374f4e49",
         "6fae9861-1d63-46c1-b417-b1612f0e5aac",
@@ -1551,8 +1553,8 @@
         "Wallonie"
       ],
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Belgique</p>\n    <h2>Événements littéraires en Belgique</h2>\n    <p>Retrouvez les salons du livre, festivals, séances de dédicace et rencontres d’auteurs référencés à Bruxelles, en Wallonie et en Flandre.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Rencontres littéraires — Belgique</h2>\n  <p>Dédicalivres couvre l’espace francophone : France, Belgique, Luxembourg, Suisse et Monaco. Cette page rassemble les rencontres autour du livre — salons, festivals et dédicaces référencés pour Belgique, à partir de contributions vérifiées.</p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les événements proviennent de la communauté et sont vérifiés avant publication. Si aucune date n’apparaît pour Belgique, c’est qu’aucun événement n’y est encore référencé — vous pouvez en proposer un.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a></p>\n</section>\n<section class=\"seo-text-block\"><h2>Explorer les territoires</h2><p><a href=\"evenements-litteraires-wallonie.html\">Wallonie : rendez-vous à venir et archives</a></p></section>",
-      "total": 7,
-      "upcoming": 1,
+      "total": 8,
+      "upcoming": 2,
       "ongoing": 0,
       "past": 6,
       "undated": 0,
@@ -1565,6 +1567,7 @@
         "f55bec3f-3ae5-4488-83a4-cfe50e3448a5",
         "0627ab62-44b8-4e12-baa7-c29b158ed664",
         "5f2f72d0-7f33-4f9f-b0f2-2e222dc919d0",
+        "d1b97a71-5900-4ea1-af52-9d0b733974e9",
         "f12c95d9-6cab-4210-b25b-10aa3549dcff"
       ]
     },
@@ -2230,8 +2233,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Normandie</h2>\n    <p>La Normandie accueille de nombreux rendez-vous autour du livre, entre salons, festivals, librairies, médiathèques et rencontres culturelles. Dédicalivres centralise ces événements pour aider les lecteurs à découvrir les prochaines sorties littéraires régionales.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Normandie</h2>\n  <p>La région Normandie regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-rouen.html\">Rouen</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Normandie. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Normandie</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Normandie ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 42,
-      "upcoming": 8,
+      "total": 43,
+      "upcoming": 9,
       "ongoing": 0,
       "past": 34,
       "undated": 0,
@@ -2278,6 +2281,7 @@
         "00413406-fd94-4937-96cd-d2133c4e3e65",
         "70e011da-09ff-4d65-a5da-02c51d07f80b",
         "2d8f1a1f-6a67-4418-ad5e-fba954780d78",
+        "77ccedcc-655f-424b-a8fe-829115b93ed6",
         "c856084b-7052-40a9-8fab-6e64a6a2ff13",
         "e6f70814-10cf-4d9e-8e97-65835c148249"
       ]
@@ -2615,8 +2619,8 @@
       "imageWidth": 1916,
       "imageHeight": 821,
       "editorial": "",
-      "total": 4,
-      "upcoming": 1,
+      "total": 5,
+      "upcoming": 2,
       "ongoing": 0,
       "past": 3,
       "undated": 0,
@@ -2626,6 +2630,7 @@
         "9f3b5d30-d3d8-4481-a69f-98b6d9820190",
         "0627ab62-44b8-4e12-baa7-c29b158ed664",
         "5f2f72d0-7f33-4f9f-b0f2-2e222dc919d0",
+        "d1b97a71-5900-4ea1-af52-9d0b733974e9",
         "f12c95d9-6cab-4210-b25b-10aa3549dcff"
       ]
     },
