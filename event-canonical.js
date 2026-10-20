@@ -183,7 +183,6 @@
   "aad22ca8-1b42-440e-b2a4-6aadb938be49": "evenement/clara-haraut-en-dadicace-biarritz-biarritz-3030.html",
   "c87ab098-7b5c-4212-b1da-06b3a95b776d": "evenement/rencontre-et-dedicaces-avec-virginie-troussier-carantec-c87ab098-7b5c-4212-b1da-06b3a95b776d.html",
   "de82b8fb-1959-46d8-bf37-0cb3a106a44c": "evenement/la-nuit-du-livre-site-officiel-de-la-ville-de-bormes-les-mimosas-la-ch-1280.html",
-  "3c20bba7-b05e-4400-ab7c-6e97e84f91c3": "evenement/salon-du-livre-policier-beg-meil-fouesnant-3c20bba7-b05e-4400-ab7c-6e97e84f91c3.html",
   "8253c7e9-56a7-4368-b963-060a84ddcd68": "evenement/salon-du-livre-l-assassin-habite-dans-le-29-fouesnant-8253c7e9-56a7-4368-b963-060a84ddcd68.html",
   "0527af42-40b3-46e6-8819-d48a41d9f066": "evenement/12eme-festival-du-livre-de-la-haute-tinee-2026-saint-etienne-de-tinee-1259.html",
   "1bc20d22-2961-4503-ab79-838cda471707": "evenement/conference-et-dedicace-avec-isabelle-krief-gien-1bc20d22-2961-4503-ab79-838cda471707.html",

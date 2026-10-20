@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-18T08:36:34.410Z",
+  "capturedAt": "2026-10-20T05:14:21.132Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -2101,20 +2101,6 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://data.datatourisme.fr/23/a86efc6c-2fb3-391a-8d6e-8da0224b80ac"
-    },
-    {
-      "id": "3c20bba7-b05e-4400-ab7c-6e97e84f91c3",
-      "title": "Salon du Livre Policier - Beg-Meil",
-      "type": "Salon",
-      "country_code": "FR",
-      "region": "Bretagne",
-      "city": "Fouesnant",
-      "start_date": "2026-08-06",
-      "end_date": "2026-08-06",
-      "validated": true,
-      "rejected": false,
-      "registration_force_status": null,
-      "website": "https://www.facebook.com/lassassinhabitedansle29/?locale=fr_FR"
     },
     {
       "id": "3c5fcce3-f681-4445-b6f0-b30856d57e30",
