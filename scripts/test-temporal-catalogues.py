@@ -17,6 +17,13 @@ spec.loader.exec_module(temporal)
 DAYS = ['2026-10-18', '2026-10-19', '2026-10-20', '2026-10-25', '2026-10-26']
 
 
+def repository_day():
+    audit = json.loads(
+        (ROOT / 'docs/territoires/audit.json').read_text(encoding='utf-8')
+    )
+    return dt.date.fromisoformat(audit['today'])
+
+
 class TemporalTests(unittest.TestCase):
     def test_boundary_parity_and_paris_dst(self):
         fixture = {'start_date': '2026-10-19', 'end_date': '2026-10-25'}
@@ -36,15 +43,25 @@ class TemporalTests(unittest.TestCase):
             self.assertEqual(temporal.refresh.paris_today(instant), dt.date.fromisoformat(day) + dt.timedelta(days=1))
 
     def test_five_complete_offline_projections_and_idempotence(self):
+        base = repository_day()
+        days = [base + dt.timedelta(days=offset) for offset in (0, 1, 2, 5, 6)]
         with tempfile.TemporaryDirectory() as temp:
-            for day in DAYS:
+            for day in days:
                 with self.subTest(day=day):
-                    report = temporal.project(ROOT, Path(temp) / day, dt.date.fromisoformat(day))
+                    report = temporal.project(ROOT, Path(temp) / day.isoformat(), day)
                     self.assertEqual(report['events'], len(json.loads((ROOT / 'docs/territoires/event-canonical-map.json').read_text())))
                     self.assertTrue(report['idempotent'])
                     self.assertTrue(report['event_pages_unchanged'])
                     self.assertEqual(report['deleted'], [])
                     self.assertFalse(report['publication'])
+
+    def test_past_projection_remains_forbidden(self):
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaisesRegex(ValueError, 'retour temporel interdit'):
+                temporal.project(
+                    ROOT, Path(temp) / 'past',
+                    repository_day() - dt.timedelta(days=1)
+                )
 
     def test_scope_stops(self):
         before = {'index.html': b'old', 'evenement/event.html': b'legacy'}
@@ -128,7 +145,27 @@ class TemporalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             stage = Path(temp) / 'repo'
             temporal.run(ROOT, 'git', 'clone', '--quiet', '--no-hardlinks', str(ROOT), str(stage))
-            day = dt.date(2026, 10, 20)
+            # Expire the first card actually present in the committed index.
+            # This guarantees a meaningful index refresh without a fixed date.
+            index = (stage / 'evenement/index.html').read_text(encoding='utf-8')
+            cards = temporal.refresh.CARD.findall(index)
+            self.assertTrue(cards, 'Index sans carte pour ce test de transition')
+            expiries = []
+            for filename in cards:
+                page = (stage / 'evenement' / filename).read_text(encoding='utf-8')
+                objects = [
+                    json.loads(block)
+                    for block in temporal.refresh.EVENT_JSON.findall(page)
+                ]
+                events = [
+                    item for item in objects
+                    if isinstance(item, dict) and item.get('@type') == 'Event'
+                ]
+                self.assertEqual(len(events), 1)
+                expiries.append(
+                    dt.date.fromisoformat(events[0]['endDate'][:10])
+                )
+            day = max(repository_day(), min(expiries) + dt.timedelta(days=1))
             temporal.refresh.rebuild(stage, day)
             temporal.refresh.verify_git_diff(stage, day)
             changed = temporal.run(stage, 'git', 'diff', '--name-only').decode().splitlines()
