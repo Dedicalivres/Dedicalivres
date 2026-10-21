@@ -584,7 +584,6 @@
   "5d3fdbb8-708e-4d79-bf5b-eec80b132d0b": "evenement/salon-du-livre-de-maille-86-maille-2850.html",
   "62fc7c96-aa02-4187-aa88-a5a39185d3d9": "evenement/histoire-de-lire-a-versailles-versailles-4073.html",
   "74dc159b-058a-473f-86d3-d95d0c9b8826": "evenement/festival-du-livre-colmar-3243.html",
-  "eb6672b2-900f-4c6a-9021-ea84c5036769": "evenement/salon-du-livre-jeunesse-du-pays-de-lorient-lorient-3441.html",
   "ff8c6de4-f1d2-4a57-90d2-154b81120aa7": "evenement/dedicace-de-charlotte-bruno-a-l-espace-culturel-leclerc-de-queven-quev-ff8c6de4-f1d2-4a57-90d2-154b81120aa7.html",
   "076053cd-b387-4a94-a61d-0e8f0b5b9784": "evenement/salon-des-artistes-et-ecrivains-jugon-les-lacs-076053cd-b387-4a94-a61d-0e8f0b5b9784.html",
   "c57debb2-10df-4ee1-8e20-bb7ca0179ffe": "evenement/salon-du-livre-avignonet-lauragais-c57debb2-10df-4ee1-8e20-bb7ca0179ffe.html",

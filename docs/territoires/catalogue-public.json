@@ -7983,20 +7983,6 @@
       "website": ""
     },
     {
-      "id": "eb6672b2-900f-4c6a-9021-ea84c5036769",
-      "title": "SALON DU LIVRE JEUNESSE DU PAYS DE LORIENT",
-      "type": "Salon",
-      "country_code": "FR",
-      "region": "Bretagne",
-      "city": "Lorient",
-      "start_date": "2026-11-21",
-      "end_date": "2026-11-26",
-      "validated": true,
-      "rejected": false,
-      "registration_force_status": null,
-      "website": "https://salondulivrejeunesselorient.fr"
-    },
-    {
       "id": "ebd61084-2fc0-42f9-956b-4dcb69610975",
       "title": "Rencontre et dédicace Lily W. B.",
       "type": "Dédicace",
