@@ -1,3 +1,4 @@
+import {authorization,guardRetiredJobs,readWithdrawalEvidence,assertWithdrawalEvidence,assertFrozenSnapshot} from './retired-test-policy.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -55,7 +56,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const current = await fetchSource(process.env.DEDICALIVRES_SUPABASE_URL, process.env.DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY);
   assertSourceSame(captured, current);
   const territorial = JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json', 'utf8'));
-  assertTerritorialSame(territorial,
+  if(process.env.PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION){
+    const a=authorization();const jobs=JSON.parse(process.env.PUBLICATION_JOBS||'[]');guardRetiredJobs(jobs);
+    const evidence=await readWithdrawalEvidence(a);
+    if(evidence.jobs[0]?.batch_id!==jobs[0]?.batch_id)stop('batch de retrait changé');
+    assertWithdrawalEvidence(a,evidence,process.cwd(),'claimed');assertFrozenSnapshot(a,territorial);
+  } else assertTerritorialSame(territorial,
     process.env.PUBLICATION_TARGETED === 'true' ? publishedEventRows(current) : current);
   console.log(`PASS source publique inchangée : ${current.length} événements`);
 }

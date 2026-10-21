@@ -1,3 +1,4 @@
+import {loadRetirementIds} from './event-retirements.js';
 import {fetchPublicEvents} from './scripts/territorial-catalog.mjs';
 import {territories,renderTerritory} from './scripts/territorial-render.mjs';
 
@@ -18,10 +19,12 @@ async function refresh(restoreFocus=false){
  try{
   const config=window.DEDICALIVRES_CONFIG;
   if(!config?.supabaseUrl||!config?.supabaseAnonKey)throw Error('Configuration absente');
-  const [events,assets]=await Promise.all([
+  const [rawEvents,assets,retired]=await Promise.all([
    fetchPublicEvents(config),
-   resources?Promise.resolve(resources):Promise.all([readJSON('docs/territoires/referentiel.json'),readJSON('docs/territoires/verifications-organisateurs.json')])
+   resources?Promise.resolve(resources):Promise.all([readJSON('docs/territoires/referentiel.json'),readJSON('docs/territoires/verifications-organisateurs.json')]),
+   loadRetirementIds()
   ]);
+  const events=rawEvents.filter(event=>!retired.has(String(event.id)));
   resources=assets;
   const capturedAt=new Date().toISOString();
   const {main,stats}=renderTerritory({p:pilot,events,registry:assets[0],verified:assets[1],capturedAt,live:true,archivePageCount});

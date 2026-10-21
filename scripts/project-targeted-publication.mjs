@@ -3,6 +3,8 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {businessFingerprint, normalizeMetadata, sitemapEntries, temporalStatus} from './project-p0-publication.mjs';
+import {excludedIds, guardRetiredJobs, ID as RETIRED_ID} from './retired-test-policy.mjs';
+import {verifyFrozenLorientRetirement} from './preview-lorient-test-retirement.mjs';
 
 const MAP = 'docs/territoires/event-canonical-map.json';
 const SNAPSHOT = 'docs/territoires/catalogue-public.json';
@@ -58,6 +60,7 @@ export function parseJobs(raw) {
     if (row.event_id) allowed.add(row.event_id);
     if (row.reason === 'unpublish' || row.reason === 'delete') removals.add(row.event_id);
   }
+  guardRetiredJobs(rows);
   return {allowed, removals, rows};
 }
 
@@ -84,7 +87,9 @@ export function assertManifest(old, manifest, allowed, legacy) {
   for (const id of new Set([...Object.keys(old), ...Object.keys(manifest)])) {
     const next = manifest[id] ? `evenement/${manifest[id]}.html` : undefined;
     if (!allowed.has(id) && old[id] !== next) stop(`URL tierce modifiée : ${id}`);
-    if (legacy.has(id) && old[id] !== next) stop(`fiche legacy modifiée : ${id}`);
+    const retiredRemoval = id === RETIRED_ID && next === undefined && allowed.has(id)
+      && excludedIds().has(id) && guardRetiredJobs(JSON.parse(process.env.PUBLICATION_JOBS || '[]'));
+    if (legacy.has(id) && old[id] !== next && !retiredRemoval) stop(`fiche legacy modifiée : ${id}`);
   }
 }
 
@@ -198,7 +203,7 @@ export function context() {
   const legacyFiles = json('scripts/event-publisher/legacy-enriched-events.json').events;
   const legacy = new Set(Object.keys(legacyFiles));
   const selectedLegacy = [...jobs.allowed].filter(id => legacy.has(id));
-  if (legacy.size !== 282 || selectedLegacy.length > 0) stop('protection 282 legacy');
+  if (legacy.size !== 282 || selectedLegacy.some(id => id !== RETIRED_ID || !jobs.removals.has(id) || !excludedIds().has(id))) stop('protection 282 legacy');
   const day = process.env.PUBLICATION_REFERENCE_DATE;
   if (!validDate(day)) stop('date Europe/Paris invalide');
   return {...jobs, legacy, day};
@@ -208,7 +213,7 @@ export function publishedEventRows(rows) {
   const jobs = parseJobs(process.env.PUBLICATION_JOBS || '');
   const legacyFiles = json('scripts/event-publisher/legacy-enriched-events.json').events;
   const selectedLegacy = [...jobs.allowed].filter(id => id in legacyFiles);
-  if (Object.keys(legacyFiles).length !== 282 || selectedLegacy.length) stop('protection 282 legacy');
+  if (Object.keys(legacyFiles).length !== 282 || selectedLegacy.some(id => id !== RETIRED_ID || !jobs.removals.has(id) || !excludedIds().has(id))) stop('protection 282 legacy');
   const current = json(MAP);
   let canonical = current;
   if ([...jobs.removals].some(id => !(id in current))) {
@@ -368,11 +373,11 @@ export function assertNewFranceArchives(oldPages, freshPages, before, after, pub
   return added;
 }
 
-function projectAggregates(temporalOnly = false) {
+function projectAggregates(temporalOnly = false, frozenScope = null) {
   // A temporal refresh authorizes zero event edits and never consumes a job.
-  const {allowed, day} = temporalOnly
+  const {allowed, day} = frozenScope || (temporalOnly
     ? {allowed: new Set(), day: process.env.PUBLICATION_REFERENCE_DATE}
-    : context();
+    : context());
   if (!validDate(day)) stop('date Europe/Paris invalide');
   const previous = JSON.parse(baseline(SNAPSHOT)), current = json(SNAPSHOT);
   const {before, after} = assertCatalog(previous, current, allowed);
@@ -435,6 +440,11 @@ function projectAggregates(temporalOnly = false) {
   }
   if (sitemap !== read('sitemap.xml')) fs.writeFileSync('sitemap.xml', sitemap);
   console.log(`PASS agrégats ciblés : ${changed.size} modifiés, ${restored.size} préservés`);
+}
+
+// Offline preview only: the normal job/legacy path above remains unchanged.
+export function projectLorientPreviewAggregates(registry,day) {
+  projectAggregates(false, verifyFrozenLorientRetirement(process.cwd(), registry,day));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

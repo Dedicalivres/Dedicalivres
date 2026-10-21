@@ -708,7 +708,9 @@
     return mapInitPromise;
   }
 
+  const getRetiredEventIds = () => import('./event-retirements.js').then(policy => policy.loadRetirementIds());
   async function fetchPublicCatalog(columns) {
+    const retired = await getRetiredEventIds();
     // Stable ID cursor avoids the API row limit without sending local preferences.
     const rows = [];
     const seen = new Set();
@@ -724,7 +726,7 @@
       if (!response.data.length) return { data: rows, error: null };
       for (const event of response.data) {
         if (event.id == null || seen.has(String(event.id))) return { data: null, error: new Error('Pagination du catalogue incohérente') };
-        seen.add(String(event.id)); rows.push(event);
+        seen.add(String(event.id)); if (!retired.has(String(event.id))) rows.push(event);
       }
       cursor = response.data[response.data.length - 1].id;
     }

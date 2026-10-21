@@ -1,3 +1,4 @@
+import {excludedIds, guardRetiredJobs, ID as RETIRED_ID} from './retired-test-policy.mjs';
 import {
   execFileSync,
 } from "node:child_process";
@@ -136,12 +137,13 @@ const changed =
   ]);
 
 if (process.env.PUBLICATION_TARGETED === "true") {
-  const {allowed} = parseJobs(process.env.PUBLICATION_JOBS || "");
+  const {allowed, rows} = parseJobs(process.env.PUBLICATION_JOBS || "");
+  guardRetiredJobs(rows);
   const mapPath = "docs/territoires/event-canonical-map.json";
   const before = JSON.parse(execFileSync("git", ["show", `HEAD:${mapPath}`], {encoding:"utf8"}));
   const after = JSON.parse(fs.readFileSync(mapPath, "utf8"));
   const legacyIds = new Set(Object.keys(legacy.events || {}));
-  if ([...allowed].some(id => legacyIds.has(id))) throw new Error("STOP : fiche legacy sélectionnée");
+  if ([...allowed].some(id => legacyIds.has(id) && (id !== RETIRED_ID || !excludedIds().has(id)))) throw new Error("STOP : fiche legacy sélectionnée");
   const manifest = Object.fromEntries(Object.entries(after).map(([id, file]) =>
     [id, path.basename(file, ".html")]));
   assertManifest(before, manifest, allowed, legacyIds);

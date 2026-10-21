@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import uuid
+from retired_test_policy import TARGET, PAGE, excluded_ids, guard_jobs
 
 
 HERE = Path(__file__).resolve().parent
@@ -56,9 +57,10 @@ def authorized_pilot_depublications(selected):
         legacy = json.loads(MANIFEST.read_text(encoding="utf-8"))["events"]
     except (OSError, ValueError, KeyError) as exc:
         raise RuntimeError("preuve canonique ou legacy indisponible") from exc
+    exceptions = guard_jobs(json.loads(os.environ.get("PUBLICATION_JOBS") or "[]"))
     authorized = set()
     for event_id, path in zip(ids, paths):
-        if event_id in authorized or event_id in legacy or canonical.get(event_id) != path:
+        if event_id in authorized or (event_id in legacy and event_id not in exceptions) or canonical.get(event_id) != path:
             raise RuntimeError("pilote dépublié : identité canonique invalide")
         if not isinstance(path, str) or not re.fullmatch(r"evenement/[^/]+\.html", path):
             raise RuntimeError("pilote dépublié : chemin canonique invalide")
@@ -491,10 +493,16 @@ def preserve_pages(
     )
 
     legacy_count = 0
+    excluded = excluded_ids()
+    canonical = json.loads((ROOT / "docs/territoires/event-canonical-map.json").read_text())
 
     for event_id, filename in (
         events.items()
     ):
+        if event_id in excluded and (f"evenement/{filename}" in retired_paths or event_id not in canonical):
+            if event_id not in canonical and (source_dir / filename).exists():
+                raise RuntimeError("fiche de test réapparue hors canonical")
+            continue
         source = (
             source_dir /
             filename

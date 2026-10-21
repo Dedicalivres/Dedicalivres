@@ -3,11 +3,12 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const app = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 const source = app.slice(app.indexOf('  async function fetchPublicCatalog('), app.indexOf('  async function loadEvents('));
-const dataset = Array.from({ length: 7 }, (_, i) => ({ id: i + 1 }));
+const retiredId='eb6672b2-900f-4c6a-9021-ea84c5036769';
+const dataset = [...Array.from({ length: 7 }, (_, i) => ({ id: '00000000-0000-4000-8000-'+String(i+1).padStart(12,'0') })),{id:retiredId}];
 let mode = 'normal'; let calls = 0;
 const filters = [];
 const supabaseClient = { from(table) {
-  assert.equal(table, 'events'); let cursor = 0;
+  assert.equal(table, 'events'); let cursor = '';
   const query = {
     select() { return query; }, eq(k,v) { filters.push([k,v]); return query; }, order(k) { assert.equal(k, 'id'); return query; }, limit() { return query; }, gt(k,v) { assert.equal(k, 'id'); cursor = v; return query; },
     then(resolve) {
@@ -18,9 +19,10 @@ const supabaseClient = { from(table) {
     }
   }; return query;
 } };
-const context = vm.createContext({ supabaseClient });
+const context = vm.createContext({ supabaseClient, getRetiredEventIds:async()=>new Set([retiredId]) });
 vm.runInContext(source + '; globalThis.load = fetchPublicCatalog;', context);
 let result = await context.load('id');
+assert.ok(!result.data.some(event=>event.id===retiredId),'excluded test never reaches map/search catalog');
 assert.equal(result.data.length, 7, 'fetch past a server cap lower than requested page size');
 assert.equal(calls, 5);
 assert.ok(filters.some(([k,v]) => k === 'validated' && v === true));

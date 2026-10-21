@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "event_id": "eb6672b2-900f-4c6a-9021-ea84c5036769",
+      "canonical": "evenement/salon-du-livre-jeunesse-du-pays-de-lorient-lorient-3441.html",
+      "status": "excluded",
+      "reason": "private-test-not-an-event",
+      "decision": "SITE-LORIENT-TEST-DEPUBLISH-02",
+      "historical_job": "80a4506a-357e-4df0-a5ac-5fe4ce27535f",
+      "release": null
+    }
+  ]
+}

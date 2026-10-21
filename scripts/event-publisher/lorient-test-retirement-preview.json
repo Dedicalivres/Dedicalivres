@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "mode": "local-preview-only",
+  "base": "fd35cca1a640eeec037f7b835a76d1720a69dba9",
+  "excluded": {
+    "id": "eb6672b2-900f-4c6a-9021-ea84c5036769",
+    "canonical": "evenement/salon-du-livre-jeunesse-du-pays-de-lorient-lorient-3441.html",
+    "reason": "private-test-not-an-event",
+    "page_sha256": "3bdbbe4f853a74caf365f13cc0c12ef2fd7311d9c97c3cd8bd81cf6852061c36"
+  },
+  "catalogue_sha256": "1a728a8fc85e930974687d1189fa5ed5fe3b48d0577a2a8dacd4b4a7245d1c08",
+  "legacy_sha256": "6aff31789bd86fb85340835369e98b82aad091fa0145a4fe6ec45a59c6f62917",
+  "source_sha256": "b28b003fd96cfdad1436058a937057acaedab1c5402a2bb0fda6de549fdfea84",
+  "audit_sha256": "88538037bd7c5e97a8f43475707de4be37999c50cbc7b0be069ee2c5a4eda479",
+  "known_source_drift": {
+    "83270534-e551-4562-8805-f10240a6007c": {
+      "region": {
+        "published": "Centre-Val de Loire",
+        "source": "Nouvelle-Aquitaine"
+      },
+      "city": {
+        "published": "Brives",
+        "source": "Brive-la-Gaillarde"
+      }
+    },
+    "a1c0b6c6-5db0-4ca2-a37d-5f6397a55fa6": {
+      "city": {
+        "published": "Puilboreau",
+        "source": "Rochefort-en-Terre"
+      }
+    },
+    "e380c538-2bc7-4ad4-b53e-22b601fb6381": {
+      "city": {
+        "published": "Grenoble",
+        "source": "Saint-Martin-d'Hères"
+      }
+    },
+    "eb6672b2-900f-4c6a-9021-ea84c5036769": {
+      "start_date": {
+        "published": "2026-11-21",
+        "source": "2026-11-20"
+      },
+      "end_date": {
+        "published": "2026-11-26",
+        "source": "2026-11-25"
+      }
+    }
+  },
+  "unpublished_source_ids": [
+    "014fc00b-4de0-4d93-b5ec-7f54cde63993",
+    "3807ee7e-96fd-49bd-b909-0708f0fcf131",
+    "9acc76bd-9356-485f-a8fb-f95d6cfad346",
+    "b2f10a25-e53b-4874-bbc7-c6fef3010d19"
+  ],
+  "review": {
+    "mission": "SITE-LORIENT-TEST-DEPUBLISH-03",
+    "newly_acknowledged_event": "a1c0b6c6-5db0-4ca2-a37d-5f6397a55fa6",
+    "explaining_job": "a1754681-aa19-4c60-a271-b9955fb1d66e",
+    "pending_observed": 8,
+    "supabase_edits_authorized": false
+  }
+}
