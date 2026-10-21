@@ -17,7 +17,7 @@ const fail=async fn=>{await assert.rejects(fn,/STOP|date|référence/i);checks++
 try{
  const fixture=path.join(tmp,'repo');git(root,'clone','--quiet','--no-hardlinks',root,fixture);
  fs.cpSync(path.join(root,'scripts'),path.join(fixture,'scripts'),{recursive:true});
- git(fixture,'add','scripts');git(fixture,'-c','user.name=Offline fixture','-c','user.email=fixture@example.invalid','-c','core.hooksPath=/dev/null','commit','--quiet','-m','Offline candidate fixture');
+ git(fixture,'add','scripts');git(fixture,'-c','user.name=Offline fixture','-c','user.email=fixture@example.invalid','-c','core.hooksPath=/dev/null','commit','--quiet','--allow-empty','-m','Offline candidate fixture');
  const catalogue=JSON.parse(fs.readFileSync(path.join(fixture,'docs/territoires/catalogue-public.json')));
  const known=JSON.parse(fs.readFileSync('scripts/event-publisher/lorient-test-retirement-preview.json')).known_source_drift;
  const source=catalogue.events.map(row=>({...row,...Object.fromEntries(Object.entries(known[row.id]||{}).map(([k,v])=>[k,v.source]))}));
