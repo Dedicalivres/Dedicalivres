@@ -60,9 +60,9 @@ export function assertWithdrawalEvidence(a,{jobs,queue,events,source},root=proce
  if(!Array.isArray(queue)||queue.some(j=>j.status==='RUNNING'&&j.id!==a.job_id)||digest(queue.filter(j=>j.id!==a.job_id))!==a.queue_sha256
    ||queue.filter(j=>j.id===a.job_id).length!==1||!queue.some(j=>j.id==='80a4506a-357e-4df0-a5ac-5fe4ce27535f'&&j.status==='BLOCKED'&&j.attempt_count===0))stop('file concurrente');
  assertFrozenSource(a,source);
- assertKnownFrozenSource(root,source);
+ assertKnownFrozenSource(root,source,queue);
 }
-export function assertKnownFrozenSource(root,source){
+export function assertKnownFrozenSource(root,source,queue){
  const registry=JSON.parse(fs.readFileSync(path.join(ROOT,'scripts/event-publisher/lorient-test-retirement-preview.json'),'utf8'));
  const snapshot=JSON.parse(execFileSync('git',['show','HEAD:docs/territoires/catalogue-public.json'],{cwd:root}));
  let baseline=snapshot;
@@ -75,7 +75,17 @@ export function assertKnownFrozenSource(root,source){
  const expected={...registry.known_source_drift};delete expected[ID];
  if(digest(drift)!==digest(expected))stop('écart tiers non autorisé');
  const published=new Set(baseline.events.map(e=>e.id));
- if(digest(source.filter(e=>!published.has(e.id)).map(e=>e.id).sort())!==digest(registry.unpublished_source_ids))stop('nouvelles validations concurrentes');
+ const unpublished=source.filter(e=>!published.has(e.id));
+ // Historical exclusions must remain present; additions are evidence, never publication permission.
+ if(!Array.isArray(queue)||new Set(source.map(e=>e.id)).size!==source.length
+   ||registry.unpublished_source_ids.some(id=>!unpublished.some(e=>e.id===id)))stop('validations hors catalogue incomplètes');
+ for(const event of unpublished){
+  const matches=queue.filter(j=>j.event_id===event.id||j.target_event_id===event.id),j=matches[0];
+  if(!uuid(event.id)||event.id===ID||event.validated!==true||event.rejected!==false||matches.length!==1
+    ||!uuid(j.id)||j.event_id!==event.id||j.target_event_id!==event.id||j.reason!=='validation'
+    ||j.status!=='PENDING'||j.attempt_count!==0||j.batch_id!==null||j.commit_sha!==null)
+   stop('validation hors catalogue sans job indépendant PENDING/0 : '+event.id);
+ }
 }
 export function assertFrozenSource(a,source){
  if(!Array.isArray(source)||new Set(source.map(e=>e.id)).size!==source.length||source.some(e=>e.id===ID)||digest(source)!==a.source_sha256)
