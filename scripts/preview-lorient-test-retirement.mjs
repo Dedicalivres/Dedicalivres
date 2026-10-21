@@ -151,7 +151,7 @@ p.write_text(xml)`,JSON.stringify(changedHtml),day]);
       }
     }
     if(!read(stage,'sitemap-seo-auteurs.xml').equals(baseline(stage,'sitemap-seo-auteurs.xml')))fail('sitemap auteur inattendu');
-    const report={status:'PASS LOCAL PREVIEW ONLY',base:BASE,referenceDate:day,before:snapshot.events.length,after:projected.events.length,legacyActive:Object.keys(scope.active).length,legacyRetired:{id:TARGET,canonical:CANONICAL},legacyHistoricalManifestUnchanged:true,otherEventPagesByteIdentical:true,knownSourceDrift:registry.known_source_drift,unpublishedSourceIds:registry.unpublished_source_ids,changes};
+    const report={status:'PASS LOCAL PREVIEW ONLY',base:BASE,referenceDate:day,before:snapshot.events.length,after:projected.events.length,legacyActive:Object.keys(scope.active).length,legacyRetired:{id:TARGET,canonical:CANONICAL},legacyHistoricalManifestUnchanged:true,otherEventPagesByteIdentical:true,knownSourceDrift:registry.known_source_drift,unpublishedSourceIds:withdrawal?JSON.parse(source).filter(e=>!map[e.id]).map(e=>e.id).sort():registry.unpublished_source_ids,changes};
     fs.writeFileSync(path.join(output,'projection.patch'),git(stage,'diff','--binary'));
     fs.writeFileSync(path.join(output,'files.txt'),changes.map(c=>c.status+'\t'+c.file).join('\n')+'\n');
     fs.writeFileSync(path.join(output,'legacy-partition.json'),JSON.stringify({active:scope.active,retired:[registry.excluded]},null,2)+'\n');

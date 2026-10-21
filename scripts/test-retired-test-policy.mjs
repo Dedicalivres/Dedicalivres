@@ -12,12 +12,15 @@ const pinned=JSON.parse(fs.readFileSync('scripts/event-publisher/lorient-test-re
 const snapshot=JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json'));
 const job={id:'11111111-1111-4111-8111-111111111111',event_id:ID,target_event_id:ID,reason:'unpublish',status:'PENDING',attempt_count:0,batch_id:null,commit_sha:null,requested_at:'2026-10-20T20:00:00Z',requested_by:null,dispatch_token:'fixture-only',dispatch_requested_at:null};
 const old={id:'80a4506a-357e-4df0-a5ac-5fe4ce27535f',event_id:ID,target_event_id:ID,reason:'edit',status:'BLOCKED',attempt_count:0,batch_id:null,commit_sha:null};
-const others=Array.from({length:pinned.review.pending_observed},(_,i)=>({id:`other-${i}`,status:'PENDING',attempt_count:0,batch_id:null,commit_sha:null}));
+const others=Array.from({length:pinned.review.pending_observed-pinned.unpublished_source_ids.length},(_,i)=>({id:`other-${i}`,status:'PENDING',attempt_count:0,batch_id:null,commit_sha:null}));
 const privateEvent={id:ID,validated:false,rejected:true,description:'Fixture privée conservée'};
 const source=structuredClone(snapshot.events.filter(e=>e.id!==ID));
 for(const e of source)for(const [k,v] of Object.entries(pinned.known_source_drift[e.id]||{}))e[k]=v.source;
-for(const id of pinned.unpublished_source_ids)source.push({id});source.sort((a,b)=>a.id.localeCompare(b.id));
-const queue=[...others,old,job];
+const NEW_ID='99999999-9999-4999-8999-999999999999';
+const pendingValidation=(event_id,i)=>({id:`77777777-7777-4777-8777-${String(i).padStart(12,'0')}`,event_id,target_event_id:event_id,reason:'validation',status:'PENDING',attempt_count:0,batch_id:null,commit_sha:null});
+const independentIds=[...pinned.unpublished_source_ids,NEW_ID];
+for(const id of independentIds)source.push({id,validated:true,rejected:false});source.sort((a,b)=>a.id.localeCompare(b.id));
+const queue=[...others,...independentIds.map(pendingValidation),old,job];
 const auth={version:1,baseline_sha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),event_id:ID,canonical:PAGE,reason:'unpublish',job_id:job.id,decision_id:'22222222-2222-4222-8222-222222222222',approval:'APPROVED_SINGLE_UNPUBLISH',expires_at:new Date(Date.now()+3600000).toISOString(),page_sha256:pinned.excluded.page_sha256,catalogue_sha256:pinned.catalogue_sha256,source_sha256:digest(source),queue_sha256:digest(queue.filter(j=>j.id!==job.id)),private_event_sha256:digest(privateEvent),job_sha256:jobDigest(job)};
 const evidence={jobs:[job],events:[privateEvent],queue,source};
 auth.reference_date=parisDate();
@@ -39,10 +42,30 @@ test('manifeste trop durable refusé',()=>assert.throws(()=>authorization(JSON.s
 test('manifeste sans date refusé',()=>assert.throws(()=>authorization(JSON.stringify({...auth,reference_date:undefined})),/date de référence/));
 test('manifeste périmé au changement de jour refusé',()=>assert.throws(()=>authorization(JSON.stringify({...auth,reference_date:'2000-01-01'})),/date de référence incohérente/));
 test('preuves complètes du job initial acceptées',()=>assertWithdrawalEvidence(auth,evidence));
+test('nouvelle validation indépendante acceptée avant scellement',()=>{
+ assert.ok(!pinned.unpublished_source_ids.includes(NEW_ID));assertWithdrawalEvidence(auth,evidence);
+});
+const rejectIndependent=(name,mutate)=>reject(name,(a,e)=>{
+ mutate(e,e.source.find(row=>row.id===NEW_ID),e.queue.find(j=>j.event_id===NEW_ID));
+ a.source_sha256=digest(e.source);a.queue_sha256=digest(e.queue.filter(j=>j.id!==job.id));
+});
+rejectIndependent('validation indépendante sans statut public refusée',(e,row)=>row.validated=false);
+rejectIndependent('validation indépendante rejetée refusée',(e,row)=>row.rejected=true);
+rejectIndependent('validation indépendante sans job refusée',e=>e.queue=e.queue.filter(j=>j.event_id!==NEW_ID));
+rejectIndependent('job indépendant edit refusé',(e,row,j)=>j.reason='edit');
+rejectIndependent('job indépendant ambigu refusé',(e,row,j)=>e.queue.push({...j,id:'88888888-8888-4888-8888-888888888888'}));
+rejectIndependent('job indépendant ciblant Lorient refusé',(e,row,j)=>j.target_event_id=ID);
+rejectIndependent('job indépendant avec event_id incohérent refusé',(e,row,j)=>j.event_id=ID);
+rejectIndependent('validation indépendante déjà tentée refusée',(e,row,j)=>j.attempt_count=1);
+rejectIndependent('validation indépendante BLOCKED refusée',(e,row,j)=>j.status='BLOCKED');
+rejectIndependent('validation indépendante avec batch refusée',(e,row,j)=>j.batch_id='44444444-4444-4444-8444-444444444444');
+rejectIndependent('validation indépendante avec commit refusée',(e,row,j)=>j.commit_sha='a'.repeat(40));
+rejectIndependent('validation historique disparue refusée',e=>e.source=e.source.filter(row=>row.id!==pinned.unpublished_source_ids[0]));
 reject('source encore publique refusée',(a,e)=>e.source.push({...privateEvent,validated:true,rejected:false}));
 reject('nouvelle source concurrente refusée',(a,e)=>e.source.push({id:'concurrent'}));
 reject('écart tiers même ré-empreinté refusé',(a,e)=>{e.source.find(e=>e.id==='83270534-e551-4562-8805-f10240a6007c').city='Autre';a.source_sha256=digest(e.source);});
-reject('nouvelle validation même ré-empreintée refusée',(a,e)=>{e.source.push({id:'99999999-9999-4999-8999-999999999999'});a.source_sha256=digest(e.source);});
+reject('nouvelle validation sans preuve de job même ré-empreintée refusée',(a,e)=>{e.source.push({id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',validated:true,rejected:false});a.source_sha256=digest(e.source);});
+reject('validation indépendante ajoutée après approbation refusée',(a,e)=>{const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';e.source.push({id,validated:true,rejected:false});e.queue.push(pendingValidation(id,99));});
 reject('nouvelle dérive Imaginambulles même ré-empreintée refusée',(a,e)=>{e.source.find(e=>e.id==='a1c0b6c6-5db0-4ca2-a37d-5f6397a55fa6').city='Autre';a.source_sha256=digest(e.source);});
 reject('privatisation non faite refusée',(a,e)=>e.events[0].validated=true);
 reject('source privée modifiée refusée',(a,e)=>e.events[0].description='Autre');
@@ -52,6 +75,7 @@ reject('historique réactivé refusé',(a,e)=>e.queue.find(j=>j.id===old.id).sta
 reject('deuxième tentative refusée',(a,e)=>e.jobs[0].attempt_count=1);
 reject('rejeu après succès refusé',(a,e)=>e.jobs[0].status='SUCCESS');
 reject('modification de raison refusée',(a,e)=>e.jobs[0].reason='delete');
+reject('horodatage du job Lorient modifié refusé',(a,e)=>e.jobs[0].requested_at='2026-10-21T00:00:00Z');
 reject('autre référence publiée refusée',a=>a.catalogue_sha256='a'.repeat(64));
 const saved={...process.env},temp=fs.mkdtempSync(path.join(os.tmpdir(),'lorient-durable-'));
 try{
@@ -81,6 +105,9 @@ try{
  const report=await prepareLorientRetirement({root:fixture,output:path.join(temp,'output'),request});
  assert.ok(!fs.readFileSync(path.join(temp,'output/report.json'),'utf8').includes(privateEvent.description));
  assert.equal(report.after,632);assert.equal(report.changes.filter(c=>c.status==='D').length,1);assert.ok(calls>0);count++;
+ const projected=JSON.parse(fs.readFileSync(path.join(fixture,'docs/territoires/event-canonical-map.json')));
+ for(const id of independentIds)assert.ok(!(id in projected),'validation hors catalogue publiée');count++;
+ assert.deepEqual(report.unpublishedSourceIds,[...independentIds].sort());count++;
  assertFrozenSnapshot(fixtureAuth,JSON.parse(fs.readFileSync(path.join(fixture,'docs/territoires/catalogue-public.json'))),fixture);count++;
  const check=spawnSync(process.execPath,[path.join(root,'scripts/check-publication-diff.mjs')],{cwd:fixture,env:process.env,encoding:'utf8'});
  assert.equal(check.status,0,check.stdout+check.stderr);count++;
