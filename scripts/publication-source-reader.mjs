@@ -24,4 +24,3 @@ export async function fetchSource(url, key, request = fetch) {
   }
   stop('pagination publique incomplète');
 }
-
