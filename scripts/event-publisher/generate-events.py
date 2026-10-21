@@ -43,6 +43,7 @@ import urllib.request
 import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from retired_test_policy import excluded_ids, guard_jobs
 from publisher_compat import fusionner, normaliser, normaliser_titre_dedup
 from publisher_compat import SUBMITTED_STATUSES
 PAYS_ISO = {'France': 'FR', 'Belgique': 'BE', 'Suisse': 'CH', 'Luxembourg': 'LU', 'Monaco': 'MC'}
@@ -725,6 +726,8 @@ def _validate_staged(events, staged_root, base_url, sitemap_name, preserved_befo
         raise GenerationSeoError('un fichier hors corpus événement a été modifié')
 
 def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=False, progressive_event_ids=frozenset(), authorized_depublication_ids=frozenset(), source_rows=None):
+    if {str(e['id']) for e in events} & excluded_ids():
+        raise GenerationSeoError('fiche de test exclue : publication interdite')
     reference = os.environ.get('PUBLICATION_REFERENCE_DATE')
     if reference:
         try:
@@ -834,6 +837,7 @@ def select_published_rows(rows, canonical, jobs):
         if not isinstance(event_id, str) or not re.fullmatch(r'[0-9a-f-]{36}', event_id) or event_id in source_ids:
             raise GenerationSeoError('source publique incomplète ou dupliquée')
         source_ids.add(event_id)
+    guard_jobs(jobs)
     expected = set(canonical)
     selected_job_ids = set()
     selected_ids = set()
@@ -889,7 +893,7 @@ def main():
     try:
         (url, key) = _load_credentials(Path(args.config).expanduser().resolve())
         rows = charger_evenements_publics(url, key)
-        selected_rows = rows
+        selected_rows = [row for row in rows if row["id"] not in excluded_ids()]
         if os.environ.get('PUBLICATION_TARGETED') == 'true':
             canonical = json.loads((source_root.parent.parent / 'docs/territoires/event-canonical-map.json').read_text(encoding='utf-8'))
             jobs = json.loads(os.environ.get('PUBLICATION_JOBS') or '[]')

@@ -27,6 +27,10 @@ fi
 
 cd "$ROOT"
 
+if [[ -n "${PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION:-}" ]]; then
+  exec node scripts/prepare-lorient-retirement.mjs
+fi
+
 exec \
   "$ROOT/scripts/publish-events-local.sh" \
   --apply

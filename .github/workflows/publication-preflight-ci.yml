@@ -51,6 +51,9 @@ jobs:
           node scripts/test-post-validation-publication.mjs
           node scripts/test-author-event-auto-refresh.mjs
           node scripts/test-author-sitemap-lastmod.mjs
+          node scripts/test-public-catalog.mjs
+          node scripts/test-lorient-test-retirement.mjs
+          node scripts/test-retired-test-policy.mjs
           node scripts/test-publication-workflow-safety.mjs
 
       - name: Test pending DELETE coalescence on disposable PostgreSQL

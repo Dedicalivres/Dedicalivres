@@ -1,3 +1,5 @@
+import {excludedIds, guardRetiredJobs, assertWithdrawalEvidence, digest} from './retired-test-policy.mjs';
+import {fetchSource} from './verify-publication-source.mjs';
 import {
   randomUUID,
   createHash,
@@ -366,7 +368,7 @@ async function canaryCandidate() {
       || row.attempt_count !== 0 || row.event_id !== row.target_event_id)) {
     throw new Error("STOP CANARY : sélection incompatible");
   }
-  return row && !legacyEvents[row.target_event_id] ? row : null;
+  return row && !legacyEvents[row.target_event_id] && !excludedIds().has(row.target_event_id) ? row : null;
 }
 
 async function canaryGuards() {
@@ -526,6 +528,7 @@ async function selectedBatch(execute) {
   if (new Set(jobs.map((row) => row.target_event_id)).size !== jobs.length) {
     throw new Error("STOP manuel : événements cibles dupliqués");
   }
+  const retirement = guardRetiredJobs(jobs);
   const eventIds = [...new Set(jobs.map((row) => row.target_event_id))];
   const events = await readSelection("events?id=in.(" + eventIds.join(",") + ")&select=*");
   if (!Array.isArray(events)) throw new Error("STOP manuel : événements illisibles");
@@ -537,7 +540,15 @@ async function selectedBatch(execute) {
       ? !publicEvent
       : row.reason === "delete" ? Boolean(event) : publicEvent;
   })) throw new Error("STOP manuel : événement incompatible");
+  if (retirement) {
+    const queue = await readSelection("event_publication_jobs?or=(status.in.(PENDING,RUNNING),id.eq.80a4506a-357e-4df0-a5ac-5fe4ce27535f)&select=id,event_id,target_event_id,reason,status,attempt_count,batch_id,commit_sha,last_error,requested_at&order=id.asc");
+    const config=fs.readFileSync("config.js","utf8");
+    const source=await fetchSource(config.match(/supabaseUrl:\s*[\"']([^\"']+)/)[1],config.match(/supabaseAnonKey:\s*[\"']([^\"']+)/)[1]);
+    assertWithdrawalEvidence(retirement,{jobs,queue,events,source});
+    console.log(`Retrait test approuvé : décision ${retirement.decision_id}, manifeste ${digest(retirement)}`);
+  }
   const fingerprintData = {
+    ...(retirement ? {retirement: digest(retirement)} : {}),
     ids, jobs, events: eventIds.map((id) => eventById.get(id) || null),
   };
   const fingerprint = createHash("sha256")
@@ -547,7 +558,7 @@ async function selectedBatch(execute) {
   }
   console.log("Lot manuel : " + jobs.map((row) => `${row.id} ${row.reason} PENDING ${row.target_event_id}`).join(" | "));
   if (!execute) console.log(`Empreinte PREVIEW : ${fingerprint}`);
-  return { jobs, fingerprint };
+  return { jobs, fingerprint, retirement };
 }
 
 async function previewSelected() {
@@ -557,7 +568,7 @@ async function previewSelected() {
 }
 
 async function claimSelected() {
-  const { jobs } = await selectedBatch(true);
+  const { jobs, retirement } = await selectedBatch(true);
   const batchId = randomUUID();
   let claimed;
   try {
@@ -586,6 +597,7 @@ async function claimSelected() {
   setOutput("publication_jobs", JSON.stringify(claimed.map((row) => ({
     id: row.id, event_id: targetEventId(row) || null, reason: row.reason,
     attempt_count: Number(row.attempt_count),
+    ...(retirement ? {batch_id:row.batch_id} : {}),
   }))));
   setOutput("has_jobs", "true");
   setOutput("batch_id", batchId);
@@ -1174,6 +1186,8 @@ async function fail() {
   );
 }
 
+
+if(process.env.PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION && (DOUAI_MANUAL||P0_RECOVERY||PREACTIVATION_TEST||!['preview','execute'].includes(MANUAL_MODE))) throw new Error('STOP retrait : parcours incompatible');
 
 const command =
   process.argv[2];

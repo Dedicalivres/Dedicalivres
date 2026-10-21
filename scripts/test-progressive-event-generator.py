@@ -371,7 +371,7 @@ with tempfile.TemporaryDirectory() as directory:
         (source_pages / f"{current['_slug']}.html").write_text(module.page_event(current, base_url), encoding="utf-8")
     assert (fixture_root / withdrawn_path).is_file()
     (fixture_root / "sitemap-evenements.xml").write_text(module.sitemap([withdrawn, kept], base_url), encoding="utf-8")
-    (fixture_root / "docs/territoires/event-canonical-map.json").write_text(json.dumps({withdrawn["id"]: withdrawn_path}), encoding="utf-8")
+    (fixture_root / "docs/territoires/event-canonical-map.json").write_text(json.dumps({**{identifier: "evenement/" + filename for identifier, filename in protected.items()}, withdrawn["id"]: withdrawn_path}), encoding="utf-8")
     wrapper_manifest = temp / "wrapper-progressive-events.json"
     wrapper_manifest.write_text('{"event_ids": []}', encoding="utf-8")
 
@@ -427,6 +427,8 @@ with tempfile.TemporaryDirectory() as directory:
     protected = json.loads((PUBLISHER / "legacy-enriched-events.json").read_text())["events"]
     for filename in protected.values():
         shutil.copy2(ROOT / "evenement" / filename, source / filename)
+    (fixture_root / "docs/territoires").mkdir(parents=True)
+    (fixture_root / "docs/territoires/event-canonical-map.json").write_text(json.dumps({identifier: "evenement/" + filename for identifier, filename in protected.items()}))
     target_id, target_file = next(iter(protected.items()))
     output = Path(directory) / "generated"
     (output / "evenement").mkdir(parents=True)
@@ -438,5 +440,29 @@ with tempfile.TemporaryDirectory() as directory:
     assert all((output / "evenement" / filename).read_bytes()
                == (source / filename).read_bytes()
                for filename in protected.values())
+
+    # A committed test withdrawal must survive future legacy/archive preservation.
+    test_id = "eb6672b2-900f-4c6a-9021-ea84c5036769"
+    test_file = protected[test_id]
+    (source / test_file).unlink()
+    remaining = {identifier: "evenement/" + filename for identifier, filename in protected.items() if identifier != test_id}
+    (fixture_root / "docs/territoires/event-canonical-map.json").write_text(json.dumps(remaining))
+    retired_output = Path(directory) / "retired-generated"
+    with patch.object(cloud, "ROOT", fixture_root):
+        assert cloud.preserve_pages(retired_output)[0] == 281
+        assert not (retired_output / "evenement" / test_file).exists()
+        shutil.copy2(ROOT / "evenement" / test_file, source / test_file)
+        try:
+            cloud.preserve_pages(Path(directory) / "illegal-restoration")
+        except RuntimeError as error:
+            assert "test réapparue" in str(error)
+        else:
+            raise AssertionError("test restored outside canonical")
+    try:
+        module.generer_sortie_atomique([event(test_id, "", "Fiche test", "Lorient", "Bretagne", "2026-11-20", "2026-11-25", "Test")], Path(directory) / "forbidden", base_url=base_url, sitemap_name="sitemap-evenements.xml")
+    except module.GenerationSeoError:
+        pass
+    else:
+        raise AssertionError("excluded test rendered")
 
 print("progressive event generator: PASS")

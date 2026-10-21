@@ -200,7 +200,9 @@
     `;
   }
 
-  function fetchEvent(id, columns) {
+  async function fetchEvent(id, columns) {
+    const {loadRetirementIds} = await import('./event-retirements.js');
+    if ((await loadRetirementIds()).has(String(id))) return {data:null,error:null};
     return client
       .from("events")
       .select(columns)
