@@ -58,7 +58,7 @@
       "id": "FR-local-04",
       "label": "Centre-Val de Loire",
       "country": "FR",
-      "count": 41
+      "count": 40
     },
     {
       "id": "FR-local-05",
@@ -94,7 +94,7 @@
       "id": "FR-local-10",
       "label": "Nouvelle-Aquitaine",
       "country": "FR",
-      "count": 90
+      "count": 91
     },
     {
       "id": "FR-local-11",
@@ -1929,8 +1929,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Centre-Val de Loire</h2>\n    <p>Le Centre-Val de Loire accueille des événements littéraires dans ses villes, ses bibliothèques, ses salons et ses lieux culturels. Dédicalivres aide les lecteurs à repérer les dédicaces, festivals et rencontres d’auteurs organisés dans la région.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Centre-Val de Loire</h2>\n  <p>La région Centre-Val de Loire regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-tours.html\">Tours</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Centre-Val de Loire. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Centre-Val de Loire</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Centre-Val de Loire ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 41,
-      "upcoming": 13,
+      "total": 40,
+      "upcoming": 12,
       "ongoing": 1,
       "past": 28,
       "undated": 0,
@@ -1970,7 +1970,6 @@
         "e5c9dcfe-db53-4fe6-99b9-e4eba740e416",
         "14b74626-3d4d-4e49-b832-1fc98892ce6a",
         "a4737592-2995-4e85-a923-dc675d53d670",
-        "83270534-e551-4562-8805-f10240a6007c",
         "d6644218-1307-40d7-bc34-eced6c51a6c7",
         "6056f9f1-9c09-4327-acc2-b6b12a665b3d",
         "b559457b-e307-4ee2-b620-3ad3e183c0f9",
@@ -2297,8 +2296,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Nouvelle-Aquitaine</h2>\n    <p>De Bordeaux au littoral atlantique, des villes universitaires aux villages culturels, la Nouvelle-Aquitaine accueille de nombreux rendez-vous autour du livre. Dédicalivres rassemble ces événements pour faciliter la découverte des salons, festivals et dédicaces.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Nouvelle-Aquitaine</h2>\n  <p>La région Nouvelle-Aquitaine regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-bordeaux.html\">Bordeaux</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Nouvelle-Aquitaine. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Nouvelle-Aquitaine</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Nouvelle-Aquitaine ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 90,
-      "upcoming": 15,
+      "total": 91,
+      "upcoming": 16,
       "ongoing": 0,
       "past": 75,
       "undated": 0,
@@ -2383,6 +2382,7 @@
         "aa42e6a6-e9fd-42ca-93c6-3b5500cb9607",
         "30f5559e-1fc4-451c-abd7-f0ae697826b8",
         "34b3f6b2-15c3-4349-b0e0-95a8c90ae267",
+        "83270534-e551-4562-8805-f10240a6007c",
         "b0f916ad-e5f9-493b-80e9-7f05e7e7d55c",
         "15d0cd55-567c-485d-9edd-4a0b269de984",
         "b42163bc-bcaa-4d4d-9370-b7f72fdc3fef",
