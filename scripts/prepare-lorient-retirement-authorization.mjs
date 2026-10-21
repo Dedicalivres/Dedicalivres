@@ -1,8 +1,9 @@
 // Future read-only evidence gathering: never approves, reserves or executes a job.
 import fs from 'node:fs';
+import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {authorization,readWithdrawalEvidence,assertWithdrawalEvidence,digest,jobDigest,ID,PAGE,referenceDate,parisDate} from './retired-test-policy.mjs';
+import {authorization,readWithdrawalEvidence,assertWithdrawalEvidence,digest,jobDigest,ID,PAGE,referenceDate,parisDate,LORIENT_RETRY} from './retired-test-policy.mjs';
 import {preview} from './preview-lorient-test-retirement.mjs';
 const [jobId,decisionId,draftFile,output]=process.argv.slice(2);
 if(!jobId||!decisionId||!draftFile||!output||fs.existsSync(draftFile))throw Error('STOP : job, décision, nouveau brouillon et nouvel aperçu requis');
@@ -12,6 +13,7 @@ if(evidence.jobs.length!==1||evidence.events.length!==1)throw Error('STOP : iden
 const pinned=JSON.parse(fs.readFileSync('scripts/event-publisher/lorient-test-retirement-preview.json'));
 const approved={version:1,baseline_sha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),job_id:jobId,event_id:ID,canonical:PAGE,reason:'unpublish',decision_id:decisionId,approval:'APPROVED_SINGLE_UNPUBLISH',expires_at:new Date(Date.now()+3600000).toISOString(),page_sha256:pinned.excluded.page_sha256,catalogue_sha256:pinned.catalogue_sha256,source_sha256:digest(evidence.source),queue_sha256:digest(evidence.queue.filter(j=>j.id!==jobId)),private_event_sha256:digest(evidence.events[0]),job_sha256:jobDigest(evidence.jobs[0])};
 approved.reference_date=day;
+if(evidence.jobs[0].attempt_count===1)approved.retry={failed_run_id:LORIENT_RETRY.failed_run_id,failed_batch_id:LORIENT_RETRY.failed_batch_id,new_batch_id:randomUUID(),pending_job_sha256:digest(evidence.jobs[0])};
 authorization(JSON.stringify(approved));assertWithdrawalEvidence(approved,evidence);
 await preview({root:process.cwd(),output:path.resolve(output),withdrawal:approved,evidence,day});
 fs.writeFileSync(draftFile,JSON.stringify({...approved,approval:'DRAFT_NOT_APPROVED'},null,2)+'\n',{flag:'wx'});

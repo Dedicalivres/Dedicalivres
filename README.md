@@ -62,3 +62,16 @@ Les endpoints publics de soumission doivent rester limites: evenements en attent
 ## Pages territoriales SEO/GEO — pilotes locaux
 
 Roadmap, qualification des données et reproduction : [docs/territoires/README.md](docs/territoires/README.md). Deux pilotes seulement, sans publication ni généralisation.
+
+## Reprise unique du retrait du test Lorient
+
+Le run [39630801864](https://github.com/Dedicalivres/Dedicalivres/actions/runs/39630801864), sur `cf60fa52c834070e08e31838c8e6bceb630bb889`, a échoué avec le code 13 au recontrôle de source : validation du périmètre réussie, commit/push, demande de build et vérification de déploiement ignorés, remise en file réussie. Le batch échoué est `20d544e5-3249-4289-b30d-258f38ab5041`. Ces preuves bornent l'exception de reprise ; elles ne permettent aucun autre rejeu.
+
+Après intégration du correctif et autorisation humaine distincte :
+
+1. Revérifier main propre, date Europe/Paris, source, donnée privée et file. Seul `0cc69430-9f31-4dab-b701-2061683e6b4c` est autorisable en PENDING/1, sans batch ni commit, avec l'erreur exacte du batch ci-dessus. Aucun autre RUNNING ; les neuf autres PENDING et l'ancien edit BLOCKED restent intacts.
+2. Avec les lectures privées configurées, exécuter `scripts/prepare-lorient-retirement-authorization.mjs JOB NOUVEL_UUID_DECISION NOUVEAU_BROUILLON NOUVEL_APERCU`, avec `PUBLICATION_REFERENCE_DATE` au jour Paris courant. Le brouillon reste DRAFT_NOT_APPROVED ; il scelle le job complet PENDING/1 et un nouveau batch. L'ancienne décision `eb41538d-c93d-4492-a2aa-0b38e2106b6c` et l'ancien manifeste sont refusés.
+3. Faire approuver le nouveau manifeste humainement, puis lancer une **nouvelle PREVIEW GitHub** du seul job exact. Revoir le retrait 633→632, les 281 autres legacy et toutes les fiches tierces inchangées. Utiliser exclusivement l'empreinte produite par cette PREVIEW, jamais l'ancienne.
+4. Un futur EXECUTE exige sa propre autorisation humaine. La réservation atomique existante ne peut accepter que le job scellé PENDING/1 et le nouveau batch du manifeste ; la génération exige RUNNING/2 dans ce batch. Toute troisième tentative, variation de source, donnée privée ou file impose STOP. Aucun retry automatique.
+
+Cette procédure n'autorise ni réservation ni publication. Aucune écriture Supabase ni migration n'est requise pour livrer le correctif. CANARY et publication générale restent désactivés. Si l'état est incertain, ne pas remettre les compteurs à zéro et ne pas restaurer artificiellement un ancien manifeste.

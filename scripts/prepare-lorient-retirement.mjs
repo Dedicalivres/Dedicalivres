@@ -8,7 +8,7 @@ import {preview} from './preview-lorient-test-retirement.mjs';
 export async function prepareLorientRetirement({root=process.cwd(),output,request=fetch}={}){
  const a=authorization(),selected=JSON.parse(process.env.PUBLICATION_JOBS||'[]');guardRetiredJobs(selected);
  if(process.env.PUBLICATION_MANUAL_MODE!=='execute'||process.env.PUBLICATION_AUTOMATION_ENABLED!=='false'
-   ||process.env.PUBLICATION_MANUAL_CONFIRMATION!=='EXECUTE'||selected[0].attempt_count!==1||!selected[0].batch_id)
+   ||process.env.PUBLICATION_MANUAL_CONFIRMATION!=='EXECUTE'||selected[0].attempt_count!==(a.retry?2:1)||!selected[0].batch_id)
   throw Error('STOP retrait : parcours manuel explicitement confirmé requis');
  if(JSON.stringify(JSON.parse(process.env.PUBLICATION_DEPUBLISH_EVENT_IDS||'[]'))!==JSON.stringify([ID])
    ||JSON.stringify(JSON.parse(process.env.PUBLICATION_DEPUBLISH_PATHS||'[]'))!==JSON.stringify([PAGE]))throw Error('STOP retrait : suppression non alignée');

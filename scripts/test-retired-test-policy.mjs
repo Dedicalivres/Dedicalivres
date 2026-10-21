@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import path from 'node:path';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {retirementIds,loadRetirementIds} from '../event-retirements.js';
-import {authorization,excludedIds,guardRetiredJobs,digest,jobDigest,assertWithdrawalEvidence,assertFrozenSnapshot,ID,PAGE,parisDate} from './retired-test-policy.mjs';
+import {authorization,excludedIds,guardRetiredJobs,digest,jobDigest,assertWithdrawalEvidence,assertFrozenSnapshot,ID,PAGE,parisDate,LORIENT_RETRY} from './retired-test-policy.mjs';
 import {prepareLorientRetirement} from './prepare-lorient-retirement.mjs';
 const root=process.cwd(),policy=JSON.parse(fs.readFileSync('event-retirements.json'));
 const pinned=JSON.parse(fs.readFileSync('scripts/event-publisher/lorient-test-retirement-preview.json'));
@@ -77,6 +77,33 @@ reject('rejeu après succès refusé',(a,e)=>e.jobs[0].status='SUCCESS');
 reject('modification de raison refusée',(a,e)=>e.jobs[0].reason='delete');
 reject('horodatage du job Lorient modifié refusé',(a,e)=>e.jobs[0].requested_at='2026-10-21T00:00:00Z');
 reject('autre référence publiée refusée',a=>a.catalogue_sha256='a'.repeat(64));
+const retryJob={...job,id:LORIENT_RETRY.job_id,attempt_count:1,last_error:LORIENT_RETRY.last_error};
+const retryQueue=queue.map(j=>j.id===job.id?retryJob:j);
+const retryAuth={...auth,job_id:retryJob.id,job_sha256:jobDigest(retryJob),
+ queue_sha256:digest(retryQueue.filter(j=>j.id!==retryJob.id)),retry:{failed_run_id:LORIENT_RETRY.failed_run_id,
+ failed_batch_id:LORIENT_RETRY.failed_batch_id,new_batch_id:'55555555-5555-4555-8555-555555555555',pending_job_sha256:digest(retryJob)}};
+const retryEvidence={...evidence,jobs:[retryJob],queue:retryQueue};
+test('reprise exacte PENDING/1 après run avant push vérifié',()=>assertWithdrawalEvidence(retryAuth,retryEvidence));
+const rejectRetry=(name,mutate,phase='pending')=>test(name,()=>{
+ const a=structuredClone(retryAuth),e=structuredClone(retryEvidence);mutate(a,e);
+ assert.throws(()=>assertWithdrawalEvidence(a,e,root,phase),/STOP/);
+});
+rejectRetry('ancienne autorisation sans reprise refusée',a=>delete a.retry);
+rejectRetry('ancienne décision même avec nouvelles empreintes refusée',a=>a.decision_id=LORIENT_RETRY.previous_decision_id);
+rejectRetry('autre run de reprise refusé',a=>a.retry.failed_run_id++);
+rejectRetry('mauvais batch échoué refusé',a=>a.retry.failed_batch_id='66666666-6666-4666-8666-666666666666');
+rejectRetry('réutilisation ancien batch refusée',a=>a.retry.new_batch_id=LORIENT_RETRY.failed_batch_id);
+rejectRetry('troisième tentative interdite',(a,e)=>{e.jobs[0].attempt_count=2;a.retry.pending_job_sha256=digest(e.jobs[0]);});
+rejectRetry('reprise autre job même Lorient interdite',(a,e)=>{e.jobs[0].id=job.id;a.job_id=job.id;});
+rejectRetry('reprise autre événement interdite',(a,e)=>e.jobs[0].target_event_id=NEW_ID);
+rejectRetry('erreur antérieure non reconnue refusée',(a,e)=>{e.jobs[0].last_error='autre';a.retry.pending_job_sha256=digest(e.jobs[0]);});
+rejectRetry('source changée après nouvelle autorisation refusée',(a,e)=>e.source[0].city='Altérée');
+rejectRetry('job tiers changé après nouvelle autorisation refusé',(a,e)=>e.queue[0].attempt_count=1);
+const retryClaimed={...retryJob,status:'RUNNING',attempt_count:2,batch_id:retryAuth.retry.new_batch_id};
+const retryLive={...retryEvidence,jobs:[retryClaimed],queue:retryQueue.map(j=>j.id===retryJob.id?retryClaimed:j)};
+test('RUNNING/2 uniquement dans nouveau batch scellé',()=>assertWithdrawalEvidence(retryAuth,retryLive,root,'claimed'));
+test('RUNNING/2 mauvais batch refusé',()=>assert.throws(()=>assertWithdrawalEvidence(retryAuth,
+ {...retryLive,jobs:[{...retryClaimed,batch_id:LORIENT_RETRY.failed_batch_id}]},root,'claimed'),/STOP/));
 const saved={...process.env},temp=fs.mkdtempSync(path.join(os.tmpdir(),'lorient-durable-'));
 try{
  process.env.PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION=JSON.stringify(auth);
@@ -111,6 +138,75 @@ try{
  assertFrozenSnapshot(fixtureAuth,JSON.parse(fs.readFileSync(path.join(fixture,'docs/territoires/catalogue-public.json'))),fixture);count++;
  const check=spawnSync(process.execPath,[path.join(root,'scripts/check-publication-diff.mjs')],{cwd:fixture,env:process.env,encoding:'utf8'});
  assert.equal(check.status,0,check.stdout+check.stderr);count++;
+ // Exercise the real CLI entrypoint with GET-only mocked reads, including its top-level await.
+ const dataFile=path.join(temp,'cli-evidence.json'),capture=path.join(temp,'captured-source.json');
+ const preload=path.join(temp,'read-only-fetch.cjs');
+ fs.writeFileSync(capture,JSON.stringify(source));
+ fs.writeFileSync(preload,`const fs=require('node:fs');
+const e=JSON.parse(fs.readFileSync(process.env.CLI_EVIDENCE));
+global.fetch=async(raw,options={})=>{
+ const u=new URL(raw);
+ if(options.method&&options.method!=='GET'){
+  if(process.env.MOCK_CLAIM!=='1'||options.method!=='POST'||!u.pathname.endsWith('/rpc/claim_event_publication_batch'))throw Error('STOP test: non-GET forbidden');
+  const body=JSON.parse(options.body);
+  if(body.p_batch_id!==process.env.MOCK_BATCH||body.p_expected.length!==1||JSON.stringify(body.p_expected[0])!==JSON.stringify(e.jobs[0]))throw Error('STOP test: unexpected reservation');
+  return new Response(JSON.stringify([{...e.jobs[0],status:'RUNNING',attempt_count:2,batch_id:body.p_batch_id}]),{status:200});
+ }
+if(u.origin!=='https://pwyetrqyiaxpzjrafpvb.supabase.co')throw Error('STOP test: unexpected origin');
+ let rows;
+ if(u.pathname.endsWith('/events')){
+  if(u.searchParams.get('select')==='*')rows=e.events;
+  else{const cursor=(u.searchParams.get('id')||'').replace('gt.','');rows=e.source.filter(r=>!cursor||r.id>cursor).slice(0,500);}
+ }else if(u.pathname.endsWith('/event_publication_jobs'))rows=u.searchParams.get('status')==='eq.RUNNING'?[]:u.searchParams.get('select')==='*'?e.jobs:e.queue;
+ else throw Error('STOP test: unexpected endpoint');
+ return new Response(JSON.stringify(rows),{status:200});
+};`);
+ const cli=(a,e,selected,script=path.join(root,'scripts/verify-publication-source.mjs'))=>{
+  fs.writeFileSync(dataFile,JSON.stringify(e));
+  return spawnSync(process.execPath,['--require',preload,script,capture],{cwd:fixture,timeout:15000,encoding:'utf8',env:{...process.env,
+   CLI_EVIDENCE:dataFile,DEDICALIVRES_SUPABASE_URL:'https://pwyetrqyiaxpzjrafpvb.supabase.co',DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY:'fixture-public',
+   PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION:JSON.stringify(a),PUBLICATION_JOBS:JSON.stringify([selected])}});
+ };
+ test('CLI réelle termine après lecture privée et publique mockées',()=>{
+  const r=cli(fixtureAuth,live,claimed);assert.equal(r.error,undefined);assert.equal(r.status,0,r.stdout+r.stderr);
+  assert.match(r.stdout,/PASS source publique inchangée/);
+ });
+ const fixtureRetryAuth={...retryAuth,baseline_sha:fixtureAuth.baseline_sha};
+ test('CLI réelle recontrôle RUNNING/2 sans deadlock',()=>{
+  const r=cli(fixtureRetryAuth,retryLive,retryClaimed);assert.equal(r.error,undefined);assert.equal(r.status,0,r.stdout+r.stderr);
+ });
+ for(const [name,mutate] of [
+  ['source modifiée',e=>e.source[0].city='Changed'],
+  ['job tiers modifié',e=>e.queue[0].attempt_count=1],
+  ['troisième tentative',e=>e.jobs[0].attempt_count=3],
+  ['mauvais batch',e=>e.jobs[0].batch_id=LORIENT_RETRY.failed_batch_id],
+  ['autre événement',e=>e.jobs[0].event_id=NEW_ID],
+ ])test('CLI STOP : '+name,()=>{
+  const e=structuredClone(retryLive);mutate(e);const r=cli(fixtureRetryAuth,e,retryClaimed);
+  assert.equal(r.error,undefined);assert.notEqual(r.status,0);assert.notEqual(r.status,13);assert.match(r.stderr,/STOP/);
+ });
+ test('CLI ancienne autorisation refusée sur deuxième tentative',()=>{
+  const r=cli({...fixtureRetryAuth,retry:undefined},retryLive,retryClaimed);
+  assert.equal(r.error,undefined);assert.notEqual(r.status,0);assert.match(r.stderr,/STOP/);
+ });
+ // Real selection and atomic-claim worker; the only POST is intercepted in this child fixture.
+ const worker=(command,fingerprint='')=>{
+  fs.writeFileSync(dataFile,JSON.stringify(retryEvidence));
+  return spawnSync(process.execPath,['--require',preload,path.join(root,'scripts/publication-jobs.mjs'),command],{
+   cwd:root,timeout:15000,encoding:'utf8',env:{...process.env,CLI_EVIDENCE:dataFile,MOCK_CLAIM:'1',MOCK_BATCH:retryAuth.retry.new_batch_id,
+    PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION:JSON.stringify(retryAuth),PUBLICATION_MANUAL_JOB_IDS:retryJob.id,
+    PUBLICATION_MANUAL_MODE:command==='preview-selected'?'preview':'execute',PUBLICATION_MANUAL_FINGERPRINT:fingerprint}});
+ };
+ const previewResult=worker('preview-selected');
+ assert.equal(previewResult.status,0,previewResult.stdout+previewResult.stderr);
+ const fingerprint=previewResult.stdout.match(/Empreinte PREVIEW : ([0-9a-f]{64})/)[1];count++;
+ test('réservation simulée exige nouvelle empreinte PREVIEW',()=>{
+  const r=worker('claim','0'.repeat(64));assert.notEqual(r.status,0);assert.match(r.stderr,/données modifiées depuis PREVIEW/);
+ });
+ test('réservation atomique simulée du seul job en RUNNING/2 et batch neuf scellé',()=>{
+  const r=worker('claim',fingerprint);assert.equal(r.status,0,r.stdout+r.stderr);
+  assert.match(r.stdout,/attempt_count[\\]*":2/);assert.ok(r.stdout.includes(retryAuth.retry.new_batch_id));
+ });
  const frozen=JSON.parse(fs.readFileSync(path.join(fixture,'docs/territoires/catalogue-public.json')));frozen.events[0].city='Altérée';
  assert.throws(()=>assertFrozenSnapshot(fixtureAuth,frozen,fixture),/STOP/);count++;
  await assert.rejects(()=>prepareLorientRetirement({root:fixture,output:path.join(temp,'replay'),request}),/STOP/);count++;
