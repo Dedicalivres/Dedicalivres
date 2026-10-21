@@ -1,3 +1,5 @@
+import {authorize as briveAuthorization,manualContext as briveContext,readEvidence as readBriveEvidence} from './brive-edit-policy.mjs';
+import {verifyWorkspace as verifyBriveWorkspace} from './project-brive-edit.mjs';
 import {excludedIds, guardRetiredJobs, ID as RETIRED_ID} from './retired-test-policy.mjs';
 import {
   execFileSync,
@@ -30,6 +32,12 @@ function command(
     .filter(Boolean);
 }
 
+
+// Exact reviewed patch, source, private data, queue and batch replace no general guard.
+if(process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION){
+ const a=briveAuthorization();briveContext(a);await verifyBriveWorkspace(a,await readBriveEvidence(),process.cwd());
+ console.log('PASS Brive : diff exact de la PREVIEW et fiches tierces préservées');
+}
 
 const legacy =
   JSON.parse(

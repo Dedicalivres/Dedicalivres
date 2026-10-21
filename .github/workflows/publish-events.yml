@@ -40,6 +40,11 @@ on:
         required: false
         type: string
 
+      brive_edit_authorization:
+        description: "Approved exact-job Brive edit manifest; required for that job only"
+        required: false
+        type: string
+
       lorient_retirement_authorization:
         description: "Optional approved single-job Lorient unpublish manifest; empty denies retirement"
         required: false
@@ -84,6 +89,7 @@ jobs:
       PUBLICATION_AUTOMATION_ENABLED: ${{ vars.PUBLICATION_AUTOMATION_ENABLED }}
       PUBLICATION_MANUAL_MODE: preview
       PUBLICATION_MANUAL_JOB_IDS: ${{ inputs.manual_job_ids }}
+      PUBLICATION_BRIVE_EDIT_AUTHORIZATION: ${{ inputs.brive_edit_authorization }}
       PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION: ${{ inputs.lorient_retirement_authorization }}
     steps:
       - name: Checkout main
@@ -135,6 +141,9 @@ jobs:
 
       PUBLICATION_MANUAL_JOB_IDS:
         ${{ inputs.manual_job_ids }}
+
+      PUBLICATION_BRIVE_EDIT_AUTHORIZATION:
+        ${{ github.event_name == 'workflow_dispatch' && inputs.brive_edit_authorization || '' }}
 
       PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION:
         ${{ github.event_name == 'workflow_dispatch' && inputs.lorient_retirement_authorization || '' }}
