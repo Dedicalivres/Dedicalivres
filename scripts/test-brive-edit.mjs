@@ -68,6 +68,7 @@ try{
   Object.assign(process.env,{SUPABASE_URL:'https://pwyetrqyiaxpzjrafpvb.supabase.co',SUPABASE_SECRET_KEY:'offline-test',PUBLICATION_AUTOMATION_ENABLED:'false',PUBLICATION_MANUAL_MODE:'preview',PUBLICATION_MANUAL_JOB_IDS:JOB,PUBLICATION_BRIVE_EDIT_AUTHORIZATION:JSON.stringify(a),PUBLICATION_PREACTIVATION_TEST:'false',PUBLICATION_P0_RECOVERY:'false',PUBLICATION_DOUAI_MANUAL:'false'});
   delete process.env.PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION;delete process.env.GITHUB_OUTPUT;
   const invoke=async command=>{process.argv=[process.execPath,path.join(root,'scripts/publication-jobs.mjs'),command];await import(pathToFileURL(path.join(root,'scripts/publication-jobs.mjs')).href+'?brive='+ ++imports);};
+  const sealed=process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION;delete process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION;await fail(()=>invoke('preview-selected'));assert.ok(calls.every(c=>c.method==='GET'));process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION=sealed;
   await invoke('preview-selected');checks++;assert.ok(calls.every(c=>c.method==='GET'));
   const fingerprint=logs.join('\n').match(/Empreinte PREVIEW : ([0-9a-f]{64})/)[1];
   Object.assign(process.env,{PUBLICATION_MANUAL_MODE:'execute',PUBLICATION_MANUAL_CONFIRMATION:'EXECUTE',PUBLICATION_MANUAL_FINGERPRINT:'0'.repeat(64)});

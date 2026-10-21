@@ -2,6 +2,8 @@
 
 Cible exclusive : `83270534-e551-4562-8805-f10240a6007c`, job existant
 `cd306af4-9b21-4f80-9e0e-557734585d8d`, raison `edit`, état initial `PENDING/0`, sans batch ni commit.
+Sans manifeste approuvé, ce job précis est refusé dès la sélection manuelle. Le CANARY existant
+refuse déjà les jobs edit ; aucune règle CANARY n’est élargie.
 Aucun autre job, aucune écriture métier et aucune activation automatique ne sont autorisés par ce correctif.
 La PR technique ne contient aucune page publique projetée.
 

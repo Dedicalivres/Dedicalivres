@@ -41,7 +41,7 @@ on:
         type: string
 
       brive_edit_authorization:
-        description: "Optional approved exact-job Brive edit manifest; empty keeps ordinary controls"
+        description: "Approved exact-job Brive edit manifest; required for that job only"
         required: false
         type: string
 

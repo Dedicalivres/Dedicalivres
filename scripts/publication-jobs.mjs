@@ -1,4 +1,4 @@
-import {authorize as briveAuthorization,guardJobs as guardBriveJobs,assertEvidence as assertBriveEvidence,readEvidence as readBriveEvidence} from './brive-edit-policy.mjs';
+import {JOB as BRIVE_JOB,authorize as briveAuthorization,guardJobs as guardBriveJobs,assertEvidence as assertBriveEvidence,readEvidence as readBriveEvidence} from './brive-edit-policy.mjs';
 import {excludedIds, guardRetiredJobs, assertWithdrawalEvidence, digest} from './retired-test-policy.mjs';
 import {fetchSource} from './verify-publication-source.mjs';
 import {
@@ -515,6 +515,7 @@ async function selectedBatch(execute) {
   const byId = new Map(rows.map((row) => [row.id, row]));
   const jobs = ids.map((id) => byId.get(id));
   const brive=process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION?briveAuthorization():null;
+  if(!brive&&jobs.some(row=>row?.id===BRIVE_JOB))throw Error('STOP Brive : manifeste ciblé obligatoire pour ce job');
   if(brive)guardBriveJobs(jobs,brive);
   if (jobs.some((row) => !row || row.status !== "PENDING"
       || row.batch_id !== null || row.commit_sha !== null
