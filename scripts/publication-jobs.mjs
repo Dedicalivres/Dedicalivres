@@ -569,7 +569,7 @@ async function previewSelected() {
 
 async function claimSelected() {
   const { jobs, retirement } = await selectedBatch(true);
-  const batchId = randomUUID();
+  const batchId = retirement?.retry?.new_batch_id || randomUUID();
   let claimed;
   try {
     claimed = await rpc("claim_event_publication_batch", {

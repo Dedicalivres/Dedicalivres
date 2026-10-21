@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {fetchSource} from './publication-source-reader.mjs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -18,6 +19,26 @@ export function referenceDate(value,expected){
  if(expected!==undefined&&value!==expected)stop('date de référence incohérente');
  return value;
 }
+// One verified pre-push failure only; this is not a general retry permission.
+export const LORIENT_RETRY = Object.freeze({
+ job_id:'0cc69430-9f31-4dab-b701-2061683e6b4c',
+ failed_run_id:39630801864,
+ failed_batch_id:'20d544e5-3249-4289-b30d-258f38ab5041',
+ previous_decision_id:'eb41538d-c93d-4492-a2aa-0b38e2106b6c',
+ previous_manifest_sha256:'9fc6888a4f7fa5769dab59e59c42f80947bca6ab278f472880a0be2ee64b84ee',
+ last_error:'batch=20d544e5-3249-4289-b30d-258f38ab5041: GitHub Actions publication failed',
+});
+export function assertRetryAuthorization(a){
+ const r=a.retry;
+ if(a.decision_id===LORIENT_RETRY.previous_decision_id||digest(a)===LORIENT_RETRY.previous_manifest_sha256)
+  stop('ancienne autorisation du run échoué interdite');
+ if(!r)return;
+ if(a.job_id!==LORIENT_RETRY.job_id||r.failed_run_id!==LORIENT_RETRY.failed_run_id
+   ||r.failed_batch_id!==LORIENT_RETRY.failed_batch_id||!uuid(r.new_batch_id)
+   ||r.new_batch_id===LORIENT_RETRY.failed_batch_id||a.decision_id===LORIENT_RETRY.previous_decision_id
+   ||digest(a)===LORIENT_RETRY.previous_manifest_sha256||!/^[0-9a-f]{64}$/.test(r.pending_job_sha256||''))
+  stop('reprise unique liée au run avant push et à une nouvelle décision requise');
+}
 export function authorization(raw=process.env.PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION){
  let a;try{a=JSON.parse(raw||'null');}catch{stop('autorisation illisible');}
  if(!a||a.version!==1||a.event_id!==ID||a.canonical!==PAGE||a.reason!=='unpublish'||!uuid(a.job_id)
@@ -27,6 +48,7 @@ export function authorization(raw=process.env.PUBLICATION_TEST_UNPUBLISH_AUTHORI
   if(!/^[0-9a-f]{64}$/.test(a[field]||''))stop('empreinte absente : '+field);
  referenceDate(a.reference_date,parisDate());
  if(process.env.PUBLICATION_REFERENCE_DATE!==undefined)referenceDate(process.env.PUBLICATION_REFERENCE_DATE,a.reference_date);
+ assertRetryAuthorization(a);
  return a;
 }
 export function guardRetiredJobs(rows,raw=process.env.PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION){
@@ -53,8 +75,12 @@ export const jobDigest=j=>digest(Object.fromEntries(['id','event_id','target_eve
 export function assertWithdrawalEvidence(a,{jobs,queue,events,source},root=process.cwd(),phase='pending'){
  guardRetiredJobs(jobs,JSON.stringify(a));assertInitialProof(a,root);
  const j=jobs[0],event=events.find(e=>e.id===ID);
- const stateOK=phase==='pending'?j.status==='PENDING'&&j.attempt_count===0&&j.batch_id===null
-    :phase==='claimed'&&j.status==='RUNNING'&&j.attempt_count===1&&uuid(j.batch_id);
+ assertRetryAuthorization(a);
+ const attempt=a.retry?1:0;
+ const retryOK=!a.retry||(j.id===LORIENT_RETRY.job_id&&j.last_error===LORIENT_RETRY.last_error
+   &&(phase==='pending'?digest(j)===a.retry.pending_job_sha256:j.batch_id===a.retry.new_batch_id));
+ const stateOK=retryOK&&(phase==='pending'?j.status==='PENDING'&&j.attempt_count===attempt&&j.batch_id===null
+    :phase==='claimed'&&j.status==='RUNNING'&&j.attempt_count===attempt+1&&uuid(j.batch_id));
  if(!stateOK||j.commit_sha!==null||jobDigest(j)!==a.job_sha256||!event||event.validated!==false||event.rejected!==true||digest(event)!==a.private_event_sha256)
   stop('job initial ou donnée privée modifiés');
  if(!Array.isArray(queue)||queue.some(j=>j.status==='RUNNING'&&j.id!==a.job_id)||digest(queue.filter(j=>j.id!==a.job_id))!==a.queue_sha256
@@ -103,7 +129,6 @@ export async function readWithdrawalEvidence(a,request=fetch){
  const queueQuery='event_publication_jobs?or=(status.in.(PENDING,RUNNING),id.eq.80a4506a-357e-4df0-a5ac-5fe4ce27535f)&select=id,event_id,target_event_id,reason,status,attempt_count,batch_id,commit_sha,last_error,requested_at&order=id.asc';
  const [jobs,events,queue]=await Promise.all([get('event_publication_jobs?id=eq.'+a.job_id+'&select=*'),get('events?id=eq.'+ID+'&select=*'),get(queueQuery)]);
  const config=fs.readFileSync(path.join(ROOT,'config.js'),'utf8');
- const {fetchSource}=await import('./verify-publication-source.mjs');
  const source=await fetchSource(url,config.match(/supabaseAnonKey:\s*["']([^"']+)/)[1],request);
  return {jobs,events,queue,source};
 }
