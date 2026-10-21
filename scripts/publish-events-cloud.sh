@@ -27,6 +27,11 @@ fi
 
 cd "$ROOT"
 
+if [[ -n "${PUBLICATION_BRIVE_EDIT_AUTHORIZATION:-}" ]]; then
+  [[ -z "${PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION:-}" ]] || exit 1
+  exec node scripts/project-brive-edit.mjs prepare-claimed
+fi
+
 if [[ -n "${PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION:-}" ]]; then
   exec node scripts/prepare-lorient-retirement.mjs
 fi

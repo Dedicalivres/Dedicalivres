@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "event_id": "83270534-e551-4562-8805-f10240a6007c",
+  "job_id": "cd306af4-9b21-4f80-9e0e-557734585d8d",
+  "canonical": "evenement/44-eme-foire-du-livre-de-brive-brives-83270534-e551-4562-8805-f10240a6007c.html",
+  "verified_on": "2026-10-21",
+  "before": {"city": "Brives", "region": "Centre-Val de Loire", "organizer.name": "Brives"},
+  "after": {"city": "Brive-la-Gaillarde", "region": "Nouvelle-Aquitaine", "organizer.name": "Ville de Brive"},
+  "unchanged_dates": {"start_date": "2026-11-06", "end_date": "2026-11-08"},
+  "multisite": true,
+  "sources": [
+    {"url": "https://www.brive.fr/foire-livre-2026/", "supports": ["dates", "Halle Brassens et Espace des Trois Provinces"]},
+    {"url": "https://www.brive.fr/culture/foire-livre-brive/", "supports": ["organisateur"], "excerpt": "La Foire du livre de Brive est organisée par la Ville de Brive"},
+    {"url": "https://www.brive-tourisme.com/fr/agenda/grands-rendez-vous/foire-du-livre-brive/infos-pratiques/", "supports": ["dates", "manifestation multisite"]}
+  ],
+  "forbidden": ["nouvelle adresse", "nouveau code postal", "nouvelles coordonnées", "autre UUID", "changement de canonical", "écriture Supabase"]
+}

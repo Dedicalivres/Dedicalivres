@@ -1,3 +1,4 @@
+import {assertEvidence as assertBriveEvidence} from './brive-edit-policy.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
@@ -440,6 +441,11 @@ function projectAggregates(temporalOnly = false, frozenScope = null) {
   }
   if (sitemap !== read('sitemap.xml')) fs.writeFileSync('sitemap.xml', sitemap);
   console.log(`PASS agrégats ciblés : ${changed.size} modifiés, ${restored.size} préservés`);
+}
+
+// Dedicated exact-job scope, verified independently; normal legacy controls stay unchanged.
+export function projectBriveAggregates(a,evidence,sourceRoot,phase,draft=false){
+  projectAggregates(false,assertBriveEvidence(a,evidence,sourceRoot,phase,{draft}));
 }
 
 // Offline preview only: the normal job/legacy path above remains unchanged.

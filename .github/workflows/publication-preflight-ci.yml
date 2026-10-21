@@ -9,7 +9,7 @@ permissions:
 jobs:
   publication-preflight:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Checkout pull request
@@ -58,6 +58,7 @@ jobs:
           node scripts/test-public-catalog.mjs
           node scripts/test-lorient-test-retirement.mjs
           node scripts/test-retired-test-policy.mjs
+          node scripts/test-brive-edit.mjs
           node scripts/test-publication-workflow-safety.mjs
 
       - name: Test pending DELETE coalescence on disposable PostgreSQL

@@ -1,3 +1,4 @@
+import {authorize as briveAuthorization,guardJobs as guardBriveJobs,assertEvidence as assertBriveEvidence,readEvidence as readBriveEvidence} from './brive-edit-policy.mjs';
 import {excludedIds, guardRetiredJobs, assertWithdrawalEvidence, digest} from './retired-test-policy.mjs';
 import {fetchSource} from './verify-publication-source.mjs';
 import {
@@ -513,6 +514,8 @@ async function selectedBatch(execute) {
   }
   const byId = new Map(rows.map((row) => [row.id, row]));
   const jobs = ids.map((id) => byId.get(id));
+  const brive=process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION?briveAuthorization():null;
+  if(brive)guardBriveJobs(jobs,brive);
   if (jobs.some((row) => !row || row.status !== "PENDING"
       || row.batch_id !== null || row.commit_sha !== null
       || !Number.isInteger(Number(row.attempt_count))
@@ -547,7 +550,15 @@ async function selectedBatch(execute) {
     assertWithdrawalEvidence(retirement,{jobs,queue,events,source});
     console.log(`Retrait test approuvé : décision ${retirement.decision_id}, manifeste ${digest(retirement)}`);
   }
+  if(brive){
+    const evidence=await readBriveEvidence();assertBriveEvidence(brive,evidence);
+    const {verifyPendingProjection}=await import('./project-brive-edit.mjs');
+    await verifyPendingProjection(brive,evidence);
+    // Source and queue must remain sealed during generation; the existing RPC still compares the selected job atomically.
+    assertBriveEvidence(brive,await readBriveEvidence());
+  }
   const fingerprintData = {
+    ...(brive ? {brive: digest(brive)} : {}),
     ...(retirement ? {retirement: digest(retirement)} : {}),
     ids, jobs, events: eventIds.map((id) => eventById.get(id) || null),
   };
@@ -558,7 +569,7 @@ async function selectedBatch(execute) {
   }
   console.log("Lot manuel : " + jobs.map((row) => `${row.id} ${row.reason} PENDING ${row.target_event_id}`).join(" | "));
   if (!execute) console.log(`Empreinte PREVIEW : ${fingerprint}`);
-  return { jobs, fingerprint, retirement };
+  return { jobs, fingerprint, retirement, brive };
 }
 
 async function previewSelected() {
@@ -568,8 +579,8 @@ async function previewSelected() {
 }
 
 async function claimSelected() {
-  const { jobs, retirement } = await selectedBatch(true);
-  const batchId = retirement?.retry?.new_batch_id || randomUUID();
+  const { jobs, retirement, brive } = await selectedBatch(true);
+  const batchId = brive?.batch_id || retirement?.retry?.new_batch_id || randomUUID();
   let claimed;
   try {
     claimed = await rpc("claim_event_publication_batch", {
@@ -597,7 +608,7 @@ async function claimSelected() {
   setOutput("publication_jobs", JSON.stringify(claimed.map((row) => ({
     id: row.id, event_id: targetEventId(row) || null, reason: row.reason,
     attempt_count: Number(row.attempt_count),
-    ...(retirement ? {batch_id:row.batch_id} : {}),
+    ...((retirement || brive) ? {batch_id:row.batch_id} : {}),
   }))));
   setOutput("has_jobs", "true");
   setOutput("batch_id", batchId);
@@ -1187,6 +1198,7 @@ async function fail() {
 }
 
 
+if(process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION && (process.env.PUBLICATION_AUTOMATION_ENABLED!=='false'||process.env.PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION||DOUAI_MANUAL||P0_RECOVERY||PREACTIVATION_TEST||!['preview','execute'].includes(MANUAL_MODE)))throw Error('STOP Brive : parcours incompatible');
 if(process.env.PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION && (DOUAI_MANUAL||P0_RECOVERY||PREACTIVATION_TEST||!['preview','execute'].includes(MANUAL_MODE))) throw new Error('STOP retrait : parcours incompatible');
 
 const command =
