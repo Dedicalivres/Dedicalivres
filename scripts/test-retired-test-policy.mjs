@@ -7,6 +7,11 @@ import {execFileSync,spawnSync} from 'node:child_process';
 import {retirementIds,loadRetirementIds} from '../event-retirements.js';
 import {authorization,excludedIds,guardRetiredJobs,digest,jobDigest,assertWithdrawalEvidence,assertFrozenSnapshot,ID,PAGE,parisDate,LORIENT_RETRY} from './retired-test-policy.mjs';
 import {prepareLorientRetirement} from './prepare-lorient-retirement.mjs';
+import {historicalLorientFixture} from './fixtures/lorient-retirement.mjs';
+const currentRoot=process.cwd();
+const historical=historicalLorientFixture(currentRoot);
+try{
+process.chdir(historical.root);
 const root=process.cwd(),policy=JSON.parse(fs.readFileSync('event-retirements.json'));
 const pinned=JSON.parse(fs.readFileSync('scripts/event-publisher/lorient-test-retirement-preview.json'));
 const snapshot=JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json'));
@@ -27,6 +32,18 @@ auth.reference_date=parisDate();
 let count=0;
 const test=(name,fn)=>{fn();count++;console.log('PASS retrait durable : '+name);};
 const reject=(name,mutate)=>test(name,()=>{const a=structuredClone(auth),e=structuredClone(evidence);mutate(a,e);assert.throws(()=>assertWithdrawalEvidence(a,e),/STOP/);});
+test('état courant : retrait définitif, ancien manifeste inutilisable',()=>{
+ const map=JSON.parse(fs.readFileSync(path.join(currentRoot,'docs/territoires/event-canonical-map.json')));
+ const current=JSON.parse(fs.readFileSync(path.join(currentRoot,'docs/territoires/catalogue-public.json')));
+ assert.ok(!(ID in map));assert.ok(!current.events.some(e=>e.id===ID));
+ assert.ok(!fs.existsSync(path.join(currentRoot,PAGE)));
+ assert.equal(Object.keys(map).length,current.events.length);
+ assert.deepEqual(new Set(current.events.map(e=>e.id)),new Set(Object.keys(map)));
+ for(const file of Object.values(map))assert.ok(fs.existsSync(path.join(currentRoot,file)));
+ assert.throws(()=>assertWithdrawalEvidence(auth,evidence,currentRoot),/STOP/);
+ const completed={...job,status:'SUCCESS',attempt_count:2,commit_sha:'3616a4a8995c70bcc56809ab144b3b040d1154ce'};
+ assert.throws(()=>assertWithdrawalEvidence(auth,{...evidence,jobs:[completed]},currentRoot),/STOP/);
+});
 test('registre strict limité à Lorient',()=>assert.deepEqual([...excludedIds()],[ID]));
 test('autre UUID interdit au registre',()=>assert.throws(()=>retirementIds({...policy,entries:[{...policy.entries[0],event_id:'other'}]}),/STOP/));
 test('registre multiple interdit',()=>assert.throws(()=>retirementIds({...policy,entries:[...policy.entries,...policy.entries]}),/STOP/));
@@ -220,3 +237,5 @@ const canary=vm.createContext({rpc:async name=>{assert.equal(name,'publication_c
 vm.runInContext(canarySource+';globalThis.check=canaryCandidate;',canary);assert.equal(await canary.check(),null);count++;
 const ids=await loadRetirementIds(async()=>new Response(JSON.stringify(policy),{status:200}));assert.ok(ids.has(ID));count++;
 console.log(`PASS retrait durable : ${count} scénarios, transport intégralement simulé`);
+
+}finally{process.chdir(currentRoot);historical.cleanup();}

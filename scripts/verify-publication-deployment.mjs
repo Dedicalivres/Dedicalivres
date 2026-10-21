@@ -8,10 +8,12 @@ const PAGES_WORKFLOW_ID = 264484297;
 const fail = message => { throw new Error(`STOP preuve publication : ${message}`); };
 const same = (a, b) => a.length === b.length && a.equals(b);
 
-export async function verifyDeployment({sha, jobs, oldMap, currentMap, depublishPaths = [],
-  repository, token, fetcher = fetch, readFile = file => fs.readFileSync(file)}) {
-  if (!/^[0-9a-f]{40}$/.test(sha || '') || !Array.isArray(jobs) || jobs.length < 1
-      || !repository || !token || !Array.isArray(depublishPaths)) fail('paramètres absents');
+export async function verifyPagesFiles({sha, paths, repository, token, fetcher = fetch,
+  readFile = file => fs.readFileSync(file)}) {
+  if (!/^[0-9a-f]{40}$/.test(sha || '') || !repository || !token
+      || !Array.isArray(paths) || !paths.length || paths.length > 250
+      || new Set(paths).size !== paths.length || paths.some(p => !/^[a-zA-Z0-9_./-]+$/.test(p) || p.startsWith('/') || p.split('/').includes('..')))
+    fail('paramètres de fichiers Pages invalides');
   const api = await fetcher(`https://api.github.com/repos/${repository}/actions/workflows/${PAGES_WORKFLOW_ID}/runs?head_sha=${sha}&per_page=100`, {
     headers:{Authorization:`Bearer ${token}`, Accept:'application/vnd.github+json'},
     signal:AbortSignal.timeout(20000),
@@ -25,13 +27,25 @@ export async function verifyDeployment({sha, jobs, oldMap, currentMap, depublish
 
   const deployed = async relative => fetcher(`${BASE}${relative}?publication=${sha}-${Date.now()}`,
     {cache:'no-store', redirect:'manual', signal:AbortSignal.timeout(20000)});
-  for (const file of ['sitemap-evenements.xml', 'event-canonical.js',
-    'docs/territoires/event-canonical-map.json', 'evenement/index.html', 'index.html']) {
+  for (const file of paths) {
     const remote = await deployed(file);
     if (remote.status !== 200 || !same(Buffer.from(await remote.arrayBuffer()), readFile(file))) {
       fail(`fichier public non synchronisé : ${file}`);
     }
   }
+
+  return {sha, pages_run_id:run.id, verified:true, file_count:paths.length};
+}
+
+export async function verifyDeployment({sha, jobs, oldMap, currentMap, depublishPaths = [],
+  repository, token, fetcher = fetch, readFile = file => fs.readFileSync(file)}) {
+  if (!/^[0-9a-f]{40}$/.test(sha || '') || !Array.isArray(jobs) || jobs.length < 1
+      || !repository || !token || !Array.isArray(depublishPaths)) fail('paramètres absents');
+  const proof = await verifyPagesFiles({sha, repository, token, fetcher, readFile,
+    paths:['sitemap-evenements.xml', 'event-canonical.js',
+      'docs/territoires/event-canonical-map.json', 'evenement/index.html', 'index.html']});
+  const deployed = async relative => fetcher(`${BASE}${relative}?publication=${sha}-${Date.now()}`,
+    {cache:'no-store', redirect:'manual', signal:AbortSignal.timeout(20000)});
 
   const sitemap = readFile('sitemap-evenements.xml').toString();
   const seen = new Set();
@@ -61,7 +75,7 @@ export async function verifyDeployment({sha, jobs, oldMap, currentMap, depublish
       if (![404, 410].includes(previous.status)) fail(`fiche dépubliée encore accessible : ${job.id}`);
     } else fail(`raison non publiable : ${job.id}`);
   }
-  return {sha, pages_run_id:run.id, verified:true, job_count:jobs.length};
+  return {sha, pages_run_id:proof.pages_run_id, verified:true, job_count:jobs.length};
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

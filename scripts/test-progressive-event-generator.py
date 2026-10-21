@@ -1,6 +1,8 @@
 """Offline checks for the opt-in static event structure."""
 import importlib.util
 import json
+import os
+import subprocess
 import re
 import shutil
 import sys
@@ -11,6 +13,31 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parent.parent
+# The suite below describes the historical 282-page legacy state. Keep every
+# assertion, but execute it against the shared verified fixture, never today's corpus.
+if os.environ.get("DL_TEST_HISTORICAL_LORIENT") != "1":
+    registry = json.loads((ROOT / "event-retirements.json").read_text())
+    target = registry["entries"][0]
+    mapping = json.loads((ROOT / "docs/territoires/event-canonical-map.json").read_text())
+    current = json.loads((ROOT / "docs/territoires/catalogue-public.json").read_text())
+    assert target["event_id"] not in mapping
+    assert not any(e["id"] == target["event_id"] for e in current["events"])
+    assert not (ROOT / target["canonical"]).exists()
+    assert {e["id"] for e in current["events"]} == set(mapping)
+    with tempfile.TemporaryDirectory(prefix="progressive-historical-") as temp:
+        create = "import {historicalLorientFixture} from './scripts/fixtures/lorient-retirement.mjs';console.log(historicalLorientFixture(process.cwd()).root)"
+        historical = Path(subprocess.check_output(
+            ["node", "--input-type=module", "-e", create], cwd=ROOT,
+            env={**os.environ, "TMPDIR": temp}, text=True).strip())
+        result = subprocess.run(
+            [sys.executable, str(historical / "scripts/test-progressive-event-generator.py")],
+            cwd=historical, env={**os.environ, "DL_TEST_HISTORICAL_LORIENT": "1",
+                                "PYTHONDONTWRITEBYTECODE": "1"})
+        if result.returncode:
+            raise SystemExit(result.returncode)
+    print("PASS état courant sans Lorient ; toutes les assertions historiques exécutées en isolation")
+    raise SystemExit(0)
+
 PUBLISHER = ROOT / "scripts" / "event-publisher"
 sys.path.insert(0, str(PUBLISHER))
 spec = importlib.util.spec_from_file_location("event_generator", PUBLISHER / "generate-events.py")

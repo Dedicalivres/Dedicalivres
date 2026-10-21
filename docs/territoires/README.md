@@ -143,3 +143,31 @@ Event.name, startDate/endDate, Place.address, PostalAddress et les informations 
 Les trois URLs canoniques et les UUID sont conservés, même lorsque le slug contient l’ancienne ville ou un identifiant numérique. Les BreadcrumbList terminent sur ces mêmes URLs, sans collision de canonical. Aucun sitemap, archive ou lien n’est modifié. Les tests dans `scripts/test-progressive-event-generator.py`, déjà exécutés par la CI existante, vérifient la non-invention de l’organisateur, la préservation de tous les organisateurs publiés, le STOP sur une source incohérente et le maintien Event/Place/PostalAddress/Breadcrumb/dates/UUID/canonical. Les autres suites de publication restent nécessaires avant livraison.
 
 **Autorisation métier distincte requise** : Brive (ville/région), Lorient (début/fin et adresse structurée), Senlis (périmètre de dates, lieu et nom éditorial), et enrichissement vérifié des trois organisateurs. Ni Supabase ni les manifests métier n’ont été modifiés. Aucun correctif de données ne doit être appliqué tant que cette autorisation et le parcours de protection approprié ne sont pas établis.
+
+
+## P0A — Livraison temporelle manuelle contrôlée
+
+Le diagnostic reste limité au parcours temporel : les fiches Event publiées alimentent `refresh-index.py`, la capture Git publiée alimente les aperçus accueil/salons/dédicaces et les pages territoriales/villes. Le navigateur peut recalculer un affichage à l'ouverture (et les territoires relisent le public après pagination complète), mais cette actualisation ne change ni HTML statique ni lastmod des sitemaps. Le rafraîchissement quotidien existant ne pousse toujours que l'index et son entrée sitemap ; sa projection complète reste un artefact en lecture seule.
+
+`deliver-temporal-catalogues.yml` ajoute uniquement un déclenchement **manuel**, sur main. Aucun nouveau calendrier ni activation de publication générale. Le verrou `dedicalivres-event-publication` est partagé avec le rafraîchissement quotidien et la publication métier pendant la totalité de la projection, du push et de la preuve Pages. Les changements de main effectués hors de ce verrou sont détectés par les contrôles SHA distants et le push sans force ; aucune restauration automatique n'écrase main.
+
+Le job `project` a seulement `contents: read`, sans credentials Git persistés. Il exige un SHA main exact, une copie propre et le jour Europe/Paris courant. `deliver-temporal-catalogues.py` appelle le projecteur existant, conserve sa double génération et scelle `report.json` et `projection.patch` dans `manifest.json`. Le corpus doit être aligné avec les fiches et le sitemap, et ne doit contenir aucun UUID du registre des retraits actifs. Le nombre d'événements est calculé depuis ce corpus ; aucune lecture Supabase ni ancienne projection Lorient n'est utilisée.
+
+Le job `publish`, avec droits d'écriture, exige le mode `publish`, la confirmation `PUBLISH_TEMPORAL` et l'empreinte d'une PREVIEW revue sur la **même base et le même jour**. Il ne télécharge que l'artefact de sa propre exécution, puis régénère une projection complète fraîche et exige une empreinte identique avant application. Il vérifie l'intégralité du diff avant commit, y compris après staging. Le staging énumère uniquement les fichiers du rapport validé. Main distant et le jour Paris sont recontrôlés ; un changement inattendu ou un échec réseau provoque STOP. Une projection vide ne produit ni commit ni demande de build.
+
+Après un push réellement autorisé, le workflow reprend la procédure existante de demande explicite de build Pages depuis main /, puis le vérificateur commun exige un run Pages SUCCESS du SHA poussé et des octets identiques pour **tous** les fichiers changés. Un délai ou une divergence de déploiement ne peut pas être annoncé comme PASS. Si le push a eu lieu mais que cette preuve échoue, conserver le SHA, arrêter et vérifier en lecture seule ; ne pas relancer aveuglément ou restaurer un ancien artefact.
+
+### Autorisation ultérieure
+
+1. Faire approuver et fusionner cette PR humainement ; aucune publication temporelle n'est autorisée par ses seuls tests.
+2. Relever le nouveau main et le jour Paris. Déclencher le workflow en mode `preview` avec `expected_main_sha` et `reference_date`, puis examiner le rapport, le patch et l'empreinte.
+3. Après autorisation humaine de publication distincte, déclencher `publish` avec ces mêmes SHA/date, l'empreinte revue et `confirmation=PUBLISH_TEMPORAL`. Si la date ou main a changé, refaire une PREVIEW ; ne pas adapter artificiellement l'ancien patch.
+4. Exiger la preuve Pages du commit et des fichiers avant de déclarer la livraison réussie. Aucun job Supabase n'est réservé ou finalisé.
+
+Les fichiers autorisés restent ceux du projecteur : index/accueil, salons/dédicaces, territoires/villes existants, archives France paginées et sitemaps correspondants ; `docs/territoires/audit.json` trace la classification. Toutes les fiches Event et auteur, les UUID/canonicals, `catalogue-public.json`, les horodatages de provenance et les autres données restent intacts. Aucune suppression n'est autorisée, et seules les nouvelles pages d'archives cohérentes sont permises, dans la limite de 250 fichiers. Le lastmod ne suit que les changements HTML effectifs.
+
+Tests : `python3 scripts/test-temporal-delivery.py`, suite temporelle existante et `node scripts/test-publication-deployment.mjs`, exécutés par Publication preflight CI. Les refus de concurrence sont prouvés par la configuration du verrou GitHub partagé et des contrôles SHA, sans déclencher de publication concurrente réelle.
+
+### Activation quotidienne future — non réalisée
+
+Le même validateur/projecteur peut être réutilisé pour les seuls agrégats. Il restera à faire autoriser explicitement cette activation, choisir un unique parcours avec le calendrier quotidien existant, définir l'arrêt/alerte en cas d'échec et valider un premier cycle réel. Ne pas ajouter un ordonnanceur concurrent, ni réactiver `PUBLICATION_AUTOMATION_ENABLED`, ni supprimer les gardes de base/date/périmètre/déploiement. Ni l'activation ni une stabilité autonome en production ne sont démontrées par cette livraison technique.
