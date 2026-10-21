@@ -36,7 +36,7 @@ function command(
 // Exact reviewed patch, source, private data, queue and batch replace no general guard.
 if(process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION){
  const a=briveAuthorization();briveContext(a);await verifyBriveWorkspace(a,await readBriveEvidence(),process.cwd());
- console.log('PASS Brive : diff exact de la PREVIEW et fiches tierces préservées');process.exit(0);
+ console.log('PASS Brive : diff exact de la PREVIEW et fiches tierces préservées');
 }
 
 const legacy =

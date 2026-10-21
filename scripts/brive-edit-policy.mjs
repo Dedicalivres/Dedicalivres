@@ -46,7 +46,9 @@ export function baseFiles(root,a){
  return {read,snapshot,map};
 }
 export function assertEvidence(a,e,root=process.cwd(),phase='pending',{draft=false}={}){
- authorize(a,{draft});guardJobs(e.jobs,a);const {snapshot}=baseFiles(root,a),j=e.jobs[0];
+ authorize(a,{draft});guardJobs(e.jobs,a);
+ if(phase==='pending'&&git(root,'rev-parse','HEAD').toString().trim()!==a.baseline_sha)stop('base Git changée avant réservation');
+ const {snapshot}=baseFiles(root,a),j=e.jobs[0];
  const state=phase==='pending'?j.status==='PENDING'&&j.attempt_count===0&&j.batch_id===null&&digest(j)===a.pending_job_sha256
   :phase==='claimed'&&j.status==='RUNNING'&&j.attempt_count===1&&j.batch_id===a.batch_id;
  if(!state||j.commit_sha!==null||jobDigest(j)!==a.job_sha256||e.events?.length!==1

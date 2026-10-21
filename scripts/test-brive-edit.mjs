@@ -88,9 +88,11 @@ try{
   assert.equal(prepared.status,0,prepared.stderr);assert.deepEqual(fs.readFileSync(path.join(tmp,'prepared/public-events-source.json'),'utf8'),JSON.stringify(e.source));checks++;
   fs.appendFileSync(path.join(fixture,'index.html'),'unexpected');await fail(()=>verifyWorkspace(a,claimed,fixture));git(fixture,'apply','--reverse',path.join(tmp,'one/projection.patch'));git(fixture,'restore','index.html');git(fixture,'apply',path.join(tmp,'one/projection.patch'));
   cli('check-publication-diff.mjs');cli('verify-publication-source.mjs');
-  git(fixture,'add','--all');git(fixture,'-c','user.name=Offline fixture','-c','user.email=fixture@example.invalid','-c','core.hooksPath=/dev/null','commit','--quiet','-m','Offline projected publication');cli('verify-publication-source.mjs');
+  git(fixture,'add','--all');git(fixture,'-c','user.name=Offline fixture','-c','user.email=fixture@example.invalid','-c','core.hooksPath=/dev/null','commit','--quiet','-m','Offline projected publication');cli('verify-publication-source.mjs');rejects(()=>assertEvidence(a,e,fixture));
   fs.writeFileSync(evidenceFile,JSON.stringify({...claimed,source:claimed.source.slice(1)}));const denied=spawnSync(process.execPath,['--import',preload,path.join(fixture,'scripts/verify-publication-source.mjs'),captured],{cwd:fixture,env:process.env,encoding:'utf8',timeout:60000});assert.notEqual(denied.status,0);checks++;
  }finally{global.fetch=oldFetch;process.argv=oldArgv;console.log=oldLog;process.chdir(oldCwd);for(const k of Object.keys(process.env))if(!(k in oldEnv))delete process.env[k];Object.assign(process.env,oldEnv);}
- const workflow=fs.readFileSync('.github/workflows/publish-events.yml','utf8');ok(()=>{assert.match(workflow,/brive_edit_authorization:/);assert.match(workflow,/manual-preview:[\s\S]*?contents: read/);assert.match(workflow,/group: dedicalivres-event-publication/);});
+ const workflow=fs.readFileSync('.github/workflows/publish-events.yml','utf8');ok(()=>{
+  const scope=fs.readFileSync('scripts/check-publication-diff.mjs','utf8');assert.doesNotMatch(scope.slice(scope.indexOf('if(process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION)'),scope.indexOf('const legacy =')),/process.exit/);
+assert.match(workflow,/brive_edit_authorization:/);assert.match(workflow,/manual-preview:[\s\S]*?contents: read/);assert.match(workflow,/group: dedicalivres-event-publication/);});
  console.log(`PASS Brive : ${checks} contrôles, projections identiques, refus fermés, CAS mockée et CLI de source avant/après commit sans réseau réel`);
 }finally{fs.rmSync(tmp,{recursive:true,force:true});}

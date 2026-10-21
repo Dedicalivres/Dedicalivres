@@ -33,7 +33,8 @@ export async function project({root=ROOT,output,a,evidence,phase='pending',draft
  const run=(...args)=>execFileSync(args[0],args.slice(1),{cwd:stage,env:{...process.env,PUBLICATION_REFERENCE_DATE:a.reference_date,PYTHONDONTWRITEBYTECODE:'1'},stdio:['ignore','pipe','pipe']});
  run('python3','scripts/event-publisher/refresh-index.py','--root',stage,'--today',a.reference_date);
  for(const name of ['build-territorial-pages.mjs','build-static-agenda-previews.mjs'])run('node','scripts/'+name);
- const {projectBriveAggregates}=await import('./project-targeted-publication.mjs');
+ const {projectBriveAggregates,assertEnrichment}=await import('./project-targeted-publication.mjs');
+ assertEnrichment(git(stage,'show','HEAD:'+PAGE).toString(),read(PAGE).toString(),ID);
  const cwd=process.cwd();try{process.chdir(stage);projectBriveAggregates(a,evidence,root,phase,draft);}finally{process.chdir(cwd);}
  run('python3','-c',`import importlib.util,datetime as d,json,re;from pathlib import Path
 s=importlib.util.spec_from_file_location('r','scripts/refresh-temporal-catalogues.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);root=Path('.');day=d.date.fromisoformat('${a.reference_date}');m.corpus(root);m.assert_france_archives(root,day);m.assert_previews(root,day)
