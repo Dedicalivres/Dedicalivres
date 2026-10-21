@@ -46,6 +46,8 @@ jobs:
         run: |
           python3 scripts/event-publisher/test-refresh-index.py
           python3 scripts/test-temporal-catalogues.py
+          python3 scripts/test-temporal-delivery.py
+          node scripts/test-publication-deployment.mjs
           python3 scripts/test-progressive-event-generator.py
           node scripts/test-targeted-publication.mjs
           node scripts/test-event-edit-canonical-cleanup.mjs

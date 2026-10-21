@@ -1,0 +1,154 @@
+name: Deliver validated temporal catalogues (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact reviewed main SHA
+        required: true
+        type: string
+      reference_date:
+        description: Current Europe/Paris date (YYYY-MM-DD)
+        required: true
+        type: string
+      mode:
+        description: Preview first; publish requires its new fingerprint
+        type: choice
+        options: [preview, publish]
+        default: preview
+      preview_fingerprint:
+        description: Fingerprint from the reviewed PREVIEW on this same base and date
+        type: string
+      confirmation:
+        description: PUBLISH_TEMPORAL for explicitly authorized publication only
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dedicalivres-event-publication
+  cancel-in-progress: false
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+  EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+  REFERENCE_DATE: ${{ inputs.reference_date }}
+
+jobs:
+  project:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      fingerprint: ${{ steps.project.outputs.fingerprint }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate explicit publication intent
+        env:
+          MODE: ${{ inputs.mode }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+          APPROVED_FINGERPRINT: ${{ inputs.preview_fingerprint }}
+        run: |
+          set -euo pipefail
+          if [[ "$MODE" = 'publish' ]]; then
+            test "$CONFIRMATION" = 'PUBLISH_TEMPORAL'
+            [[ "$APPROVED_FINGERPRINT" =~ ^[0-9a-f]{64}$ ]]
+          fi
+      - name: Fresh complete projection, no publication
+        id: project
+        run: |
+          python3 scripts/deliver-temporal-catalogues.py project \
+            --expected-base "$EXPECTED_MAIN_SHA" --day "$REFERENCE_DATE" \
+            --folder "$RUNNER_TEMP/temporal-candidate"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temporal-candidate-${{ github.run_id }}
+          path: ${{ runner.temp }}/temporal-candidate/
+          if-no-files-found: error
+
+  publish:
+    if: inputs.mode == 'publish' && inputs.confirmation == 'PUBLISH_TEMPORAL'
+    needs: project
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pages: write
+      actions: read
+    env:
+      APPROVED_FINGERPRINT: ${{ inputs.preview_fingerprint }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: temporal-candidate-${{ github.run_id }}
+          path: ${{ runner.temp }}/temporal-candidate
+      - name: Regenerate, compare, then apply locally
+        env:
+          FRESH_FINGERPRINT: ${{ needs.project.outputs.fingerprint }}
+        run: |
+          set -euo pipefail
+          test "$APPROVED_FINGERPRINT" = "$FRESH_FINGERPRINT"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$EXPECTED_MAIN_SHA"
+          python3 scripts/deliver-temporal-catalogues.py apply \
+            --expected-base "$EXPECTED_MAIN_SHA" --day "$REFERENCE_DATE" \
+            --folder "$RUNNER_TEMP/temporal-candidate" \
+            --fingerprint "$APPROVED_FINGERPRINT" --confirmation "$CONFIRMATION"
+      - name: Validate all files, commit and push exact main
+        id: publication
+        run: |
+          set -euo pipefail
+          python3 scripts/deliver-temporal-catalogues.py verify \
+            --expected-base "$EXPECTED_MAIN_SHA" --day "$REFERENCE_DATE" \
+            --folder "$RUNNER_TEMP/temporal-candidate" --fingerprint "$APPROVED_FINGERPRINT"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$EXPECTED_MAIN_SHA"
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          report = json.loads((Path(os.environ['RUNNER_TEMP']) / 'temporal-candidate/report.json').read_text())
+          subprocess.run(['git', 'add', '--', *report['files']], check=True)
+          PY
+          git diff --cached --check
+          python3 scripts/deliver-temporal-catalogues.py verify \
+            --expected-base "$EXPECTED_MAIN_SHA" --day "$REFERENCE_DATE" \
+            --folder "$RUNNER_TEMP/temporal-candidate" --fingerprint "$APPROVED_FINGERPRINT"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(catalogue): refresh validated temporal aggregates'
+          test "$(TZ=Europe/Paris date +%F)" = "$REFERENCE_DATE"
+          git push origin HEAD:main
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Request Pages build only for the pushed SHA
+        if: steps.publication.outputs.changed == 'true'
+        env:
+          PUBLICATION_SHA: ${{ steps.publication.outputs.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$PUBLICATION_SHA"
+          gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.build_type == "legacy" and .source.branch == "main" and .source.path == "/"' | grep -qx true
+          gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"
+      - name: Confirm exact Pages SHA and every changed public file
+        if: steps.publication.outputs.changed == 'true'
+        env:
+          PUBLICATION_SHA: ${{ steps.publication.outputs.sha }}
+        run: node scripts/verify-temporal-deployment.mjs "$RUNNER_TEMP/temporal-candidate/report.json"

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {verifyDeployment} from './verify-publication-deployment.mjs';
+import {verifyDeployment,verifyPagesFiles} from './verify-publication-deployment.mjs';
 
 const sha = '0123456789abcdef0123456789abcdef01234567';
 const published = 'evenement/seclin.html';
@@ -65,3 +65,12 @@ noOp.oldMap = {[seclin.event_id]:published};
 noOp.depublishPaths = [];
 assert.equal((await verifyDeployment(noOp)).verified, true);
 console.log('PASS lot sans diff si état public déjà vérifié');
+
+const temporal = {...fixture(), paths:['index.html', 'sitemap-evenements.xml']};
+assert.deepEqual(await verifyPagesFiles(temporal), {sha,pages_run_id:123,verified:true,file_count:2});
+await assert.rejects(verifyPagesFiles({...temporal,fetcher:async()=>{throw Error('network down');}}),/network down/);
+await assert.rejects(verifyPagesFiles({...temporal,...fixture({pages:'pending'})}),/déploiement Pages/);
+await assert.rejects(verifyPagesFiles({...temporal,...fixture({content:wrong})}),/sitemap-evenements.xml/);
+for(const paths of [[],['../other.html'],['index.html','index.html'],Array.from({length:251},(_,i)=>`page-${i}.html`)])
+ await assert.rejects(verifyPagesFiles({...temporal,paths}),/paramètres/);
+console.log('PASS fichiers temporels : SHA Pages, octets, réseau, déploiement non confirmé, chemins et plafond');

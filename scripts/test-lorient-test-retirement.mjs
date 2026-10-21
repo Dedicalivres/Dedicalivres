@@ -3,10 +3,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {referenceDate,parisDate,digest} from './retired-test-policy.mjs';
+import {referenceDate,parisDate,digest,guardRetiredJobs} from './retired-test-policy.mjs';
 import {TARGET,CANONICAL,validateRegistry,validateEvidence,preview,removeSitemapEntry} from './preview-lorient-test-retirement.mjs';
 import {context,assertCatalog,assertManifest} from './project-targeted-publication.mjs';
 import {qualify,classify} from './territorial-catalog.mjs';
+import {historicalLorientFixture} from './fixtures/lorient-retirement.mjs';
+const currentRoot=process.cwd();
+const historical=historicalLorientFixture(currentRoot);
+try{
+process.chdir(historical.root);
 const registry=JSON.parse(fs.readFileSync('scripts/event-publisher/lorient-test-retirement-preview.json'));
 const snapshot=JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json'));
 const source=structuredClone(snapshot.events);
@@ -16,6 +21,17 @@ const audit={event:{id:TARGET,validated:true,rejected:false},jobs:[{id:'80a4506a
 let count=0;
 const test=(label,fn)=>{fn();count++;console.log('PASS Lorient : '+label);};
 const reject=(label,mutate)=>test(label,()=>{const r=structuredClone(registry),s=structuredClone(source),a=structuredClone(audit);mutate(r,s,a);assert.throws(()=>validateEvidence(r,snapshot,s,a),/STOP/);});
+test('état courant : Lorient retiré, canonicals et fiches tiers conservés',()=>{
+ const current=JSON.parse(fs.readFileSync(path.join(currentRoot,'docs/territoires/catalogue-public.json')));
+ const map=JSON.parse(fs.readFileSync(path.join(currentRoot,'docs/territoires/event-canonical-map.json')));
+ assert.ok(!current.events.some(e=>e.id===TARGET));assert.ok(!(TARGET in map));
+ assert.ok(!fs.existsSync(path.join(currentRoot,CANONICAL)));
+ assert.equal(Object.keys(map).length,current.events.length);
+ assert.deepEqual(new Set(current.events.map(e=>e.id)),new Set(Object.keys(map)));
+ for(const file of Object.values(map))assert.ok(fs.existsSync(path.join(currentRoot,file)));
+ for(const reason of ['validation','edit','manual','delete'])
+  assert.throws(()=>guardRetiredJobs([{id:'11111111-1111-4111-8111-111111111111',event_id:TARGET,reason}],''),/STOP/);
+});
 test('seule la ligne XML cible est retirée, espaces tiers identiques',()=>{
  const xml='<urlset>\n  <url><loc>before</loc></url>\n  <url><loc>target</loc></url>\n  <url><loc>after</loc></url>\n</urlset>\n';
  const updated=removeSitemapEntry(xml,'target');assert.equal(updated,xml.replace('  <url><loc>target</loc></url>\n',''));
@@ -128,3 +144,5 @@ try{
  assert.ok(unchanged>0);count++;
 }finally{fs.rmSync(temp,{recursive:true,force:true});}
 console.log(`PASS Lorient : ${count} scénarios hors réseau`);
+
+}finally{process.chdir(currentRoot);historical.cleanup();}
