@@ -92,14 +92,26 @@ class DeliveryTests(unittest.TestCase):
             root=Path(temp)/'repo'
             temporal.run(ROOT,'git','clone','--quiet','--no-hardlinks',str(ROOT),str(root))
             registry=json.loads((root/'event-retirements.json').read_text())
-            target=registry['entries'][0]['canonical']
-            # Restore a coherent old corpus in a disposable fixture, never production.
-            for p in ['docs/territoires/catalogue-public.json','docs/territoires/event-canonical-map.json','sitemap-evenements.xml',target]:
-                (root/p).write_bytes(temporal.run(root,'git','show','3616a4a8995c70bcc56809ab144b3b040d1154ce^:'+p))
+            event_id='eb6672b2-900f-4c6a-9021-ea84c5036769'
+            target=next(e['canonical'] for e in registry['entries'] if e['event_id']==event_id)
+            # Restore the entire historical Event tree, removing newer pages too.
+            # Keep the current retirement registry and delivery guards unchanged.
+            historical='3616a4a8995c70bcc56809ab144b3b040d1154ce^'
+            temporal.run(root,'git','restore','--source='+historical,'--worktree','--',
+                         'evenement','docs/territoires/catalogue-public.json',
+                         'docs/territoires/event-canonical-map.json','sitemap-evenements.xml',
+                         'event-canonical.js')
+            snapshot,mapping=temporal.corpus(root)
+            self.assertIn(event_id,{e['id'] for e in snapshot['events']})
+            self.assertEqual(mapping[event_id],target)
+            self.assertIn('data-event-id="'+event_id+'"',(root/target).read_text())
+            self.assertIn('https://dedicalivres.fr/'+target,
+                          temporal.sitemap_urls((root/'sitemap-evenements.xml').read_text()))
+            self.assertEqual(json.loads((root/'event-retirements.json').read_text()),registry)
             temporal.run(root,'git','add','--all')
             temporal.run(root,'git','-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','test old capture isolation')
             sha=temporal.run(root,'git','rev-parse','HEAD').decode().strip()
-            with self.assertRaisesRegex(ValueError,'retiré'):
+            with self.assertRaisesRegex(ValueError,'^événement retiré encore présent dans le catalogue$'):
                 delivery.check_base(root,sha)
 
     def test_manual_workflow_shared_lock_and_fresh_artifacts(self):
