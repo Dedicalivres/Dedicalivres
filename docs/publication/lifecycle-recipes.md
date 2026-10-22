@@ -173,3 +173,43 @@ conserve Rochefort-en-Terre. Les empreintes source/file sont renouvelées après
 lecture ; toute nouvelle variation invalide encore cet aperçu. Le label
 « Soumission publique » décrit la provenance initiale, pas l’interface ayant
 réalisé cette édition, qui n’est pas déterminable avec les preuves présentes.
+# Isolation des éditions PENDING non sélectionnées
+
+Le parcours cloud ordinaire scelle la source publique et la file PENDING/RUNNING
+en lecture seule avant génération (`targeted-source-isolation.mjs`). La preuve
+éphémère est stockée hors Git, dans RUNNER_TEMP, et n'autorise aucune réservation.
+
+Un UUID déjà publié, non sélectionné, conserve sa ligne de catalogue, son
+canonical et sa fiche HTML publiée uniquement si un job distinct PENDING/edit,
+non réservé, sans commit, avec identités concordantes et date de demande valide,
+explique son édition différée. Plusieurs jobs, une autre raison, une source
+incomplète, une divergence sans job ou un RUNNING tiers provoquent STOP.
+Les autres contrôles de contenu des fiches tierces restent applicables.
+Les nouvelles validations non sélectionnées restent exclues.
+
+La même preuve scelle le catalogue public auteur et ses présences. En projection
+Event ciblée, seules les fiches auteur déjà présentes dans le corpus statique,
+avec slug/canonical/Person cohérents, sont candidates à une mise à jour.
+Les nouveaux auteurs publics Supabase sans lien au lot sont explicitement
+différés ; un nouvel auteur lié au lot exige une autorisation auteur distincte
+et provoque STOP. L'index et le sitemap auteur conservent leur ensemble d'URL.
+Une fiche non concernée doit rester identique ; une fiche concernée ne peut
+modifier que les présences des événements sélectionnés, jamais son profil ou
+les cartes des événements tiers. Toute dérive de source auteur entre capture,
+génération et relecture finale bloque la publication.
+
+Python et Node utilisent la même preuve et le même contrôle de substitution.
+La capture brute complète reste conservée séparément pour la relecture de source.
+Avant push et après déploiement, toute évolution de cette source ou de la file
+scellée bloque le parcours ; les réservations atomiques existantes sont inchangées.
+
+Les lieux vérifiés Dinant/Grenoble sont liés à leurs UUID, aux deux jobs exacts,
+aux dates, communes, régions, pays et passages précis des descriptions source.
+La preuve locale explicite permet l'adresse structurée. Pour Grenoble seulement,
+le repli historique exact `organizer=Grenoble` est omis ; toute autre organisation
+enrichie reste protégée. Le canonical historique est conservé par correspondance
+UUID → page existante vérifiée, indépendamment de la ville corrigée.
+
+Régression hors réseau : `node scripts/test-targeted-source-isolation.mjs`.
+Ce correctif ne déclenche aucune PREVIEW, EXECUTE ou activation. Une nouvelle
+PREVIEW GitHub est indispensable après fusion et avant toute décision EXECUTE.

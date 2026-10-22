@@ -36,6 +36,13 @@ if [[ -n "${PUBLICATION_TEST_UNPUBLISH_AUTHORIZATION:-}" ]]; then
   exec node scripts/prepare-lorient-retirement.mjs
 fi
 
+# Seal public source and the read-only queue before generating any output.
+export PUBLICATION_SOURCE_ISOLATION="$(mktemp -d "${RUNNER_TEMP:-/tmp}/publication-isolation.XXXXXX")/proof.json"
+node scripts/targeted-source-isolation.mjs prepare "$PUBLICATION_SOURCE_ISOLATION"
+if [[ -n "${GITHUB_ENV:-}" ]]; then
+  echo "PUBLICATION_SOURCE_ISOLATION=$PUBLICATION_SOURCE_ISOLATION" >> "$GITHUB_ENV"
+fi
+
 exec \
   "$ROOT/scripts/publish-events-local.sh" \
   --apply

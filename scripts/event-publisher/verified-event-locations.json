@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "decision": "SITE-SEO-GEO-DINANT-GRENOBLE-02",
+  "events": {
+    "e380c538-2bc7-4ad4-b53e-22b601fb6381": {
+      "job_id": "2db3760b-6422-4510-934e-3ee775764913",
+      "reason": "edit",
+      "canonical": "evenement/salon-international-du-livre-de-grenoble-alpes-grenoble-e380c538-2bc7-4ad4-b53e-22b601fb6381.html",
+      "city": "Saint-Martin-d'Hères",
+      "country": "France",
+      "region": "Auvergne-Rhône-Alpes",
+      "date": "2026-11-11",
+      "place": "La Midinette",
+      "street": "43 avenue de la Mogne",
+      "postal": "38400",
+      "description_evidence": ["La Midinette", "43 avenue de la Mogne", "38400 Saint-Martin-d’Hères"],
+      "unverified_organizer": {"@type": "Organization", "name": "Grenoble", "url": "https://salondulivredegrenoble.com"},
+      "sources": ["https://salondulivredegrenoble.com/", "https://espacemidinette.fr/a-propos/"]
+    },
+    "014fc00b-4de0-4d93-b5ec-7f54cde63993": {
+      "job_id": "1d98065b-26d5-4340-a467-d3de4b858dd7",
+      "reason": "validation",
+      "city": "Dinant",
+      "country": "Belgique",
+      "region": "Wallonie",
+      "date": "2026-11-07",
+      "place": "Bibliothèque communale de Dinant",
+      "street": "Rue Léopold 3",
+      "postal": "5500",
+      "description_evidence": ["Bibliothèque communale de Dinant", "rue Léopold 3, 5500 Dinant"],
+      "sources": ["https://lisezvouslebelge.be/lagenda-de-la-campagne-lisez-vous-le-belge-2026/"]
+    }
+  }
+}

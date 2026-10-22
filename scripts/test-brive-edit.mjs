@@ -7,17 +7,25 @@ import {execFileSync,spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {ID,JOB,PAGE,proof,digest,authorize,assertEvidence,renderPage,readEvidence,manualContext} from './brive-edit-policy.mjs';
 import {draftAuthorization,project,verifyWorkspace} from './project-brive-edit.mjs';
+import {historicalBriveFixture,BEFORE_BRIVE,PUBLISHED_BRIVE} from './fixtures/brive-edit.mjs';
 const root=process.cwd(),tmp=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'brive-test-'));
 const git=(dir,...args)=>execFileSync('git',args,{cwd:dir,stdio:['ignore','pipe','pipe']});
 const clone=v=>structuredClone(v),next='11111111-1111-4111-8111-111111111111';
+// The before-publication scenario must not acquire tomorrow's archive state.
+// Both the test process and its mocked CLI children share this historical clock.
+const RealDate=Date,testNow=RealDate.parse('2026-10-21T10:00:00Z');
+globalThis.Date=class extends RealDate{
+ constructor(...args){super(...(args.length?args:[testNow]));}
+ static now(){return testNow;}
+};
+const childClock=`const RealDate=Date;globalThis.Date=class extends RealDate{constructor(...a){super(...(a.length?a:[${testNow}]))}static now(){return ${testNow}}};`;
 let checks=0,imports=0;
 const ok=(fn)=>{fn();checks++;};
 const rejects=fn=>{assert.throws(fn,/STOP|date|référence/i);checks++;};
 const fail=async fn=>{await assert.rejects(fn,/STOP|date|référence/i);checks++;};
 try{
- const fixture=path.join(tmp,'repo');git(root,'clone','--quiet','--no-hardlinks',root,fixture);
- fs.cpSync(path.join(root,'scripts'),path.join(fixture,'scripts'),{recursive:true});
- git(fixture,'add','scripts');git(fixture,'-c','user.name=Offline fixture','-c','user.email=fixture@example.invalid','-c','core.hooksPath=/dev/null','commit','--quiet','--allow-empty','-m','Offline candidate fixture');
+ // This scenario describes PENDING/0 before publication, independently of HEAD.
+ const fixture=historicalBriveFixture(root,path.join(tmp,'repo'),BEFORE_BRIVE);
  const catalogue=JSON.parse(fs.readFileSync(path.join(fixture,'docs/territoires/catalogue-public.json')));
  const known=JSON.parse(fs.readFileSync('scripts/event-publisher/lorient-test-retirement-preview.json')).known_source_drift;
  const source=catalogue.events.map(row=>({...row,...Object.fromEntries(Object.entries(known[row.id]||{}).map(([k,v])=>[k,v.source]))}));
@@ -25,7 +33,25 @@ try{
  const job={id:JOB,event_id:ID,target_event_id:ID,reason:'edit',status:'PENDING',attempt_count:0,batch_id:null,commit_sha:null,last_error:null,requested_at:'2026-10-20T00:00:00Z'};
  const e={source,jobs:[job],events:[{...source.find(r=>r.id===ID),description:'Preserve private data',image_url:'https://example.invalid/affiche.jpg'}],queue:[clone(job),{...job,id:next,event_id:next,target_event_id:next,reason:'validation'}].sort((a,b)=>a.id.localeCompare(b.id))};
  const draft=draftAuthorization(fixture,e),a={...draft,approval:'APPROVED_SINGLE_BRIVE_EDIT'};
+ ok(()=>assert.equal(draft.reference_date,'2026-10-21'));
  ok(()=>assertEvidence(a,e,fixture));ok(()=>assertEvidence(draft,e,fixture,'pending',{draft:true}));rejects(()=>authorize(draft));
+ // Today's published state is a separate fixture, never a presumed HEAD^.
+ // Even a still-fresh approved authorization cannot reserve or replay the edit.
+ const published=historicalBriveFixture(root,path.join(tmp,'published'),PUBLISHED_BRIVE);
+ ok(()=>assert.throws(()=>assertEvidence(a,e,published),/base Git changée avant réservation/));
+ ok(()=>assert.throws(()=>renderPage(fs.readFileSync(path.join(published,PAGE),'utf8')),/déjà corrigée/));
+ const done=clone(e);
+ Object.assign(done.jobs[0],{status:'SUCCESS',attempt_count:1,batch_id:a.batch_id,commit_sha:PUBLISHED_BRIVE});
+ Object.assign(done.queue.find(j=>j.id===JOB),done.jobs[0]);
+ for(const phase of ['pending','claimed'])ok(()=>assert.throws(
+  ()=>assertEvidence(a,done,fixture,phase),/job ou donnée Brive changé\/rejoué/));
+ // Fresh timestamps/hashes also cannot make the already-published correction
+ // into a new authorized edit: the exact before-state is no longer present.
+ const already=clone(e),publishedRows=JSON.parse(fs.readFileSync(path.join(published,'docs/territoires/catalogue-public.json'))).events;
+ already.source=publishedRows.map(row=>({...row,...Object.fromEntries(Object.entries(known[row.id]||{}).map(([k,v])=>[k,v.source]))}));
+ already.source.push({id:next,title:'Unpublished validation',validated:true,rejected:false});already.source.sort((a,b)=>a.id.localeCompare(b.id));
+ const reused={...draftAuthorization(published,already),approval:a.approval};
+ ok(()=>assert.throws(()=>assertEvidence(reused,already,published),/écart source tiers inexpliqué/));
  for(const [k,v] of Object.entries({event_id:next,job_id:next,canonical:'evenement/new.html',baseline_sha:'invalid',decision_id:'',expires_at:'2000-01-01',reference_date:'2000-01-01',proof_sha256:'0'.repeat(64),changes:{}}))rejects(()=>assertEvidence({...a,[k]:v},e,fixture));
  for(const mutate of [x=>x.jobs[0].attempt_count=1,x=>x.jobs[0].status='SUCCESS',x=>x.jobs[0].batch_id=next,x=>x.jobs[0].event_id=next,
   x=>x.events[0].description+=' modified',x=>x.source[0].title+=' modified',x=>x.source.pop(),x=>x.source.push(x.source[0]),
@@ -80,7 +106,7 @@ try{
   process.env.PUBLICATION_JOBS=JSON.stringify([{id:JOB,event_id:ID,reason:'edit',attempt_count:1,batch_id:a.batch_id}]);ok(()=>manualContext(a));
   // Execute both real CLI guards with GET-only mocked private/public reads, including the post-commit source check.
   const evidenceFile=path.join(tmp,'claimed.json');fs.writeFileSync(evidenceFile,JSON.stringify(claimed));
-  const preload=path.join(tmp,'mock.mjs');fs.writeFileSync(preload,`import fs from 'node:fs';const e=JSON.parse(fs.readFileSync(${JSON.stringify(evidenceFile)}));globalThis.fetch=async(raw,o={})=>{if(o.method&&o.method!=='GET')throw Error('network write forbidden');const u=new URL(raw);let r;if(u.pathname.endsWith('/events'))r=u.searchParams.has('validated')?e.source.filter(x=>!u.searchParams.has('id')||x.id>u.searchParams.get('id').slice(3)).slice(0,500):e.events;else if(u.searchParams.has('or'))r=e.queue;else r=e.jobs;return{ok:true,json:async()=>r,text:async()=>JSON.stringify(r)}};`);
+  const preload=path.join(tmp,'mock.mjs');fs.writeFileSync(preload,childClock+`import fs from 'node:fs';const e=JSON.parse(fs.readFileSync(${JSON.stringify(evidenceFile)}));globalThis.fetch=async(raw,o={})=>{if(o.method&&o.method!=='GET')throw Error('network write forbidden');const u=new URL(raw);let r;if(u.pathname.endsWith('/events'))r=u.searchParams.has('validated')?e.source.filter(x=>!u.searchParams.has('id')||x.id>u.searchParams.get('id').slice(3)).slice(0,500):e.events;else if(u.searchParams.has('or'))r=e.queue;else r=e.jobs;return{ok:true,json:async()=>r,text:async()=>JSON.stringify(r)}};`);
   const captured=path.join(tmp,'source.json');fs.writeFileSync(captured,JSON.stringify(e.source));
   Object.assign(process.env,{DEDICALIVRES_SUPABASE_URL:process.env.SUPABASE_URL,DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY:'offline',PUBLICATION_TARGETED:'true'});
   const cli=name=>{const result=spawnSync(process.execPath,['--import',preload,path.join(fixture,'scripts',name),captured],{cwd:fixture,env:process.env,encoding:'utf8',timeout:60000});assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/PASS/);checks++;};
@@ -91,9 +117,11 @@ try{
   cli('check-publication-diff.mjs');cli('verify-publication-source.mjs');
   git(fixture,'add','--all');git(fixture,'-c','user.name=Offline fixture','-c','user.email=fixture@example.invalid','-c','core.hooksPath=/dev/null','commit','--quiet','-m','Offline projected publication');cli('verify-publication-source.mjs');rejects(()=>assertEvidence(a,e,fixture));
   fs.writeFileSync(evidenceFile,JSON.stringify({...claimed,source:claimed.source.slice(1)}));const denied=spawnSync(process.execPath,['--import',preload,path.join(fixture,'scripts/verify-publication-source.mjs'),captured],{cwd:fixture,env:process.env,encoding:'utf8',timeout:60000});assert.notEqual(denied.status,0);checks++;
+  current=done;calls=[];process.env.PUBLICATION_MANUAL_MODE='preview';
+  await fail(()=>invoke('preview-selected'));assert.ok(calls.every(c=>c.method==='GET'));
  }finally{global.fetch=oldFetch;process.argv=oldArgv;console.log=oldLog;process.chdir(oldCwd);for(const k of Object.keys(process.env))if(!(k in oldEnv))delete process.env[k];Object.assign(process.env,oldEnv);}
  const workflow=fs.readFileSync('.github/workflows/publish-events.yml','utf8');ok(()=>{
   const scope=fs.readFileSync('scripts/check-publication-diff.mjs','utf8');assert.doesNotMatch(scope.slice(scope.indexOf('if(process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION)'),scope.indexOf('const legacy =')),/process.exit/);
 assert.match(workflow,/brive_edit_authorization:/);assert.match(workflow,/manual-preview:[\s\S]*?contents: read/);assert.match(workflow,/group: dedicalivres-event-publication/);});
  console.log(`PASS Brive : ${checks} contrôles, projections identiques, refus fermés, CAS mockée et CLI de source avant/après commit sans réseau réel`);
-}finally{fs.rmSync(tmp,{recursive:true,force:true});}
+}finally{globalThis.Date=RealDate;fs.rmSync(tmp,{recursive:true,force:true});}

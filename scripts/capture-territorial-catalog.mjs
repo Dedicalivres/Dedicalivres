@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import {fetchPublicEvents} from './territorial-catalog.mjs';
 import {publishedEventRows} from './project-targeted-publication.mjs';
+import {readIsolation} from './targeted-source-isolation.mjs';
 
 const snapshotPath =
   'docs/territoires/catalogue-public.json';
@@ -80,8 +81,7 @@ const sameEvents =
 const capturedAt =
   sameEvents
     ? previous.capturedAt
-    : new Date()
-        .toISOString();
+    : (readIsolation()?.captured_at || new Date().toISOString());
 
 
 const snapshot = {
