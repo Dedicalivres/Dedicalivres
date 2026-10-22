@@ -364,7 +364,7 @@ assert.match(
 
 assert.match(
   worker,
-  /row\.reason === "edit"[\s\S]*canonicalDepublicationPath\(row\) !== null/
+  /function shouldAuthorizeCanonicalRemoval\(\s*row\s*\)\s*\{\s*return\s*\(\s*isDepublicationReason\(row.reason\)\s*\);\s*\}/
 );
 
 

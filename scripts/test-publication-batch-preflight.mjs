@@ -94,7 +94,10 @@ process.chdir(tmp);
 try {
   const first = fixture();
   assert.match(await invoke(first, "preflight"), /has_pending=true/);
-  assert.match(await invoke(first, "claim"), /job_count=1/);
+  const claimed=await invoke(first, "claim");
+  assert.match(claimed, /job_count=1/);
+  const batch=claimed.match(/^batch_id=(.+)$/m)[1];
+  assert.equal(JSON.parse(claimed.match(/^publication_jobs=(.+)$/m)[1])[0].batch_id,batch);
   assert.equal(first.calls.filter((call) => call.path.endsWith("/rpc/claim_publication_canary_batch")).length, 1);
   assert.equal(first.calls.filter((call) => call.path.endsWith("/rpc/claim_event_publication_batch")).length, 0);
 

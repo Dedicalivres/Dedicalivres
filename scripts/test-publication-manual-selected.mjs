@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { sealIsolation } from "./targeted-source-isolation.mjs";
 import { pathToFileURL } from "node:url";
 
 const root = process.cwd();
@@ -40,7 +42,9 @@ function fixture(count = 1) {
       result = jobs.slice(0, this.partial ? count - 1 : count).map((job) => ({
         ...job, status: "RUNNING", attempt_count: job.attempt_count + 1,
         batch_id: body.p_batch_id,
+        ...this.claimDelta,
       }));
+    this.claimed = result;
     } else if (url.pathname.endsWith("/events")) {
       result = events;
     } else if (url.searchParams.get("status") === "eq.RUNNING") {
@@ -92,6 +96,10 @@ fs.copyFileSync(path.join(root, "scripts/event-publisher/legacy-enriched-events.
   path.join(tmp, "scripts/event-publisher/legacy-enriched-events.json"));
 fs.writeFileSync(path.join(tmp, "docs/territoires/event-canonical-map.json"),
   JSON.stringify({}));
+fs.writeFileSync(path.join(tmp, "docs/territoires/catalogue-public.json"), JSON.stringify({events:[]}));
+const git = (...args) => execFileSync("git",args,{cwd:tmp,stdio:"pipe"});
+git("init","-q"); git("add",".");
+git("-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","fixture");
 process.chdir(tmp);
 
 try {
@@ -108,6 +116,53 @@ try {
   const editPreview = await invoke(ordinaryEdit, "preview-selected", ids[0]);
   assert.match(editPreview.join(" "), /Empreinte PREVIEW/);
   assert.ok(ordinaryEdit.calls.every((call) => call.method === "GET"));
+
+  // Exercise the real claim output -> isolation boundary, including PENDING/1 retry.
+  const outputValue = (logs, key) => JSON.parse(logs.find(line => line.startsWith(key + "=")).slice(key.length + 1));
+  for (const previousAttempt of [0, 1]) {
+    const state = fixture(2);
+    state.jobs[1].reason = "edit";
+    for (const j of state.jobs) j.attempt_count = previousAttempt;
+    const before = JSON.stringify(state.jobs), chosen = ids.slice(0,2).join(",");
+    const preview = await invoke(state,"preview-selected",chosen);
+    const claimed = await invoke(state,"claim",chosen,{
+      PUBLICATION_MANUAL_FINGERPRINT:preview.join("\n").match(/Empreinte PREVIEW : ([0-9a-f]{64})/)[1],
+      PUBLICATION_MANUAL_CONFIRMATION:"EXECUTE",
+    });
+    const selected = outputValue(claimed,"publication_jobs");
+    // This failed on main: ordinary claim omitted batch_id, while the reserved queue had it.
+    const proof = sealIsolation(state.events,state.claimed,selected,tmp);
+    assert.equal(new Set(selected.map(j=>j.batch_id)).size,1);
+    assert.equal(selected[0].batch_id,state.claimed[0].batch_id);
+    assert.equal(selected[0].attempt_count,previousAttempt+1);
+    assert.deepEqual(outputValue(claimed,"depublish_paths"),[]);
+    assert.deepEqual(outputValue(claimed,"depublish_event_ids"),[]);
+    assert.equal(JSON.stringify(state.jobs),before,"fixture source jobs untouched");
+    assert.equal(state.calls.filter(c=>c.method==="POST").length,1);
+    assert.deepEqual(proof.source,state.events);
+    for (const delta of [{batch_id:undefined},{batch_id:null},{batch_id:ids[3]},
+        {attempt_count:previousAttempt+2},{reason:"delete"},{event_id:ids[3]}]) {
+      assert.throws(()=>sealIsolation(state.events,state.claimed,[{...selected[0],...delta},selected[1]],tmp),/STOP/);
+    }
+    for (const delta of [{batch_id:null},{batch_id:ids[3]},{status:"SUCCESS"},
+        {attempt_count:3},{event_id:ids[3]},{target_event_id:ids[3]},{commit_sha:"a".repeat(40)}]) {
+      assert.throws(()=>sealIsolation(state.events,[{...state.claimed[0],...delta},state.claimed[1]],selected,tmp),/STOP/);
+    }
+    const contradictory=state.claimed.map((j,i)=>({...j,batch_id:ids[i]}));
+    assert.throws(()=>sealIsolation(state.events,contradictory,contradictory,tmp),/STOP/);
+    const absent=state.claimed.map(j=>({...j,batch_id:undefined}));
+    assert.throws(()=>sealIsolation(state.events,absent,absent,tmp),/STOP/);
+  }
+  for (const claimDelta of [{batch_id:null},{batch_id:ids[3]},{status:"PENDING"},
+      {attempt_count:3},{event_id:ids[3]},{target_event_id:ids[3]},{commit_sha:"a".repeat(40)}]) {
+    const state=fixture(2),chosen=ids.slice(0,2).join(",");
+    const preview=await invoke(state,"preview-selected",chosen);
+    state.claimDelta=claimDelta;
+    await assert.rejects(invoke(state,"claim",chosen,{
+      PUBLICATION_MANUAL_FINGERPRINT:preview.join("\n").match(/Empreinte PREVIEW : ([0-9a-f]{64})/)[1],
+      PUBLICATION_MANUAL_CONFIRMATION:"EXECUTE",
+    }),/réservation atomique non confirmée/);
+  }
 
   for (const count of [1, 3]) {
     const state = fixture(count);
