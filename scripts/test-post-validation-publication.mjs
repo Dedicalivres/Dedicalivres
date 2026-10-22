@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import vm from "node:vm";
+import { stripTypeScriptTypes } from "node:module";
 
 
 const admin =
@@ -317,10 +319,41 @@ assert.match(
   /dispatch_token/
 );
 
-assert.match(
-  edgeDispatch,
-  /p_dispatch_token/
-);
+// Execute the actual Edge handler offline: no secret, RPC or GitHub access.
+let dispatchHandler, networkCalls = 0, secretReads = 0;
+vm.runInNewContext(stripTypeScriptTypes(edgeDispatch), {
+  Response,
+  Deno: {
+    serve(handler) { assert.equal(dispatchHandler, undefined); dispatchHandler = handler; },
+    env: { get() { secretReads++; throw Error("Secret access forbidden"); } },
+  },
+  fetch() { networkCalls++; throw Error("Network access forbidden"); },
+});
+assert.equal(typeof dispatchHandler, "function");
+const validJob = "11111111-1111-4111-8111-111111111111";
+const validToken = "22222222-2222-4222-8222-222222222222";
+for (const [method, body, status, expected] of [
+  ["GET", undefined, 405, {error:"method_not_allowed"}],
+  ["PUT", undefined, 405, {error:"method_not_allowed"}],
+  ["POST", "{", 400, {error:"invalid_json"}],
+  ["POST", {}, 400, {error:"invalid_job_id"}],
+  ["POST", {job_id:"bad",dispatch_token:validToken}, 400, {error:"invalid_job_id"}],
+  ["POST", {job_id:validJob}, 401, {error:"invalid_dispatch_token"}],
+  ["POST", {job_id:validJob,dispatch_token:"bad"}, 401, {error:"invalid_dispatch_token"}],
+  ["POST", {job_id:validJob,dispatch_token:validToken}, 200,
+    {queued:true,dispatched:false,reason:"manual_publication_required"}],
+  ["POST", {job_id:validJob,dispatch_token:validToken,manual_mode:"execute"}, 200,
+    {queued:true,dispatched:false,reason:"manual_publication_required"}],
+]) {
+  const request = new Request("https://fixture.invalid/dispatch", {method,
+    ...(body===undefined ? {} : {body:typeof body==="string" ? body : JSON.stringify(body)})});
+  const response = await dispatchHandler(request);
+  assert.equal(response.status,status);
+  assert.equal(response.headers.get("content-type"),"application/json");
+  assert.deepEqual(await response.json(),expected);
+  assert.equal(networkCalls,0,"No GitHub dispatch, database claim or network write");
+  assert.equal(secretReads,0,"No server secret access");
+}
 
 assert.match(
   edgeDispatch,
@@ -497,15 +530,9 @@ assert.doesNotMatch(
   /'manual'/
 );
 
-assert.match(
-  edgeDispatch,
-  /job\.reason === "manual"/
-);
-
-assert.match(
-  edgeDispatch,
-  /preactivation_test:\s*"true"/
-);
+// The retired endpoint cannot start ordinary or historical manual workflows.
+assert.doesNotMatch(edgeDispatch, /fetch\s*\(|Deno\.env|dispatchGithub|claimJob|releaseJob/);
+assert.doesNotMatch(edgeDispatch, /preactivation_test:\s*"true"/);
 
 assert.match(
   workflow,
