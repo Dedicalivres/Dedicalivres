@@ -101,6 +101,25 @@ with patch.object(g,'charger_evenements_publics',return_value=rows),patch.object
   await assert.rejects(recheckIsolationQueue(async()=>({ok:true,json:async()=>jobs.slice(0,2)})),/file modifiée/);
  } finally {process.chdir(cwd);}
  pass('file recontrôlée avant push : tout changement STOP');
+ const authorSource=[{author:{id:T,slug:'fixture-author',validated:true,published:true},events:[]}];
+ const authorProof=sealIsolation(source,jobs,selected,fixture,undefined,undefined,authorSource);
+ fs.writeFileSync(file,JSON.stringify(authorProof));
+ process.env.DEDICALIVRES_SUPABASE_URL='https://fixture.invalid';
+ process.env.DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY='test-public';
+ process.chdir(fixture);
+ const mockAuthors=(change=false)=>async url=>({ok:true,json:async()=>{
+   const table=new URL(url).pathname.split('/').at(-1);
+   if(table==='event_publication_jobs')return jobs;
+   if(table==='authors')return [{...authorSource[0].author,...(change?{published:false}:{})}];
+   if(table==='event_authors_presence')return [];
+   throw Error('requête inattendue');
+ }});
+ try {
+   await recheckIsolationQueue(mockAuthors());
+   await assert.rejects(recheckIsolationQueue(mockAuthors(true)),/source auteur modifiée/);
+ } finally {process.chdir(root);}
+ pass('changement de source auteur après capture STOP');
+ fs.writeFileSync(file,JSON.stringify(proof));
  const text=fs.readFileSync('scripts/publish-events-cloud.sh','utf8');
  assert(text.indexOf('targeted-source-isolation.mjs prepare')<text.indexOf('"$ROOT/scripts/publish-events-local.sh"'));
  assert(fs.readFileSync('scripts/verify-publication-source.mjs','utf8').includes('await recheckIsolationQueue()'));

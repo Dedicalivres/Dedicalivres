@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {buildAuthorPages} from './build-author-pages.mjs';
 import {renderAuthorStaticPage, renderAuthorIndexPage, canonicalUrl} from './author-static-page.mjs';
 
 const template=fs.readFileSync('author.html','utf8');
-const author=(slug,pseudo,published_at) => ({slug,pseudo,published_at,validated:true,published:true,merged_into:null,bio:'Biographie conservée',avatar_url:'https://images.example/portrait.jpg'});
+const author=(slug,pseudo,published_at) => ({id:createHash('sha256').update(slug).digest('hex').slice(0,32).replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/,'$1-$2-$3-$4-$5'),slug,pseudo,published_at,validated:true,published:true,merged_into:null,bio:'Biographie conservée',avatar_url:'https://images.example/portrait.jpg'});
 const katell=author('katell-poquet','Katell Poquet','2026-09-02T12:00:00Z');
 const dylan=author('dylan-heskin','Dylan Heskin','2026-10-09T12:00:00Z');
 const event={id:'01e6fa91-6956-4775-bf49-4ad2f0e88761',title:"les dragons de l'imaginaire",start_date:'2026-10-17',end_date:'2026-10-18',city:'Saint-Laurent-des-Vignes',region:'Nouvelle-Aquitaine',country_code:'FR',validated:true,rejected:false};
@@ -95,6 +96,55 @@ test('auteur non publié et slug dupliqué refusés',root=>{
 test('registre auteur changé : STOP sans nouveau fichier ni URL',root=>{
   const before=snapshot(root);assert.throws(()=>call(root,{catalog:[...catalog,{author:author('new','New','2026-10-19'),events:[]}]}));
   assert.deepEqual(snapshot(root),before);assert.equal(fs.existsSync(path.join(root,'auteurs/new')),false);
+});
+const selectedJobs=[{id:'00000000-0000-4000-8000-000000000001',event_id:'00000000-0000-4000-8000-000000000002',reason:'edit'}];
+const newAuthors=['elodie-marbac-vincent','kris-petit'].map(slug=>({author:author(slug,slug,'2026-10-19'),events:[]}));
+const isolated=(root,extra={})=>call(root,{now:new Date('2026-10-18T12:00:00Z'),selectedJobs,...extra});
+test('auteurs publiés hors Git différés, aucun ajout de page ou URL',root=>{
+  const before=snapshot(root),result=isolated(root,{catalog:[...catalog,...newAuthors]});
+  assert.deepEqual(result.deferred,newAuthors.map(({author})=>({id:author.id,slug:author.slug})));
+  assert.deepEqual(snapshot(root),before);assert.deepEqual(result.changed,[]);
+  for(const {author} of newAuthors)assert.equal(fs.existsSync(path.join(root,'auteurs',author.slug)),false);
+});
+test('nouvel auteur associé au lot : STOP sans publication implicite',root=>{
+  const before=snapshot(root),rows=structuredClone([...catalog,...newAuthors]);
+  rows.at(-1).events=[{...event,id:selectedJobs[0].event_id}];
+  assert.throws(()=>isolated(root,{catalog:rows}),/autorisation auteur distincte/);assert.deepEqual(snapshot(root),before);
+});
+test('auteur publié absent, renommé, privé ou UUID dupliqué : STOP',root=>{
+  for(const mutate of [rows=>rows.shift(),rows=>rows[0].author.slug='slug-change',
+    rows=>rows[0].author.published=false,rows=>rows[0].author.id=rows[1].author.id]){
+    const rows=structuredClone(catalog);mutate(rows);const before=snapshot(root);
+    assert.throws(()=>isolated(root,{catalog:rows}));assert.deepEqual(snapshot(root),before);
+  }
+});
+test('profil et présence tiers inchangés : toute dérive STOP',root=>{
+  for(const mutate of [rows=>rows[1].events[0].city='Ville tierce',
+    rows=>rows[1].events=[],rows=>rows[0].author.bio='Biographie tierce']){
+    const rows=structuredClone(catalog);mutate(rows);const before=snapshot(root);
+    assert.throws(()=>isolated(root,{catalog:rows}));assert.deepEqual(snapshot(root),before);
+  }
+});
+test('seule une présence sélectionnée peut changer',root=>{
+  const rows=structuredClone(catalog);rows[1].events[0].city='Ville autorisée';
+  const before=snapshot(root),result=isolated(root,{catalog:rows,selectedJobs:[{...selectedJobs[0],event_id:event.id}]});
+  assert.deepEqual(result.changed,[canonicalUrl(katell.slug)]);
+  assert.equal(snapshot(root)['auteurs/dylan-heskin/index.html'],before['auteurs/dylan-heskin/index.html']);
+  assert.equal(snapshot(root)['auteurs/index.html'],before['auteurs/index.html']);
+  const first=snapshot(root);isolated(root,{catalog:rows,selectedJobs:[{...selectedJobs[0],event_id:event.id}]});
+  assert.deepEqual(snapshot(root),first);
+});
+test('présence UUID invalide ou contradictoire, auteur différé non public : STOP',root=>{
+  for(const mutate of [rows=>rows[1].events[0].id='bad',
+    rows=>rows[1].events.push({...event,city:'Autre ville'}),rows=>rows.at(-1).author.validated=false]){
+    const rows=structuredClone([...catalog,...newAuthors]);mutate(rows);const before=snapshot(root);
+    assert.throws(()=>isolated(root,{catalog:rows}));assert.deepEqual(snapshot(root),before);
+  }
+});
+test('présences exactement répétées : dédoublonnage historique conservé',root=>{
+  const rows=structuredClone(catalog),before=snapshot(root);
+  rows[1].events.push({...event});isolated(root,{catalog:rows});
+  assert.deepEqual(snapshot(root),before);
 });
 test('date invalide : STOP avant écriture',root=>{
   const before=snapshot(root);assert.throws(()=>call(root,{referenceDate:'2026-02-30'}));assert.deepEqual(snapshot(root),before);

@@ -187,6 +187,17 @@ incomplète, une divergence sans job ou un RUNNING tiers provoquent STOP.
 Les autres contrôles de contenu des fiches tierces restent applicables.
 Les nouvelles validations non sélectionnées restent exclues.
 
+La même preuve scelle le catalogue public auteur et ses présences. En projection
+Event ciblée, seules les fiches auteur déjà présentes dans le corpus statique,
+avec slug/canonical/Person cohérents, sont candidates à une mise à jour.
+Les nouveaux auteurs publics Supabase sans lien au lot sont explicitement
+différés ; un nouvel auteur lié au lot exige une autorisation auteur distincte
+et provoque STOP. L'index et le sitemap auteur conservent leur ensemble d'URL.
+Une fiche non concernée doit rester identique ; une fiche concernée ne peut
+modifier que les présences des événements sélectionnés, jamais son profil ou
+les cartes des événements tiers. Toute dérive de source auteur entre capture,
+génération et relecture finale bloque la publication.
+
 Python et Node utilisent la même preuve et le même contrôle de substitution.
 La capture brute complète reste conservée séparément pour la relecture de source.
 Avant push et après déploiement, toute évolution de cette source ou de la file

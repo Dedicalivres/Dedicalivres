@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {fetchSource} from './publication-source-reader.mjs';
 import {PUBLIC_EVENT_FIELDS} from './territorial-catalog.mjs';
+import {fetchPublicAuthorCatalog} from './author-static-page.mjs';
 
 const MAP='docs/territoires/event-canonical-map.json', CATALOG='docs/territoires/catalogue-public.json';
 export const QUEUE_FIELDS='id,event_id,target_event_id,reason,status,attempt_count,batch_id,commit_sha,requested_at';
@@ -17,7 +18,7 @@ const git=(root,...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'});
 const blob=(root,base,file)=>git(root,'show',base+':'+file);
 const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(x);
 
-export function sealIsolation(source,queue,selected,root=process.cwd(),base=git(root,'rev-parse','HEAD').trim(),capturedAt=new Date().toISOString()) {
+export function sealIsolation(source,queue,selected,root=process.cwd(),base=git(root,'rev-parse','HEAD').trim(),capturedAt=new Date().toISOString(),authors=null) {
   if(!Array.isArray(source)||!Array.isArray(queue)||!Array.isArray(selected)||!selected.length)stop('preuves absentes');
   if(source.some(e=>!uuid(e.id)||e.validated!==true||e.rejected!==false)
       ||new Set(source.map(e=>e.id)).size!==source.length)stop('source incomplète ou dupliquée');
@@ -56,7 +57,7 @@ export function sealIsolation(source,queue,selected,root=process.cwd(),base=git(
     deferred[id]={job_id:j.id,page,page_sha256:hash(html)};
   }
   if(!Number.isFinite(Date.parse(capturedAt)))stop('date de capture invalide');
-  return {version:1,base,captured_at:capturedAt,source,queue,selected,deferred};
+  return {version:1,base,captured_at:capturedAt,source,queue,selected,deferred,author_source:authors};
 }
 
 export function readIsolation(root=process.cwd()) {
@@ -69,7 +70,7 @@ export function readIsolation(root=process.cwd()) {
   // Recompute the entire proof from sealed Git data, never trust deferred IDs.
   const temporaryHead=git(root,'rev-parse','HEAD').trim();
   if(temporaryHead!==proof.base&&git(root,'rev-parse','HEAD^').trim()!==proof.base)stop('base Git changée');
-  if(stable(sealIsolation(proof.source,proof.queue,current,root,proof.base,proof.captured_at))!==stable(proof))stop('preuve altérée');
+  if(stable(sealIsolation(proof.source,proof.queue,current,root,proof.base,proof.captured_at,proof.author_source))!==stable(proof))stop('preuve altérée');
   return proof;
 }
 
@@ -101,11 +102,17 @@ export async function readQueue(request=fetch) {
 export async function recheckIsolationQueue(request=fetch) {
   const p=readIsolation();if(!p)return;
   if(stable(await readQueue(request))!==stable(p.queue))stop('file modifiée pendant le traitement');
+  if(p.author_source && stable(await fetchPublicAuthorCatalog({
+    supabaseUrl:process.env.DEDICALIVRES_SUPABASE_URL,
+    supabaseAnonKey:process.env.DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY,fetchImpl:request,
+  }))!==stable(p.author_source))stop('source auteur modifiée pendant le traitement');
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   if(process.argv[2]==='prepare') {
     const source=await fetchSource(process.env.DEDICALIVRES_SUPABASE_URL,process.env.DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY);
-    const proof=sealIsolation(source,await readQueue(),JSON.parse(process.env.PUBLICATION_JOBS||'null'));
+    const authors=await fetchPublicAuthorCatalog({supabaseUrl:process.env.DEDICALIVRES_SUPABASE_URL,
+      supabaseAnonKey:process.env.DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY});
+    const proof=sealIsolation(source,await readQueue(),JSON.parse(process.env.PUBLICATION_JOBS||'null'),process.cwd(),undefined,undefined,authors);
     fs.writeFileSync(process.argv[3],JSON.stringify(proof),{flag:'wx',mode:0o600});
     console.log('PASS isolation ciblée : '+Object.keys(proof.deferred).length+' édition(s) différée(s)');
   } else if(process.argv[2]==='rows') {
