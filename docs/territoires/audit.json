@@ -1,8 +1,8 @@
 {
-  "base": "aa02640acda7ef436c8448ff41af37f4d2c87117",
-  "capturedAt": "2026-10-20T16:50:42.221Z",
-  "today": "2026-10-21",
-  "total": 632,
+  "base": "d2ce25f3d50723d155aacf0cc611320a50030d50",
+  "capturedAt": "2026-10-22T15:31:40.083Z",
+  "today": "2026-10-22",
+  "total": 633,
   "registryCountries": [
     {
       "code": "FR",
@@ -130,7 +130,7 @@
       "id": "BE-WAL",
       "label": "Wallonie",
       "country": "BE",
-      "count": 5
+      "count": 6
     },
     {
       "id": "LU-local-01",
@@ -864,8 +864,8 @@
       "imageWidth": 1916,
       "imageHeight": 821,
       "editorial": "",
-      "total": 5,
-      "upcoming": 2,
+      "total": 6,
+      "upcoming": 3,
       "ongoing": 0,
       "past": 3,
       "undated": 0,
@@ -875,6 +875,7 @@
         "9f3b5d30-d3d8-4481-a69f-98b6d9820190",
         "0627ab62-44b8-4e12-baa7-c29b158ed664",
         "5f2f72d0-7f33-4f9f-b0f2-2e222dc919d0",
+        "014fc00b-4de0-4d93-b5ec-7f54cde63993",
         "d1b97a71-5900-4ea1-af52-9d0b733974e9",
         "f12c95d9-6cab-4210-b25b-10aa3549dcff"
       ]
@@ -908,9 +909,9 @@
       ],
       "editorial": "",
       "total": 618,
-      "upcoming": 102,
+      "upcoming": 101,
       "ongoing": 2,
-      "past": 516,
+      "past": 517,
       "undated": 0,
       "cancelled": 0,
       "excluded": 0,
@@ -1551,8 +1552,8 @@
         "Wallonie"
       ],
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Belgique</p>\n    <h2>Événements littéraires en Belgique</h2>\n    <p>Retrouvez les salons du livre, festivals, séances de dédicace et rencontres d’auteurs référencés à Bruxelles, en Wallonie et en Flandre.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Rencontres littéraires — Belgique</h2>\n  <p>Dédicalivres couvre l’espace francophone : France, Belgique, Luxembourg, Suisse et Monaco. Cette page rassemble les rencontres autour du livre — salons, festivals et dédicaces référencés pour Belgique, à partir de contributions vérifiées.</p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les événements proviennent de la communauté et sont vérifiés avant publication. Si aucune date n’apparaît pour Belgique, c’est qu’aucun événement n’y est encore référencé — vous pouvez en proposer un.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a></p>\n</section>\n<section class=\"seo-text-block\"><h2>Explorer les territoires</h2><p><a href=\"evenements-litteraires-wallonie.html\">Wallonie : rendez-vous à venir et archives</a></p></section>",
-      "total": 8,
-      "upcoming": 2,
+      "total": 9,
+      "upcoming": 3,
       "ongoing": 0,
       "past": 6,
       "undated": 0,
@@ -1565,6 +1566,7 @@
         "f55bec3f-3ae5-4488-83a4-cfe50e3448a5",
         "0627ab62-44b8-4e12-baa7-c29b158ed664",
         "5f2f72d0-7f33-4f9f-b0f2-2e222dc919d0",
+        "014fc00b-4de0-4d93-b5ec-7f54cde63993",
         "d1b97a71-5900-4ea1-af52-9d0b733974e9",
         "f12c95d9-6cab-4210-b25b-10aa3549dcff"
       ]
@@ -2166,7 +2168,7 @@
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Île-de-France</h2>\n    <p>En Île-de-France, les rencontres littéraires se déploient entre Paris, les librairies indépendantes, les médiathèques, les salons spécialisés et les festivals culturels. Dédicalivres rassemble les événements franciliens pour aider les lecteurs à repérer les prochains rendez-vous autour du livre.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Île-de-France</h2>\n  <p>La région Île-de-France regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-paris.html\">Paris</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Île-de-France. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Île-de-France</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Île-de-France ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
       "total": 41,
       "upcoming": 5,
-      "ongoing": 0,
+      "ongoing": 1,
       "past": 36,
       "undated": 0,
       "cancelled": 0,
@@ -2409,9 +2411,9 @@
       "creation": "",
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Occitanie</h2>\n    <p>L’Occitanie possède une vie culturelle riche, entre grandes villes, festivals, librairies, médiathèques et rendez-vous de proximité. Dédicalivres réunit les événements littéraires de la région pour aider chacun à préparer sa prochaine sortie autour du livre.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Occitanie</h2>\n  <p>La région Occitanie regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-montpellier.html\">Montpellier</a> · <a href=\"evenements-litteraires-toulouse.html\">Toulouse</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Occitanie. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Occitanie</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Occitanie ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
       "total": 73,
-      "upcoming": 16,
-      "ongoing": 1,
-      "past": 57,
+      "upcoming": 15,
+      "ongoing": 0,
+      "past": 58,
       "undated": 0,
       "cancelled": 0,
       "excluded": 0,
@@ -2616,8 +2618,8 @@
       "imageWidth": 1916,
       "imageHeight": 821,
       "editorial": "",
-      "total": 5,
-      "upcoming": 2,
+      "total": 6,
+      "upcoming": 3,
       "ongoing": 0,
       "past": 3,
       "undated": 0,
@@ -2627,6 +2629,7 @@
         "9f3b5d30-d3d8-4481-a69f-98b6d9820190",
         "0627ab62-44b8-4e12-baa7-c29b158ed664",
         "5f2f72d0-7f33-4f9f-b0f2-2e222dc919d0",
+        "014fc00b-4de0-4d93-b5ec-7f54cde63993",
         "d1b97a71-5900-4ea1-af52-9d0b733974e9",
         "f12c95d9-6cab-4210-b25b-10aa3549dcff"
       ]

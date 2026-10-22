@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-20T16:50:42.221Z",
+  "capturedAt": "2026-10-22T15:31:40.083Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -57,6 +57,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://sortir.vosges.fr/fiches/778012168-rencontre-et-dedicace-bruno-hayotte/"
+    },
+    {
+      "id": "014fc00b-4de0-4d93-b5ec-7f54cde63993",
+      "title": "Salon des auteurs Dinantais",
+      "type": "Salon",
+      "country_code": "BE",
+      "region": "Wallonie",
+      "city": "Dinant",
+      "start_date": "2026-11-07",
+      "end_date": "2026-11-07",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": null
     },
     {
       "id": "0161d739-9226-4aeb-8ec4-ec2d7074dba6",
@@ -7694,7 +7708,7 @@
       "type": "Salon",
       "country_code": "FR",
       "region": "Auvergne-Rhône-Alpes",
-      "city": "Grenoble",
+      "city": "Saint-Martin-d'Hères",
       "start_date": "2026-11-11",
       "end_date": "2026-11-11",
       "validated": true,

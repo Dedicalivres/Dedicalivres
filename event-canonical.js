@@ -634,7 +634,8 @@
   "b559457b-e307-4ee2-b620-3ad3e183c0f9": "evenement/seance-de-dedicace-espace-culture-e-leclerc-d-amilly-45-amilly-b559457b-e307-4ee2-b620-3ad3e183c0f9.html",
   "cdab0a10-81fe-467f-b759-a349b61ab5a3": "evenement/dedicace-de-maia-hoti-saint-etienne-du-rouvray-cdab0a10-81fe-467f-b759-a349b61ab5a3.html",
   "77ccedcc-655f-424b-a8fe-829115b93ed6": "evenement/salon-du-livre-corneille-rouen-77ccedcc-655f-424b-a8fe-829115b93ed6.html",
-  "d1b97a71-5900-4ea1-af52-9d0b733974e9": "evenement/11e-salon-du-livre-des-auteurs-namurois-namur-d1b97a71-5900-4ea1-af52-9d0b733974e9.html"
+  "d1b97a71-5900-4ea1-af52-9d0b733974e9": "evenement/11e-salon-du-livre-des-auteurs-namurois-namur-d1b97a71-5900-4ea1-af52-9d0b733974e9.html",
+  "014fc00b-4de0-4d93-b5ec-7f54cde63993": "evenement/salon-des-auteurs-dinantais-dinant-014fc00b-4de0-4d93-b5ec-7f54cde63993.html"
 });
 
   function eventId(value) {
