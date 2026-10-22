@@ -11,6 +11,14 @@ import {historicalBriveFixture,BEFORE_BRIVE,PUBLISHED_BRIVE} from './fixtures/br
 const root=process.cwd(),tmp=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'brive-test-'));
 const git=(dir,...args)=>execFileSync('git',args,{cwd:dir,stdio:['ignore','pipe','pipe']});
 const clone=v=>structuredClone(v),next='11111111-1111-4111-8111-111111111111';
+// The before-publication scenario must not acquire tomorrow's archive state.
+// Both the test process and its mocked CLI children share this historical clock.
+const RealDate=Date,testNow=RealDate.parse('2026-10-21T10:00:00Z');
+globalThis.Date=class extends RealDate{
+ constructor(...args){super(...(args.length?args:[testNow]));}
+ static now(){return testNow;}
+};
+const childClock=`const RealDate=Date;globalThis.Date=class extends RealDate{constructor(...a){super(...(a.length?a:[${testNow}]))}static now(){return ${testNow}}};`;
 let checks=0,imports=0;
 const ok=(fn)=>{fn();checks++;};
 const rejects=fn=>{assert.throws(fn,/STOP|date|référence/i);checks++;};
@@ -25,6 +33,7 @@ try{
  const job={id:JOB,event_id:ID,target_event_id:ID,reason:'edit',status:'PENDING',attempt_count:0,batch_id:null,commit_sha:null,last_error:null,requested_at:'2026-10-20T00:00:00Z'};
  const e={source,jobs:[job],events:[{...source.find(r=>r.id===ID),description:'Preserve private data',image_url:'https://example.invalid/affiche.jpg'}],queue:[clone(job),{...job,id:next,event_id:next,target_event_id:next,reason:'validation'}].sort((a,b)=>a.id.localeCompare(b.id))};
  const draft=draftAuthorization(fixture,e),a={...draft,approval:'APPROVED_SINGLE_BRIVE_EDIT'};
+ ok(()=>assert.equal(draft.reference_date,'2026-10-21'));
  ok(()=>assertEvidence(a,e,fixture));ok(()=>assertEvidence(draft,e,fixture,'pending',{draft:true}));rejects(()=>authorize(draft));
  // Today's published state is a separate fixture, never a presumed HEAD^.
  // Even a still-fresh approved authorization cannot reserve or replay the edit.
@@ -97,7 +106,7 @@ try{
   process.env.PUBLICATION_JOBS=JSON.stringify([{id:JOB,event_id:ID,reason:'edit',attempt_count:1,batch_id:a.batch_id}]);ok(()=>manualContext(a));
   // Execute both real CLI guards with GET-only mocked private/public reads, including the post-commit source check.
   const evidenceFile=path.join(tmp,'claimed.json');fs.writeFileSync(evidenceFile,JSON.stringify(claimed));
-  const preload=path.join(tmp,'mock.mjs');fs.writeFileSync(preload,`import fs from 'node:fs';const e=JSON.parse(fs.readFileSync(${JSON.stringify(evidenceFile)}));globalThis.fetch=async(raw,o={})=>{if(o.method&&o.method!=='GET')throw Error('network write forbidden');const u=new URL(raw);let r;if(u.pathname.endsWith('/events'))r=u.searchParams.has('validated')?e.source.filter(x=>!u.searchParams.has('id')||x.id>u.searchParams.get('id').slice(3)).slice(0,500):e.events;else if(u.searchParams.has('or'))r=e.queue;else r=e.jobs;return{ok:true,json:async()=>r,text:async()=>JSON.stringify(r)}};`);
+  const preload=path.join(tmp,'mock.mjs');fs.writeFileSync(preload,childClock+`import fs from 'node:fs';const e=JSON.parse(fs.readFileSync(${JSON.stringify(evidenceFile)}));globalThis.fetch=async(raw,o={})=>{if(o.method&&o.method!=='GET')throw Error('network write forbidden');const u=new URL(raw);let r;if(u.pathname.endsWith('/events'))r=u.searchParams.has('validated')?e.source.filter(x=>!u.searchParams.has('id')||x.id>u.searchParams.get('id').slice(3)).slice(0,500):e.events;else if(u.searchParams.has('or'))r=e.queue;else r=e.jobs;return{ok:true,json:async()=>r,text:async()=>JSON.stringify(r)}};`);
   const captured=path.join(tmp,'source.json');fs.writeFileSync(captured,JSON.stringify(e.source));
   Object.assign(process.env,{DEDICALIVRES_SUPABASE_URL:process.env.SUPABASE_URL,DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY:'offline',PUBLICATION_TARGETED:'true'});
   const cli=name=>{const result=spawnSync(process.execPath,['--import',preload,path.join(fixture,'scripts',name),captured],{cwd:fixture,env:process.env,encoding:'utf8',timeout:60000});assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/PASS/);checks++;};
@@ -115,4 +124,4 @@ try{
   const scope=fs.readFileSync('scripts/check-publication-diff.mjs','utf8');assert.doesNotMatch(scope.slice(scope.indexOf('if(process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION)'),scope.indexOf('const legacy =')),/process.exit/);
 assert.match(workflow,/brive_edit_authorization:/);assert.match(workflow,/manual-preview:[\s\S]*?contents: read/);assert.match(workflow,/group: dedicalivres-event-publication/);});
  console.log(`PASS Brive : ${checks} contrôles, projections identiques, refus fermés, CAS mockée et CLI de source avant/après commit sans réseau réel`);
-}finally{fs.rmSync(tmp,{recursive:true,force:true});}
+}finally{globalThis.Date=RealDate;fs.rmSync(tmp,{recursive:true,force:true});}
