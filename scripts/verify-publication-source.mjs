@@ -6,6 +6,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {PUBLIC_EVENT_FIELDS} from './territorial-catalog.mjs';
 import {publishedEventRows} from './project-targeted-publication.mjs';
+import {recheckIsolationQueue} from './targeted-source-isolation.mjs';
 
 import {fetchSource} from './publication-source-reader.mjs';
 export {FIELDS, fetchSource} from './publication-source-reader.mjs';
@@ -35,6 +36,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const captured = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
   const current = await fetchSource(process.env.DEDICALIVRES_SUPABASE_URL, process.env.DEDICALIVRES_SUPABASE_PUBLISHABLE_KEY);
   assertSourceSame(captured, current);
+  await recheckIsolationQueue();
   const territorial = JSON.parse(fs.readFileSync('docs/territoires/catalogue-public.json', 'utf8'));
   if(process.env.PUBLICATION_BRIVE_EDIT_AUTHORIZATION){
     const a=briveAuthorization();briveContext(a);await verifyBriveWorkspace(a,await readBriveEvidence(),process.cwd());

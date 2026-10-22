@@ -35,6 +35,7 @@ import os
 import re
 import shutil
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import unicodedata
@@ -289,7 +290,24 @@ def attribuer_slugs(evs):
 def afficher_rapport_dedup(rapport):
     print(f"Déduplication exacte SEO : {rapport['avant']} fiches avant, {rapport['apres']} après, {rapport['groupes_exacts']} groupes exacts, {rapport['doublons_exacts']} doublons détectés, {rapport['consolides']} fiches consolidées, {rapport['groupes_consolides']} groupes consolidés, {rapport['groupes_proteges_resolus']} groupes protégés résolus, {rapport['groupes_multidates']} groupes multi-dates laissés intacts.", flush=True)
 
-def published_organizer(event_id):
+def verified_location(ev):
+    root = Path(__file__).resolve().parents[2]
+    jobs = json.loads(os.environ.get('PUBLICATION_JOBS') or '[]')
+    if not jobs:
+        return None
+    data = json.loads((root / 'scripts/event-publisher/verified-event-locations.json').read_text())
+    proof = data['events'].get(str(ev['id']))
+    if not proof or not any(j.get('id') == proof['job_id'] and j.get('event_id') == ev['id']
+                            and j.get('reason') == proof['reason'] for j in jobs):
+        return None
+    if (ev['ville'] != proof['city'] or ev['pays'] != proof['country']
+            or ev['departement'] != proof['region'] or ev['date_debut'] != proof['date']
+            or ev['date_fin'] != proof['date']
+            or not all(text in ev['description'] for text in proof['description_evidence'])):
+        raise GenerationSeoError('preuve de lieu différente de la source : ' + ev['id'])
+    return proof
+
+def published_organizer(event_id, event=None):
     """Preserve published enrichment; never infer an organization from a city.
 
     Existing metadata is not revalidated as business truth here. Its correction
@@ -311,7 +329,13 @@ def published_organizer(event_id):
         events = [obj for obj in objects if isinstance(obj, dict) and obj.get('@type') == 'Event']
         if len(events) != 1 or events[0].get('url') != canonical:
             raise ValueError('Event publié absent, multiple ou incohérent')
-        return events[0].get('organizer')
+        organizer = events[0].get('organizer')
+        proof = verified_location(event) if event is not None else None
+        if proof and proof.get('unverified_organizer') == organizer:
+            if relative != proof.get('canonical'):
+                raise ValueError('canonical de la preuve incohérent')
+            return None
+        return organizer
     except (OSError, ValueError, TypeError, AttributeError) as exc:
         raise GenerationSeoError(f'organisateur publié non préservable : {event_id}: {exc}') from exc
 
@@ -340,7 +364,7 @@ def jsonld_event(ev, url):
         data['image'] = ev['affiche']
     if ev['description']:
         data['description'] = ev['description'][:500]
-    organizer = published_organizer(ev['id'])
+    organizer = published_organizer(ev['id'], ev)
     if organizer is not None:
         data['organizer'] = organizer
     return json.dumps(data, ensure_ascii=False, indent=2)
@@ -552,6 +576,9 @@ def normaliser_evenement_public(row):
     event = {'id': str(row.get('id') or '').strip(), 'titre': normalize_inline_text(row.get('title')), 'type': normalize_inline_text(row.get('type')), 'date_debut': iso_date(row.get('start_date')), 'date_fin': iso_date(row.get('end_date')), 'lieu': normalize_inline_text(row.get('city')), 'adresse': '', 'ville': normalize_inline_text(row.get('city')), 'code_postal': '', 'departement': normalize_inline_text(row.get('region')), 'pays': COUNTRY_NAMES.get(country_code, country_code), 'affiche': str(row.get('image_url') or '').strip(), 'site': str(row.get('website') or '').strip(), 'source': str(row.get('website') or '').strip(), 'auteurs': '', 'description': normalize_multiline_text(row.get('description')), 'derniere_maj': ''}
     if not event['id'] or not event['titre']:
         raise GenerationSeoError('événement public sans identifiant ou titre')
+    proof = verified_location(event)
+    if proof:
+        event.update(lieu=proof['place'], adresse=proof['street'], code_postal=proof['postal'])
     return event
 
 def appliquer_indices_slugs_sqlite(events, database):
@@ -640,7 +667,24 @@ def appliquer_slugs_statiques_existants(events, event_root):
         except (OSError, ValueError, TypeError):
             continue
     preserved = 0
+    mapping_path = event_root.parent / 'docs/territoires/event-canonical-map.json'
+    mapping = json.loads(mapping_path.read_text()) if mapping_path.exists() else {}
+    if len(set(mapping.values())) != len(mapping):
+        raise GenerationSeoError('canonical publié dupliqué')
     for event in events:
+        canonical = mapping.get(str(event['id']))
+        if canonical is not None:
+            if not re.fullmatch(r'evenement/[a-z0-9-]+\.html', canonical) or canonical == 'evenement/index.html':
+                raise GenerationSeoError('canonical publié invalide')
+            page = event_root / Path(canonical).name
+            text = page.read_text(encoding='utf-8')
+            expected = 'https://dedicalivres.fr/' + canonical
+            if (f'data-event-id="{event["id"]}"' not in text
+                    or re.findall(r'<link rel="canonical" href="([^"]+)">', text) != [expected]):
+                raise GenerationSeoError('identité canonique publiée incohérente')
+            event['_slug_override'] = page.stem
+            preserved += 1
+            continue
         key = (normaliser_titre_dedup(event.get('titre') or ''), normaliser(event.get('ville') or ''), iso_date(event.get('date_debut')))
         slugs = candidates.get(key, set())
         if len(slugs) == 1:
@@ -776,7 +820,16 @@ def generer_sortie_atomique(events, output, *, base_url, sitemap_name, dry_run=F
         event_root.mkdir(parents=True, exist_ok=True)
         for old_page in event_root.glob('*.html'):
             old_page.unlink()
+        isolation_path = os.environ.get('PUBLICATION_SOURCE_ISOLATION')
+        isolation = json.loads(Path(isolation_path).read_text()) if isolation_path else {}
         for event in events:
+            deferred = isolation.get('deferred', {}).get(str(event['id']))
+            if deferred:
+                published = Path(__file__).resolve().parents[2] / deferred['page']
+                if _sha256(published) != deferred['page_sha256']:
+                    raise GenerationSeoError('fiche différée modifiée')
+                shutil.copyfile(published, event_root / f"{event['_slug']}.html")
+                continue
             (event_root / f"{event['_slug']}.html").write_text(
                 page_event(event, base_url, progressive=str(event['id']) in progressive_event_ids), encoding='utf-8'
             )
@@ -869,7 +922,14 @@ def select_published_rows(rows, canonical, jobs):
             expected.add(event_id)
     if not expected <= source_ids:
         raise GenerationSeoError('source publique incomplète')
-    return [row for row in rows if row['id'] in expected]
+    selected = [row for row in rows if row['id'] in expected]
+    if os.environ.get('PUBLICATION_SOURCE_ISOLATION'):
+        command = ['node', str(Path(__file__).resolve().parents[1] / 'targeted-source-isolation.mjs'), 'rows']
+        result = subprocess.run(command, input=json.dumps(selected), text=True, capture_output=True)
+        if result.returncode:
+            raise GenerationSeoError('isolation source refusée : ' + result.stderr.strip())
+        selected = json.loads(result.stdout)
+    return selected
 
 
 def main():

@@ -6,6 +6,8 @@ import {fileURLToPath} from 'node:url';
 import {businessFingerprint, normalizeMetadata, sitemapEntries, temporalStatus} from './project-p0-publication.mjs';
 import {excludedIds, guardRetiredJobs, ID as RETIRED_ID} from './retired-test-policy.mjs';
 import {verifyFrozenLorientRetirement} from './preview-lorient-test-retirement.mjs';
+import {isolatedRows} from './targeted-source-isolation.mjs';
+import {verifiedLocation,authorizedOrganizerOmission} from './verified-event-locations.mjs';
 
 const MAP = 'docs/territoires/event-canonical-map.json';
 const SNAPSHOT = 'docs/territoires/catalogue-public.json';
@@ -125,7 +127,7 @@ export function selectPublishedRows(rows, canonical, jobs) {
     }
   }
   if ([...expected].some(id => !sourceIds.has(id))) stop('source publique incomplète');
-  return rows.filter(row => expected.has(row.id));
+  return isolatedRows(rows.filter(row => expected.has(row.id)));
 }
 
 const field = (html, expression) => html.match(expression)?.[1] || '';
@@ -144,10 +146,12 @@ export function assertEnrichment(oldHtml, freshHtml, eventId) {
   const freshPlace = fresh.location?.name;
   const oldCity = oldAddress.addressLocality;
   const freshCity = newAddress.addressLocality;
+  const verified = verifiedLocation(eventId, old, fresh);
   if (rich(oldPlace) && !rich(freshPlace)) stop("perte d'enrichissement : nom du lieu");
   if (rich(oldPlace) && comparable(oldPlace) !== comparable(freshPlace)
       && !(comparable(oldPlace) === comparable(oldCity)
-        && comparable(freshPlace) === comparable(freshCity))) {
+        && comparable(freshPlace) === comparable(freshCity))
+      && !(verified && comparable(oldPlace) === comparable(oldCity))) {
     stop('lieu précis modifié sans preuve : la source publique ne fournit pas de nom de lieu');
   }
   for (const [label, before, after] of [
@@ -166,7 +170,8 @@ export function assertEnrichment(oldHtml, freshHtml, eventId) {
     ['image JSON-LD', old.image, fresh.image],
     ['source', field(oldHtml, /Source : ([\s\S]*?)<br>/), field(freshHtml, /Source : ([\s\S]*?)<br>/)],
     ['image SEO', field(oldHtml, /<meta property="og:image" content="([^"]*)"/), field(freshHtml, /<meta property="og:image" content="([^"]*)"/)],
-  ]) if (rich(before) && !rich(after)) stop(`perte d'enrichissement : ${label}`);
+  ]) if (rich(before) && !rich(after)
+      && !(label === 'organisateur' && authorizedOrganizerOmission(eventId, old, fresh))) stop(`perte d'enrichissement : ${label}`);
   const images = html => new Set([...html.matchAll(/<img\b[^>]*src="([^"]+)"/g)].map(match => match[1]));
   if (images(oldHtml).size && !images(freshHtml).size) stop('perte de portrait ou image');
 }
