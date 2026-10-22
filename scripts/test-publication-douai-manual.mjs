@@ -56,8 +56,10 @@ async function invoke(state, env = {}) {
     PUBLICATION_AUTOMATION_ENABLED: "false", PUBLICATION_PREACTIVATION_TEST: "false",
     PUBLICATION_P0_RECOVERY: "false", ...env });
   delete process.env.GITHUB_OUTPUT;
-  try { await import(`${worker.href}?douai=${++imports}`); }
+  const logs=[],log=console.log;console.log=(...p)=>logs.push(p.join(" "));
+  try { await import(`${worker.href}?douai=${++imports}`); return logs; }
   finally {
+    console.log=log;
     process.argv = previousArgv;
     global.fetch = previousFetch;
     for (const key of keys) previousEnv[key] === undefined
@@ -75,7 +77,9 @@ process.chdir(tmp);
 
 try {
   const valid = fixture();
-  await invoke(valid);
+  const output=await invoke(valid);
+  const selected=JSON.parse(output.find(l=>l.startsWith("publication_jobs=")).split("=").slice(1).join("="));
+  assert.equal(selected[0].batch_id,valid.job.batch_id);
   assert.equal(valid.job.status, "RUNNING");
   assert.equal(valid.job.attempt_count, 1);
   assert.equal(valid.other.status, "PENDING");

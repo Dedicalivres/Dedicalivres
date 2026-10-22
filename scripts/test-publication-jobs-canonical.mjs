@@ -28,7 +28,7 @@ async function scenario({ canonical, reason = "delete", permitted }) {
         batch_id: payload.p_batch_id }]));
     } else if (url.pathname.endsWith("/events")) {
       response.end(JSON.stringify(reason === "delete" ? []
-        : [{ id: target, validated: true, rejected: false }]));
+        : [{ id: target, validated: reason !== "unpublish", rejected: reason === "unpublish" }]));
     } else if (url.searchParams.get("status") === "eq.RUNNING") {
       response.end("[]");
     } else {
@@ -69,7 +69,7 @@ async function scenario({ canonical, reason = "delete", permitted }) {
     assert.equal(calls.filter((call) => call.path.endsWith("/rpc/claim_event_publication_batch")).length, 1);
     const expectedPath = canonical[target];
     const outputs = fs.readFileSync(output, "utf8");
-    if (expectedPath && (reason === "delete" || reason === "edit")) {
+    if (expectedPath && (reason === "delete" || reason === "unpublish")) {
       assert.ok(outputs.includes(expectedPath));
     } else {
       assert.match(outputs, /depublish_paths=\[\]/);
@@ -86,5 +86,6 @@ await scenario({ canonical: { [target]: "evenement/page-test.html" }, permitted:
 await scenario({ canonical: { [target]: "evenement/page-avant-modification.html" },
   reason: "edit", permitted: true });
 await scenario({ canonical: {}, reason: "edit", permitted: true });
+await scenario({ canonical: { [target]: "evenement/page-test.html" }, reason: "unpublish", permitted: true });
 
 console.log("PASS jobs publication : canonical manuel sûr, PREVIEW sans écriture et RPC unique");

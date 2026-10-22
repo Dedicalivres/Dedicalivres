@@ -26,10 +26,13 @@ export function sealIsolation(source,queue,selected,root=process.cwd(),base=git(
   const selectedIds=new Set(selected.map(j=>j.event_id)), jobs=new Set(selected.map(j=>j.id));
   if(selected.some(j=>!uuid(j.id)||!uuid(j.event_id)||!['edit','validation','unpublish','delete'].includes(j.reason))
       ||jobs.size!==selected.length||selectedIds.size!==selected.length)stop('sélection ambiguë');
+  const batches=new Set(selected.map(j=>j.batch_id));
+  if(batches.size!==1||selected.some(j=>j.batch_id!==null&&!uuid(j.batch_id)))stop('batch sélectionné absent ou contradictoire');
   for(const j of selected) {
     const current=queue.find(q=>q.id===j.id);
     if(!current||current.event_id!==j.event_id||current.target_event_id!==j.event_id||current.reason!==j.reason
-        ||!['PENDING','RUNNING'].includes(current.status)||current.commit_sha!==null
+        ||current.status!==(j.batch_id===null?'PENDING':'RUNNING')||current.commit_sha!==null
+        ||!Number.isInteger(current.attempt_count)||current.attempt_count<(j.batch_id===null?0:1)
         ||current.attempt_count!==j.attempt_count||current.batch_id!==j.batch_id)stop('job sélectionné changé');
   }
   if(queue.some(j=>j.status==='RUNNING'&&!jobs.has(j.id)))stop('exécution concurrente');

@@ -213,3 +213,46 @@ UUID → page existante vérifiée, indépendamment de la ville corrigée.
 Régression hors réseau : `node scripts/test-targeted-source-isolation.mjs`.
 Ce correctif ne déclenche aucune PREVIEW, EXECUTE ou activation. Une nouvelle
 PREVIEW GitHub est indispensable après fusion et avant toute décision EXECUTE.
+
+## Réservation et reprise Dinant/Grenoble après l'incident 39799211614
+
+Le run du 22 octobre 2026 a réservé les deux jobs dans le batch
+`a51a9f4b-b276-4817-8f8e-336910ea6a5d`, puis s'est arrêté avant génération,
+commit et push. Le résultat `publication_jobs` du claim manuel ordinaire omettait
+`batch_id`, alors que la file réservée le contenait : la garde d'isolation a
+correctement refusé cette preuve incomplète.
+
+Chaque sortie de réservation transmet désormais le batch effectivement vérifié,
+avec l'identité, la raison et le compteur consommé. L'isolation exige un batch
+UUID unique et un état RUNNING concordant pour un lot réservé ; une projection
+non réservée utilise PENDING et `batch_id=null`. Un batch absent, contradictoire,
+un changement de source/file ou une réservation concurrente reste bloquant.
+Le mode historique de reprise conserve ses conditions d'accès et ses compteurs ;
+aucun mode de réservation supplémentaire n'est autorisé par cette correction.
+
+Un `edit` ne produit plus de `depublish_paths` ni de `depublish_event_ids`.
+Seuls `unpublish` et `delete` peuvent autoriser explicitement un retrait. Une
+édition doit conserver le canonical historique ; le contrôle de remplacement
+canonique existant ne constitue pas une autorisation implicite de suppression.
+
+Reprise future, avec une autorisation humaine EXECUTE distincte :
+
+1. Après revue et fusion du correctif, relire main, la source, les auteurs et
+   toute la file. Exiger zéro RUNNING et les deux jobs PENDING/1, sans batch ni
+   commit : Dinant `1d98065b-26d5-4340-a467-d3de4b858dd7`, Grenoble
+   `2db3760b-6422-4510-934e-3ee775764913`. Ne réinitialiser aucun compteur.
+2. Recalculer deux projections à la date Europe/Paris courante. Exiger Grenoble
+   corrigé sur son canonical historique, Dinant seul ajouté, les fiches tierces,
+   legacy et auteurs préservées, Imaginambulles et les auteurs différés exclus.
+3. Obtenir une nouvelle PREVIEW GitHub des deux identifiants, dans cet ordre,
+   sur ce main et cet état PENDING/1. Conserver son empreinte neuve ; ne pas
+   réutiliser celle qui précédait l'incident ni simplement relancer l'ancien run.
+4. Seulement sur décision humaine séparée et preuves encore identiques, le
+   parcours manuel existant pourra réserver atomiquement RUNNING/2 dans un
+   nouveau batch UUID. Le RPC compare tout l'état attendu ; toute dérive STOP.
+   Aucun reset, PATCH manuel, ajout de job ni reprise automatique n'est requis.
+
+Les tests de sélection manuelle exécutent le vrai producteur de sorties avec
+un RPC mocké puis la vraie garde d'isolation pour RUNNING/1 et RUNNING/2.
+Les tests canonical refusent un retrait implicite `edit`, tout en conservant
+les scénarios de retrait explicite et les protections de remplacement.

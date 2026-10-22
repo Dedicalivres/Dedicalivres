@@ -131,10 +131,6 @@ function shouldAuthorizeCanonicalRemoval(
 ) {
   return (
     isDepublicationReason(row.reason)
-    || (
-      row.reason === "edit"
-      && canonicalDepublicationPath(row) !== null
-    )
   );
 }
 
@@ -420,7 +416,7 @@ async function canaryClaim() {
   setOutput("depublish_paths", "[]");
   setOutput("publication_jobs", JSON.stringify([{
     id: row.id, event_id: row.target_event_id,
-    reason: "validation", attempt_count: 1,
+    reason: "validation", attempt_count: 1, batch_id: claimed[0].batch_id,
   }]));
   setOutput("has_jobs", "true");
   setOutput("batch_id", batchId);
@@ -593,7 +589,8 @@ async function claimSelected() {
   if (!Array.isArray(claimed) || claimed.length !== jobs.length
       || jobs.some((row) => !claimed.some((item) => item.id === row.id
         && item.status === "RUNNING" && item.batch_id === batchId
-        && item.reason === row.reason
+        && item.reason === row.reason && item.event_id === row.event_id
+        && item.commit_sha === null
         && item.target_event_id === row.target_event_id
         && Number(item.attempt_count) === Number(row.attempt_count) + 1))) {
     throw new Error("STOP manuel : réservation atomique non confirmée");
@@ -609,7 +606,7 @@ async function claimSelected() {
   setOutput("publication_jobs", JSON.stringify(claimed.map((row) => ({
     id: row.id, event_id: targetEventId(row) || null, reason: row.reason,
     attempt_count: Number(row.attempt_count),
-    ...((retirement || brive) ? {batch_id:row.batch_id} : {}),
+    batch_id: row.batch_id,
   }))));
   setOutput("has_jobs", "true");
   setOutput("batch_id", batchId);
@@ -741,10 +738,12 @@ async function claimRecovery() {
 
   setOutput("depublish_event_ids", JSON.stringify([withdrawn.target_event_id]));
   setOutput("depublish_paths", JSON.stringify([path]));
-  setOutput("publication_jobs", JSON.stringify(rows.map((row) => ({
+  setOutput("publication_jobs", JSON.stringify(claimed.map((row) => ({
     id: row.id,
     event_id: targetEventId(row),
     reason: row.reason,
+    attempt_count: Number(row.attempt_count),
+    batch_id: row.batch_id,
   }))));
   setOutput("has_jobs", "true");
   setOutput("batch_id", batchId);
@@ -902,6 +901,7 @@ async function claimDouai() {
     event_id: DOUAI_JOB.eventId,
     reason: DOUAI_JOB.reason,
     attempt_count: 1,
+    batch_id: claimed[0].batch_id,
   }]));
   setOutput("has_jobs", "true");
   setOutput("batch_id", batchId);
