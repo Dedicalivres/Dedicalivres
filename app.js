@@ -158,7 +158,11 @@
     initDefaultMapVisibility();
 
     if (eventsGrid || mapPanel || pastEventsGrid) {
-      loadEvents();
+      loadEvents().catch((error) => {
+        console.error(error);
+        setErrorState("Impossible de charger les événements.");
+        window.dispatchEvent(new CustomEvent('dedicalivres:catalog-error'));
+      });
     }
   }
 
@@ -708,7 +712,9 @@
     return mapInitPromise;
   }
 
-  const getRetiredEventIds = () => import('./event-retirements.js').then(policy => policy.loadRetirementIds());
+  function getRetiredEventIds() {
+    return import('./event-retirements.js').then(policy => policy.loadRetirementIds());
+  }
   async function fetchPublicCatalog(columns) {
     const retired = await getRetiredEventIds();
     // Stable ID cursor avoids the API row limit without sending local preferences.
