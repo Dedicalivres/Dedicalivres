@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dédicalivres — Admin V11</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="admin-v11.css?v=e5-f2-auth-mobile">
+  <style>.v11-app[hidden],#v11-auth-gate[hidden],#v11-login-form[hidden],#v11-session-pending[hidden]{display:none!important}</style>
+  <link rel="stylesheet" href="admin-v11.css?v=ux-quickfix-01">
   <link rel="stylesheet" href="admin-nfc-cockpit.css?v=nfc-cockpit-v1-layout-2">
 </head>
 
 <body>
-  <div class="v11-app">
+  <div class="v11-app" hidden>
 
     <aside class="v11-sidebar">
       <div class="v11-brand">
@@ -391,9 +392,8 @@
             class="v11-event-detail-content"
           ></div>
 
-          <section id="v11-canary-proof" class="v11-canary-proof" aria-labelledby="v11-canary-proof-title">
-            <h4 id="v11-canary-proof-title">Preuve de source CANARY</h4>
-            <p id="v11-canary-proof-status" role="status">Chargement de la preuve…</p>
+          <details id="v11-canary-proof" class="v11-canary-proof">
+            <summary id="v11-canary-proof-title"><strong>Preuve de source CANARY</strong><span id="v11-canary-proof-status" role="status">Chargement de la preuve…</span><span id="v11-canary-panel-feedback" role="status" hidden>Un message nécessite votre attention — ouvrir les détails.</span></summary>
             <p id="v11-canary-job-status"></p>
             <div id="v11-canary-proof-context" class="v11-canary-proof-context"></div>
             <p id="v11-canary-proof-latest"></p>
@@ -432,7 +432,7 @@
               <p>Une preuve enregistrée n’est pas une publication et ne crée aucun job.</p>
             </div>
             <p id="v11-canary-proof-feedback" role="alert"></p>
-          </section>
+          </details>
 
           <div class="v11-event-detail-actions">
             <a
@@ -2638,7 +2638,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="config.js?v=shared-client-6-community-archive"></script>
   <script defer src="url-normalizer.js?v=1"></script>
-  <script defer src="admin-context.js?v=e5-f2-r4-jwt-expiry"></script>
+  <script defer src="admin-context.js?v=ux-quickfix-01"></script>
   <script defer src="duplicate-detection.js?v=v11-18-1"></script>
   <script defer src="admin-v11-bridge.js?v=v11-bridge-40b"></script>
   <script defer src="admin-event-image.js?v=event-image-r2-1"></script>
@@ -2648,8 +2648,9 @@
   <script defer src="author-publication.js?v=author-publication-v2"></script>
   <script defer src="admin-event-deletion.js?v=safe-delete-1"></script>
   <script defer src="event-text-quality.js?v=p1-4-1"></script>
-  <script defer src="admin-shell.js?v=e5-f2-r4-jwt-expiry"></script>
+  <script defer src="admin-shell.js?v=ux-quickfix-01"></script>
   <script defer src="admin-canary-evidence.js?v=canary-e2-2"></script>
+  <script defer src="admin-ux-quickfix.js?v=ux-quickfix-01"></script>
   <script defer src="admin-canary-direct.js?v=canary-e5-d1-1"></script>
   <script type="module" src="admin-territorial-quality.js?v=duplicate-review-1"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
@@ -2660,7 +2661,8 @@
   <script defer src="admin-v11-maintenance.js?v=v11-maint-36"></script>
   <script defer src="admin-nfc-cockpit.js?v=nfc-cockpit-v1"></script>
 
-  <section id="v11-auth-gate" class="v11-auth-gate" aria-hidden="false">
+  <section id="v11-session-pending" class="v11-auth-gate" role="status" aria-live="polite"><p>Vérification de la session…</p></section>
+  <section id="v11-auth-gate" class="v11-auth-gate" aria-hidden="true" hidden>
     <div class="v11-auth-panel">
       <img
         src="assets/brand/logo-dedicalivres-sombre.webp"
@@ -2674,7 +2676,7 @@
         Accès réservé à l’administration Dédicalivres.
       </p>
 
-      <form id="v11-login-form" class="v11-auth-form">
+      <form id="v11-login-form" class="v11-auth-form" hidden>
         <label>
           <span>Email</span>
           <input id="v11-email" type="email" autocomplete="username" required>

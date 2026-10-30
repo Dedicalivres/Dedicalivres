@@ -12382,8 +12382,10 @@ function openCommunityView(name) {
       document.body.prepend(parkedApp);
       parkedApp = null;
     }
-    const showAuth = !authorized;
+    const showAuth = !authorized && !loading;
     document.body.classList.toggle("v11-is-authorized", authorized);
+    const visibleApp = document.querySelector(".v11-app");
+    if (visibleApp) visibleApp.hidden = !authorized;
 
     if (authorized) {
       hadAuthorizedView = true;
@@ -12418,9 +12420,12 @@ function openCommunityView(name) {
         : state.status === "error"
           ? "Vérification indisponible. Réessayez après le rétablissement du service."
           : "Accès réservé à l’administration Dédicalivres.";
-      loginForm.hidden = forbidden || loading;
+      loginForm.hidden = loading;
       if (deniedLogout) deniedLogout.hidden = !(forbidden || state.session);
     }
+
+    const pendingSession = document.getElementById("v11-session-pending");
+    if (pendingSession) pendingSession.hidden = !loading;
 
     if (authGate) {
       authGate.hidden = !showAuth;
