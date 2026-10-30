@@ -207,16 +207,6 @@
     return state.client;
   }
 
-  // Keep only an already server-authorized, unexpired view during same-user renewal.
-  // The replacement session is never adopted until getUser + admin_users succeed.
-  function canKeepAuthorizedView(session) {
-    const previous = expiresAtMs(state.session);
-    const next = expiresAtMs(session);
-    return state.authenticated === true && state.status === "ready" &&
-      Boolean(state.session?.user?.id) && state.session.user.id === session?.user?.id &&
-      previous !== null && next !== null && Date.now() < previous && next >= previous;
-  }
-
   function ensureAuthListener(client) {
     if (!client || authSubscription || !client.auth?.onAuthStateChange) {
       return;
@@ -234,12 +224,10 @@
         // Supabase auth callbacks must not await another auth request.
         authEpoch += 1;
         const eventEpoch = authEpoch;
-        const keepView = event === "TOKEN_REFRESHED" && canKeepAuthorizedView(session);
-        if (keepView) scheduleExpiry(state.session);
-        else clearPrivateState({ status: "loading", error: null });
+        clearPrivateState({ status: "loading", error: null });
         window.setTimeout(() => {
           if (eventEpoch === authEpoch) {
-            authorizeSession(session, keepView).catch(console.error);
+            authorizeSession(session).catch(console.error);
           }
         }, 0);
       }
@@ -854,22 +842,21 @@
     state.metrics = computeMetrics(state.events);
   }
 
-  async function refresh(options = {}) {
+  async function refresh() {
     if (lockIfExpired() || state.authenticated !== true) {
       return snapshot();
     }
     const epoch = authEpoch;
-    const keepView = options?.keepAuthorizedView === true && state.status === "ready";
 
     setState({
-      status: keepView ? "ready" : "loading",
+      status: "loading",
       error: null
     });
 
     let watchdogTriggered = false;
 
     const watchdog = window.setTimeout(() => {
-      if (epoch === authEpoch && (state.status === "loading" || keepView)) {
+      if (epoch === authEpoch && state.status === "loading") {
         watchdogTriggered = true;
 
         setState({
@@ -916,11 +903,9 @@
     return snapshot();
   }
 
-  async function authorizeSession(session, retainView = false) {
-    const keepView = retainView && canKeepAuthorizedView(session);
+  async function authorizeSession(session) {
     const epoch = ++authEpoch;
-    if (keepView) scheduleExpiry(state.session);
-    else clearPrivateState({ status: "loading", error: null });
+    clearPrivateState({ status: "loading", error: null });
 
     if (expiresAtMs(session) === null || Date.now() >= expiresAtMs(session)) {
       clearPrivateState({ status: "expired", error: null });
@@ -966,9 +951,9 @@
         return snapshot();
       }
 
-      setState({ authenticated: true, session, status: keepView ? "ready" : "loading", error: null });
+      setState({ authenticated: true, session, status: "loading", error: null });
       scheduleExpiry(session);
-      return await refresh({ keepAuthorizedView: keepView });
+      return await refresh();
     } catch (error) {
       if (epoch === authEpoch) {
         clearPrivateState({ status: "error", session, error });
