@@ -258,3 +258,36 @@ function locked(lab, status = "expired") {
   locked(lab);
   console.log("PASS missing expires_at fails closed without inventing a deadline");
 }
+
+{
+  const lab = fixture();
+  const original = lab.session("admin", 10);
+  await ready(lab, original);
+  lab.holdUser();
+  lab.emit("TOKEN_REFRESHED", lab.session("admin", 30, "pending-renewal"));
+  await lab.due(0);
+  assert.equal(lab.context.getState().status, "ready");
+  assert.equal(lab.context.getState().session.access_token, original.access_token, "no optimistic token adoption");
+  await lab.due(10_000); locked(lab);
+  lab.releaseUser(); await flush(); locked(lab);
+  console.log("PASS pending renewal cannot extend old authorization or revive expired data");
+}
+{
+  const lab = fixture();
+  await ready(lab, lab.session("admin", 10));
+  const states = []; lab.context.subscribe(state => states.push(state.status));
+  lab.emit("TOKEN_REFRESHED", lab.session("admin", 30, "verified-renewal"));
+  await lab.due(0); await flush();
+  assert(states.every(status => status === "ready"), "no loading flash for the already verified admin");
+  assert.equal(lab.context.getState().session.access_token, "admin-verified-renewal");
+  console.log("PASS same-user renewal keeps READY after server checks");
+}
+{
+  const lab = fixture();
+  await ready(lab, lab.session("admin", 10)); lab.holdPrivateReads();
+  lab.emit("TOKEN_REFRESHED", lab.session("admin", 30, "slow-data-renewal"));
+  await lab.due(0); await flush(); assert.equal(lab.context.getState().status, "ready");
+  await lab.due(15_000); assert.equal(lab.context.getState().status, "error", "watchdog still applies");
+  lab.releasePrivateReads(); await flush(); assert.equal(lab.context.getState().status, "error");
+  console.log("PASS preserved-view refresh retains the data watchdog");
+}
