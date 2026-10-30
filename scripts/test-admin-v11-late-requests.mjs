@@ -179,8 +179,13 @@ for (const event of ["TOKEN_REFRESHED", "SIGNED_IN", "USER_UPDATED"]) {
   assert.equal(lab.context.getState().status, "ready");
   const adminReads = lab.reads.filter(table => table === "admin_users").length;
   lab.holdReads();
+  const authorizedSession = lab.context.getState().session;
   lab.changeUser(oldUser, event);
-  assertPrivateEmpty(lab.context.getState());
+  if (event === "TOKEN_REFRESHED") {
+    assert.equal(lab.context.getState().status, "ready");
+    assert.equal(lab.context.getState().session.access_token, authorizedSession.access_token,
+      "preserve only the previously authorized session, not the pending token");
+  } else assertPrivateEmpty(lab.context.getState());
   await waitFor(() => lab.pending.length === 13);
   assert.equal(lab.reads.filter(table => table === "admin_users").length, adminReads + 1,
     `${event}: admin rights rechecked`);
@@ -188,7 +193,7 @@ for (const event of ["TOKEN_REFRESHED", "SIGNED_IN", "USER_UPDATED"]) {
   await waitFor(() => lab.context.getState().status === "ready");
   assert.equal(lab.context.getState().session.user.id, oldUser.id);
   assert.equal(lab.context.getState().events[0].id, oldUser.id);
-  console.log(`PASS ${event}: same admin revalidated without private data during loading`);
+  console.log(`PASS ${event}: same admin revalidated with expiry and stale-request guards`);
 }
 
 {
