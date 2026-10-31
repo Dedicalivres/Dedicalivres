@@ -9772,3 +9772,23 @@ html.a11y-soir .author-presence-card.participant-publisher .author-presence-card
 .territorial-page .territory-breadcrumb a,.territorial-page #territory-content>p a{color:#47246b}
 @media(max-width:600px){#territoires-pilotes nav a,.territorial-page .territory-navigation a{padding:12px;max-width:100%;box-sizing:border-box}}
 @media(prefers-reduced-motion:reduce){#territoires-pilotes nav a,.territorial-page .territory-navigation a{transition:none}}
+
+/* DEDICALIVRES-AUTHOR-SQUARE-2026
+   Format carré réservé aux portraits de l'annuaire.
+*/
+body.author-page[data-generated-author-index="true"]
+.author-index-card > .card-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    object-position: center 25%;
+}
+
+body.author-page[data-generated-author-index="true"]
+.author-index-card > .author-avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
