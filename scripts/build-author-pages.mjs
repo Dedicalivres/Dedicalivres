@@ -10,6 +10,19 @@ const significant = html => html.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "")
 
 // Event jobs never authorize creating an author profile. Slugs must already
 // exist in the static corpus; a new source author is reported, never published.
+
+export function noSelectedAuthorPresence(catalog, jobs) {
+  if (!Array.isArray(catalog) || !Array.isArray(jobs) || !jobs.length) return false;
+  const ids = jobs.map(job => job?.event_id);
+  if (ids.some(id => typeof id !== "string" ||
+      !/^[0-9a-f-]{36}$/.test(id)) ||
+      new Set(ids).size !== ids.length) return false;
+  const selected = new Set(ids);
+  return catalog.every(row => row && Array.isArray(row.events) &&
+    row.events.every(event => event &&
+      typeof event.id === "string" && !selected.has(event.id)));
+}
+
 export function selectTargetedAuthors(root, catalog, jobs) {
   const stop = message => { throw new Error("STOP auteurs ciblés : " + message); };
   const validId = id => typeof id === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id);
@@ -69,6 +82,24 @@ export function buildAuthorPages({ root = process.cwd(), catalog, now = new Date
       || new Date(day).toISOString().slice(0, 10) !== day) throw new Error("Date de publication Europe/Paris invalide.");
   const baseHtml = fs.readFileSync(path.join(root, "author.html"), "utf8");
   const files = new Map(), urls = [], changed = [];
+
+  // Event-only jobs must never alter unrelated author pages.
+  if (targeted && selectedJobs && process.env.PUBLICATION_SOURCE_ISOLATION) {
+    const sealedAuthors = readIsolation(root)?.author_source;
+    if (!Array.isArray(sealedAuthors) ||
+        hash(catalog) !== hash(sealedAuthors)) {
+      throw new Error("STOP auteurs : preuve de source absente ou différente");
+    }
+    if (noSelectedAuthorPresence(sealedAuthors, selectedJobs)) {
+      const changedAuthors = execFileSync("git", [
+        "status", "--porcelain", "--", "auteurs", "sitemap-seo-auteurs.xml"
+      ], {cwd:root, encoding:"utf8"}).trim();
+      if (changedAuthors) {
+        throw new Error("STOP auteurs : fichiers auteurs déjà modifiés");
+      }
+      return {authors:0, changed:[], day, deferred:[], preserved:true};
+    }
+  }
   let scope;
   if (targeted && selectedJobs) {
     const sealed = readIsolation(root)?.author_source;
@@ -137,6 +168,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (!supabaseUrl || !supabaseAnonKey) throw new Error("Configuration Supabase publique introuvable.");
   const catalog = await fetchPublicAuthorCatalog({ supabaseUrl, supabaseAnonKey });
   const result = buildAuthorPages({ catalog });
-  console.log(`PASS auteurs statiques : ${result.authors} fiche(s) publiée(s), ${result.changed.length} lastmod actualisé(s)`);
+  if (result.preserved) {
+    console.log("PASS auteurs hors lot : pages et sitemap inchangés");
+  } else {
+    console.log(`PASS auteurs statiques : ${result.authors} fiche(s) publiée(s), ${result.changed.length} lastmod actualisé(s)`);
+  }
   for (const author of result.deferred) console.log("AUTEUR DIFFÉRÉ : " + author.slug + " (" + author.id + ")");
 }
