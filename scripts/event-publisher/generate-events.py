@@ -348,9 +348,14 @@ def _approved_published_location(ev, proof, root):
 def verified_location(ev):
     root = Path(__file__).resolve().parents[2]
     jobs = json.loads(os.environ.get('PUBLICATION_JOBS') or '[]')
-    data = json.loads(
-        (root / 'scripts/event-publisher/verified-event-locations.json').read_text()
-    )
+    proof_path = root / 'scripts/event-publisher/verified-event-locations.json'
+    if not proof_path.is_file():
+        if not jobs:
+            return None
+        raise GenerationSeoError(
+            'preuves de lieu absentes pendant une publication ciblee'
+        )
+    data = json.loads(proof_path.read_text())
     proof = data['events'].get(str(ev['id']))
     if not proof:
         return None
