@@ -290,22 +290,98 @@ def attribuer_slugs(evs):
 def afficher_rapport_dedup(rapport):
     print(f"Déduplication exacte SEO : {rapport['avant']} fiches avant, {rapport['apres']} après, {rapport['groupes_exacts']} groupes exacts, {rapport['doublons_exacts']} doublons détectés, {rapport['consolides']} fiches consolidées, {rapport['groupes_consolides']} groupes consolidés, {rapport['groupes_proteges_resolus']} groupes protégés résolus, {rapport['groupes_multidates']} groupes multi-dates laissés intacts.", flush=True)
 
+def _approved_published_location(ev, proof, root):
+    """Only restore proof already present in the published canonical page."""
+    try:
+        mapping = json.loads(
+            (root / 'docs/territoires/event-canonical-map.json').read_text()
+        )
+        relative = mapping.get(str(ev['id']))
+        if not isinstance(relative, str) or not re.fullmatch(
+            r'evenement/[a-z0-9-]+\.html', relative
+        ):
+            return False
+        if proof.get('canonical') and relative != proof['canonical']:
+            return False
+
+        page = (root / relative).read_text(encoding='utf-8')
+        canonical = 'https://dedicalivres.fr/' + relative
+        if re.findall(
+            r'<link rel="canonical" href="([^"]+)">', page
+        ) != [canonical]:
+            return False
+
+        objects = [
+            json.loads(block)
+            for block in re.findall(
+                r'<script type="application/ld\+json">(.*?)</script>',
+                page, re.S
+            )
+        ]
+        events = [
+            item for item in objects
+            if isinstance(item, dict) and item.get('@type') == 'Event'
+        ]
+        if len(events) != 1:
+            return False
+
+        previous = events[0]
+        location = previous.get('location') or {}
+        address = location.get('address') or {}
+
+        return (
+            previous.get('url') == canonical
+            and previous.get('name') == ev['titre']
+            and previous.get('startDate') == proof['date']
+            and previous.get('endDate') == proof['date']
+            and location.get('name') == proof['place']
+            and address.get('streetAddress') == proof['street']
+            and address.get('postalCode') == proof['postal']
+            and address.get('addressLocality') == proof['city']
+            and address.get('addressRegion') == proof['region']
+            and address.get('addressCountry') == PAYS_ISO.get(proof['country'])
+        )
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+        return False
+
+
 def verified_location(ev):
     root = Path(__file__).resolve().parents[2]
     jobs = json.loads(os.environ.get('PUBLICATION_JOBS') or '[]')
-    if not jobs:
-        return None
-    data = json.loads((root / 'scripts/event-publisher/verified-event-locations.json').read_text())
+    proof_path = root / 'scripts/event-publisher/verified-event-locations.json'
+    if not proof_path.is_file():
+        if not jobs:
+            return None
+        raise GenerationSeoError(
+            'preuves de lieu absentes pendant une publication ciblee'
+        )
+    data = json.loads(proof_path.read_text())
     proof = data['events'].get(str(ev['id']))
-    if not proof or not any(j.get('id') == proof['job_id'] and j.get('event_id') == ev['id']
-                            and j.get('reason') == proof['reason'] for j in jobs):
+    if not proof:
         return None
+
+    selected = any(
+        j.get('id') == proof['job_id']
+        and j.get('event_id') == ev['id']
+        and j.get('reason') == proof['reason']
+        for j in jobs
+    )
+    if not selected and not _approved_published_location(ev, proof, root):
+        return None
+
     if (ev['ville'] != proof['city'] or ev['pays'] != proof['country']
-            or ev['departement'] != proof['region'] or ev['date_debut'] != proof['date']
+            or ev['departement'] != proof['region']
+            or ev['date_debut'] != proof['date']
             or ev['date_fin'] != proof['date']
-            or not all(text in ev['description'] for text in proof['description_evidence'])):
-        raise GenerationSeoError('preuve de lieu différente de la source : ' + ev['id'])
+            or not all(
+                text in ev['description']
+                for text in proof['description_evidence']
+            )):
+        raise GenerationSeoError(
+            'preuve de lieu différente de la source : ' + ev['id']
+        )
     return proof
+
 
 def published_organizer(event_id, event=None):
     """Preserve published enrichment; never infer an organization from a city.
@@ -331,7 +407,7 @@ def published_organizer(event_id, event=None):
             raise ValueError('Event publié absent, multiple ou incohérent')
         organizer = events[0].get('organizer')
         proof = verified_location(event) if event is not None else None
-        if proof and proof.get('unverified_organizer') == organizer:
+        if proof and 'unverified_organizer' in proof and proof['unverified_organizer'] == organizer:
             if relative != proof.get('canonical'):
                 raise ValueError('canonical de la preuve incohérent')
             return None
