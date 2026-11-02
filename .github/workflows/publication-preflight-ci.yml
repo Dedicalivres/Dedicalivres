@@ -76,6 +76,7 @@ jobs:
           node scripts/test-targeted-publication.mjs
           python3 scripts/test-published-location-proofs.py
           node scripts/test-targeted-source-isolation.mjs
+          node scripts/test-event-only-author-isolation.mjs
           node scripts/test-event-edit-canonical-cleanup.mjs
           node scripts/test-publication-jobs-canonical.mjs
           node scripts/test-post-validation-publication.mjs
