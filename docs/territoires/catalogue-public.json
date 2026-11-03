@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-22T15:31:40.083Z",
+  "capturedAt": "2026-11-03T05:53:36.712Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -8681,6 +8681,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.instagram.com/levol_desmots/"
+    },
+    {
+      "id": "fb2d8279-2215-4300-90de-469911699d1d",
+      "title": "Rencontre avec Rachel Adalbald — Car du vide de ma bouche est née une épée",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-03",
+      "end_date": "2026-11-03",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
       "id": "fb3c5a14-6e1d-46f0-b9b8-9beb1ae983f9",
