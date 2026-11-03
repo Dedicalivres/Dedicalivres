@@ -672,7 +672,10 @@
   "b08b76d9-f8db-4f1b-b2e5-018747b31043": "evenement/rencontre-avec-diglee-demeure-paris-b08b76d9-f8db-4f1b-b2e5-018747b31043.html",
   "4c826d25-f035-45db-b0a2-ca64e1babbb8": "evenement/lancement-de-schnock-chez-soi-avec-alister-paris-4c826d25-f035-45db-b0a2-ca64e1babbb8.html",
   "9c79d2f2-cfe7-4cb0-8f84-b41abc9284a6": "evenement/rencontre-avec-patrice-et-dominique-blanc-francard-paris-9c79d2f2-cfe7-4cb0-8f84-b41abc9284a6.html",
-  "9d989c8c-a4f1-41bc-a5cc-0df16ed759d7": "evenement/dedicace-avec-bruno-wennagel-post-mortem-saint-mande-9d989c8c-a4f1-41bc-a5cc-0df16ed759d7.html"
+  "9d989c8c-a4f1-41bc-a5cc-0df16ed759d7": "evenement/dedicace-avec-bruno-wennagel-post-mortem-saint-mande-9d989c8c-a4f1-41bc-a5cc-0df16ed759d7.html",
+  "51d80e0b-f07a-48d7-9221-2d5ae546e0a4": "evenement/rencontre-bd-avec-alcante-et-djie-paris-51d80e0b-f07a-48d7-9221-2d5ae546e0a4.html",
+  "753092b0-3df5-4632-8dff-cad0477743fa": "evenement/rencontre-dedicace-avec-emilie-de-turckheim-saint-mande-753092b0-3df5-4632-8dff-cad0477743fa.html",
+  "b4ca9600-a755-45f7-96b0-0c4f2be2eea0": "evenement/rencontre-avec-tiffany-tavernier-paris-b4ca9600-a755-45f7-96b0-0c4f2be2eea0.html"
 });
 
   function eventId(value) {

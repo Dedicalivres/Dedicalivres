@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T19:13:47.152Z",
+  "capturedAt": "2026-11-03T19:19:04.026Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -3013,6 +3013,20 @@
       "website": "https://www.facebook.com/people/Club-Du-Livre-Fursac-23/61584330455689/"
     },
     {
+      "id": "51d80e0b-f07a-48d7-9221-2d5ae546e0a4",
+      "title": "Rencontre BD avec Alcante et Djié",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-202248/bande-dessinee-alcante-et-djie/"
+    },
+    {
       "id": "51ecb563-98cd-4987-86ca-12d3615233dd",
       "title": "Séance signature par Mr Simat",
       "type": "Dédicace",
@@ -4285,6 +4299,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "http://festivaldulivre.colmar.fr/"
+    },
+    {
+      "id": "753092b0-3df5-4632-8dff-cad0477743fa",
+      "title": "Rencontre-dédicace avec Émilie de Turckheim",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Saint-Mandé",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-204929/rencontre-et-dedicace-avec-emilie-de-turckheim/"
     },
     {
       "id": "766d62dd-a8e6-4b3c-84a4-00dc1062c83f",
@@ -6371,6 +6399,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/villagedulivre54?"
+    },
+    {
+      "id": "b4ca9600-a755-45f7-96b0-0c4f2be2eea0",
+      "title": "Rencontre avec Tiffany Tavernier",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-201997/rencontre-avec-tiffany-tavernier/"
     },
     {
       "id": "b4e677ae-3e86-474e-b8c1-69973d80445a",
