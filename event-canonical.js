@@ -684,7 +684,10 @@
   "587f64fa-cd1b-4de8-9f1a-f9f485b42462": "evenement/rencontre-dedicace-avec-thierry-lhermitte-paris-587f64fa-cd1b-4de8-9f1a-f9f485b42462.html",
   "0de80688-83e1-4434-a8a4-f19d4a024f20": "evenement/retrouver-damas-rencontre-avec-cecile-boex-paris-0de80688-83e1-4434-a8a4-f19d4a024f20.html",
   "4cac582e-69ab-4f27-b26b-9d7ccd2571f4": "evenement/dedicace-avec-marie-vareille-nous-qui-avons-connu-solange-joinville-le-4cac582e-69ab-4f27-b26b-9d7ccd2571f4.html",
-  "fefa7e41-21c5-4a64-a55f-e03fc21f051e": "evenement/rencontre-avec-adeline-vanek-vital-paris-fefa7e41-21c5-4a64-a55f-e03fc21f051e.html"
+  "fefa7e41-21c5-4a64-a55f-e03fc21f051e": "evenement/rencontre-avec-adeline-vanek-vital-paris-fefa7e41-21c5-4a64-a55f-e03fc21f051e.html",
+  "39b271cc-ec21-4416-b691-2d6e2524d46a": "evenement/rencontre-avec-antoine-bueno-guidance-paris-39b271cc-ec21-4416-b691-2d6e2524d46a.html",
+  "83677b96-0fb8-4166-9905-b7b451ee2396": "evenement/rencontre-avec-bernard-vouilloux-gaetan-picon-une-pensee-de-la-creatio-83677b96-0fb8-4166-9905-b7b451ee2396.html",
+  "fda7569f-ed6a-4d5c-a14f-f82706efdb07": "evenement/rencontre-avec-lionel-naccache-habeas-corpus-paris-fda7569f-ed6a-4d5c-a14f-f82706efdb07.html"
 });
 
   function eventId(value) {
