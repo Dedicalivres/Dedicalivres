@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T18:18:53.479Z",
+  "capturedAt": "2026-11-03T18:50:47.055Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -2073,6 +2073,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": null
+    },
+    {
+      "id": "36ecca18-7ccf-4dfc-af82-87cb5d7dea43",
+      "title": "Rencontre avec Michel Jean — Nishim",
+      "type": "Autre",
+      "country_code": "FR",
+      "region": "Provence-Alpes-Côte d'Azur",
+      "city": "Châteauneuf-Grasse",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librairesdusud.com/rencontre/rencontre-avec-michel-jean/"
     },
     {
       "id": "370ceb38-61a4-49c6-8a4d-93a75bf96fa3",
@@ -5603,6 +5617,20 @@
       "website": ""
     },
     {
+      "id": "a080efe4-632d-4782-972a-e30e1c33850d",
+      "title": "Dédicace avec Jul et Achdé — Saint Lucky Luke",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-205291/lancement-jul-et-achde-saint-lucky-luke/"
+    },
+    {
       "id": "a0b6ac70-15bd-457a-8498-2333727f33a0",
       "title": "Salon du Livre des Gourmets de Lettres de Toulouse",
       "type": "Salon",
@@ -6161,6 +6189,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "b08b76d9-f8db-4f1b-b2e5-018747b31043",
+      "title": "Rencontre avec Diglee — Demeure",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/04-novembre-2026/7385-rencontre-avec-diglee-pour-demeure"
     },
     {
       "id": "b0a7b6cb-708e-40c2-a8ec-e8087e578cba",
