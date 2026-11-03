@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T19:34:31.868Z",
+  "capturedAt": "2026-11-03T19:37:51.077Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1877,6 +1877,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/profile.php?id=61577779501991"
+    },
+    {
+      "id": "3293c945-12e1-4c7e-b2ee-62847dc3fcb1",
+      "title": "Rencontre éditions Super Loto — Léa MKL, Lucas Gicquel et Camille Escoubet",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Vincennes",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-205958/les-rendez-vous-des-editions-independantes-4-super-loto-editions-en-presence-de-lea-mkl-lucas-gicquel-et-camille-escoubet/"
     },
     {
       "id": "32b6a372-7a9c-4450-8233-f280800bc5d2",
@@ -4299,6 +4313,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://fr-fr.facebook.com/pages/category/Nonprofit-Organization/Normandie-Livre-Lecture-167569077185375/"
+    },
+    {
+      "id": "71f484f2-b078-4e80-8216-3526e6c53e70",
+      "title": "Rencontre avec Sylvain Prudhomme — De l'autre côté du lac (Charenton)",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Charenton-le-Pont",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206415/sylvain-prudhomme-rencontre/"
     },
     {
       "id": "72709fb9-5cdb-4b1d-ab29-7b8162b66e8e",
@@ -8709,6 +8737,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "edde7d68-9dfb-4546-adf9-512263325079",
+      "title": "Rencontre avec Norman Ajari — Technofascisme",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206998/rencontre-avec-norman-ajari/"
     },
     {
       "id": "ee0d8cc2-f6a9-49ea-87e2-2af06b81c6a1",
