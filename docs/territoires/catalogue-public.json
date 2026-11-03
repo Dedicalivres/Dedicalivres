@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T18:15:12.230Z",
+  "capturedAt": "2026-11-03T18:18:53.479Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -2509,6 +2509,20 @@
       "website": "https://www.instagram.com/thornslove_?igsh=MWw2anlmczlzc2NxYg=="
     },
     {
+      "id": "433e0fd0-b8f8-41e7-b359-46757f9f49b9",
+      "title": "Dédicace avec Axel Scheffler — Mamie Gruffalo",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-28",
+      "end_date": "2026-11-28",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
+    },
+    {
       "id": "436a9e03-f1fc-40b1-9658-89183766af6d",
       "title": "Les Z'arts et les livres passionnément ",
       "type": "Salon",
@@ -4593,6 +4607,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://enirak-niamor.sumupstore.com/?fbclid=IwVERDUARb8dpleHRuA2FlbQIxMABzcnRjBmFwcF9pZAo2NjI4NTY4Mzc5AAEeRTHCvfTh5rDCojKaJLFbgodWt0YfXAyehjhWRt3m-0EfP_tjKAXwJ6X0nZw_aem_1HwDQETCBkA_0Xi1ol71Jw"
+    },
+    {
+      "id": "8083ac70-d5de-4f46-81a9-04de12a1a220",
+      "title": "Rencontre avec Pascal Sévérac et Wilfried Lignier — Deligny, la vie hors langage",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-27",
+      "end_date": "2026-11-27",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
       "id": "809bc8f1-0966-455c-9314-f36591eaa98e",
@@ -7281,6 +7309,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "http://www.totems.bzh/"
+    },
+    {
+      "id": "d198605d-f9c1-4f51-854a-132482158b8e",
+      "title": "Rencontre avec Zakaria El-Sem et Antoine Jobard — Le Coiffeur mal béni",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-26",
+      "end_date": "2026-11-26",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
       "id": "d1b97a71-5900-4ea1-af52-9d0b733974e9",

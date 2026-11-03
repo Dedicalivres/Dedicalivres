@@ -663,7 +663,10 @@
   "8c66fc26-c927-4a2e-be3e-5fb5e5489d34": "evenement/rencontre-avec-milena-csergo-et-milene-tournier-ecritures-theatrales-p-8c66fc26-c927-4a2e-be3e-5fb5e5489d34.html",
   "23d774c3-26b5-4e03-a9b5-9f955f436b1a": "evenement/rencontre-avec-vincent-goossaert-des-dieux-qui-parlent-paris-23d774c3-26b5-4e03-a9b5-9f955f436b1a.html",
   "27fd0092-dd7e-4b48-bec9-16225c5185ea": "evenement/rencontre-avec-marlene-benquet-sylvain-bourmeau-et-hugues-jallon-qui-f-27fd0092-dd7e-4b48-bec9-16225c5185ea.html",
-  "73e52226-d36a-42ee-b5a8-42bf286d755e": "evenement/rencontre-avec-marie-goupy-derrida-force-de-loi-voyous-fichus-paris-73e52226-d36a-42ee-b5a8-42bf286d755e.html"
+  "73e52226-d36a-42ee-b5a8-42bf286d755e": "evenement/rencontre-avec-marie-goupy-derrida-force-de-loi-voyous-fichus-paris-73e52226-d36a-42ee-b5a8-42bf286d755e.html",
+  "433e0fd0-b8f8-41e7-b359-46757f9f49b9": "evenement/dedicace-avec-axel-scheffler-mamie-gruffalo-paris-433e0fd0-b8f8-41e7-b359-46757f9f49b9.html",
+  "8083ac70-d5de-4f46-81a9-04de12a1a220": "evenement/rencontre-avec-pascal-severac-et-wilfried-lignier-deligny-la-vie-hors-8083ac70-d5de-4f46-81a9-04de12a1a220.html",
+  "d198605d-f9c1-4f51-854a-132482158b8e": "evenement/rencontre-avec-zakaria-el-sem-et-antoine-jobard-le-coiffeur-mal-beni-p-d198605d-f9c1-4f51-854a-132482158b8e.html"
 });
 
   function eventId(value) {
