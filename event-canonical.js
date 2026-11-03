@@ -681,7 +681,10 @@
   "db5f089a-ac62-4ada-978b-94c21fa6b7f3": "evenement/rencontre-dedicace-avec-jean-baptiste-brenet-averroes-paris-db5f089a-ac62-4ada-978b-94c21fa6b7f3.html",
   "04c9fd08-dee1-492c-a907-5b55d572f4ef": "evenement/rencontre-dedicace-avec-noham-selcer-midgar-maisons-alfort-04c9fd08-dee1-492c-a907-5b55d572f4ef.html",
   "0d135373-aa6e-4df7-8027-45a2c0ec9b53": "evenement/rencontre-dedicace-avec-sonia-devillers-le-fabuleux-piano-asnieres-sur-0d135373-aa6e-4df7-8027-45a2c0ec9b53.html",
-  "587f64fa-cd1b-4de8-9f1a-f9f485b42462": "evenement/rencontre-dedicace-avec-thierry-lhermitte-paris-587f64fa-cd1b-4de8-9f1a-f9f485b42462.html"
+  "587f64fa-cd1b-4de8-9f1a-f9f485b42462": "evenement/rencontre-dedicace-avec-thierry-lhermitte-paris-587f64fa-cd1b-4de8-9f1a-f9f485b42462.html",
+  "0de80688-83e1-4434-a8a4-f19d4a024f20": "evenement/retrouver-damas-rencontre-avec-cecile-boex-paris-0de80688-83e1-4434-a8a4-f19d4a024f20.html",
+  "4cac582e-69ab-4f27-b26b-9d7ccd2571f4": "evenement/dedicace-avec-marie-vareille-nous-qui-avons-connu-solange-joinville-le-4cac582e-69ab-4f27-b26b-9d7ccd2571f4.html",
+  "fefa7e41-21c5-4a64-a55f-e03fc21f051e": "evenement/rencontre-avec-adeline-vanek-vital-paris-fefa7e41-21c5-4a64-a55f-e03fc21f051e.html"
 });
 
   function eventId(value) {
