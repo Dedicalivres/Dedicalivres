@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T05:53:36.712Z",
+  "capturedAt": "2026-11-03T06:16:19.967Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -2479,6 +2479,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/SimonLarocheOfficiel"
+    },
+    {
+      "id": "450301db-766e-4577-9bfd-e14de801a8fa",
+      "title": "Rencontre autour de la revue Savoirs et clinique — De l’association libre",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://nouvelequipage.fr/evenement/rencontre-autour-du-nouveau-numero-de-la-revue-savoirs-et-clinique/"
     },
     {
       "id": "4527f9f8-e769-45e0-b6bf-e17141c7f157",
@@ -7983,6 +7997,20 @@
       "website": "https://auvergnerhonealpes-livre-lecture.org/agenda/festivals/rencontres-litteraires-du-salon-international-du-livre-de-montagne"
     },
     {
+      "id": "eb15d872-2f26-4d89-bc33-7547dd7a11f4",
+      "title": "Rencontre avec Pierre Bayard",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-03",
+      "end_date": "2026-11-03",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-202288/pierre-bayard/"
+    },
+    {
       "id": "eb56040e-1217-4ed7-b99f-e6ecaf323800",
       "title": "Les belles lectures remoises",
       "type": "Salon",
@@ -8149,6 +8177,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.cc-chateaubriant-derval.fr"
+    },
+    {
+      "id": "f041b0f7-8b23-47c6-be33-91646c352b57",
+      "title": "Rencontre avec Sabine Macher — Immeuble berlinois",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
       "id": "f07e5854-5554-4d11-ac23-d9d7c484bf9c",
