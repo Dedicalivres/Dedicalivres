@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T19:41:50.256Z",
+  "capturedAt": "2026-11-03T19:45:10.583Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1023,6 +1023,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://opalebd.com/festivals/details/4390"
+    },
+    {
+      "id": "1a4aa85f-153d-42b3-8644-04dda92d468d",
+      "title": "Rencontre-dédicace avec Mélanie Sadler — Le Bureau des audacieuses",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-205399/rencontre-dedicace-melanie-sadler/"
     },
     {
       "id": "1a605452-4449-4c70-b9ec-0ed89e54e2b1",
@@ -5617,6 +5631,20 @@
       "website": "https://www.manumartin.com/jeanchristophecharnay/"
     },
     {
+      "id": "96551b66-53db-49a2-b10c-a0ce9ea10fdc",
+      "title": "Rencontre-dédicace avec Philippe Nicolas",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-204051/philippe-nicolas/"
+    },
+    {
       "id": "972b1d4a-d1f1-42c2-b07f-9ff84267ac08",
       "title": "PRÉSENTATION OUVRAGE \"QUAND L'ACTIVITÉ MINIÈRE ANIMAIT NOS TERRITOIRES",
       "type": "Dédicace",
@@ -8863,6 +8891,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.jds.fr/manifestations/festival/le-banquet-du-livre-d-ete-festival-de-litterature-a-lagrasse-1481944_A"
+    },
+    {
+      "id": "ef596387-3c0c-4ebc-a699-67c8172a4b00",
+      "title": "Rencontre-dédicace BD avec Juliette Mancini — Devenir falaise",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207021/juliette-mancini-presente-devenir-falaise-editions-atrabile/"
     },
     {
       "id": "f0182ecd-7a17-4e80-963f-078a7466af50",

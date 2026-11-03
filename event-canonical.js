@@ -693,7 +693,10 @@
   "edde7d68-9dfb-4546-adf9-512263325079": "evenement/rencontre-avec-norman-ajari-technofascisme-paris-edde7d68-9dfb-4546-adf9-512263325079.html",
   "854237da-c11b-4d0e-aa95-df38ec115e3b": "evenement/rencontre-dedicace-avec-ananda-devi-chronique-d-un-royaume-perdu-vince-854237da-c11b-4d0e-aa95-df38ec115e3b.html",
   "c4d23988-cc07-4178-bc26-4aba41373693": "evenement/rencontre-dedicace-avec-mathieu-belezi-c-etait-notre-terre-boulogne-bi-c4d23988-cc07-4178-bc26-4aba41373693.html",
-  "cf0d1827-384d-42a1-a8ca-7eebffbb081d": "evenement/rencontre-dedicace-avec-blanche-de-richemont-dictionnaire-amoureux-du-cf0d1827-384d-42a1-a8ca-7eebffbb081d.html"
+  "cf0d1827-384d-42a1-a8ca-7eebffbb081d": "evenement/rencontre-dedicace-avec-blanche-de-richemont-dictionnaire-amoureux-du-cf0d1827-384d-42a1-a8ca-7eebffbb081d.html",
+  "1a4aa85f-153d-42b3-8644-04dda92d468d": "evenement/rencontre-dedicace-avec-melanie-sadler-le-bureau-des-audacieuses-paris-1a4aa85f-153d-42b3-8644-04dda92d468d.html",
+  "96551b66-53db-49a2-b10c-a0ce9ea10fdc": "evenement/rencontre-dedicace-avec-philippe-nicolas-paris-96551b66-53db-49a2-b10c-a0ce9ea10fdc.html",
+  "ef596387-3c0c-4ebc-a699-67c8172a4b00": "evenement/rencontre-dedicace-bd-avec-juliette-mancini-devenir-falaise-paris-ef596387-3c0c-4ebc-a699-67c8172a4b00.html"
 });
 
   function eventId(value) {
