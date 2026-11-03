@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T19:19:04.026Z",
+  "capturedAt": "2026-11-03T19:22:09.135Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -2467,6 +2467,20 @@
       "website": "https://musee-moreau.fr"
     },
     {
+      "id": "413369c8-b091-4186-a968-7040ac1c4ae2",
+      "title": "Rencontre-dédicace avec les lauréats du Prix Clara 2026",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207236/rencontre-avec-les-laureates-et-laureats-du-prix-clara-2026/"
+    },
+    {
       "id": "422d0cf0-2ca4-46e7-ba5a-4afdac127349",
       "title": "Dédicace-rencontre avec Laurent Occelli",
       "type": "Dédicace",
@@ -2605,6 +2619,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://motsenmarge.com/evenement/nuit-blanche-des-livres/"
+    },
+    {
+      "id": "45f8b737-88ca-4b90-83a1-d671c3d50e7c",
+      "title": "Rencontre-dédicace avec Marijosé Alie — Pont Gueydon",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://boutique.librairiecalypso.fr/news/list"
     },
     {
       "id": "45fde68b-8656-48e0-bd81-1d91b2a8f741",
@@ -7841,6 +7869,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.katellpoquetauteure.com"
+    },
+    {
+      "id": "db5f089a-ac62-4ada-978b-94c21fa6b7f3",
+      "title": "Rencontre-dédicace avec Jean-Baptiste Brenet — Averroès",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206251/jean-baptiste-brenet-grand-commentaire-au-traite-de-l-ame-d-aristote-d-averroes/"
     },
     {
       "id": "db6a095b-b493-4493-bbd8-4e389f48d09b",

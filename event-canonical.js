@@ -675,7 +675,10 @@
   "9d989c8c-a4f1-41bc-a5cc-0df16ed759d7": "evenement/dedicace-avec-bruno-wennagel-post-mortem-saint-mande-9d989c8c-a4f1-41bc-a5cc-0df16ed759d7.html",
   "51d80e0b-f07a-48d7-9221-2d5ae546e0a4": "evenement/rencontre-bd-avec-alcante-et-djie-paris-51d80e0b-f07a-48d7-9221-2d5ae546e0a4.html",
   "753092b0-3df5-4632-8dff-cad0477743fa": "evenement/rencontre-dedicace-avec-emilie-de-turckheim-saint-mande-753092b0-3df5-4632-8dff-cad0477743fa.html",
-  "b4ca9600-a755-45f7-96b0-0c4f2be2eea0": "evenement/rencontre-avec-tiffany-tavernier-paris-b4ca9600-a755-45f7-96b0-0c4f2be2eea0.html"
+  "b4ca9600-a755-45f7-96b0-0c4f2be2eea0": "evenement/rencontre-avec-tiffany-tavernier-paris-b4ca9600-a755-45f7-96b0-0c4f2be2eea0.html",
+  "413369c8-b091-4186-a968-7040ac1c4ae2": "evenement/rencontre-dedicace-avec-les-laureats-du-prix-clara-2026-paris-413369c8-b091-4186-a968-7040ac1c4ae2.html",
+  "45f8b737-88ca-4b90-83a1-d671c3d50e7c": "evenement/rencontre-dedicace-avec-marijose-alie-pont-gueydon-paris-45f8b737-88ca-4b90-83a1-d671c3d50e7c.html",
+  "db5f089a-ac62-4ada-978b-94c21fa6b7f3": "evenement/rencontre-dedicace-avec-jean-baptiste-brenet-averroes-paris-db5f089a-ac62-4ada-978b-94c21fa6b7f3.html"
 });
 
   function eventId(value) {
