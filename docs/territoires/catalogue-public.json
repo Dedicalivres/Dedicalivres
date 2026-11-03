@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T20:04:22.608Z",
+  "capturedAt": "2026-11-03T20:09:01.217Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -911,6 +911,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "157df0d2-a9c0-48cd-8efe-92c3f753bab7",
+      "title": "4e Salon du livre policier de Brest « Brest en Noir »",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Brest",
+      "start_date": "2026-11-22",
+      "end_date": "2026-11-22",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://brest.fr/salon-du-livre-policier-de-brest-brest-en-noir"
     },
     {
       "id": "15d0cd55-567c-485d-9edd-4a0b269de984",
@@ -5001,6 +5015,20 @@
       "website": "https://www.parislibrairies.fr/agenda-205081/bernard-vouilloux-presente-gaetan-picon-une-pensee-de-la-creation-/"
     },
     {
+      "id": "83c7b029-0290-4174-809d-9ee2323bb1a4",
+      "title": "Cycle Raisons d’agir — Oh, travail !",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-19",
+      "end_date": "2026-11-19",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
+    },
+    {
       "id": "83e61244-12ff-4135-9b54-0e4bbe02d610",
       "title": "Rencontre croisée : Cedric Michon et Neville Rowley",
       "type": "Dédicace",
@@ -7519,6 +7547,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.takeabreizh.com"
+    },
+    {
+      "id": "c995ea23-528f-4c13-a795-d30f029dea27",
+      "title": "Rencontre avec Juan Gabriel Vásquez — Les noms de Feliza",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Nouvelle-Aquitaine",
+      "city": "Le Bouscat",
+      "start_date": "2026-11-19",
+      "end_date": "2026-11-19",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.bouscat.fr/14-agenda/2744-festival-lettres-du-monde.html"
     },
     {
       "id": "ca731304-b3f6-4bfe-b06b-4e7c9fd70b50",
