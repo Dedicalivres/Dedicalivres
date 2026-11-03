@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T19:45:10.583Z",
+  "capturedAt": "2026-11-03T19:50:24.323Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -2873,6 +2873,20 @@
       "website": "https://www.maisonduthouarsais.com/billetterie-en-ligne.html"
     },
     {
+      "id": "495e1ab7-c100-4360-89bb-7c6a342ef528",
+      "title": "Dédicace BD avec Sophie Ruffieux — Nous sommes ici tous réunis",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Vincennes",
+      "start_date": "2026-11-06",
+      "end_date": "2026-11-06",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-205453/sophie-ruffieux-en-dedicace/"
+    },
+    {
       "id": "49a0bea3-914c-4569-9097-d70a0b1c530a",
       "title": "Festival BD, livres jeunesse, manga et caricatures de Naucelle",
       "type": "Festival",
@@ -3291,6 +3305,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://data.datatourisme.fr/15/5f8f6634-f572-3534-b064-6d8d8a2a6ea1"
+    },
+    {
+      "id": "54368463-4cae-4412-82b5-f10fe97c7f93",
+      "title": "Rencontre-dédicace avec Jean Mattern",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-06",
+      "end_date": "2026-11-06",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206536/jean-mattern/"
     },
     {
       "id": "547df883-2fd4-4dde-be58-5f24e8bbf204",
@@ -4327,6 +4355,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://fr-fr.facebook.com/pages/category/Nonprofit-Organization/Normandie-Livre-Lecture-167569077185375/"
+    },
+    {
+      "id": "713c149e-4bab-4bc8-b8a6-0364be75d82e",
+      "title": "Rencontre-dédicace avec Chedli Ben Hassine — No exit for white men",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-06",
+      "end_date": "2026-11-06",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.eventbrite.fr/e/rencontre-et-dedicace-avec-chedli-ben-hassine-tickets-2003510615183"
     },
     {
       "id": "71f484f2-b078-4e80-8216-3526e6c53e70",
