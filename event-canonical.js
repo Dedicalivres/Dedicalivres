@@ -708,7 +708,8 @@
   "b2f22fc3-3d2c-40c6-a665-725b9ea17a90": "evenement/rencontre-avec-colin-niel-le-septieme-siffleur-le-havre-b2f22fc3-3d2c-40c6-a665-725b9ea17a90.html",
   "157df0d2-a9c0-48cd-8efe-92c3f753bab7": "evenement/4e-salon-du-livre-policier-de-brest-brest-en-noir-brest-157df0d2-a9c0-48cd-8efe-92c3f753bab7.html",
   "83c7b029-0290-4174-809d-9ee2323bb1a4": "evenement/cycle-raisons-dagir-oh-travail-paris-83c7b029-0290-4174-809d-9ee2323bb1a4.html",
-  "c995ea23-528f-4c13-a795-d30f029dea27": "evenement/rencontre-avec-juan-gabriel-vasquez-les-noms-de-feliza-le-bouscat-c995ea23-528f-4c13-a795-d30f029dea27.html"
+  "c995ea23-528f-4c13-a795-d30f029dea27": "evenement/rencontre-avec-juan-gabriel-vasquez-les-noms-de-feliza-le-bouscat-c995ea23-528f-4c13-a795-d30f029dea27.html",
+  "c2cfface-aef0-4d6e-b388-b0c234e87cea": "evenement/soiree-editions-espaces-34-gwendoline-soublin-lancelot-hamelin-et-stan-c2cfface-aef0-4d6e-b388-b0c234e87cea.html"
 });
 
   function eventId(value) {
