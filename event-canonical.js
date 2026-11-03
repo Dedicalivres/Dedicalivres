@@ -645,7 +645,10 @@
   "d26ed82a-4d0e-459e-8e33-d92998c8e02d": "evenement/rencontre-avec-jean-marc-talpin-paris-d26ed82a-4d0e-459e-8e33-d92998c8e02d.html",
   "47664e70-7a13-46bd-b125-79813b1e3b0e": "evenement/lancement-avec-samih-amar-tran-bellevilles-paris-47664e70-7a13-46bd-b125-79813b1e3b0e.html",
   "4ec78155-fb7a-4f5b-b343-7ca8b9194cd8": "evenement/rencontre-avec-alice-deon-et-jean-esch-nouvelle-traduction-de-l-attrap-4ec78155-fb7a-4f5b-b343-7ca8b9194cd8.html",
-  "6bc89da1-9b3c-46e6-863c-1ed763041220": "evenement/rencontre-avec-blanche-leridon-nos-inachevements-paris-6bc89da1-9b3c-46e6-863c-1ed763041220.html"
+  "6bc89da1-9b3c-46e6-863c-1ed763041220": "evenement/rencontre-avec-blanche-leridon-nos-inachevements-paris-6bc89da1-9b3c-46e6-863c-1ed763041220.html",
+  "55484325-dd93-407a-9492-82d9997871c8": "evenement/rencontre-avec-natacha-samuel-desastree-poetique-du-nom-juif-paris-55484325-dd93-407a-9492-82d9997871c8.html",
+  "a974cd7e-698f-43e8-9c46-ea4817a1ef16": "evenement/rencontre-avec-marc-endeweld-largent-magique-niort-a974cd7e-698f-43e8-9c46-ea4817a1ef16.html",
+  "fe351c7c-84dc-41ce-a778-0a6ab133f783": "evenement/rencontre-avec-lucienne-peiry-parures-et-vetements-dart-brut-paris-fe351c7c-84dc-41ce-a778-0a6ab133f783.html"
 });
 
   function eventId(value) {

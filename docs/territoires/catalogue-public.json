@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T17:51:12.831Z",
+  "capturedAt": "2026-11-03T17:54:35.511Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -3125,6 +3125,20 @@
       "website": "https://www.jds.fr/riberac/foires-et-salons/marches/dedicace-avec-michel-de-caurel-1612616_A"
     },
     {
+      "id": "55484325-dd93-407a-9492-82d9997871c8",
+      "title": "Rencontre avec Natacha Samuel — Désastrée, poétique du nom juif",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/05-novembre-2026/7367-rencontre-avec-natacha-samuel-pour-desastree-poetique-du-nom-juif--ed--l-extreme-contemporain-"
+    },
+    {
       "id": "56eacf53-5192-4741-a267-8b695cb92098",
       "title": "Salon du livre de Longperrier (77), le dimanche 27 septembre 2026 | Jean-Michel SECK, auteur et photographe",
       "type": "Salon",
@@ -5657,6 +5671,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.explore-calvados.com/en/event/rencontre-et-dedicace-avec-myriam-fregonese/"
+    },
+    {
+      "id": "a974cd7e-698f-43e8-9c46-ea4817a1ef16",
+      "title": "Rencontre avec Marc Endeweld — L’Argent magique",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Nouvelle-Aquitaine",
+      "city": "Niort",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.sortiraniort.fr/evenements/rencontre-marc-endeweld/?occurrence=2026-11-05"
     },
     {
       "id": "a9e84fea-5b7d-4f0f-8f80-ef1b98db8f27",
@@ -8947,6 +8975,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://livrest.fr/ressources/agenda-des-manifestations-litteraires"
+    },
+    {
+      "id": "fe351c7c-84dc-41ce-a778-0a6ab133f783",
+      "title": "Rencontre avec Lucienne Peiry — Parures et vêtements d’art brut",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.notesartbrut.ch/page/4/"
     },
     {
       "id": "ff35f76f-c574-42b8-88ae-7b79ef29f315",
