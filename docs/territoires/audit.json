@@ -1,8 +1,8 @@
 {
-  "base": "abb34f2ddd594583448b8155709a2d3af1ce886f",
-  "capturedAt": "2026-11-03T19:59:45.659Z",
+  "base": "9a34065a12873162336663dea785fee6802b451f",
+  "capturedAt": "2026-11-03T20:04:22.608Z",
   "today": "2026-11-03",
-  "total": 700,
+  "total": 703,
   "registryCountries": [
     {
       "code": "FR",
@@ -82,13 +82,13 @@
       "id": "FR-local-08",
       "label": "Île-de-France",
       "country": "FR",
-      "count": 102
+      "count": 104
     },
     {
       "id": "FR-local-09",
       "label": "Normandie",
       "country": "FR",
-      "count": 43
+      "count": 44
     },
     {
       "id": "FR-local-10",
@@ -942,8 +942,8 @@
         "Provence-Alpes-Côte d’Azur"
       ],
       "editorial": "",
-      "total": 685,
-      "upcoming": 136,
+      "total": 688,
+      "upcoming": 139,
       "ongoing": 4,
       "past": 549,
       "undated": 0,
@@ -1569,6 +1569,7 @@
         "ffeea6a3-0bb8-44ba-9b89-21edcd86285c",
         "6066a8b3-1389-4ce6-8316-9f91a261a482",
         "15d0cd55-567c-485d-9edd-4a0b269de984",
+        "7e4643ee-f117-4917-8a2d-23ffe740748b",
         "14d987d0-90fe-45cf-8f0f-3233c8c77c4c",
         "316861b7-0dd1-4ea7-b458-9fd8da849881",
         "dc155d97-0c40-412b-87ea-033f51958976",
@@ -1579,9 +1580,11 @@
         "c4beb4b6-ca0a-4000-87c7-329542158186",
         "6056f9f1-9c09-4327-acc2-b6b12a665b3d",
         "8c66fc26-c927-4a2e-be3e-5fb5e5489d34",
+        "99146dd5-03df-4e42-bb2a-9a2274c4e6ed",
         "26514d4f-6b3e-4dff-84a3-aff893f1cfc1",
         "6ef46e3b-6bd8-46f0-ac77-52234a92810e",
         "6992952d-af0d-452d-a93c-71f58302ed66",
+        "b2f22fc3-3d2c-40c6-a665-725b9ea17a90",
         "8dbeec83-ed09-42c5-90bf-7b18d00062d5",
         "84f8e08a-0ee9-481e-8474-37a5221120ef",
         "f6e0a2a3-6dfa-4ec9-a4b8-e7a026bf278b",
@@ -2271,8 +2274,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Île-de-France</h2>\n    <p>En Île-de-France, les rencontres littéraires se déploient entre Paris, les librairies indépendantes, les médiathèques, les salons spécialisés et les festivals culturels. Dédicalivres rassemble les événements franciliens pour aider les lecteurs à repérer les prochains rendez-vous autour du livre.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Île-de-France</h2>\n  <p>La région Île-de-France regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-paris.html\">Paris</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Île-de-France. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Île-de-France</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Île-de-France ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 102,
-      "upcoming": 63,
+      "total": 104,
+      "upcoming": 65,
       "ongoing": 2,
       "past": 39,
       "undated": 0,
@@ -2370,7 +2373,9 @@
         "ba03a197-c6d7-424a-a486-221149fac501",
         "91988d08-f078-4c1f-9102-f781bd29b298",
         "6066a8b3-1389-4ce6-8316-9f91a261a482",
+        "7e4643ee-f117-4917-8a2d-23ffe740748b",
         "8c66fc26-c927-4a2e-be3e-5fb5e5489d34",
+        "99146dd5-03df-4e42-bb2a-9a2274c4e6ed",
         "26514d4f-6b3e-4dff-84a3-aff893f1cfc1",
         "6992952d-af0d-452d-a93c-71f58302ed66",
         "73e52226-d36a-42ee-b5a8-42bf286d755e",
@@ -2397,8 +2402,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Normandie</h2>\n    <p>La Normandie accueille de nombreux rendez-vous autour du livre, entre salons, festivals, librairies, médiathèques et rencontres culturelles. Dédicalivres centralise ces événements pour aider les lecteurs à découvrir les prochaines sorties littéraires régionales.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Normandie</h2>\n  <p>La région Normandie regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-rouen.html\">Rouen</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Normandie. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Normandie</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Normandie ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 43,
-      "upcoming": 4,
+      "total": 44,
+      "upcoming": 5,
       "ongoing": 0,
       "past": 39,
       "undated": 0,
@@ -2444,6 +2449,7 @@
         "85e245fe-5d96-465b-b4b0-db55cc022383",
         "00413406-fd94-4937-96cd-d2133c4e3e65",
         "70e011da-09ff-4d65-a5da-02c51d07f80b",
+        "b2f22fc3-3d2c-40c6-a665-725b9ea17a90",
         "2d8f1a1f-6a67-4418-ad5e-fba954780d78",
         "77ccedcc-655f-424b-a8fe-829115b93ed6",
         "c856084b-7052-40a9-8fab-6e64a6a2ff13",

@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T19:59:45.659Z",
+  "capturedAt": "2026-11-03T20:04:22.608Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -4791,6 +4791,20 @@
       "website": "https://www.livrelecturebretagne.fr/agenda-salons-festivals?art=2816&return=aHR0cHM6Ly93d3cubGl2cmVsZWN0dXJlYnJldGFnbmUuZnIvYWdlbmRhLXNhbG9ucy1mZXN0aXZhbHM="
     },
     {
+      "id": "7e4643ee-f117-4917-8a2d-23ffe740748b",
+      "title": "Dédicace avec Miranda Richmond Mouillot et Dave Hackett — Gramsci, une vie politique",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
+    },
+    {
       "id": "7e6a26ef-ab20-4bb9-bf83-b9e057cab516",
       "title": "Salon sea book and love",
       "type": "Salon",
@@ -5771,6 +5785,20 @@
       "website": "/agenda-201183/festival-du-livre-de-la-haute-tinee/"
     },
     {
+      "id": "99146dd5-03df-4e42-bb2a-9a2274c4e6ed",
+      "title": "Rencontre autour de Pèlerinage de Dorothy Richardson — Marie-Odile Probst et Anne Alvaro",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-17",
+      "end_date": "2026-11-17",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
+    },
+    {
       "id": "9a212ac2-e9e1-45b0-89a9-af9b4291a1bd",
       "title": "Salon du livre et Saveurs du terroir",
       "type": "Festival",
@@ -6609,6 +6637,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "b2f22fc3-3d2c-40c6-a665-725b9ea17a90",
+      "title": "Rencontre avec Colin Niel — Le Septième Siffleur",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Normandie",
+      "city": "Le Havre",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-18",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.eventbrite.fr/e/billets-rencontre-colin-niel-1995646201510"
     },
     {
       "id": "b301e3ec-63ee-45cd-a3cd-f598b17c79fd",
