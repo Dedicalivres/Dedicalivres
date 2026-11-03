@@ -709,7 +709,10 @@
   "157df0d2-a9c0-48cd-8efe-92c3f753bab7": "evenement/4e-salon-du-livre-policier-de-brest-brest-en-noir-brest-157df0d2-a9c0-48cd-8efe-92c3f753bab7.html",
   "83c7b029-0290-4174-809d-9ee2323bb1a4": "evenement/cycle-raisons-dagir-oh-travail-paris-83c7b029-0290-4174-809d-9ee2323bb1a4.html",
   "c995ea23-528f-4c13-a795-d30f029dea27": "evenement/rencontre-avec-juan-gabriel-vasquez-les-noms-de-feliza-le-bouscat-c995ea23-528f-4c13-a795-d30f029dea27.html",
-  "c2cfface-aef0-4d6e-b388-b0c234e87cea": "evenement/soiree-editions-espaces-34-gwendoline-soublin-lancelot-hamelin-et-stan-c2cfface-aef0-4d6e-b388-b0c234e87cea.html"
+  "c2cfface-aef0-4d6e-b388-b0c234e87cea": "evenement/soiree-editions-espaces-34-gwendoline-soublin-lancelot-hamelin-et-stan-c2cfface-aef0-4d6e-b388-b0c234e87cea.html",
+  "77ea4e76-61bb-433f-a8de-de90a1ef3c87": "evenement/37e-journee-de-la-culture-et-du-livre-juifs-paris-paris-77ea4e76-61bb-433f-a8de-de90a1ef3c87.html",
+  "7dd4f6ba-9999-4b27-8222-962fa1f34d3a": "evenement/salon-du-livre-2026-des-essarts-le-roi-les-essarts-le-roi-7dd4f6ba-9999-4b27-8222-962fa1f34d3a.html",
+  "f92e2d0d-8cee-49e5-b31e-f2f9e0b584e0": "evenement/rencontre-avec-olivier-rolin-la-guerre-eternelle-rennes-rennes-f92e2d0d-8cee-49e5-b31e-f2f9e0b584e0.html"
 });
 
   function eventId(value) {

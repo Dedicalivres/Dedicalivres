@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T20:13:33.785Z",
+  "capturedAt": "2026-11-03T20:59:31.838Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -4637,6 +4637,20 @@
       "website": "https://www.faiteslire.fr/"
     },
     {
+      "id": "77ea4e76-61bb-433f-a8de-de90a1ef3c87",
+      "title": "37e Journée de la culture et du livre juifs — Paris",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-29",
+      "end_date": "2026-11-29",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://my.weezevent.com/36e-journee-de-la-culture-et-du-livre-juifs"
+    },
+    {
       "id": "785a77fc-a308-471b-b05c-e723cdf59aaa",
       "title": "Séance de dédicace - Espace culture E.Leclerc Saint Denis les Sens (89)",
       "type": "Dédicace",
@@ -4803,6 +4817,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.livrelecturebretagne.fr/agenda-salons-festivals?art=2816&return=aHR0cHM6Ly93d3cubGl2cmVsZWN0dXJlYnJldGFnbmUuZnIvYWdlbmRhLXNhbG9ucy1mZXN0aXZhbHM="
+    },
+    {
+      "id": "7dd4f6ba-9999-4b27-8222-962fa1f34d3a",
+      "title": "Salon du livre 2026 des Essarts-le-Roi",
+      "type": "Salon",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Les Essarts-le-Roi",
+      "start_date": "2026-11-15",
+      "end_date": "2026-11-15",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.salonlivrelesessartsleroi.com/le-salon-2025"
     },
     {
       "id": "7e4643ee-f117-4917-8a2d-23ffe740748b",
@@ -9549,6 +9577,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "f92e2d0d-8cee-49e5-b31e-f2f9e0b584e0",
+      "title": "Rencontre avec Olivier Rolin — La Guerre éternelle (Rennes)",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Rennes",
+      "start_date": "2026-11-21",
+      "end_date": "2026-11-21",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://livrelecturebretagne.fr/agenda-salons-festivals?art=3497"
     },
     {
       "id": "f951e64d-b685-4508-95d9-4332dd011231",
