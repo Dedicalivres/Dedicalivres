@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T17:38:06.211Z",
+  "capturedAt": "2026-11-03T17:51:12.831Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -2607,6 +2607,20 @@
       "website": "https://mediatheque.toul.fr/"
     },
     {
+      "id": "47664e70-7a13-46bd-b125-79813b1e3b0e",
+      "title": "Lancement avec Samih Amar Tran — Bellevilles",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
+    },
+    {
       "id": "47d85977-1142-4bba-bb6e-2e43eb259480",
       "title": "Rencontre litteraire : Jean-Marie Blas de Roblès",
       "type": "Dédicace",
@@ -2829,6 +2843,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://bibliothequescab.dordogne.fr/agenda/584-rencontre-dedicace-lecture"
+    },
+    {
+      "id": "4ec78155-fb7a-4f5b-b343-7ca8b9194cd8",
+      "title": "Rencontre avec Alice Déon et Jean Esch — Nouvelle traduction de L'Attrape-cœurs",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/05-novembre-2026/7364-soiree-autour-de-salinger-et-de-la-nouvelle-traduction-de-l-attrape-coeurs"
     },
     {
       "id": "4f4953eb-6bce-4d36-81ae-14601e62ab93",
@@ -3809,6 +3837,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.lejsl.com/pour-sortir/loisirs/Salon-foire-concours-agricole/Autres-salons-foires-concours/Bourgogne/Saone-et-loire/Anost/2026/07/18/Fete-du-livre-et-des-medias"
+    },
+    {
+      "id": "6bc89da1-9b3c-46e6-863c-1ed763041220",
+      "title": "Rencontre avec Blanche Leridon — Nos inachèvements",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://openagenda.com/fr/les-evenements-de-la-librairie-compagnie-/events/58074651_rendez-vous-cinema-avec-blanche-leridon-au-mk2-odeon"
     },
     {
       "id": "6c2b8a95-1d9a-477e-af6c-5d445a379f80",

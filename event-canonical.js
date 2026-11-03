@@ -642,7 +642,10 @@
   "f041b0f7-8b23-47c6-be33-91646c352b57": "evenement/rencontre-avec-sabine-macher-immeuble-berlinois-paris-f041b0f7-8b23-47c6-be33-91646c352b57.html",
   "0ef729e4-215f-4feb-a4b6-1fa1ebee707b": "evenement/rencontre-croisee-avec-sandra-laugier-et-gatsu-sensei-paris-0ef729e4-215f-4feb-a4b6-1fa1ebee707b.html",
   "54f026f6-8ffa-4100-9243-5ec30b4b7c93": "evenement/rencontre-avec-colin-niel-le-septieme-siffleur-rennes-54f026f6-8ffa-4100-9243-5ec30b4b7c93.html",
-  "d26ed82a-4d0e-459e-8e33-d92998c8e02d": "evenement/rencontre-avec-jean-marc-talpin-paris-d26ed82a-4d0e-459e-8e33-d92998c8e02d.html"
+  "d26ed82a-4d0e-459e-8e33-d92998c8e02d": "evenement/rencontre-avec-jean-marc-talpin-paris-d26ed82a-4d0e-459e-8e33-d92998c8e02d.html",
+  "47664e70-7a13-46bd-b125-79813b1e3b0e": "evenement/lancement-avec-samih-amar-tran-bellevilles-paris-47664e70-7a13-46bd-b125-79813b1e3b0e.html",
+  "4ec78155-fb7a-4f5b-b343-7ca8b9194cd8": "evenement/rencontre-avec-alice-deon-et-jean-esch-nouvelle-traduction-de-l-attrap-4ec78155-fb7a-4f5b-b343-7ca8b9194cd8.html",
+  "6bc89da1-9b3c-46e6-863c-1ed763041220": "evenement/rencontre-avec-blanche-leridon-nos-inachevements-paris-6bc89da1-9b3c-46e6-863c-1ed763041220.html"
 });
 
   function eventId(value) {
