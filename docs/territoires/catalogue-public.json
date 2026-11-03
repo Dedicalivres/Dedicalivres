@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T19:37:51.077Z",
+  "capturedAt": "2026-11-03T19:41:50.256Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -5001,6 +5001,20 @@
       "website": "https://www.imaginales.fr/imaginales-2026/"
     },
     {
+      "id": "854237da-c11b-4d0e-aa95-df38ec115e3b",
+      "title": "Rencontre-dédicace avec Ananda Devi — Chronique d'un royaume perdu",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Vincennes",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206428/rencontre-ananda-devi/"
+    },
+    {
       "id": "8545419c-9e2f-460d-8ba0-c1fecdcbd534",
       "title": "Salon du Livre de l’Île de Ré",
       "type": "Salon",
@@ -7143,6 +7157,20 @@
       "website": "https://www.ville-soreze.fr/soreze-in-libris/"
     },
     {
+      "id": "c4d23988-cc07-4178-bc26-4aba41373693",
+      "title": "Rencontre-dédicace avec Mathieu Belezi — C'était notre terre",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Boulogne-Billancourt",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-200172/rencontre-avec-mathieu-belezi/"
+    },
+    {
       "id": "c5462304-e3f4-4a25-b23a-0b991ea8ebcc",
       "title": "Rencontre & dédicace Ludovic Lancien",
       "type": "Dédicace",
@@ -7505,6 +7533,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.destinationhautlanguedoc.fr/agenda/dedicace-de-carole-seguier-0"
+    },
+    {
+      "id": "cf0d1827-384d-42a1-a8ca-7eebffbb081d",
+      "title": "Rencontre-dédicace avec Blanche de Richemont — Dictionnaire amoureux du désert",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206250/blanche-de-richemont-dictionnaire-amoureux-du-desert/"
     },
     {
       "id": "cf111e86-6e3d-4365-a815-821b0aedc442",

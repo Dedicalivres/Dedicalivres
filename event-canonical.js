@@ -690,7 +690,10 @@
   "fda7569f-ed6a-4d5c-a14f-f82706efdb07": "evenement/rencontre-avec-lionel-naccache-habeas-corpus-paris-fda7569f-ed6a-4d5c-a14f-f82706efdb07.html",
   "3293c945-12e1-4c7e-b2ee-62847dc3fcb1": "evenement/rencontre-editions-super-loto-lea-mkl-lucas-gicquel-et-camille-escoube-3293c945-12e1-4c7e-b2ee-62847dc3fcb1.html",
   "71f484f2-b078-4e80-8216-3526e6c53e70": "evenement/rencontre-avec-sylvain-prudhomme-de-l-autre-cote-du-lac-charenton-char-71f484f2-b078-4e80-8216-3526e6c53e70.html",
-  "edde7d68-9dfb-4546-adf9-512263325079": "evenement/rencontre-avec-norman-ajari-technofascisme-paris-edde7d68-9dfb-4546-adf9-512263325079.html"
+  "edde7d68-9dfb-4546-adf9-512263325079": "evenement/rencontre-avec-norman-ajari-technofascisme-paris-edde7d68-9dfb-4546-adf9-512263325079.html",
+  "854237da-c11b-4d0e-aa95-df38ec115e3b": "evenement/rencontre-dedicace-avec-ananda-devi-chronique-d-un-royaume-perdu-vince-854237da-c11b-4d0e-aa95-df38ec115e3b.html",
+  "c4d23988-cc07-4178-bc26-4aba41373693": "evenement/rencontre-dedicace-avec-mathieu-belezi-c-etait-notre-terre-boulogne-bi-c4d23988-cc07-4178-bc26-4aba41373693.html",
+  "cf0d1827-384d-42a1-a8ca-7eebffbb081d": "evenement/rencontre-dedicace-avec-blanche-de-richemont-dictionnaire-amoureux-du-cf0d1827-384d-42a1-a8ca-7eebffbb081d.html"
 });
 
   function eventId(value) {
