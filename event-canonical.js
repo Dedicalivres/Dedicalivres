@@ -639,7 +639,10 @@
   "fb2d8279-2215-4300-90de-469911699d1d": "evenement/rencontre-avec-rachel-adalbald-car-du-vide-de-ma-bouche-est-nee-une-ep-fb2d8279-2215-4300-90de-469911699d1d.html",
   "450301db-766e-4577-9bfd-e14de801a8fa": "evenement/rencontre-autour-de-la-revue-savoirs-et-clinique-de-lassociation-libre-450301db-766e-4577-9bfd-e14de801a8fa.html",
   "eb15d872-2f26-4d89-bc33-7547dd7a11f4": "evenement/rencontre-avec-pierre-bayard-paris-eb15d872-2f26-4d89-bc33-7547dd7a11f4.html",
-  "f041b0f7-8b23-47c6-be33-91646c352b57": "evenement/rencontre-avec-sabine-macher-immeuble-berlinois-paris-f041b0f7-8b23-47c6-be33-91646c352b57.html"
+  "f041b0f7-8b23-47c6-be33-91646c352b57": "evenement/rencontre-avec-sabine-macher-immeuble-berlinois-paris-f041b0f7-8b23-47c6-be33-91646c352b57.html",
+  "0ef729e4-215f-4feb-a4b6-1fa1ebee707b": "evenement/rencontre-croisee-avec-sandra-laugier-et-gatsu-sensei-paris-0ef729e4-215f-4feb-a4b6-1fa1ebee707b.html",
+  "54f026f6-8ffa-4100-9243-5ec30b4b7c93": "evenement/rencontre-avec-colin-niel-le-septieme-siffleur-rennes-54f026f6-8ffa-4100-9243-5ec30b4b7c93.html",
+  "d26ed82a-4d0e-459e-8e33-d92998c8e02d": "evenement/rencontre-avec-jean-marc-talpin-paris-d26ed82a-4d0e-459e-8e33-d92998c8e02d.html"
 });
 
   function eventId(value) {

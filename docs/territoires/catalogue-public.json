@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T06:16:19.967Z",
+  "capturedAt": "2026-11-03T17:38:06.211Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -589,6 +589,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "0ef729e4-215f-4feb-a4b6-1fa1ebee707b",
+      "title": "Rencontre croisée avec Sandra Laugier et Gatsu Sensei",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206519/rencontre-croisee-sandra-laugier-et-gatsu-sensei/"
     },
     {
       "id": "0fe7bebf-6034-4a00-8d7c-ac5a6449e1cd",
@@ -3039,6 +3053,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.bernardcabanier-ecrivain.fr/"
+    },
+    {
+      "id": "54f026f6-8ffa-4100-9243-5ec30b4b7c93",
+      "title": "Rencontre avec Colin Niel — Le Septième Siffleur",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Rennes",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://oazis.app/sorties/chantepie/art-culture"
     },
     {
       "id": "54f89147-8cd4-4abc-b883-cca26c5e31a2",
@@ -7015,6 +7043,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://salondulivrenamurois.be"
+    },
+    {
+      "id": "d26ed82a-4d0e-459e-8e33-d92998c8e02d",
+      "title": "Rencontre avec Jean-Marc Talpin",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206535/jean-marc-talpin/"
     },
     {
       "id": "d2d0c8b6-7d3b-4075-a364-bcbdd2238a4c",
