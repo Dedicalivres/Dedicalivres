@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T17:59:15.983Z",
+  "capturedAt": "2026-11-03T18:04:00.487Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1191,6 +1191,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "1f4ca818-233e-4110-b519-c3a6f5efaa06",
+      "title": "Rencontre-dédicace avec David Colon",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-06",
+      "end_date": "2026-11-06",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206538/david-colon/"
     },
     {
       "id": "1fb9347c-7fb1-4734-8cea-a37c178a1dbe",
@@ -3921,6 +3935,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "http://www.bm-lyon.fr"
+    },
+    {
+      "id": "6d4af94c-3513-4c86-84f9-197e8b1a7579",
+      "title": "Rencontre avec Sylvain Prudhomme — De l’autre côté du lac",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-06",
+      "end_date": "2026-11-06",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
       "id": "6d6f8ae2-5e95-47db-acc2-91be11028e3b",
@@ -7575,6 +7603,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.livrelecturebretagne.fr/agenda-salons-festivals?art=2941&return=aHR0cHM6Ly93d3cubGl2cmVsZWN0dXJlYnJldGFnbmUuZnIvYWdlbmRhLXNhbG9ucy1mZXN0aXZhbHM="
+    },
+    {
+      "id": "dc47dbec-d0b2-4494-89f4-90b66a4fadee",
+      "title": "Dédicace avec Marine Le Breton — Cartes marines Outre-mer",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-07",
+      "end_date": "2026-11-07",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/07-novembre-2026/7379-dedicace-de-marine-le-breton-pour-cartes-marines-outre-mer"
     },
     {
       "id": "dcd6b1dd-572a-401f-a71a-8bb6b8e0fe5e",

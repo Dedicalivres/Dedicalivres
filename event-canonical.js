@@ -651,7 +651,10 @@
   "fe351c7c-84dc-41ce-a778-0a6ab133f783": "evenement/rencontre-avec-lucienne-peiry-parures-et-vetements-dart-brut-paris-fe351c7c-84dc-41ce-a778-0a6ab133f783.html",
   "849a1c29-46f3-425c-8d05-60b93670adc5": "evenement/rencontre-avec-erik-orsenna-les-derniers-rois-de-la-republique-paris-849a1c29-46f3-425c-8d05-60b93670adc5.html",
   "c069b305-57b2-4f26-a3a2-04407a11e2ea": "evenement/rencontre-avec-herve-mazurel-rimbaud-lodyssee-silencieuse-tours-c069b305-57b2-4f26-a3a2-04407a11e2ea.html",
-  "df14bb87-24c3-4e83-ac50-9b37d160c161": "evenement/rencontre-dedicace-avec-georges-didi-huberman-paris-df14bb87-24c3-4e83-ac50-9b37d160c161.html"
+  "df14bb87-24c3-4e83-ac50-9b37d160c161": "evenement/rencontre-dedicace-avec-georges-didi-huberman-paris-df14bb87-24c3-4e83-ac50-9b37d160c161.html",
+  "1f4ca818-233e-4110-b519-c3a6f5efaa06": "evenement/rencontre-dedicace-avec-david-colon-paris-1f4ca818-233e-4110-b519-c3a6f5efaa06.html",
+  "6d4af94c-3513-4c86-84f9-197e8b1a7579": "evenement/rencontre-avec-sylvain-prudhomme-de-lautre-cote-du-lac-paris-6d4af94c-3513-4c86-84f9-197e8b1a7579.html",
+  "dc47dbec-d0b2-4494-89f4-90b66a4fadee": "evenement/dedicace-avec-marine-le-breton-cartes-marines-outre-mer-paris-dc47dbec-d0b2-4494-89f4-90b66a4fadee.html"
 });
 
   function eventId(value) {
