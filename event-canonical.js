@@ -699,7 +699,10 @@
   "ef596387-3c0c-4ebc-a699-67c8172a4b00": "evenement/rencontre-dedicace-bd-avec-juliette-mancini-devenir-falaise-paris-ef596387-3c0c-4ebc-a699-67c8172a4b00.html",
   "495e1ab7-c100-4360-89bb-7c6a342ef528": "evenement/dedicace-bd-avec-sophie-ruffieux-nous-sommes-ici-tous-reunis-vincennes-495e1ab7-c100-4360-89bb-7c6a342ef528.html",
   "54368463-4cae-4412-82b5-f10fe97c7f93": "evenement/rencontre-dedicace-avec-jean-mattern-paris-54368463-4cae-4412-82b5-f10fe97c7f93.html",
-  "713c149e-4bab-4bc8-b8a6-0364be75d82e": "evenement/rencontre-dedicace-avec-chedli-ben-hassine-no-exit-for-white-men-paris-713c149e-4bab-4bc8-b8a6-0364be75d82e.html"
+  "713c149e-4bab-4bc8-b8a6-0364be75d82e": "evenement/rencontre-dedicace-avec-chedli-ben-hassine-no-exit-for-white-men-paris-713c149e-4bab-4bc8-b8a6-0364be75d82e.html",
+  "6b610697-d5c5-48ed-9e59-d1e3012b8183": "evenement/dedicace-et-atelier-avec-francois-goupil-artemis-et-les-10-royaumes-pa-6b610697-d5c5-48ed-9e59-d1e3012b8183.html",
+  "70ff8f6c-3a5d-4f4a-b73e-193d0f900939": "evenement/rencontre-avec-michel-jean-nishim-lorient-70ff8f6c-3a5d-4f4a-b73e-193d0f900939.html",
+  "a86e592f-a461-4ba5-8ec8-406659cea833": "evenement/rencontre-avec-isabelle-duquesnoy-une-couronne-dimmortelles-clermont-f-a86e592f-a461-4ba5-8ec8-406659cea833.html"
 });
 
   function eventId(value) {

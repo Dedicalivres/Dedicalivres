@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T19:50:24.323Z",
+  "capturedAt": "2026-11-03T19:59:45.659Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -4133,6 +4133,20 @@
       "website": "https://www.instagram.com/lil_lusion.fyrison?igsh=cjAxdjV6b2d0dHdi"
     },
     {
+      "id": "6b610697-d5c5-48ed-9e59-d1e3012b8183",
+      "title": "Dédicace et atelier avec François Goupil — Artémis et les 10 royaumes",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-07",
+      "end_date": "2026-11-07",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/07-novembre-2026/7409-dedicace-et-atelier-de-dessin-sur-vitrine-avec-francois-goupil-pour--artemis-et-les-10-royaumes-----sarbacane-"
+    },
+    {
       "id": "6b9c46b2-e959-42df-b636-86c32e90f582",
       "title": "Rencontre et dédicaces avec l’auteur Romain Potocki",
       "type": "Dédicace",
@@ -4355,6 +4369,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://fr-fr.facebook.com/pages/category/Nonprofit-Organization/Normandie-Livre-Lecture-167569077185375/"
+    },
+    {
+      "id": "70ff8f6c-3a5d-4f4a-b73e-193d0f900939",
+      "title": "Rencontre avec Michel Jean — Nishim",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Bretagne",
+      "city": "Lorient",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.lorientbretagnesudtourisme.fr/fr/fiche/michel-jean-en-rencontre-dedicace-lorient_TFOY935179013983/"
     },
     {
       "id": "713c149e-4bab-4bc8-b8a6-0364be75d82e",
@@ -6189,6 +6217,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.explore-calvados.com/en/event/rencontre-et-dedicace-avec-myriam-fregonese/"
+    },
+    {
+      "id": "a86e592f-a461-4ba5-8ec8-406659cea833",
+      "title": "Rencontre avec Isabelle Duquesnoy — Une couronne d’immortelles",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Auvergne-Rhône-Alpes",
+      "city": "Clermont-Ferrand",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://pommesdelune.fr/event/2026/11/12/31788-rencontre-dedicace-isabelle-duquesnoy-une-couronne-dimmortelles"
     },
     {
       "id": "a974cd7e-698f-43e8-9c46-ea4817a1ef16",
