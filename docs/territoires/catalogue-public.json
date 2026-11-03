@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T18:11:08.584Z",
+  "capturedAt": "2026-11-03T18:15:12.230Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1361,6 +1361,20 @@
       "website": "https://grandsite-bibracte-morvan.fr/fr/20e-entretiens-de-bibracte-morvan-recits-de-paysages"
     },
     {
+      "id": "23d774c3-26b5-4e03-a9b5-9f955f436b1a",
+      "title": "Rencontre avec Vincent Goossaert — Des dieux qui parlent",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-24",
+      "end_date": "2026-11-24",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
+    },
+    {
       "id": "23dde9ec-2c5d-490c-9999-2728ebab588a",
       "title": "Journée dédicaces « La maison de mes émotions » (Chambly)",
       "type": "Dédicace",
@@ -1513,6 +1527,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "27fd0092-dd7e-4b48-bec9-16225c5185ea",
+      "title": "Rencontre avec Marlène Benquet, Sylvain Bourmeau et Hugues Jallon — Qui fait l’extrême droite ?",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-25",
+      "end_date": "2026-11-25",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
       "id": "284297b3-8855-4105-b95c-5779fa545ce9",
@@ -4159,6 +4187,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": null
+    },
+    {
+      "id": "73e52226-d36a-42ee-b5a8-42bf286d755e",
+      "title": "Rencontre avec Marie Goupy — Derrida : Force de loi, Voyous, Fichus",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-20",
+      "end_date": "2026-11-20",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
       "id": "749349aa-d673-4957-985f-7280556fbecc",
