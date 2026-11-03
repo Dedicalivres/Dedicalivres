@@ -654,7 +654,10 @@
   "df14bb87-24c3-4e83-ac50-9b37d160c161": "evenement/rencontre-dedicace-avec-georges-didi-huberman-paris-df14bb87-24c3-4e83-ac50-9b37d160c161.html",
   "1f4ca818-233e-4110-b519-c3a6f5efaa06": "evenement/rencontre-dedicace-avec-david-colon-paris-1f4ca818-233e-4110-b519-c3a6f5efaa06.html",
   "6d4af94c-3513-4c86-84f9-197e8b1a7579": "evenement/rencontre-avec-sylvain-prudhomme-de-lautre-cote-du-lac-paris-6d4af94c-3513-4c86-84f9-197e8b1a7579.html",
-  "dc47dbec-d0b2-4494-89f4-90b66a4fadee": "evenement/dedicace-avec-marine-le-breton-cartes-marines-outre-mer-paris-dc47dbec-d0b2-4494-89f4-90b66a4fadee.html"
+  "dc47dbec-d0b2-4494-89f4-90b66a4fadee": "evenement/dedicace-avec-marine-le-breton-cartes-marines-outre-mer-paris-dc47dbec-d0b2-4494-89f4-90b66a4fadee.html",
+  "6066a8b3-1389-4ce6-8316-9f91a261a482": "evenement/dedicace-avec-joe-hume-david-bowie-au-japon-paris-6066a8b3-1389-4ce6-8316-9f91a261a482.html",
+  "91988d08-f078-4c1f-9102-f781bd29b298": "evenement/rencontre-avec-isabella-checcaglini-arogya-yoga-paris-91988d08-f078-4c1f-9102-f781bd29b298.html",
+  "ba03a197-c6d7-424a-a486-221149fac501": "evenement/rencontre-autour-des-editions-theatrales-francoise-bloch-adeline-rosen-ba03a197-c6d7-424a-a486-221149fac501.html"
 });
 
   function eventId(value) {

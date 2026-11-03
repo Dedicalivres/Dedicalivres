@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T18:04:00.487Z",
+  "capturedAt": "2026-11-03T18:07:44.305Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -3461,6 +3461,20 @@
       "website": "https://portescristallines.fr"
     },
     {
+      "id": "6066a8b3-1389-4ce6-8316-9f91a261a482",
+      "title": "Dédicace avec Joe Hume — David Bowie au Japon",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
+    },
+    {
       "id": "606f4098-de70-4581-968b-65a3e0a4e0bc",
       "title": "Dédicace de Benoit Falaize",
       "type": "Dédicace",
@@ -5057,6 +5071,20 @@
       "website": ""
     },
     {
+      "id": "91988d08-f078-4c1f-9102-f781bd29b298",
+      "title": "Rencontre avec Isabella Checcaglini — Arogya Yoga",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
+    },
+    {
       "id": "91be739a-c6eb-4d41-8cf6-bfbb80e92cc7",
       "title": "Dédicace Dylan Heskin | Espace Culturel Pleuven",
       "type": "Dédicace",
@@ -6315,6 +6343,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://mysteriales.fr/"
+    },
+    {
+      "id": "ba03a197-c6d7-424a-a486-221149fac501",
+      "title": "Rencontre autour des éditions Théâtrales — Françoise Bloch, Adeline Rosenstein, Olivier Neveux et Olivier Saccomano",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-09",
+      "end_date": "2026-11-09",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
       "id": "ba240c50-ccb4-45d2-8181-b55802a4ba59",
