@@ -678,7 +678,10 @@
   "b4ca9600-a755-45f7-96b0-0c4f2be2eea0": "evenement/rencontre-avec-tiffany-tavernier-paris-b4ca9600-a755-45f7-96b0-0c4f2be2eea0.html",
   "413369c8-b091-4186-a968-7040ac1c4ae2": "evenement/rencontre-dedicace-avec-les-laureats-du-prix-clara-2026-paris-413369c8-b091-4186-a968-7040ac1c4ae2.html",
   "45f8b737-88ca-4b90-83a1-d671c3d50e7c": "evenement/rencontre-dedicace-avec-marijose-alie-pont-gueydon-paris-45f8b737-88ca-4b90-83a1-d671c3d50e7c.html",
-  "db5f089a-ac62-4ada-978b-94c21fa6b7f3": "evenement/rencontre-dedicace-avec-jean-baptiste-brenet-averroes-paris-db5f089a-ac62-4ada-978b-94c21fa6b7f3.html"
+  "db5f089a-ac62-4ada-978b-94c21fa6b7f3": "evenement/rencontre-dedicace-avec-jean-baptiste-brenet-averroes-paris-db5f089a-ac62-4ada-978b-94c21fa6b7f3.html",
+  "04c9fd08-dee1-492c-a907-5b55d572f4ef": "evenement/rencontre-dedicace-avec-noham-selcer-midgar-maisons-alfort-04c9fd08-dee1-492c-a907-5b55d572f4ef.html",
+  "0d135373-aa6e-4df7-8027-45a2c0ec9b53": "evenement/rencontre-dedicace-avec-sonia-devillers-le-fabuleux-piano-asnieres-sur-0d135373-aa6e-4df7-8027-45a2c0ec9b53.html",
+  "587f64fa-cd1b-4de8-9f1a-f9f485b42462": "evenement/rencontre-dedicace-avec-thierry-lhermitte-paris-587f64fa-cd1b-4de8-9f1a-f9f485b42462.html"
 });
 
   function eventId(value) {

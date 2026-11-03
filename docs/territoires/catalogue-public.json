@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T19:22:09.135Z",
+  "capturedAt": "2026-11-03T19:26:07.549Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -183,6 +183,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/events/château-des-planches/salon-du-livre-de-la-romance-auto-éditée-et-des-métiers-de-lédition-/3002034176662211/"
+    },
+    {
+      "id": "04c9fd08-dee1-492c-a907-5b55d572f4ef",
+      "title": "Rencontre-dédicace avec Noham Selcer — Midgar",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Maisons-Alfort",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-205948/rencontre-avec-noham-selcer/"
     },
     {
       "id": "0527af42-40b3-46e6-8819-d48a41d9f066",
@@ -533,6 +547,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/profile.php?id=61564370110828"
+    },
+    {
+      "id": "0d135373-aa6e-4df7-8027-45a2c0ec9b53",
+      "title": "Rencontre-dédicace avec Sonia Devillers — Le Fabuleux Piano",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Asnières-sur-Seine",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207037/rencontre-avec-sonia-devillers-a-la-librairie-nouvelle/"
     },
     {
       "id": "0e37be3a-ffa4-4964-b8e3-54dc34e4d7b8",
@@ -3333,6 +3361,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.infolocale.fr/evenements/evenement-lavernose-lacasse-litterature-rencontre-dedicace-avec-l-auteur-nicolas-druart-2009562199"
+    },
+    {
+      "id": "587f64fa-cd1b-4de8-9f1a-f9f485b42462",
+      "title": "Rencontre-dédicace avec Thierry Lhermitte",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-204784/rencontre-avec-thierry-lhermitte/"
     },
     {
       "id": "591776cc-c943-4baa-b043-1c3363d56c4b",
