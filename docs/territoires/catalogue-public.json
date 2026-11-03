@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T18:07:44.305Z",
+  "capturedAt": "2026-11-03T18:11:08.584Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1429,6 +1429,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/events/2148433405675439/?acontext=%7B%22event_action_history%22%3A[%7B%22surface%22%3A%22group%22%7D]%7D"
+    },
+    {
+      "id": "26514d4f-6b3e-4dff-84a3-aff893f1cfc1",
+      "title": "Rencontre avec Estelle Ferrarese — Les Incandescences bourgeoises",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-17",
+      "end_date": "2026-11-17",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
       "id": "26699867-fcdd-4f21-8018-ac80b979633b",
@@ -3783,6 +3797,20 @@
       "website": "https://www.eterritoire.fr/detail/activites-touristiques/20eme-edition-%3A-salon-du-livre-peinture-et-art/4202542191/occitanie,aveyron,naucelle(12800)"
     },
     {
+      "id": "6992952d-af0d-452d-a93c-71f58302ed66",
+      "title": "Rencontre avec Barbara Métais-Chastanier — Elles ne mouraient pas toutes",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-18",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
+    },
+    {
       "id": "6a757f62-148d-4287-9257-16bfc1eb2bb4",
       "title": "XX ème Salon du Livre et des arts",
       "type": "Salon",
@@ -4943,6 +4971,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.mediatheque-chabris.net/"
+    },
+    {
+      "id": "8c66fc26-c927-4a2e-be3e-5fb5e5489d34",
+      "title": "Rencontre avec Milena Csergo et Milène Tournier — Écritures théâtrales",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-16",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
       "id": "8d9c21c1-f4ba-4ae4-b500-cef412ae1b53",
