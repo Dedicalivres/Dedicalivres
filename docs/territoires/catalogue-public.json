@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T17:54:35.511Z",
+  "capturedAt": "2026-11-03T17:59:15.983Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -4595,6 +4595,20 @@
       "website": "https://bibliotheque.toulouse.fr/mediatheque-cote-pavee"
     },
     {
+      "id": "849a1c29-46f3-425c-8d05-60b93670adc5",
+      "title": "Rencontre avec Erik Orsenna — Les Derniers Rois de la République",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-06",
+      "end_date": "2026-11-06",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207348/erik-orsenna-les-derniers-rois-de-la-republique/"
+    },
+    {
       "id": "84cb3714-5549-47e6-b9a9-2760b9064cf2",
       "title": "Rencontre et dédicace avec Maxime Mainguet",
       "type": "Dédicace",
@@ -6485,6 +6499,20 @@
       "website": "https://openagenda.com/unidivers-oui-sortir/events/rencontre-dauteur-avec-olivier-bal"
     },
     {
+      "id": "c069b305-57b2-4f26-a3a2-04407a11e2ea",
+      "title": "Rencontre avec Hervé Mazurel — Rimbaud, l’odyssée silencieuse",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Centre-Val de Loire",
+      "city": "Tours",
+      "start_date": "2026-11-06",
+      "end_date": "2026-11-06",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.librairielelivre.com/news/show/138"
+    },
+    {
       "id": "c0b63a63-5850-42e4-beab-ce84ebf922ab",
       "title": "Dédicace de Pierre-Alexandre Coïc",
       "type": "Dédicace",
@@ -7659,6 +7687,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "df14bb87-24c3-4e83-ac50-9b37d160c161",
+      "title": "Rencontre-dédicace avec Georges Didi-Huberman",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-05",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-204845/georges-didi-huberman/"
     },
     {
       "id": "df341655-3fce-46a3-a838-9ed9fbe5744d",

@@ -1,8 +1,8 @@
 {
-  "base": "81b2bec4f15f7cafb81c3c9323fe01f0ae64ade6",
-  "capturedAt": "2026-11-03T17:54:35.511Z",
+  "base": "f92b219aead8beb7fa19da91e4656c89e763e41c",
+  "capturedAt": "2026-11-03T17:59:15.983Z",
   "today": "2026-11-03",
-  "total": 646,
+  "total": 649,
   "registryCountries": [
     {
       "code": "FR",
@@ -58,7 +58,7 @@
       "id": "FR-local-04",
       "label": "Centre-Val de Loire",
       "country": "FR",
-      "count": 40
+      "count": 41
     },
     {
       "id": "FR-local-05",
@@ -82,7 +82,7 @@
       "id": "FR-local-08",
       "label": "Île-de-France",
       "country": "FR",
-      "count": 52
+      "count": 54
     },
     {
       "id": "FR-local-09",
@@ -909,8 +909,8 @@
         "Provence-Alpes-Côte d’Azur"
       ],
       "editorial": "",
-      "total": 631,
-      "upcoming": 82,
+      "total": 634,
+      "upcoming": 85,
       "ongoing": 4,
       "past": 549,
       "undated": 0,
@@ -1484,8 +1484,11 @@
         "fe351c7c-84dc-41ce-a778-0a6ab133f783",
         "a974cd7e-698f-43e8-9c46-ea4817a1ef16",
         "55484325-dd93-407a-9492-82d9997871c8",
+        "df14bb87-24c3-4e83-ac50-9b37d160c161",
         "83270534-e551-4562-8805-f10240a6007c",
         "b0f916ad-e5f9-493b-80e9-7f05e7e7d55c",
+        "849a1c29-46f3-425c-8d05-60b93670adc5",
+        "c069b305-57b2-4f26-a3a2-04407a11e2ea",
         "e319b179-8986-4543-9ace-215839fbe46e",
         "a5988d56-85e0-4ccf-af66-92b22b314190",
         "e380c538-2bc7-4ad4-b53e-22b601fb6381",
@@ -1946,8 +1949,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Centre-Val de Loire</h2>\n    <p>Le Centre-Val de Loire accueille des événements littéraires dans ses villes, ses bibliothèques, ses salons et ses lieux culturels. Dédicalivres aide les lecteurs à repérer les dédicaces, festivals et rencontres d’auteurs organisés dans la région.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Centre-Val de Loire</h2>\n  <p>La région Centre-Val de Loire regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-tours.html\">Tours</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Centre-Val de Loire. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Centre-Val de Loire</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Centre-Val de Loire ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 40,
-      "upcoming": 8,
+      "total": 41,
+      "upcoming": 9,
       "ongoing": 1,
       "past": 32,
       "undated": 0,
@@ -1987,6 +1990,7 @@
         "e5c9dcfe-db53-4fe6-99b9-e4eba740e416",
         "14b74626-3d4d-4e49-b832-1fc98892ce6a",
         "a4737592-2995-4e85-a923-dc675d53d670",
+        "c069b305-57b2-4f26-a3a2-04407a11e2ea",
         "d6644218-1307-40d7-bc34-eced6c51a6c7",
         "6056f9f1-9c09-4327-acc2-b6b12a665b3d",
         "b559457b-e307-4ee2-b620-3ad3e183c0f9",
@@ -2181,8 +2185,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Île-de-France</h2>\n    <p>En Île-de-France, les rencontres littéraires se déploient entre Paris, les librairies indépendantes, les médiathèques, les salons spécialisés et les festivals culturels. Dédicalivres rassemble les événements franciliens pour aider les lecteurs à repérer les prochains rendez-vous autour du livre.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Île-de-France</h2>\n  <p>La région Île-de-France regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-paris.html\">Paris</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Île-de-France. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Île-de-France</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Île-de-France ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 52,
-      "upcoming": 13,
+      "total": 54,
+      "upcoming": 15,
       "ongoing": 2,
       "past": 39,
       "undated": 0,
@@ -2239,6 +2243,8 @@
         "6bc89da1-9b3c-46e6-863c-1ed763041220",
         "fe351c7c-84dc-41ce-a778-0a6ab133f783",
         "55484325-dd93-407a-9492-82d9997871c8",
+        "df14bb87-24c3-4e83-ac50-9b37d160c161",
+        "849a1c29-46f3-425c-8d05-60b93670adc5",
         "62fc7c96-aa02-4187-aa88-a5a39185d3d9",
         "1024f7e4-22ae-4660-8952-1e1b9ae1de48"
       ]
