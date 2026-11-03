@@ -669,7 +669,10 @@
   "d198605d-f9c1-4f51-854a-132482158b8e": "evenement/rencontre-avec-zakaria-el-sem-et-antoine-jobard-le-coiffeur-mal-beni-p-d198605d-f9c1-4f51-854a-132482158b8e.html",
   "36ecca18-7ccf-4dfc-af82-87cb5d7dea43": "evenement/rencontre-avec-michel-jean-nishim-chateauneuf-grasse-36ecca18-7ccf-4dfc-af82-87cb5d7dea43.html",
   "a080efe4-632d-4782-972a-e30e1c33850d": "evenement/dedicace-avec-jul-et-achde-saint-lucky-luke-paris-a080efe4-632d-4782-972a-e30e1c33850d.html",
-  "b08b76d9-f8db-4f1b-b2e5-018747b31043": "evenement/rencontre-avec-diglee-demeure-paris-b08b76d9-f8db-4f1b-b2e5-018747b31043.html"
+  "b08b76d9-f8db-4f1b-b2e5-018747b31043": "evenement/rencontre-avec-diglee-demeure-paris-b08b76d9-f8db-4f1b-b2e5-018747b31043.html",
+  "4c826d25-f035-45db-b0a2-ca64e1babbb8": "evenement/lancement-de-schnock-chez-soi-avec-alister-paris-4c826d25-f035-45db-b0a2-ca64e1babbb8.html",
+  "9c79d2f2-cfe7-4cb0-8f84-b41abc9284a6": "evenement/rencontre-avec-patrice-et-dominique-blanc-francard-paris-9c79d2f2-cfe7-4cb0-8f84-b41abc9284a6.html",
+  "9d989c8c-a4f1-41bc-a5cc-0df16ed759d7": "evenement/dedicace-avec-bruno-wennagel-post-mortem-saint-mande-9d989c8c-a4f1-41bc-a5cc-0df16ed759d7.html"
 });
 
   function eventId(value) {

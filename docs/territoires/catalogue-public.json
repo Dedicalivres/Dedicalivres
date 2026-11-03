@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T18:50:47.055Z",
+  "capturedAt": "2026-11-03T19:13:47.152Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -2873,6 +2873,20 @@
       "website": "https://data.datatourisme.fr/23/32218930-4272-3a1c-9e97-084fbd5c7378"
     },
     {
+      "id": "4c826d25-f035-45db-b0a2-ca64e1babbb8",
+      "title": "Lancement de Schnock chez soi avec Alister",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206715/soiree-lancement-de-schnock-chez-soi-avec-alister/"
+    },
+    {
       "id": "4c8eb9e4-d09c-4aa1-b399-78c681dc8933",
       "title": "Rencontre dédicace auteur",
       "type": "Dédicace",
@@ -5545,6 +5559,34 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://francis-jammes.com/"
+    },
+    {
+      "id": "9c79d2f2-cfe7-4cb0-8f84-b41abc9284a6",
+      "title": "Rencontre avec Patrice et Dominique Blanc-Francard",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206542/patrice-et-dominique-blanc-francard/"
+    },
+    {
+      "id": "9d989c8c-a4f1-41bc-a5cc-0df16ed759d7",
+      "title": "Dédicace avec Bruno Wennagel — Post mortem",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Saint-Mandé",
+      "start_date": "2026-11-04",
+      "end_date": "2026-11-04",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-204937/dedicace-avec-bruno-wennagel-/"
     },
     {
       "id": "9dcbdaed-1ba7-4e36-8b6e-1c96cdf358c4",
