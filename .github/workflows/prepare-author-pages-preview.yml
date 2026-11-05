@@ -1,0 +1,28 @@
+name: Prepare author pages reconciliation
+on:
+  workflow_dispatch:
+jobs:
+  preview-author-pages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate author pages from public Supabase catalog
+        run: node scripts/build-author-pages.mjs
+      - name: Show generated changes
+        run: |
+          git status --short -- auteurs sitemap-seo-auteurs.xml
+          git diff --check
+          node scripts/check-author-static-parity.mjs
+      - name: Save generated pages for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: author-pages-preview
+          path: |
+            auteurs/
+            sitemap-seo-auteurs.xml
+          retention-days: 7
