@@ -14,5 +14,9 @@ const sitemap = fs.readFileSync(sitemapPath, 'utf8');
 const slugs = [...sitemap.matchAll(/<loc>https:\/\/dedicalivres\.fr\/auteurs\/([a-z0-9-]+)\/<\/loc>/g)].map(match => match[1]).sort();
 const missingInSitemap = pages.filter(slug => !slugs.includes(slug));
 const missingPages = slugs.filter(slug => !pages.includes(slug));
-console.log(JSON.stringify({ pages: pages.length, sitemapEntries: slugs.length, missingInSitemap, missingPages }, null, 2));
-if (missingInSitemap.length || missingPages.length) process.exitCode = 1;
+const allowLegacyLeplat = process.argv.includes('--allow-legacy-leplat');
+const expectedLegacyOnly = missingInSitemap.length === 1 && missingInSitemap[0] === 'leplat-thierry' && missingPages.length === 0;
+console.log(JSON.stringify({ pages: pages.length, sitemapEntries: slugs.length, missingInSitemap, missingPages, legacyExceptionAccepted: allowLegacyLeplat && expectedLegacyOnly }, null, 2));
+if (missingInSitemap.length || missingPages.length) {
+  if (!(allowLegacyLeplat && expectedLegacyOnly)) process.exitCode = 1;
+}
