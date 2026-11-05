@@ -6,6 +6,8 @@ on:
       - 'scripts/test-author-public-features.mjs'
       - 'scripts/author-bnf-cache-policy.mjs'
       - 'scripts/test-author-bnf-cache-policy.mjs'
+      - 'scripts/author-tier-rollout-audit.mjs'
+      - 'scripts/test-author-tier-rollout-audit.mjs'
       - '.github/workflows/test-author-feature-policy.yml'
   workflow_dispatch:
 jobs:
@@ -24,7 +26,10 @@ jobs:
           node --check scripts/test-author-public-features.mjs
           node --check scripts/author-bnf-cache-policy.mjs
           node --check scripts/test-author-bnf-cache-policy.mjs
+          node --check scripts/author-tier-rollout-audit.mjs
+          node --check scripts/test-author-tier-rollout-audit.mjs
       - name: Run policy tests
         run: |
           node scripts/test-author-public-features.mjs
           node scripts/test-author-bnf-cache-policy.mjs
+          node scripts/test-author-tier-rollout-audit.mjs
