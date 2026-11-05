@@ -20,6 +20,7 @@ assert.equal(features({},[{...verified,presence_verified:false}]).tier,"register
 assert.equal(features({},[{...verified,author_id:"someone-else"}]).tier,"registered");
 assert.equal(features({},[{...verified,events:{...event,validated:false}}]).tier,"registered");
 assert.equal(features({},[{...verified,rejected:true}]).tier,"registered");
+assert.equal(features({},[{...verified,archived_at:"2026-11-05T00:00:00Z"}]).tier,"registered");
 assert.equal(features({},[{...verified,events:{...event,rejected:true}}]).tier,"registered");
 assert.equal(features({published:false},[verified]).tier,"unpublished");
 assert.equal(features({merged_into:"merged"},[verified]).profileVisible,false);
