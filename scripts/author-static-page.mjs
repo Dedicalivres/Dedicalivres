@@ -1,3 +1,4 @@
+import { AUTHOR_REGISTERED_MESSAGE } from "./author-public-features.mjs";
 import canonicalMap from "../docs/territoires/event-canonical-map.json" with { type: "json" };
 
 const SITE_URL = "https://dedicalivres.fr";
@@ -107,14 +108,17 @@ function renderEventSection(id, heading, label, events) {
   </section>`;
 }
 
-export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }) {
+export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt, featurePolicy = null }) {
   const name = clean(author.pseudo || "Auteur");
   const slug = clean(author.slug);
   const canonical = canonicalUrl(slug);
   const groups = classifyEvents(events, generatedAt);
-  const eventCount = groups.ongoing.length + groups.upcoming.length + groups.past.length;
+  // Legacy builds preserve their original output until the audited rollout.
+  const registeredOnly = featurePolicy?.tier === "registered";
+  const partner = featurePolicy?.partnerBadgeVisible === true;
+  const eventCount = registeredOnly ? 0 : groups.ongoing.length + groups.upcoming.length + groups.past.length;
   const description = seoDescription(author, eventCount);
-  const title = `${name} — dédicaces, salons et rencontres | Dédicalivres`;
+  const title = registeredOnly ? `${name} — fiche auteur | Dédicalivres` : `${name} — dédicaces, salons et rencontres | Dédicalivres`;
   const image = validPublicUrl(author.avatar_url) ? author.avatar_url : `${SITE_URL}/logo.png`;
   const sameAs = [...new Set([author.website, author.shop_url].filter(validPublicUrl))];
   const person = {
@@ -147,14 +151,15 @@ export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }
     <nav class="detail-back-link" aria-label="Fil d’Ariane"><a href="/">Accueil</a><span aria-hidden="true"> › </span><a href="/auteurs/">Auteurs</a><span aria-hidden="true"> › </span><span>${escapeHtml(name)}</span></nav>
     <article class="author-profile"><div class="author-profile-inner">
       <div class="author-visual">${author.avatar_url ? `<img class="author-avatar" src="${escapeHtml(author.avatar_url)}" alt="${escapeHtml(name)}" />` : `<div class="author-avatar-placeholder">${escapeHtml(initials)}</div>`}<div class="author-visual-wash" aria-hidden="true"></div></div>
-      <div class="author-profile-content"><div class="author-editorial-heading"><p class="author-kicker">${escapeHtml(profileLabel)}</p><h1 class="author-title">${escapeHtml(name)}</h1>${author.location ? `<p class="author-location">📍 ${escapeHtml(author.location)}</p>` : ""}</div>
+      <div class="author-profile-content"><div class="author-editorial-heading"><p class="author-kicker">${escapeHtml(profileLabel)}</p><h1 class="author-title">${escapeHtml(name)}</h1>${partner ? `<span class="author-partner-label" aria-label="Auteur partenaire de Dédicalivres">Auteur partenaire de Dédicalivres</span>` : ""}${author.location ? `<p class="author-location">📍 ${escapeHtml(author.location)}</p>` : ""}</div>
       <div class="author-bio">${author.bio ? `<p>${escapeHtml(author.bio)}</p>` : `<p>Biographie à enrichir.</p>`}</div>
       <div class="author-actions">${sameAs.map((url, index) => `<a class="${index ? "btn-secondary" : "btn-primary author-action-primary"}" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${index ? "Boutique / précommande" : "Vitrine / profil"}</a>`).join("")}<a class="btn-secondary" href="/#agenda">Voir l’agenda</a></div>
-      <p class="author-note"><span>Historique des présences indiquées sur Dédicalivres, sous contrôle de modération.</span></p></div>
+      ${registeredOnly ? "" : `<p class="author-note"><span>Historique des présences indiquées sur Dédicalivres, sous contrôle de modération.</span></p>`}</div>
     </div></article>
-    ${renderEventSection("ongoing", "Événements en cours", "Présences en cours indiquées sur Dédicalivres", groups.ongoing)}
-    ${renderEventSection("upcoming", "Événements à venir", "Présences à venir indiquées sur Dédicalivres", groups.upcoming)}
-    ${renderEventSection("past", "Événements passés", "Historique des présences indiquées sur Dédicalivres", groups.past)}
+    ${registeredOnly ? `<section class="section author-registration-status" aria-label="Participation aux événements"><p>${escapeHtml(AUTHOR_REGISTERED_MESSAGE)}</p><a class="btn-secondary" href="/author-contribute.html">Déclarer une participation</a></section>` : ""}
+    ${registeredOnly ? "" : renderEventSection("ongoing", "Événements en cours", "Présences en cours indiquées sur Dédicalivres", groups.ongoing)}
+    ${registeredOnly ? "" : renderEventSection("upcoming", "Événements à venir", "Présences à venir indiquées sur Dédicalivres", groups.upcoming)}
+    ${registeredOnly ? "" : renderEventSection("past", "Événements passés", "Historique des présences indiquées sur Dédicalivres", groups.past)}
   </main>`;
 
   let html = baseHtml
