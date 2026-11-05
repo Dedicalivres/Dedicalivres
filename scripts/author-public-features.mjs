@@ -13,6 +13,7 @@ export function isConfirmedParticipation(presence) {
     presence?.validated === true &&
     presence?.rejected === false &&
     presence?.presence_verified === true &&
+    !presence?.archived_at &&
     event?.id &&
     event.validated === true &&
     event.rejected === false
@@ -22,6 +23,8 @@ export function isConfirmedParticipation(presence) {
 export function authorPublicFeatures({ author, presences = [] } = {}) {
   const profileVisible = author?.validated === true &&
     author?.published === true && !author?.merged_into;
+  // A conservative flag: legacy approved-but-unverified presences require audit
+  // before rollout, not silent downgrading of already published author pages.
   const hasParticipation = profileVisible &&
     Array.isArray(presences) && presences.some(p =>
       p?.author_id === author.id && isConfirmedParticipation(p));
