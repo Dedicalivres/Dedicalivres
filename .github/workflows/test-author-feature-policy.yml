@@ -4,6 +4,8 @@ on:
     paths:
       - 'scripts/author-public-features.mjs'
       - 'scripts/test-author-public-features.mjs'
+      - 'scripts/author-bnf-cache-policy.mjs'
+      - 'scripts/test-author-bnf-cache-policy.mjs'
       - '.github/workflows/test-author-feature-policy.yml'
   workflow_dispatch:
 jobs:
@@ -20,5 +22,9 @@ jobs:
         run: |
           node --check scripts/author-public-features.mjs
           node --check scripts/test-author-public-features.mjs
+          node --check scripts/author-bnf-cache-policy.mjs
+          node --check scripts/test-author-bnf-cache-policy.mjs
       - name: Run policy tests
-        run: node scripts/test-author-public-features.mjs
+        run: |
+          node scripts/test-author-public-features.mjs
+          node scripts/test-author-bnf-cache-policy.mjs
