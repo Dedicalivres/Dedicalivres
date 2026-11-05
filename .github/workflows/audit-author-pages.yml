@@ -1,0 +1,21 @@
+name: Audit author static pages
+on:
+  pull_request:
+    paths:
+      - 'auteurs/**'
+      - 'sitemap-seo-auteurs.xml'
+      - 'scripts/check-author-static-parity.mjs'
+      - '.github/workflows/audit-author-pages.yml'
+  workflow_dispatch:
+jobs:
+  static-parity:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check author page and sitemap consistency
+        run: node scripts/check-author-static-parity.mjs
