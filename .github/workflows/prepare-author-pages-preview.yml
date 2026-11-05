@@ -5,6 +5,7 @@ on:
       - '.github/workflows/prepare-author-pages-preview.yml'
       - 'scripts/build-author-pages.mjs'
       - 'scripts/author-static-page.mjs'
+      - 'scripts/check-author-static-parity.mjs'
       - 'auteurs/**'
       - 'sitemap-seo-auteurs.xml'
   workflow_dispatch:
@@ -24,9 +25,9 @@ jobs:
         run: |
           git status --short -- auteurs sitemap-seo-auteurs.xml
           git diff --check
-          # Legacy Thierry Leplat page is outside the validated published catalog.
-          # Report it separately; do not delete or rewrite this exceptional page.
-          node scripts/check-author-static-parity.mjs || echo 'PARITY REVIEW: legacy author page requires separate audit'
+          # Only the documented Thierry Leplat legacy discrepancy may be deferred.
+          # All other missing pages or sitemap entries must fail this check.
+          node scripts/check-author-static-parity.mjs --allow-legacy-leplat
       - name: Save generated pages for review
         uses: actions/upload-artifact@v4
         with:
