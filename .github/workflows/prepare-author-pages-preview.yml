@@ -1,5 +1,12 @@
 name: Prepare author pages reconciliation
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/prepare-author-pages-preview.yml'
+      - 'scripts/build-author-pages.mjs'
+      - 'scripts/author-static-page.mjs'
+      - 'auteurs/**'
+      - 'sitemap-seo-auteurs.xml'
   workflow_dispatch:
 jobs:
   preview-author-pages:
