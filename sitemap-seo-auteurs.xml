@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://dedicalivres.fr/auteurs/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/adele-royon/</loc><lastmod>2026-10-31</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/camille-chardonnier/</loc><lastmod>2026-10-31</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/charlotte-bruno/</loc><lastmod>2026-10-31</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/chris-sheldon/</loc><lastmod>2026-10-31</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://dedicalivres.fr/auteurs/dylan-heskin/</loc><lastmod>2026-10-09</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/elodie-marbac-vincent/</loc><lastmod>2026-10-20</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/fleur-meuron/</loc><lastmod>2026-10-31</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://dedicalivres.fr/auteurs/jean-baloue/</loc><lastmod>2026-10-20</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://dedicalivres.fr/auteurs/katell-poquet/</loc><lastmod>2026-09-02</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/kris-petit/</loc><lastmod>2026-10-20</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://dedicalivres.fr/auteurs/lemaire-camille/</loc><lastmod>2026-10-20</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://dedicalivres.fr/auteurs/leplat-thierry/</loc><lastmod>2026-10-20</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/marie-claude-gueguen/</loc><lastmod>2026-11-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/max-leyel/</loc><lastmod>2026-11-02</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/melissa-van/</loc><lastmod>2026-11-06</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/morgane-le-guennic/</loc><lastmod>2026-10-31</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/norbert-lafond-kempf/</loc><lastmod>2026-10-31</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/olivier-le-gal/</loc><lastmod>2026-10-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/rose-abelle/</loc><lastmod>2026-10-22</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dedicalivres.fr/auteurs/skell-minnvard/</loc><lastmod>2026-10-31</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
 </urlset>
