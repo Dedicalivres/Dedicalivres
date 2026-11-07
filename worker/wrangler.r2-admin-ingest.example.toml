@@ -1,0 +1,28 @@
+# Example only — DO NOT deploy without a security review and explicit approval.
+# Start this worker separately. Do not replace the existing r2-upload Worker.
+name = "dedicalivres-r2-admin-ingest"
+main = "r2-admin-ingest.mjs"
+compatibility_date = "2026-11-07"
+workers_dev = false
+
+[vars]
+SUPABASE_URL = "https://pwyetrqyiaxpzjrafpvb.supabase.co"
+# The publishable key is public, never use the service-role key here.
+SUPABASE_PUBLISHABLE_KEY = "REPLACE_WITH_PUBLIC_PUBLISHABLE_KEY"
+R2_PUBLIC_BASE_URL = "https://pub-45a59368068e48578d3b1a1bb519c543.r2.dev"
+ALLOWED_ORIGINS = "https://dedicalivres.fr,https://www.dedicalivres.fr"
+
+[[r2_buckets]]
+binding = "UPLOAD_BUCKET"
+bucket_name = "dedicalivres-images"
+
+# Choose an unused namespace_id for this Cloudflare account.
+[[ratelimits]]
+name = "UPLOAD_RATE_LIMIT"
+namespace_id = "10031"
+  [ratelimits.simple]
+  limit = 10
+  period = 60
+
+# Explicit route must be attached only after approval and controlled testing.
+# routes = [{pattern = "<approved-r2-upload-subdomain>/*", zone_name = "dedicalivres.fr"}]

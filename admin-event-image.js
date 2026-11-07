@@ -35,8 +35,9 @@
     validate(file);
 
     const config = options.config || window.DEDICALIVRES_CONFIG || {};
-    const endpoint = validUrl(config.imageUploadEndpoint);
-
+    // Off by default. Existing multipart uploads remain byte-for-byte compatible.
+    const secure = config.imageUploadAuthEnabled === true;
+    const endpoint = validUrl(secure ? config.imageUploadSecureEndpoint : config.imageUploadEndpoint);
     if (config.imageUploadProvider !== "r2" || !endpoint) {
       throw new Error("Upload R2 indisponible.");
     }
@@ -46,16 +47,27 @@
       throw new Error("Connexion au stockage R2 indisponible.");
     }
 
-    const formData = new FormData();
-    formData.append("file", file, file.name || "image-evenement.jpg");
-    formData.append("folder", "event-images");
+    let payloadRequest;
+    if (secure) {
+      const state = window.DEDICALIVRES_ADMIN_CONTEXT?.getState?.();
+      const token = state?.authenticated === true && state?.status === "ready"
+        ? state?.session?.access_token : null;
+      if (!token) throw new Error("Connexion administrateur requise pour l’envoi sécurisé.");
+      payloadRequest = {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": file.type },
+        body: file
+      };
+    } else {
+      const formData = new FormData();
+      formData.append("file", file, file.name || "image-evenement.jpg");
+      formData.append("folder", "event-images");
+      payloadRequest = { method: "POST", body: formData };
+    }
 
     let response;
     try {
-      response = await fetcher(endpoint, {
-        method: "POST",
-        body: formData
-      });
+      response = await fetcher(endpoint, payloadRequest);
     } catch (error) {
       throw new Error(
         "Connexion au stockage R2 impossible : " +
