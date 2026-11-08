@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:23:04.068Z",
+  "capturedAt": "2026-11-08T20:25:14.856Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -603,6 +603,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "0e8ef4fc-0c8f-46e0-b0c2-510d03f31c89",
+      "title": "Club de lecture en espagnol — Las aventuras de la China Iron",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-205836/club-de-lectura-del-colectivo-argentina-en-lucha-las-aventuras-de-la-china-iron-de-gabriela-cabezon-camara/"
     },
     {
       "id": "0eb8448d-f967-45ad-96a8-263e903e1218",
@@ -7423,6 +7437,20 @@
       "website": "https://www.librest.com/nos-rendez-vous/novembre-2026"
     },
     {
+      "id": "c33d7284-9e55-4813-a9aa-0cfcdcfd000b",
+      "title": "Dédicace avec Jérôme Chasques — Les signaux faibles",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-204814/dedicace-jerome-chasques/"
+    },
+    {
       "id": "c3aafdda-11ca-4342-9686-6a5212e946c3",
       "title": "Bulles en-Barrois - Festival de la BD et du livre d'illustration",
       "type": "Festival",
@@ -8709,6 +8737,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.chateaudepreisch.com/fr/"
+    },
+    {
+      "id": "e2b70509-7967-4498-ad6b-aad561b01290",
+      "title": "Rencontre BD avec Hugo Clément — Forêts : Le Dernier rempart",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-11",
+      "end_date": "2026-11-11",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206545/bande-dessinee-hugo-clement/"
     },
     {
       "id": "e300d216-b756-4776-a630-e353eb6b8a86",

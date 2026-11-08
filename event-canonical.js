@@ -721,7 +721,10 @@
   "b355720a-46b5-428f-8255-9dc29f361c89": "evenement/rencontre-avec-rafik-chekkat-la-palestine-en-proces-paris-b355720a-46b5-428f-8255-9dc29f361c89.html",
   "2105c82f-c011-493f-b693-72c3a96e5e62": "evenement/rencontre-dedicace-avec-flora-baumlin-et-marie-gariazzo-liberees-deliv-2105c82f-c011-493f-b693-72c3a96e5e62.html",
   "4c9aa6d1-7564-41f9-87a9-484e474c7b78": "evenement/rencontre-dedicace-avec-javier-santiso-toro-bravo-paris-4c9aa6d1-7564-41f9-87a9-484e474c7b78.html",
-  "c07bb5b9-37c2-492d-a3db-14055cdecef7": "evenement/rencontre-dedicace-avec-ludivine-bantigny-on-sait-pas-on-n-a-pas-essay-c07bb5b9-37c2-492d-a3db-14055cdecef7.html"
+  "c07bb5b9-37c2-492d-a3db-14055cdecef7": "evenement/rencontre-dedicace-avec-ludivine-bantigny-on-sait-pas-on-n-a-pas-essay-c07bb5b9-37c2-492d-a3db-14055cdecef7.html",
+  "0e8ef4fc-0c8f-46e0-b0c2-510d03f31c89": "evenement/club-de-lecture-en-espagnol-las-aventuras-de-la-china-iron-paris-0e8ef4fc-0c8f-46e0-b0c2-510d03f31c89.html",
+  "c33d7284-9e55-4813-a9aa-0cfcdcfd000b": "evenement/dedicace-avec-jerome-chasques-les-signaux-faibles-paris-c33d7284-9e55-4813-a9aa-0cfcdcfd000b.html",
+  "e2b70509-7967-4498-ad6b-aad561b01290": "evenement/rencontre-bd-avec-hugo-clement-forets-le-dernier-rempart-paris-e2b70509-7967-4498-ad6b-aad561b01290.html"
 });
 
   function eventId(value) {
