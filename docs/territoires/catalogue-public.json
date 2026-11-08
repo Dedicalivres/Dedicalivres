@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:47:52.300Z",
+  "capturedAt": "2026-11-08T20:49:55.490Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -5673,6 +5673,20 @@
       "website": "https://www.parislibrairies.fr/agenda-206602/rencontre-et-dedicace-avec-stephane-his/"
     },
     {
+      "id": "8936bfb2-b7c0-44bb-b486-b70e5cf0b547",
+      "title": "Dédicace jeunesse avec Bruno Wennagel",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-15",
+      "end_date": "2026-11-15",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-204060/jeunesse-bruno-wennagel/"
+    },
+    {
       "id": "8a11c2ba-9f86-48bd-92e0-136cc4d59403",
       "title": "Journées Européennes du Patrimoine, dédicaces de l'auteur Camille Lemaire",
       "type": "Dédicace",
@@ -7297,6 +7311,20 @@
       "website": "https://sites.google.com/view/gabrielgachen"
     },
     {
+      "id": "b5506733-a0ef-4c3c-9777-debe6d5f471d",
+      "title": "Rencontre-dédicace avec Lilia Hassaine — Je",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-15",
+      "end_date": "2026-11-15",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-203206/lilia-hassaine/"
+    },
+    {
       "id": "b559457b-e307-4ee2-b620-3ad3e183c0f9",
       "title": "Séance de dédicace - Espace culture E.Leclerc d'Amilly (45)",
       "type": "Dédicace",
@@ -7967,6 +7995,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/p/Salon-du-livre-jeunesse-de-Lantic-61576785073107/"
+    },
+    {
+      "id": "c631a198-73bb-410d-b6a8-b24f62217c9c",
+      "title": "Rencontre avec Catherine Zittoun — Les coulisses de l'ombre",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-15",
+      "end_date": "2026-11-15",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207491/rencontre-avec-catherine-zittoun/"
     },
     {
       "id": "c7477c54-63d6-498f-8285-d4f0f05fe5b9",
