@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-03T20:59:31.838Z",
+  "capturedAt": "2026-11-08T20:18:25.874Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1821,6 +1821,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.livrelecturebretagne.fr/agenda-salons-festivals?art=3018&return=aHR0cHM6Ly93d3cubGl2cmVsZWN0dXJlYnJldGFnbmUuZnIvYWdlbmRhLXNhbG9ucy1mZXN0aXZhbHM="
+    },
+    {
+      "id": "2e68dffe-b390-47ec-884a-b08c47da367f",
+      "title": "Rencontre avec Saverio Ansaldi et Giorgio Passerone — Leopardi, un intempestif",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-09",
+      "end_date": "2026-11-09",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-201104/saverio-ansaldi-et-giorgio-passerone-presentent-leopardi-un-intempestif/"
     },
     {
       "id": "2f91a079-942f-4aa7-b44e-6ca3d4dacfbb",
@@ -4257,6 +4271,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "http://www.bm-lyon.fr"
+    },
+    {
+      "id": "6d2abc18-5791-4ed8-876b-28b749b2bc6f",
+      "title": "Rencontre-dédicace avec Anne Lehoërff — Les Celtes",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-09",
+      "end_date": "2026-11-09",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206537/anne-lehoerff/"
     },
     {
       "id": "6d4af94c-3513-4c86-84f9-197e8b1a7579",
@@ -9479,6 +9507,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.esperluete.fr/rencontres/45736/"
+    },
+    {
+      "id": "f776bbe5-4a98-45aa-9811-95ad788c617b",
+      "title": "Rencontre avec Douglas Kennedy — L'homme qui n'avait pas assez d'une vie",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-10",
+      "end_date": "2026-11-10",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206622/rencontre-avec-douglas-kennedy/"
     },
     {
       "id": "f7b14e3f-7270-41eb-999a-9c372ec09460",
