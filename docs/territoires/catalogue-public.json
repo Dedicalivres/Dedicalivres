@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:49:55.490Z",
+  "capturedAt": "2026-11-08T20:51:58.406Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -4455,6 +4455,20 @@
       "website": "https://www.librest.com/nos-rendez-vous/07-novembre-2026/7409-dedicace-et-atelier-de-dessin-sur-vitrine-avec-francois-goupil-pour--artemis-et-les-10-royaumes-----sarbacane-"
     },
     {
+      "id": "6b6389a0-78de-48b4-944e-054b4e7d5f96",
+      "title": "Conférence avec Philippe Hoffmann — L'harmonie des sphères selon les Anciens",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-16",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-198087/-l-harmonie-des-spheres-selon-les-anciens-de-pythagore-a-proclus-par-philippe-hoffmann/"
+    },
+    {
       "id": "6b9c46b2-e959-42df-b636-86c32e90f582",
       "title": "Rencontre et dédicaces avec l’auteur Romain Potocki",
       "type": "Dédicace",
@@ -7197,6 +7211,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.parislibrairies.fr/agenda-207000/rencontre-avec-rafik-chekkat/"
+    },
+    {
+      "id": "b3be8319-13cb-4975-a062-c6423b4f8bcf",
+      "title": "Rencontre-dédicace avec Laurent Joly — Librairie Compagnie",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-16",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206568/laurent-joly/"
     },
     {
       "id": "b3ead890-232b-4cf7-93a1-b2999eb15afd",
