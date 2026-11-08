@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:40:37.892Z",
+  "capturedAt": "2026-11-08T20:42:59.798Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -4077,6 +4077,20 @@
       "website": "https://openagenda.com/les-evenements-de-la-librairie-kleber-strasbourg/events/rencontre-avec-daria-marx"
     },
     {
+      "id": "6439f67c-3f83-4cff-bbe6-0d1222fe54df",
+      "title": "Dédicace jeunesse avec Junko Shibuya — Marron, le petit hérisson qui aime coudre",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Charenton-le-Pont",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206447/junko-shibuya-dedicace-jeunesse/"
+    },
+    {
       "id": "64464d8e-2359-42fe-92fb-f9b39c3d6fb0",
       "title": "Rencontre / dédicace avec René Seiller",
       "type": "Dédicace",
@@ -7927,6 +7941,20 @@
       "website": "https://docs.google.com/forms/d/e/1FAIpQLSeUqrj36BJEbxKETLOnF4Pav6TXqV9j3AjGgQ4lBt6HPzcILg/viewform"
     },
     {
+      "id": "c8605cd4-6db3-41a8-a34e-abe335d8f27a",
+      "title": "Dédicace jeunesse avec Agnès Desarthe et Juanjo Guarnido — Librairie de Paris",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206558/jeunesse-agnes-desarthe-et-juanjo-guarnido/"
+    },
+    {
       "id": "c862dbce-396d-47b3-b02b-e5b7d98e9f21",
       "title": "29ème  Salon du livre \"Lire en Tursan\"",
       "type": "Salon",
@@ -7967,6 +7995,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://openagenda.com/journees-europeennes-du-patrimoine-grand-reims/events/salon-du-livre-regional"
+    },
+    {
+      "id": "c9434ee5-e6f0-448f-89c0-21b723f9c537",
+      "title": "Dédicace jeunesse avec Floriane Abello — Neige",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Vincennes",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206166/floriane-abello-en-dedicace/"
     },
     {
       "id": "c97d08c2-5cd5-4fa2-886f-417d2484462e",
