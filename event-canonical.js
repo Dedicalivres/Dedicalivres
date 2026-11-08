@@ -742,7 +742,10 @@
   "a538cb08-414c-4cdd-a5a2-cf83805597ac": "evenement/rencontre-avec-marie-hl-les-cailloux-paris-a538cb08-414c-4cdd-a5a2-cf83805597ac.html",
   "18af2d5f-0b2c-41ea-8b5e-178101412919": "evenement/rencontre-dedicace-avec-isabelle-backouche-et-boris-bove-paris-18af2d5f-0b2c-41ea-8b5e-178101412919.html",
   "b3ead890-232b-4cf7-93a1-b2999eb15afd": "evenement/rencontre-dedicace-avec-jean-christian-petitfils-paris-b3ead890-232b-4cf7-93a1-b2999eb15afd.html",
-  "f39f18f5-3147-4172-a932-729a738a4d20": "evenement/rencontre-dedicace-avec-marouane-essadek-mon-corps-donne-pour-vous-par-f39f18f5-3147-4172-a932-729a738a4d20.html"
+  "f39f18f5-3147-4172-a932-729a738a4d20": "evenement/rencontre-dedicace-avec-marouane-essadek-mon-corps-donne-pour-vous-par-f39f18f5-3147-4172-a932-729a738a4d20.html",
+  "9e664e42-9d5f-494b-b33b-367387c0014b": "evenement/soiree-litteraire-autour-d-astor-piazzolla-librairie-de-paris-paris-9e664e42-9d5f-494b-b33b-367387c0014b.html",
+  "a0f067ef-b4c3-4ab7-baef-7f18d86aa9c5": "evenement/soiree-litteraire-hunger-games-quiz-et-echanges-paris-a0f067ef-b4c3-4ab7-baef-7f18d86aa9c5.html",
+  "fcaece29-8a33-49e7-b0b5-dae5a98ee765": "evenement/dedicace-jeunesse-avec-agnes-desarthe-et-juanjo-guarnido-le-divan-perc-fcaece29-8a33-49e7-b0b5-dae5a98ee765.html"
 });
 
   function eventId(value) {

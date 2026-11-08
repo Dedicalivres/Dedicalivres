@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:38:35.052Z",
+  "capturedAt": "2026-11-08T20:40:37.892Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -6261,6 +6261,20 @@
       "website": "https://www.livredepoche.com/actualite/le-camion-qui-livre-reprend-la-route-en-2026/"
     },
     {
+      "id": "9e664e42-9d5f-494b-b33b-367387c0014b",
+      "title": "Soirée littéraire autour d'Astor Piazzolla — Librairie de Paris",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206807/soiree-autour-d-astor-piazzolla/"
+    },
+    {
       "id": "9f3b5d30-d3d8-4481-a69f-98b6d9820190",
       "title": "Festival Dragonia",
       "type": "Festival",
@@ -6357,6 +6371,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.lille.fr/lille-centre/Evenements/Rencontre-avec-l-auteur-et-dessinateur-Aurel"
+    },
+    {
+      "id": "a0f067ef-b4c3-4ab7-baef-7f18d86aa9c5",
+      "title": "Soirée littéraire Hunger Games — quiz et échanges",
+      "type": "Autre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-205882/soiree-hunger-games/"
     },
     {
       "id": "a189eb48-a96a-41bb-970a-85d5c47892c3",
@@ -10235,6 +10263,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.parislibrairies.fr/agenda-206469/mise-en-voix-de-l-essai-gestes-de-femmes-de-sophie-coste/"
+    },
+    {
+      "id": "fcaece29-8a33-49e7-b0b5-dae5a98ee765",
+      "title": "Dédicace jeunesse avec Agnès Desarthe et Juanjo Guarnido — Le Divan Perché",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206553/jeunesse-agnes-desarthe-et-juanjo-guarnido/"
     },
     {
       "id": "fd258d12-7d92-41ca-86e3-7a0273eaeef7",
