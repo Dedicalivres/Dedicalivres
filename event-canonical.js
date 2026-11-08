@@ -748,7 +748,10 @@
   "fcaece29-8a33-49e7-b0b5-dae5a98ee765": "evenement/dedicace-jeunesse-avec-agnes-desarthe-et-juanjo-guarnido-le-divan-perc-fcaece29-8a33-49e7-b0b5-dae5a98ee765.html",
   "6439f67c-3f83-4cff-bbe6-0d1222fe54df": "evenement/dedicace-jeunesse-avec-junko-shibuya-marron-le-petit-herisson-qui-aime-6439f67c-3f83-4cff-bbe6-0d1222fe54df.html",
   "c8605cd4-6db3-41a8-a34e-abe335d8f27a": "evenement/dedicace-jeunesse-avec-agnes-desarthe-et-juanjo-guarnido-librairie-de-c8605cd4-6db3-41a8-a34e-abe335d8f27a.html",
-  "c9434ee5-e6f0-448f-89c0-21b723f9c537": "evenement/dedicace-jeunesse-avec-floriane-abello-neige-vincennes-c9434ee5-e6f0-448f-89c0-21b723f9c537.html"
+  "c9434ee5-e6f0-448f-89c0-21b723f9c537": "evenement/dedicace-jeunesse-avec-floriane-abello-neige-vincennes-c9434ee5-e6f0-448f-89c0-21b723f9c537.html",
+  "662fbfa1-1051-4d35-90a7-0ee9ba77a4fc": "evenement/rencontre-avec-elise-lespade-paradisi-gloria-paris-662fbfa1-1051-4d35-90a7-0ee9ba77a4fc.html",
+  "ac27c87a-90b3-49e7-add9-a6f83014cd4a": "evenement/lecture-et-dedicace-avec-lucille-michieli-jours-de-fete-maisons-alfort-ac27c87a-90b3-49e7-add9-a6f83014cd4a.html",
+  "ca052f7d-c89a-47bf-a3d6-63290a6593f9": "evenement/dedicace-jeunesse-avec-sanoe-paris-ca052f7d-c89a-47bf-a3d6-63290a6593f9.html"
 });
 
   function eventId(value) {

@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:42:59.798Z",
+  "capturedAt": "2026-11-08T20:45:29.223Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -4189,6 +4189,20 @@
       "website": "https://unepintedemots.com/la-cigale-lit-aussi/"
     },
     {
+      "id": "662fbfa1-1051-4d35-90a7-0ee9ba77a4fc",
+      "title": "Rencontre avec Élise Lespade — Paradisi Gloria",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206744/rencontre-avec-elise-lespade/"
+    },
+    {
       "id": "6667e009-5d4a-4dd5-8233-1ca4ef7d31ef",
       "title": "Ma vie en Vian : rencontre-dédicace avec Nicole Bertolt",
       "type": "Dédicace",
@@ -6835,6 +6849,20 @@
       "website": ""
     },
     {
+      "id": "ac27c87a-90b3-49e7-add9-a6f83014cd4a",
+      "title": "Lecture et dédicace avec Lucille Michieli — Jours de fête",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Maisons-Alfort",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-205956/lecture-et-dedicace-avec-lucille-michieli/"
+    },
+    {
       "id": "ac496577-fe25-469d-b599-3e0e74ce1f29",
       "title": "rencontres, dédicaces et salons",
       "type": "Dédicace",
@@ -8037,6 +8065,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.bouscat.fr/14-agenda/2744-festival-lettres-du-monde.html"
+    },
+    {
+      "id": "ca052f7d-c89a-47bf-a3d6-63290a6593f9",
+      "title": "Dédicace jeunesse avec Sanoé",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206552/jeunesse-sanoe/"
     },
     {
       "id": "ca731304-b3f6-4bfe-b06b-4e7c9fd70b50",
