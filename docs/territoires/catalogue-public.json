@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:31:50.774Z",
+  "capturedAt": "2026-11-08T20:34:20.756Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -2509,6 +2509,20 @@
       "website": ""
     },
     {
+      "id": "3db0d410-aaa3-4920-afb0-3d1ff057d6ec",
+      "title": "Club de lecture en italien — Lessico famigliare de Natalia Ginzburg",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207198/club-di-lettura-a-caccia-dello-strega-lessico-famigliare-natalia-ginzburg/"
+    },
+    {
       "id": "3dd049d9-d5a4-420d-bf16-74b72c971e96",
       "title": "L’Amour Dé…Livre(s)",
       "type": "Salon",
@@ -2647,6 +2661,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/maisondelapresselaissac/"
+    },
+    {
+      "id": "40b4d75c-5ea3-4185-9d2b-7f63ba564587",
+      "title": "Rencontre-dédicace avec Nathalie Calvet et Clara Panetier — Zodiaque chinois",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206497/rencontre-avec-nathalie-calvet-et-clara-panetier/"
     },
     {
       "id": "40e5626a-78a4-4d27-8d1e-04b6a756aea0",
@@ -5517,6 +5545,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "88b75bbf-1fc4-4301-b932-8a2f40d8bcec",
+      "title": "Rencontre-dédicace avec Stéphane His — La fin du feu",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206602/rencontre-et-dedicace-avec-stephane-his/"
     },
     {
       "id": "8a11c2ba-9f86-48bd-92e0-136cc4d59403",
