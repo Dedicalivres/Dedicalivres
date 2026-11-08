@@ -739,7 +739,10 @@
   "88b75bbf-1fc4-4301-b932-8a2f40d8bcec": "evenement/rencontre-dedicace-avec-stephane-his-la-fin-du-feu-paris-88b75bbf-1fc4-4301-b932-8a2f40d8bcec.html",
   "1725290c-faa0-43ca-8699-8540a4c9ebe9": "evenement/conference-de-marianne-chaillan-que-serions-nous-sans-nos-passions-par-1725290c-faa0-43ca-8699-8540a4c9ebe9.html",
   "4d46814e-2afc-4b51-9ede-95c1df6f53ae": "evenement/rencontre-avec-jacques-forgeas-librairie-les-traversees-paris-4d46814e-2afc-4b51-9ede-95c1df6f53ae.html",
-  "a538cb08-414c-4cdd-a5a2-cf83805597ac": "evenement/rencontre-avec-marie-hl-les-cailloux-paris-a538cb08-414c-4cdd-a5a2-cf83805597ac.html"
+  "a538cb08-414c-4cdd-a5a2-cf83805597ac": "evenement/rencontre-avec-marie-hl-les-cailloux-paris-a538cb08-414c-4cdd-a5a2-cf83805597ac.html",
+  "18af2d5f-0b2c-41ea-8b5e-178101412919": "evenement/rencontre-dedicace-avec-isabelle-backouche-et-boris-bove-paris-18af2d5f-0b2c-41ea-8b5e-178101412919.html",
+  "b3ead890-232b-4cf7-93a1-b2999eb15afd": "evenement/rencontre-dedicace-avec-jean-christian-petitfils-paris-b3ead890-232b-4cf7-93a1-b2999eb15afd.html",
+  "f39f18f5-3147-4172-a932-729a738a4d20": "evenement/rencontre-dedicace-avec-marouane-essadek-mon-corps-donne-pour-vous-par-f39f18f5-3147-4172-a932-729a738a4d20.html"
 });
 
   function eventId(value) {

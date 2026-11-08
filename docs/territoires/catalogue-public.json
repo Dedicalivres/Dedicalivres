@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:36:31.660Z",
+  "capturedAt": "2026-11-08T20:38:35.052Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1079,6 +1079,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://opalebd.com/festivals/details/4390"
+    },
+    {
+      "id": "18af2d5f-0b2c-41ea-8b5e-178101412919",
+      "title": "Rencontre-dédicace avec Isabelle Backouche et Boris Bove",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206549/isabelle-backouche-et-boris-bove/"
     },
     {
       "id": "1a4aa85f-153d-42b3-8644-04dda92d468d",
@@ -7059,6 +7073,20 @@
       "website": "https://www.parislibrairies.fr/agenda-207000/rencontre-avec-rafik-chekkat/"
     },
     {
+      "id": "b3ead890-232b-4cf7-93a1-b2999eb15afd",
+      "title": "Rencontre-dédicace avec Jean-Christian Petitfils",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206551/jean-christian-petitfils/"
+    },
+    {
       "id": "b42163bc-bcaa-4d4d-9370-b7f72fdc3fef",
       "title": "Salon du livre de Buzet-sur-Baïse",
       "type": "Salon",
@@ -9675,6 +9703,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://cnlj.bnf.fr/fr/page-evenement/39e-festival-du-livre-jeunesse-et-de-bande-dessin-e-de-cherbourg-en-cotentin"
+    },
+    {
+      "id": "f39f18f5-3147-4172-a932-729a738a4d20",
+      "title": "Rencontre-dédicace avec Marouane Essadek — Mon corps donné pour vous",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206410/rencontre-avec-marouane-essadek/"
     },
     {
       "id": "f48a1091-89b2-4de9-8442-0985e3380ff1",
