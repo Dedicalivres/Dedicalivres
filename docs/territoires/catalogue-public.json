@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:20:49.698Z",
+  "capturedAt": "2026-11-08T20:23:04.068Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1317,6 +1317,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "2105c82f-c011-493f-b693-72c3a96e5e62",
+      "title": "Rencontre-dédicace avec Flora Baumlin et Marie Gariazzo — Libérées, délivrées ?",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-10",
+      "end_date": "2026-11-10",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-205122/flora-baumlin-et-marie-gariazzo-pour-liberees-delivrees-/"
     },
     {
       "id": "210b51c1-ed4a-4401-98fe-62735d60b40e",
@@ -3067,6 +3081,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://bibliothequeherzeele.opax-x.fr"
+    },
+    {
+      "id": "4c9aa6d1-7564-41f9-87a9-484e474c7b78",
+      "title": "Rencontre-dédicace avec Javier Santiso — Toro Bravo",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-10",
+      "end_date": "2026-11-10",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206825/javier-santiso-presente-toro-bravo-en-presence-de-camille-pech-de-laclause/"
     },
     {
       "id": "4c9cc8b7-1d9c-4564-a5c7-98675aa7b928",
@@ -7267,6 +7295,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.librairielelivre.com/news/show/138"
+    },
+    {
+      "id": "c07bb5b9-37c2-492d-a3db-14055cdecef7",
+      "title": "Rencontre-dédicace avec Ludivine Bantigny — On sait pas, on n'a pas essayé",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-10",
+      "end_date": "2026-11-10",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207053/rencontre-avec-ludivine-bantigny/"
     },
     {
       "id": "c0b63a63-5850-42e4-beab-ce84ebf922ab",

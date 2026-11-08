@@ -718,7 +718,10 @@
   "f776bbe5-4a98-45aa-9811-95ad788c617b": "evenement/rencontre-avec-douglas-kennedy-l-homme-qui-n-avait-pas-assez-d-une-vie-f776bbe5-4a98-45aa-9811-95ad788c617b.html",
   "2373a077-a04e-48be-ac77-8118454fed3b": "evenement/rencontre-avec-nathalie-achard-armer-la-non-violence-paris-2373a077-a04e-48be-ac77-8118454fed3b.html",
   "9911e73f-5a56-4f00-841e-7440a146fbb4": "evenement/rencontre-dedicace-avec-elodie-broussard-paris-9911e73f-5a56-4f00-841e-7440a146fbb4.html",
-  "b355720a-46b5-428f-8255-9dc29f361c89": "evenement/rencontre-avec-rafik-chekkat-la-palestine-en-proces-paris-b355720a-46b5-428f-8255-9dc29f361c89.html"
+  "b355720a-46b5-428f-8255-9dc29f361c89": "evenement/rencontre-avec-rafik-chekkat-la-palestine-en-proces-paris-b355720a-46b5-428f-8255-9dc29f361c89.html",
+  "2105c82f-c011-493f-b693-72c3a96e5e62": "evenement/rencontre-dedicace-avec-flora-baumlin-et-marie-gariazzo-liberees-deliv-2105c82f-c011-493f-b693-72c3a96e5e62.html",
+  "4c9aa6d1-7564-41f9-87a9-484e474c7b78": "evenement/rencontre-dedicace-avec-javier-santiso-toro-bravo-paris-4c9aa6d1-7564-41f9-87a9-484e474c7b78.html",
+  "c07bb5b9-37c2-492d-a3db-14055cdecef7": "evenement/rencontre-dedicace-avec-ludivine-bantigny-on-sait-pas-on-n-a-pas-essay-c07bb5b9-37c2-492d-a3db-14055cdecef7.html"
 });
 
   function eventId(value) {
