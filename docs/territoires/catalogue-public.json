@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:29:33.258Z",
+  "capturedAt": "2026-11-08T20:31:50.774Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1863,6 +1863,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "2dbc246a-223a-4d6a-a1b1-dde4fe5e6d87",
+      "title": "Rencontre-dédicace avec Christelle Bakima Poundza — Aya pour l'exemple",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207221/rencontre-dedicace-de-christelle-bakima-poundza/"
     },
     {
       "id": "2dd11384-cfe8-4659-bcf5-4346f069a0ce",
@@ -3795,6 +3809,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://data.datatourisme.fr/23/324b7431-9254-3f6c-aed4-c9451971d7ec"
+    },
+    {
+      "id": "5e235532-a204-4910-b4a5-245f1ecd55b3",
+      "title": "Rencontre-dédicace avec Lucie Rico — Mais que fait ce sang sur le pull de Jennifer",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Charenton-le-Pont",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206417/lucie-rico-rencontre/"
     },
     {
       "id": "5e807a54-e70d-4ccb-88a6-7ccbc1ade64a",
@@ -6329,6 +6357,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.cotesdarmor.com/fr/fiche/fetes-et-manifestations/rencontre-dedicace-de-pascal-millet-perros-guirec_TFOFMABRE022V54RRR9/"
+    },
+    {
+      "id": "a3038ab1-de17-4663-832d-067e76dc4b7b",
+      "title": "Rencontre-dédicace avec Antoine Lilti et Arnaud Orain",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206548/antoine-lilti-et-arnaud-orain/"
     },
     {
       "id": "a348cf69-2428-40a4-b913-eb533afb1cee",
