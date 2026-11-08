@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:25:14.856Z",
+  "capturedAt": "2026-11-08T20:27:26.343Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1879,6 +1879,20 @@
       "website": "https://www.parislibrairies.fr/agenda-201104/saverio-ansaldi-et-giorgio-passerone-presentent-leopardi-un-intempestif/"
     },
     {
+      "id": "2f02d8b2-0494-4309-921e-f9b26da550cb",
+      "title": "Lancement du livre Orient Express Corinthian — Serge Gleizes et Maxime d'Angeac",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207292/serge-gleizes-maxime-d-angeac-orient-express-corinthian-le-palace-des-mers/"
+    },
+    {
       "id": "2f91a079-942f-4aa7-b44e-6ca3d4dacfbb",
       "title": "Festival Quartier Livre",
       "type": "Festival",
@@ -2045,6 +2059,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "347c1ec7-8215-4aea-93f5-ee418d124219",
+      "title": "Lancement et dédicace avec Jérôme Adam — Tout pour être heureux ?",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207191/rencontre-et-dedicace-tout-pour-etre-heureux-de-jerome-adam/"
     },
     {
       "id": "347c40f4-c071-4d67-b4e2-fe362dc928cb",
@@ -2647,6 +2675,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.cantal-destination.com/fiche/dedicace-rencontre-avec-laurent-occelli/"
+    },
+    {
+      "id": "423d036f-a715-4487-b43e-0e1a52410638",
+      "title": "Lancement des éditions Les Aurores",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-12",
+      "end_date": "2026-11-12",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207187/lancement-des-editions-les-aurores/"
     },
     {
       "id": "42693d09-82a2-4ee5-8aa6-c3825060c8d4",

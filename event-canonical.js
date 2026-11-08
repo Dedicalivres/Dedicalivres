@@ -724,7 +724,10 @@
   "c07bb5b9-37c2-492d-a3db-14055cdecef7": "evenement/rencontre-dedicace-avec-ludivine-bantigny-on-sait-pas-on-n-a-pas-essay-c07bb5b9-37c2-492d-a3db-14055cdecef7.html",
   "0e8ef4fc-0c8f-46e0-b0c2-510d03f31c89": "evenement/club-de-lecture-en-espagnol-las-aventuras-de-la-china-iron-paris-0e8ef4fc-0c8f-46e0-b0c2-510d03f31c89.html",
   "c33d7284-9e55-4813-a9aa-0cfcdcfd000b": "evenement/dedicace-avec-jerome-chasques-les-signaux-faibles-paris-c33d7284-9e55-4813-a9aa-0cfcdcfd000b.html",
-  "e2b70509-7967-4498-ad6b-aad561b01290": "evenement/rencontre-bd-avec-hugo-clement-forets-le-dernier-rempart-paris-e2b70509-7967-4498-ad6b-aad561b01290.html"
+  "e2b70509-7967-4498-ad6b-aad561b01290": "evenement/rencontre-bd-avec-hugo-clement-forets-le-dernier-rempart-paris-e2b70509-7967-4498-ad6b-aad561b01290.html",
+  "2f02d8b2-0494-4309-921e-f9b26da550cb": "evenement/lancement-du-livre-orient-express-corinthian-serge-gleizes-et-maxime-d-2f02d8b2-0494-4309-921e-f9b26da550cb.html",
+  "347c1ec7-8215-4aea-93f5-ee418d124219": "evenement/lancement-et-dedicace-avec-jerome-adam-tout-pour-etre-heureux-paris-347c1ec7-8215-4aea-93f5-ee418d124219.html",
+  "423d036f-a715-4487-b43e-0e1a52410638": "evenement/lancement-des-editions-les-aurores-paris-423d036f-a715-4487-b43e-0e1a52410638.html"
 });
 
   function eventId(value) {
