@@ -736,7 +736,10 @@
   "a3038ab1-de17-4663-832d-067e76dc4b7b": "evenement/rencontre-dedicace-avec-antoine-lilti-et-arnaud-orain-paris-a3038ab1-de17-4663-832d-067e76dc4b7b.html",
   "3db0d410-aaa3-4920-afb0-3d1ff057d6ec": "evenement/club-de-lecture-en-italien-lessico-famigliare-de-natalia-ginzburg-pari-3db0d410-aaa3-4920-afb0-3d1ff057d6ec.html",
   "40b4d75c-5ea3-4185-9d2b-7f63ba564587": "evenement/rencontre-dedicace-avec-nathalie-calvet-et-clara-panetier-zodiaque-chi-40b4d75c-5ea3-4185-9d2b-7f63ba564587.html",
-  "88b75bbf-1fc4-4301-b932-8a2f40d8bcec": "evenement/rencontre-dedicace-avec-stephane-his-la-fin-du-feu-paris-88b75bbf-1fc4-4301-b932-8a2f40d8bcec.html"
+  "88b75bbf-1fc4-4301-b932-8a2f40d8bcec": "evenement/rencontre-dedicace-avec-stephane-his-la-fin-du-feu-paris-88b75bbf-1fc4-4301-b932-8a2f40d8bcec.html",
+  "1725290c-faa0-43ca-8699-8540a4c9ebe9": "evenement/conference-de-marianne-chaillan-que-serions-nous-sans-nos-passions-par-1725290c-faa0-43ca-8699-8540a4c9ebe9.html",
+  "4d46814e-2afc-4b51-9ede-95c1df6f53ae": "evenement/rencontre-avec-jacques-forgeas-librairie-les-traversees-paris-4d46814e-2afc-4b51-9ede-95c1df6f53ae.html",
+  "a538cb08-414c-4cdd-a5a2-cf83805597ac": "evenement/rencontre-avec-marie-hl-les-cailloux-paris-a538cb08-414c-4cdd-a5a2-cf83805597ac.html"
 });
 
   function eventId(value) {

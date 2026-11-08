@@ -1,8 +1,8 @@
 {
-  "base": "7f950261a8f1ef582e3d523d38b1f0a4cbf5a3a1",
-  "capturedAt": "2026-11-08T20:34:20.756Z",
+  "base": "f3d8dab4504fc709d5dda9c0c5681bd1a0c1bca0",
+  "capturedAt": "2026-11-08T20:36:31.660Z",
   "today": "2026-11-08",
-  "total": 734,
+  "total": 737,
   "registryCountries": [
     {
       "code": "FR",
@@ -82,7 +82,7 @@
       "id": "FR-local-08",
       "label": "Île-de-France",
       "country": "FR",
-      "count": 132
+      "count": 135
     },
     {
       "id": "FR-local-09",
@@ -944,8 +944,8 @@
         "Provence-Alpes-Côte d’Azur"
       ],
       "editorial": "",
-      "total": 719,
-      "upcoming": 110,
+      "total": 722,
+      "upcoming": 113,
       "ongoing": 2,
       "past": 609,
       "undated": 0,
@@ -1593,8 +1593,11 @@
         "88b75bbf-1fc4-4301-b932-8a2f40d8bcec",
         "ffeea6a3-0bb8-44ba-9b89-21edcd86285c",
         "3db0d410-aaa3-4920-afb0-3d1ff057d6ec",
+        "1725290c-faa0-43ca-8699-8540a4c9ebe9",
         "6066a8b3-1389-4ce6-8316-9f91a261a482",
         "15d0cd55-567c-485d-9edd-4a0b269de984",
+        "4d46814e-2afc-4b51-9ede-95c1df6f53ae",
+        "a538cb08-414c-4cdd-a5a2-cf83805597ac",
         "7e4643ee-f117-4917-8a2d-23ffe740748b",
         "14d987d0-90fe-45cf-8f0f-3233c8c77c4c",
         "316861b7-0dd1-4ea7-b458-9fd8da849881",
@@ -2309,8 +2312,8 @@
       "imageWidth": 2172,
       "imageHeight": 724,
       "editorial": "<section class=\"seo-hero\">\n    <p class=\"category-kicker\">Agenda littéraire régional</p>\n    <h2>Événements littéraires en Île-de-France</h2>\n    <p>En Île-de-France, les rencontres littéraires se déploient entre Paris, les librairies indépendantes, les médiathèques, les salons spécialisés et les festivals culturels. Dédicalivres rassemble les événements franciliens pour aider les lecteurs à repérer les prochains rendez-vous autour du livre.</p>\n  </section>\n<section class=\"seo-text-block\">\n  <h2>Agenda littéraire en Île-de-France</h2>\n  <p>La région Île-de-France regroupe plusieurs villes où se tiennent les rencontres autour du livre — salons, festivals et dédicaces. Dédicalivres centralise les dates proposées par la communauté pour l’ensemble du territoire, après vérification.</p>\n  <p class=\"seo-nearby\">Villes de la région avec une page dédiée : <a href=\"evenements-litteraires-paris.html\">Paris</a></p>\n  <h2>Un agenda participatif et vérifié</h2>\n  <p>Les dates affichées sont celles actuellement référencées en Île-de-France. L’agenda s’enrichit au fil des contributions vérifiées ; une absence de date signale simplement qu’aucun événement n’est encore inscrit pour cette zone.</p>\n  <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement en Île-de-France</a></p>\n</section>\n<section class=\"seo-text-block\">\n    <h2>Vous organisez un événement littéraire en Île-de-France ?</h2>\n    <p>Salon du livre, séance de dédicace, rencontre avec un auteur, festival littéraire ou animation autour de la lecture : vous pouvez proposer votre événement sur Dédicalivres pour lui donner une visibilité auprès des lecteurs.</p>\n    <p><a class=\"btn-primary\" href=\"soumettre.html\">Proposer un événement</a> <a class=\"btn-secondary\" href=\"index.html#agenda\">Voir l’agenda francophone</a></p>\n  </section>",
-      "total": 132,
-      "upcoming": 44,
+      "total": 135,
+      "upcoming": 47,
       "ongoing": 0,
       "past": 88,
       "undated": 0,
@@ -2431,7 +2434,10 @@
         "40b4d75c-5ea3-4185-9d2b-7f63ba564587",
         "88b75bbf-1fc4-4301-b932-8a2f40d8bcec",
         "3db0d410-aaa3-4920-afb0-3d1ff057d6ec",
+        "1725290c-faa0-43ca-8699-8540a4c9ebe9",
         "6066a8b3-1389-4ce6-8316-9f91a261a482",
+        "4d46814e-2afc-4b51-9ede-95c1df6f53ae",
+        "a538cb08-414c-4cdd-a5a2-cf83805597ac",
         "7e4643ee-f117-4917-8a2d-23ffe740748b",
         "7dd4f6ba-9999-4b27-8222-962fa1f34d3a",
         "8c66fc26-c927-4a2e-be3e-5fb5e5489d34",

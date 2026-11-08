@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:34:20.756Z",
+  "capturedAt": "2026-11-08T20:36:31.660Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1037,6 +1037,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "1725290c-faa0-43ca-8699-8540a4c9ebe9",
+      "title": "Conférence de Marianne Chaillan — Que serions-nous sans nos passions ?",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206045/que-serions-nous-sans-nos-passions-conference-de-marianne-chaillan/"
     },
     {
       "id": "18156b5d-2f83-4b85-8cfd-87683c075a66",
@@ -3249,6 +3263,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "4d46814e-2afc-4b51-9ede-95c1df6f53ae",
+      "title": "Rencontre avec Jacques Forgeas — Librairie Les Traversées",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206085/rencontre-avec-jacques-forgeas/"
     },
     {
       "id": "4e37acf0-5124-4673-a4cb-9ec514db9117",
@@ -6455,6 +6483,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.facebook.com/profile.php?id=61582957569667"
+    },
+    {
+      "id": "a538cb08-414c-4cdd-a5a2-cf83805597ac",
+      "title": "Rencontre avec Marie HL — Les Cailloux",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-13",
+      "end_date": "2026-11-13",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207001/rencontre-avec-marie-hl/"
     },
     {
       "id": "a55c7245-4b13-40a4-bb1c-142ab4d30f38",
