@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:18:25.874Z",
+  "capturedAt": "2026-11-08T20:20:49.698Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1429,6 +1429,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://grandsite-bibracte-morvan.fr/fr/20e-entretiens-de-bibracte-morvan-recits-de-paysages"
+    },
+    {
+      "id": "2373a077-a04e-48be-ac77-8118454fed3b",
+      "title": "Rencontre avec Nathalie Achard — Armer la non-violence",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-10",
+      "end_date": "2026-11-10",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206044/armer-la-non-violence-rencontre-avec-nathalie-achard/"
     },
     {
       "id": "23d774c3-26b5-4e03-a9b5-9f955f436b1a",
@@ -5869,6 +5883,20 @@
       "website": "/agenda-201183/festival-du-livre-de-la-haute-tinee/"
     },
     {
+      "id": "9911e73f-5a56-4f00-841e-7440a146fbb4",
+      "title": "Rencontre-dédicace avec Élodie Broussard",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-10",
+      "end_date": "2026-11-10",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206541/elodie-broussard/"
+    },
+    {
       "id": "99146dd5-03df-4e42-bb2a-9a2274c4e6ed",
       "title": "Rencontre autour de Pèlerinage de Dorothy Richardson — Marie-Odile Probst et Anne Alvaro",
       "type": "Rencontre",
@@ -6777,6 +6805,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": ""
+    },
+    {
+      "id": "b355720a-46b5-428f-8255-9dc29f361c89",
+      "title": "Rencontre avec Rafik Chekkat — La Palestine en procès",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-10",
+      "end_date": "2026-11-10",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207000/rencontre-avec-rafik-chekkat/"
     },
     {
       "id": "b42163bc-bcaa-4d4d-9370-b7f72fdc3fef",
