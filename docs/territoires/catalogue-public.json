@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-08T20:45:29.223Z",
+  "capturedAt": "2026-11-08T20:47:52.300Z",
   "source": "Public events API: validated=true, rejected=false; complete ID cursor pagination",
   "events": [
     {
@@ -1641,6 +1641,20 @@
       "website": ""
     },
     {
+      "id": "26cd8e57-362b-4f6d-b651-20a5e59cae01",
+      "title": "Rencontre-dédicace avec L'Homme étoilé — Le soleil va se lever",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-207239/rencontre-avec-l-homme-etoile/"
+    },
+    {
       "id": "2730a765-6fe3-4c74-b765-134becddd5e8",
       "title": "Salon du livre - La Chartreuse du Liget",
       "type": "Salon",
@@ -1709,6 +1723,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.unallerretourdanslenoir.com/"
+    },
+    {
+      "id": "286707b2-900e-42cd-aebc-bb97184a485a",
+      "title": "Rencontre-dédicace BD avec Alexandre Chenet et Loïc Sécheresse — Billy the Kid",
+      "type": "Dédicace",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-205842/rencontre-dedicace-avec-alexandre-chenet-et-loic-secheresse-billy-le-kid/"
     },
     {
       "id": "28c751f5-f192-4b16-8c85-3b1867dff8dd",
@@ -3291,6 +3319,20 @@
       "rejected": false,
       "registration_force_status": null,
       "website": "https://www.parislibrairies.fr/agenda-206085/rencontre-avec-jacques-forgeas/"
+    },
+    {
+      "id": "4db48586-c8f0-44aa-851d-3395f0db21fa",
+      "title": "Rencontre littéraire avec Jérôme Colin — Je suis né dans la tempête",
+      "type": "Rencontre",
+      "country_code": "FR",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-14",
+      "validated": true,
+      "rejected": false,
+      "registration_force_status": null,
+      "website": "https://www.parislibrairies.fr/agenda-206183/rencontre-litteraire-avec-jerome-colin/"
     },
     {
       "id": "4e37acf0-5124-4673-a4cb-9ec514db9117",
