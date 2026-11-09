@@ -16,7 +16,8 @@
   const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_EXECUTABLE || undefined });
   try {
     for (const width of [1280, 390]) {
-      const context = await browser.newContext({ viewport: { width, height: 900 } });
+      fs.mkdirSync("hotte-browser-evidence", { recursive: true });
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
       const page = await context.newPage();
       const external = [], errors = [];
       page.on("pageerror", e => errors.push(e.message));
@@ -44,6 +45,7 @@
       await page.locator('[data-v11-widget-tab="hotte"]').click();
       assert.equal(await page.locator(".v11-partner-widget-shell").isVisible(), false);
       assert(await page.locator("#v11-hotte-float-expanded").isVisible());
+      await page.screenshot({ path: "hotte-browser-evidence/widget-expanded-" + width + ".png", fullPage: true });
       await page.locator("#v11-hotte-minimize").click();
       assert(await page.locator("#v11-hotte-expand").isVisible());
       assert.equal(await page.locator("#v11-hotte-float-expanded").isVisible(), false);
@@ -56,6 +58,7 @@
       assert(await page.locator(".v11-partner-widget-shell").isVisible());
       await page.evaluate(() => window.DEDICALIVRES_V11_HOTTE_TOOLS.openHotte());
       assert.equal((await page.locator("#v11-hotte-total-lots").innerText()).trim(), "4");
+      await page.screenshot({ path: "hotte-browser-evidence/gestion-" + width + ".png", fullPage: true });
       assert.equal((await page.locator("#v11-hotte-accepted-lots").innerText()).trim(), "3");
       assert((await page.locator("#v11-hotte-total-value").innerText()).includes("60,30"));
       await page.locator('#v11-hotte-lot-form [name="title"]').fill("Nouveau livre fictif");
