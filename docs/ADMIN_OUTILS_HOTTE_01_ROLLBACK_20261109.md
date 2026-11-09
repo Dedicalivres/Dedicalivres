@@ -21,6 +21,7 @@ Compléter la page **Outils** de l'Admin V11 sans modifier le système d'authent
 - `admin-v11-hotte-tools.js` (nouveau) : trois onglets de widgets et gestion/aperçu Hotte, sans appels Supabase.
 - `admin-v11-hotte-tools.css` (nouveau) : styles préfixés `v11-hotte-`.
 - `scripts/test-admin-v11-hotte-tools.mjs` (nouveau) : vérifications statiques des invariants et du périmètre.
+- `scripts/test-admin-v11-hotte-browser.mjs` (nouveau) : recette Playwright offline à exécuter, sur fixture de faux administrateur.
 
 Les fichiers `admin-context.js`, `admin-v11-partner-widget.js`, `admin-nfc-cockpit.js`, `config.js`, `widget.js`, `index.html` et tout le schéma Supabase **ne sont pas modifiés**.
 
@@ -47,7 +48,9 @@ Ces valeurs sont des identifiants de blobs Git, pas des empreintes SHA-256 des f
 - absence de requêtes réseau ou opérations SQL dans le module de laboratoire ;
 - `admin-context.js` et `admin-v11-partner-widget.js` **byte-identiques au main au moment du contrôle**.
 
-**Non réalisé :** lancement de l'Admin V11 dans Safari, automatisation Playwright sur le code modifié, tests de couverture navigateur/mobile, contrôle effectif de la disponibilité externe du cadre Vercel et exécution de la suite complète. Ne pas annoncer une réussite de ces contrôles.
+**Non réalisé :** lancement de l'Admin V11 dans Safari, exécution du script Playwright sur le code modifié, tests de couverture navigateur/mobile, contrôle effectif de la disponibilité externe du cadre Vercel et exécution de la suite complète. Le test Playwright est versionné mais **non exécuté**.
+
+Commandes de recette **sur environnement isolé** : `node scripts/test-admin-v11-hotte-tools.mjs` (statique) puis `node scripts/test-admin-v11-hotte-browser.mjs` (Chromium local + Playwright, tous les accès extérieurs bloqués). Les suites Auth/NFC/Widgets existantes restent obligatoires avant fusion. Ne pas annoncer une réussite de ces contrôles.
 
 ## Tests à passer avant fusion
 
