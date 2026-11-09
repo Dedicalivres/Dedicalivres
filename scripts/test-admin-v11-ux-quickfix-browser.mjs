@@ -87,5 +87,10 @@ try{
   if(!before){for(const mode of ['nonadmin','revoked','network','restore-error','expired','absent']){await page.evaluate(mode=>{window.__lab.mode(mode);window.DEDICALIVRES_ADMIN_CONTEXT.restoreSession()},mode);await page.waitForFunction(()=>['forbidden','unauthenticated','error','expired'].includes(window.DEDICALIVRES_ADMIN_CONTEXT.getState().status));assert.equal(await page.locator('.v11-app').isVisible(),false);assert(await page.locator('#v11-login-form').isVisible());}pass(pageName+'-'+width+'-denied-expired-network-no-private-content')}
   await context.close();
  }
- assert.deepEqual(errors,[]);assert.deepEqual(blocked,[]);fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({before,checks,measurements,errors,blocked,dialogs,production_requests:0,real_submissions:0},null,2));
+ assert.deepEqual(errors,[]);
+// The visitor iframe URL is expected, but the test must still block it.
+const unexpectedRequests=blocked.filter(item=>!(item.method==='GET' &&
+ item.origin==='https://dedicalivres-hotte-he08-demonstration-1quymkl6r.vercel.app'));
+assert.deepEqual(unexpectedRequests,[]);
+fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({before,checks,measurements,errors,blocked,dialogs,production_requests:0,real_submissions:0},null,2));
 }finally{await browser?.close()}
