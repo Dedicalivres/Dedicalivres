@@ -40,6 +40,7 @@
       assert.equal(await page.locator("[data-v11-widget-tab]").count(), 0, "Unauthorized user does not get widget hub");
       await page.evaluate(() => {
         window.__adminState = { authenticated: true, status: "ready" };
+      document.body.classList.add("v11-is-authorized");
         window.DEDICALIVRES_V11_HOTTE_TOOLS.openWidgets();
       });
       assert.equal(await page.locator("[data-v11-widget-tab]").count(), 3);
