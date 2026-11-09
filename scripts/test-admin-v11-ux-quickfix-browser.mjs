@@ -20,6 +20,8 @@ try{
   let html=asset(pageName).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*>/gi,'');
   html=html.replace('</head>',`<style>${asset('admin-v11.css')}${before?'':asset('admin-v11-hotte-tools.css')}</style></head>`).replace('</body>',scripts.map(s=>`<script defer src="/${s}"></script>`).join('')+'</body>');
   await page.addInitScript(({event})=>{
+   // The mock session is for the top-level Admin only; visitor iframe is intentionally sandboxed.
+   if (window !== window.top) return;
    const user={id:'admin-fictif'};let current={access_token:'fictitious-token',user,expires_at:Math.floor(Date.now()/1000)+3600},listener;
    let releaseSession,releaseIdentity,releaseAdmin;let holdSession=sessionStorage.getItem('released')!=='1',holdIdentity=holdSession,holdAdmin=holdSession;let mode=sessionStorage.getItem('mode')||'valid';let proofStatus='none';
    const calls=[],frames=[];window.__lab={calls,frames,event,releaseSession(){holdSession=false;sessionStorage.setItem('released','1');releaseSession?.()},releaseIdentity(){holdIdentity=false;releaseIdentity?.()},releaseAdmin(){holdAdmin=false;releaseAdmin?.()},mode(value){mode=value;sessionStorage.setItem('mode',value)},proof(value){proofStatus=value},emit(name,value){current=value===undefined?current:value;listener(name,current)},renew(){current={...current,access_token:'renewed-fictitious-token',expires_at:current.expires_at+3600};listener('TOKEN_REFRESHED',current)}};
