@@ -1,6 +1,8 @@
 
 /* H-E08: additive Admin V11 widgets/Hotte lab. No rules for auth or legacy tools. */
 .v11-hotte-tool-card { width:100%; color:inherit; text-align:left; font:inherit; }
+.v11-hotte-card-title { display:block; margin:5px 0 0; font-size:16px; font-weight:800; }
+.v11-hotte-card-description { display:block; margin:14px 0; max-width:520px; color:var(--muted,#97acb8); font-size:10px; line-height:1.55; }
 .v11-hotte-tool-card:focus-visible,
 .v11-hotte-tabs button:focus-visible,
 .v11-hotte-widget-stage button:focus-visible { outline:2px solid var(--cyan,#51d7e8); outline-offset:3px; }
