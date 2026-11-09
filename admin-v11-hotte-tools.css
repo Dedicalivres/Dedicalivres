@@ -12,7 +12,7 @@
 .v11-hotte-intro h3 { margin:6px 0 10px; font-size:22px; }
 .v11-hotte-intro p:not(.v11-section-label) { margin:0; max-width:650px; color:var(--muted,#97acb8); font-size:13px; line-height:1.6; }
 .v11-hotte-tabs { display:flex; gap:7px; flex-wrap:wrap; padding:8px; margin:4px 0 12px; background:#091b28; border:1px solid rgba(81,215,232,.16); border-radius:12px; }
-.v11-hotte-tabs button { color:#b7c9d1; background:transparent; border:1px solid transparent; border-radius:9px; padding:10px 14px; font:600 13px/1.2 inherit; cursor:pointer; }
+.v11-hotte-tabs button { color:#b7c9d1; background:transparent; border:1px solid transparent; border-radius:9px; padding:10px 14px; font-family:inherit; font-size:13px; line-height:1.2; font-weight:600; cursor:pointer; }
 .v11-hotte-tabs button:hover { color:#eef8fa; background:#16313f; }
 .v11-hotte-tabs button.is-selected { color:#07222e; background:#69d6df; border-color:#69d6df; font-weight:800; }
 .v11-hotte-addon { min-height:400px; }
