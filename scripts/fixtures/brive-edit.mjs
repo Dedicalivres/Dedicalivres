@@ -29,7 +29,9 @@ export function historicalBriveFixture(currentRoot,destination,reference=BEFORE_
  // public corpus is restored; no guard, proof or production fingerprint changes.
  fs.cpSync(path.join(currentRoot,'scripts'),path.join(destination,'scripts'),{recursive:true});
  const historical=new Set(git('ls-tree','-r','--name-only',reference).toString().trim().split('\n').filter(publicFile));
- const changed=git('diff','--name-only',reference,'HEAD').toString().trim().split('\n').filter(publicFile);
+ // Disable Git rename detection: both the removed historical path and its new path
+ // must be enumerated, otherwise a retired author page can be omitted silently.
+ const changed=git('diff','--no-renames','--name-only',reference,'HEAD').toString().trim().split('\n').filter(publicFile);
  for(const file of changed) {
   const full=path.join(destination,file);
   if(historical.has(file)) {
