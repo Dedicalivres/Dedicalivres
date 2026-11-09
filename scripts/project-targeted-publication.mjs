@@ -307,16 +307,24 @@ function projectPages(exportRoot) {
 
 // Only the France archive series may grow without a newly authorized event.
 // Check both complete editions, rather than trusting the new page in isolation.
-export function assertNewFranceArchives(oldPages, freshPages, before, after, published, oldDay, day, oldXml, freshXml) {
+export function assertNewFranceArchives(oldPages, freshPages, before, after, published, oldDay, day, oldXml, freshXml, exactRetiredId = null) {
   const added = new Set([...freshPages.keys()].filter(file => !oldPages.has(file)));
   const archive = /^evenements-litteraires-france-archives-[1-9]\d*\.html$/;
   const france = 'evenements-litteraires-france.html';
   const archiveFile = number => `evenements-litteraires-france-archives-${number}.html`;
   if ([...added].some(file => !archive.test(file))) stop('nouvel agrégat hors archives France');
   if (!added.size) return added;
+  // The offline Lorient retirement fixture removes exactly one verified legacy ID.
+  // Normal publication and temporal refresh still require an identical corpus.
+  const beforeIds = new Set(before.keys()), afterIds = new Set(after.keys());
+  const exactHistoricalRetirement = exactRetiredId === RETIRED_ID
+    && excludedIds().has(exactRetiredId)
+    && before.has(exactRetiredId) && !after.has(exactRetiredId)
+    && beforeIds.size === afterIds.size + 1
+    && sameSet(new Set([...beforeIds].filter(id => id !== exactRetiredId)), afterIds);
   if (!validDate(oldDay) || !validDate(day) || day <= oldDay
-      || !sameSet(new Set(before.keys()), new Set(after.keys()))
-      || !sameSet(new Set(before.keys()), published)) stop('transition archives hors corpus publié ou date');
+      || !(sameSet(beforeIds, afterIds) || exactHistoricalRetirement)
+      || !sameSet(beforeIds, published)) stop('transition archives hors corpus publié ou date');
   const rows = (events, date) => [...events.values()]
     .filter(event => event.validated === true && event.rejected === false && event.country_code === 'FR')
     .sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999')
@@ -325,7 +333,9 @@ export function assertNewFranceArchives(oldPages, freshPages, before, after, pub
   const pastIds = items => items.filter(([, status]) => status === 'past').map(([id]) => id).reverse();
   const oldRows = rows(before, oldDay), freshRows = rows(after, day);
   const oldPast = pastIds(oldRows), freshPast = pastIds(freshRows);
-  if (JSON.stringify(pastIds(rows(before, day))) !== JSON.stringify(freshPast)
+  const timeOnlyPast = pastIds(rows(before, day))
+    .filter(id => !exactHistoricalRetirement || id !== exactRetiredId);
+  if (JSON.stringify(timeOnlyPast) !== JSON.stringify(freshPast)
       || freshPast.length <= oldPast.length) stop('archives non issues du seul passage du temps');
   const checkEdition = (pages, items, past) => {
     const count = Math.ceil(past.length / 50);
@@ -379,7 +389,7 @@ export function assertNewFranceArchives(oldPages, freshPages, before, after, pub
   return added;
 }
 
-function projectAggregates(temporalOnly = false, frozenScope = null) {
+function projectAggregates(temporalOnly = false, frozenScope = null, exactLorientFixture = false) {
   // A temporal refresh authorizes zero event edits and never consumes a job.
   const {allowed, day} = frozenScope || (temporalOnly
     ? {allowed: new Set(), day: process.env.PUBLICATION_REFERENCE_DATE}
@@ -394,7 +404,8 @@ function projectAggregates(temporalOnly = false, frozenScope = null) {
     .trim().split('\n').filter(aggregatePath).map(file => [file, baseline(file)]));
   const freshPages = new Map(fs.readdirSync('.').filter(aggregatePath).map(file => [file, read(file)]));
   const newArchives = assertNewFranceArchives(oldPages, freshPages, before, after,
-    new Set(Object.keys(JSON.parse(baseline(MAP)))), oldDate, day, baseline('sitemap.xml'), read('sitemap.xml'));
+    new Set(Object.keys(JSON.parse(baseline(MAP)))), oldDate, day, baseline('sitemap.xml'), read('sitemap.xml'),
+    exactLorientFixture ? RETIRED_ID : null);
   const oldCards = new Map(), newCards = new Map();
   const collect = (target, items) => {
     for (const [id, , markup] of items) {
@@ -455,7 +466,7 @@ export function projectBriveAggregates(a,evidence,sourceRoot,phase,draft=false){
 
 // Offline preview only: the normal job/legacy path above remains unchanged.
 export function projectLorientPreviewAggregates(registry,day) {
-  projectAggregates(false, verifyFrozenLorientRetirement(process.cwd(), registry,day));
+  projectAggregates(false, verifyFrozenLorientRetirement(process.cwd(), registry,day), true);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
