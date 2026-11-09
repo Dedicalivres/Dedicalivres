@@ -43,6 +43,14 @@ jobs:
       - name: Run isolated browser tests (external requests blocked)
         run: node scripts/test-admin-v11-hotte-browser.mjs
 
+      - name: Recheck V11 auth and login UX in isolated Chromium
+        env:
+          ADMIN_UX_PROOFS: hotte-auth-ui-evidence
+        run: node scripts/test-admin-v11-ux-quickfix-browser.mjs
+
+      - name: Recheck existing NFC cockpit fixtures
+        run: node scripts/test-nfc-analytics-cockpit-v1.mjs
+
       - name: Preserve isolated visual proofs
         if: always()
         uses: actions/upload-artifact@v4
