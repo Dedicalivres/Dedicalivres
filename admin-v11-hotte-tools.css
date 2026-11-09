@@ -64,6 +64,9 @@
 .v11-hotte-form label { display:flex; flex-direction:column; gap:7px; font-size:11px; color:#bdd3dc; }
 .v11-hotte-form input, .v11-hotte-form select { width:100%; min-width:0; padding:9px 11px; border-radius:8px; border:1px solid #41606c; color:#eef5f8; background:#091d2a; font:inherit; min-height:39px; }
 .v11-hotte-form button { min-height:39px; white-space:nowrap; }
+.v11-hotte-dashboard .v11-button { color:#dff8f9; background:#183743; border:1px solid rgba(81,215,232,.32); border-radius:8px; font-family:inherit; font-size:12px; font-weight:700; padding:10px 14px; cursor:pointer; }
+.v11-hotte-dashboard .v11-button:hover { background:#235060; border-color:#7edce5; }
+.v11-hotte-form input::placeholder { color:#9fb3bd; opacity:1; }
 .v11-hotte-visitor-head { display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; gap:15px; }
 .v11-hotte-visitor-head h4 { font-size:19px; margin:0 0 6px; }
 .v11-hotte-visitor-head p { margin:0; font-size:12px; color:#a8c3cc; }
