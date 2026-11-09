@@ -8,6 +8,7 @@
   <style>.v11-app[hidden],#v11-auth-gate[hidden],#v11-login-form[hidden],#v11-session-pending[hidden]{display:none!important}</style>
   <link rel="stylesheet" href="admin-v11.css?v=ux-quickfix-01">
   <link rel="stylesheet" href="admin-nfc-cockpit.css?v=nfc-cockpit-v1-layout-2">
+  <link rel="stylesheet" href="admin-v11-hotte-tools.css?v=he08-lab-01">
 </head>
 
 <body>
@@ -2022,23 +2023,35 @@
             <div class="v11-tool-content">
               <div class="v11-tool-head">
                 <div>
-                  <span class="v11-tool-kicker">PARTENAIRES</span>
-                  <h3>Widget</h3>
+                  <span class="v11-tool-kicker">INTÉGRATIONS</span>
+                  <h3>Widgets</h3>
                 </div>
 
                 <span class="v11-chip info">Disponible</span>
               </div>
 
               <p>
-                Configurateur du widget Dédicalivres pour partenaires et territoires.
+                Agenda partenaires, Hotte de Noël et HelloAsso dans le même espace.
               </p>
 
               <div class="v11-tool-meta">
-                <span>FR · BE · CH · LU · MC</span>
-                <span>Moteur public conservé · aperçu réel</span>
+                <span>Agenda · Hotte · Dons</span>
+                <span>Configurateur partenaires conservé</span>
               </div>
             </div>
           </article>
+
+          <button type="button" class="v11-tool-card v11-hotte-tool-card" data-tool-open="hotte">
+            <span class="v11-tool-icon" aria-hidden="true">✦</span>
+            <span class="v11-tool-content">
+              <span class="v11-tool-head">
+                <span><span class="v11-tool-kicker">ÉVÉNEMENTS ASSOCIATIFS</span><span class="v11-hotte-card-title">Hotte de Noël</span></span>
+                <span class="v11-chip neutral">Laboratoire</span>
+              </span>
+              <span class="v11-hotte-card-description">Gestion des auteurs et cadeaux, contrôle de l’opération et prévisualisation visiteur.</span>
+              <span class="v11-tool-meta"><span>Édition 2026 · Démo sans écriture</span><span>Navigation intégrée comme NFC</span></span>
+            </span>
+          </button>
 
           <article class="v11-tool-card" data-tool-open="maintenance">
             <div class="v11-tool-icon">◎</div>
@@ -2142,6 +2155,7 @@
           <div id="tab-exports" class="v11-legacy-slot" hidden></div>
           <div id="tab-social" class="v11-legacy-slot" hidden></div>
           <div id="v11-partner-widget-panel" class="v11-legacy-slot" hidden></div>
+          <div id="v11-hotte-panel" class="v11-legacy-slot" hidden></div>
           <div id="v11-nfc-panel" class="v11-legacy-slot" hidden>
             <section class="v11-nfc-shell">
               <div class="v11-nfc-head">
@@ -2658,6 +2672,7 @@
   <script defer src="admin-v11-exports.js?v=v11-exports-39-3"></script>
   <script defer src="admin-social-generator.js?v=v11-social-weekend-1"></script>
   <script defer src="admin-v11-partner-widget.js?v=v11-partner-68-1"></script>
+  <script defer src="admin-v11-hotte-tools.js?v=he08-lab-01"></script>
   <script defer src="admin-v11-maintenance.js?v=v11-maint-36"></script>
   <script defer src="admin-nfc-cockpit.js?v=nfc-cockpit-v1"></script>
 

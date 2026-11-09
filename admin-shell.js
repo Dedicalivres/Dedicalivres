@@ -229,7 +229,8 @@
     watch: "Auto-Matte / Veille",
     exports: "Exports",
     social: "Social",
-    partners: "Widget partenaires",
+    partners: "Widgets",
+    hotte: "Hotte de Noël",
     nfc: "NFC & terrain",
     maintenance: "Maintenance"
   };
@@ -242,7 +243,9 @@
     social:
       "Générateur Social Dédicalivres.",
     partners:
-      "Configurateur du widget partenaires.",
+      "Configurateurs Agenda, Hotte et HelloAsso.",
+    hotte:
+      "Gestion et aperçu visiteur de la Hotte (simulation).",
     nfc:
       "Codes NFC, scans et conversions terrain.",
     maintenance:
@@ -444,6 +447,7 @@
       exports: "tab-exports",
       social: "tab-social",
       partners: "v11-partner-widget-panel",
+      hotte: "v11-hotte-panel",
       nfc: "v11-nfc-panel",
       maintenance: "v11-maintenance-panel"
     };
@@ -491,6 +495,11 @@
       typeof window.DEDICALIVRES_V11_PARTNER_WIDGET?.open === "function"
     ) {
       window.DEDICALIVRES_V11_PARTNER_WIDGET.open();
+      window.DEDICALIVRES_V11_HOTTE_TOOLS?.openWidgets?.();
+    }
+
+    if (name === "hotte") {
+      window.DEDICALIVRES_V11_HOTTE_TOOLS?.openHotte?.();
     }
 
     toolWorkspace.scrollIntoView({

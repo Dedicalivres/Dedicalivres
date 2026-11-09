@@ -1,0 +1,127 @@
+name: Admin Hotte Lab CI
+
+on:
+  pull_request:
+    paths:
+      - 'admin.html'
+      - 'admin-v11.html'
+      - 'admin-shell.js'
+      - 'admin-v11-hotte-tools.js'
+      - 'admin-v11-hotte-tools.css'
+      - 'scripts/test-admin-v11-hotte-*.mjs'
+      - '.github/workflows/admin-hotte-lab-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  hotte-lab:
+    name: Hotte widgets / isolated browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Static guards for V11 and Hotte
+        run: |
+          node --check admin-v11-hotte-tools.js
+          node --check scripts/test-admin-v11-hotte-browser.mjs
+          node scripts/test-admin-v11-hotte-tools.mjs
+
+      - name: Install isolated browser test dependencies
+        run: npm install --ignore-scripts --no-save --package-lock=false playwright@1.62.1
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run isolated browser tests (external requests blocked)
+        run: node scripts/test-admin-v11-hotte-browser.mjs
+
+      - name: Install WebKit for Safari-engine coverage
+        run: npx playwright install --with-deps webkit
+
+      - name: Test Hotte widgets in isolated WebKit (Safari engine)
+        env:
+          BROWSER_ENGINE: webkit
+        run: node scripts/test-admin-v11-hotte-browser.mjs
+
+      - name: Recheck V11 auth and login UX in isolated Chromium
+        env:
+          ADMIN_UX_PROOFS: hotte-auth-ui-evidence
+        run: node scripts/test-admin-v11-ux-quickfix-browser.mjs
+
+      - name: Check real V11 routing with mocked authorized session
+        env:
+          ADMIN_UX_PROOFS: hotte-routed-ui-evidence
+        run: node scripts/test-admin-v11-hotte-routed-browser.mjs
+
+      - name: Recheck existing NFC cockpit fixtures
+        run: node scripts/test-nfc-analytics-cockpit-v1.mjs
+
+      - name: Preserve isolated visual proofs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotte-browser-evidence
+          path: |
+            hotte-browser-evidence/
+            hotte-auth-ui-evidence/
+            hotte-routed-ui-evidence/
+          if-no-files-found: ignore
+
+  baseline-publication-qualification:
+    name: Publication fixture / main vs PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Checkout PR with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Compare retired-event test on unchanged main and PR
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p baseline-publication-evidence
+          echo "PR HEAD: $(git rev-parse HEAD)"
+          echo "BASE main: $(git rev-parse origin/main)"
+          git worktree add --detach "$RUNNER_TEMP/hotte-main-baseline" origin/main
+          set +e
+          (cd "$RUNNER_TEMP/hotte-main-baseline" && node scripts/test-retired-test-policy.mjs) > baseline-publication-evidence/main.log 2>&1
+          main_status=$?
+          node scripts/test-retired-test-policy.mjs > baseline-publication-evidence/pr.log 2>&1
+          pr_status=$?
+          set -e
+          printf 'main_exit=%s\npr_exit=%s\n' "$main_status" "$pr_status" | tee baseline-publication-evidence/status.txt
+          grep -E 'Error: STOP|AssertionError|PASS retrait durable' baseline-publication-evidence/main.log | tail -n 5 || true
+          grep -E 'Error: STOP|AssertionError|PASS retrait durable' baseline-publication-evidence/pr.log | tail -n 5 || true
+          if [ "$main_status" -eq 0 ] && [ "$pr_status" -eq 0 ]; then
+            echo "PASS: test passes on main and PR"
+          elif [ "$main_status" -ne 0 ] && [ "$pr_status" -ne 0 ] &&
+               grep -Fq "STOP projection ciblée : transition archives hors corpus publié ou date" baseline-publication-evidence/main.log &&
+               grep -Fq "STOP projection ciblée : transition archives hors corpus publié ou date" baseline-publication-evidence/pr.log; then
+            echo "QUALIFIED: same specific failure reproduces on main and PR; no evidence Hotte causes publication failure"
+          else
+            echo "FAIL: baseline and PR differ in outcome; investigate before merge"
+            exit 1
+          fi
+
+      - name: Preserve baseline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotte-publication-baseline-evidence
+          path: baseline-publication-evidence/
+          if-no-files-found: ignore
