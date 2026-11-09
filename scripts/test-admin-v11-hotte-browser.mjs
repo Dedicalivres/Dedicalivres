@@ -60,7 +60,11 @@
       assert((await page.locator("#v11-widget-helloasso").innerText()).includes("Aucun paiement"));
       await page.locator('[data-v11-widget-tab="agenda"]').click();
       assert(await page.locator(".v11-partner-widget-shell").isVisible());
-      await page.evaluate(() => window.DEDICALIVRES_V11_HOTTE_TOOLS.openHotte());
+      // The real V11 tool router hides the partner slot before showing Hotte.
+      await page.evaluate(() => {
+        document.getElementById("v11-partner-widget-panel").hidden = true;
+        window.DEDICALIVRES_V11_HOTTE_TOOLS.openHotte();
+      });
       assert.equal((await page.locator("#v11-hotte-total-lots").innerText()).trim(), "4");
       await page.screenshot({ path: "hotte-browser-evidence/gestion-" + width + ".png", fullPage: true });
       assert.equal((await page.locator("#v11-hotte-accepted-lots").innerText()).trim(), "3");
