@@ -56,6 +56,11 @@ jobs:
           ADMIN_UX_PROOFS: hotte-auth-ui-evidence
         run: node scripts/test-admin-v11-ux-quickfix-browser.mjs
 
+      - name: Check real V11 routing with mocked authorized session
+        env:
+          ADMIN_UX_PROOFS: hotte-routed-ui-evidence
+        run: node scripts/test-admin-v11-hotte-routed-browser.mjs
+
       - name: Recheck existing NFC cockpit fixtures
         run: node scripts/test-nfc-analytics-cockpit-v1.mjs
 
@@ -67,6 +72,7 @@ jobs:
           path: |
             hotte-browser-evidence/
             hotte-auth-ui-evidence/
+            hotte-routed-ui-evidence/
           if-no-files-found: ignore
 
   baseline-publication-qualification:
