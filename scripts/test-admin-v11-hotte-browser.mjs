@@ -2,7 +2,9 @@
   // Deterministic fixture: no real backend, emails, payment or site requests.
   const fs = await import("node:fs");
   const assert = (await import("node:assert/strict")).default;
-  const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
+  const { chromium, webkit } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
+  const browserEngine = process.env.BROWSER_ENGINE === "webkit" ? "webkit" : "chromium";
+  const driver = browserEngine === "webkit" ? webkit : chromium;
   const js = fs.readFileSync("admin-v11-hotte-tools.js", "utf8");
   const css = fs.readFileSync("admin-v11-hotte-tools.css", "utf8");
   const mainCss = fs.readFileSync("admin-v11.css", "utf8");
@@ -15,7 +17,7 @@
 <script>window.__adminState={authenticated:false,status:"loading"};window.DEDICALIVRES_ADMIN_CONTEXT={getState(){return window.__adminState;}};</script>
 <script src="/admin-v11-hotte-tools.js"></script></body></html>`;
 
-  const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_EXECUTABLE || undefined });
+  const browser = await driver.launch({ headless: true, executablePath: browserEngine === "chromium" ? (process.env.CHROMIUM_EXECUTABLE || undefined) : undefined });
   try {
     for (const width of [1280, 390]) {
       fs.mkdirSync("hotte-browser-evidence", { recursive: true });
@@ -49,7 +51,7 @@
       await page.locator('[data-v11-widget-tab="hotte"]').click();
       assert.equal(await page.locator(".v11-partner-widget-shell").isVisible(), false);
       assert(await page.locator("#v11-hotte-float-expanded").isVisible());
-      await page.screenshot({ path: "hotte-browser-evidence/widget-expanded-" + width + ".png", fullPage: true });
+      await page.screenshot({ path: "hotte-browser-evidence/" + browserEngine + "-widget-expanded-" + width + ".png", fullPage: true });
       await page.locator("#v11-hotte-minimize").click();
       assert(await page.locator("#v11-hotte-expand").isVisible());
       assert.equal(await page.locator("#v11-hotte-float-expanded").isVisible(), false);
@@ -66,7 +68,7 @@
         window.DEDICALIVRES_V11_HOTTE_TOOLS.openHotte();
       });
       assert.equal((await page.locator("#v11-hotte-total-lots").innerText()).trim(), "4");
-      await page.screenshot({ path: "hotte-browser-evidence/gestion-" + width + ".png", fullPage: true });
+      await page.screenshot({ path: "hotte-browser-evidence/" + browserEngine + "-gestion-" + width + ".png", fullPage: true });
       assert.equal((await page.locator("#v11-hotte-accepted-lots").innerText()).trim(), "3");
       assert((await page.locator("#v11-hotte-total-value").innerText()).includes("60,30"));
       await page.locator('#v11-hotte-lot-form [name="title"]').fill("Nouveau livre fictif");
@@ -85,7 +87,7 @@
       assert.equal(errors.length, 0, "No browser JS errors: " + errors.join("; "));
       assert(external.every(url => url.startsWith("https://dedicalivres-hotte-he08-demonstration-")),
         "No production, payment or third-party network requests");
-      console.log("PASS isolated Hotte/Widgets browser " + width);
+      console.log("PASS isolated Hotte/Widgets " + browserEngine + " " + width);
       await context.close();
     }
   } finally {
