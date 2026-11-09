@@ -5,11 +5,13 @@
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   const js = fs.readFileSync("admin-v11-hotte-tools.js", "utf8");
   const css = fs.readFileSync("admin-v11-hotte-tools.css", "utf8");
+  const mainCss = fs.readFileSync("admin-v11.css", "utf8");
   const fixture = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/admin-v11-hotte-tools.css"></head><body>
+<link rel="stylesheet" href="/admin-v11.css"><link rel="stylesheet" href="/admin-v11-hotte-tools.css"></head><body>
+<div class="v11-app"><aside class="v11-sidebar"><div class="v11-brand"><div class="v11-brand-mark">D</div><div><strong>Dédicalivres</strong><span>Control Center</span></div></div><nav class="v11-nav"><button class="v11-nav-item is-active">Outils</button></nav></aside><main class="v11-main"><section class="v11-view is-active"><div class="v11-section-heading"><div><p class="v11-section-label">OUTILS</p><h2>Services et production</h2><p>Recette des modules Hotte et Widgets</p></div></div><div class="v11-tool-workspace">
 <div id="v11-partner-widget-panel"><section class="v11-partner-widget-shell">PARTNER-ORIGINAL-INVARIANT</section></div>
-<div id="v11-hotte-panel"></div>
+<div id="v11-hotte-panel"></div></div></section></main></div>
 <script>window.__adminState={authenticated:false,status:"loading"};window.DEDICALIVRES_ADMIN_CONTEXT={getState(){return window.__adminState;}};</script>
 <script src="/admin-v11-hotte-tools.js"></script></body></html>`;
 
@@ -30,6 +32,7 @@
         if (url.pathname === "/admin.html") return route.fulfill({ contentType: "text/html", body: fixture });
         if (url.pathname === "/admin-v11-hotte-tools.js") return route.fulfill({ contentType: "text/javascript", body: js });
         if (url.pathname === "/admin-v11-hotte-tools.css") return route.fulfill({ contentType: "text/css", body: css });
+        if (url.pathname === "/admin-v11.css") return route.fulfill({ contentType: "text/css", body: mainCss });
         return route.fulfill({ status: 404, body: "" });
       });
       await page.goto("http://hotte-fixture.test/admin.html");
