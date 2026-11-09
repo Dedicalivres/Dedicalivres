@@ -16,9 +16,9 @@ try{
   const context=await browser.newContext({viewport:{width,height:900}}),page=await context.newPage();
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',async d=>{dialogs.push({type:d.type(),answer:'dismiss'});await d.dismiss()});
   let releaseScripts;const gate=new Promise(r=>releaseScripts=r);
-  const scripts=['admin-context.js','admin-shell.js','admin-canary-evidence.js','admin-canary-direct.js',...(!before?['admin-ux-quickfix.js']:[])];
+  const scripts=['admin-context.js','admin-shell.js','admin-canary-evidence.js','admin-canary-direct.js',...(!before?['admin-ux-quickfix.js','admin-v11-partner-widget.js','admin-v11-hotte-tools.js']:[])];
   let html=asset(pageName).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*>/gi,'');
-  html=html.replace('</head>',`<style>${asset('admin-v11.css')}</style></head>`).replace('</body>',scripts.map(s=>`<script defer src="/${s}"></script>`).join('')+'</body>');
+  html=html.replace('</head>',`<style>${asset('admin-v11.css')}${before?'':asset('admin-v11-hotte-tools.css')}</style></head>`).replace('</body>',scripts.map(s=>`<script defer src="/${s}"></script>`).join('')+'</body>');
   await page.addInitScript(({event})=>{
    const user={id:'admin-fictif'};let current={access_token:'fictitious-token',user,expires_at:Math.floor(Date.now()/1000)+3600},listener;
    let releaseSession,releaseIdentity,releaseAdmin;let holdSession=sessionStorage.getItem('released')!=='1',holdIdentity=holdSession,holdAdmin=holdSession;let mode=sessionStorage.getItem('mode')||'valid';let proofStatus='none';
@@ -32,6 +32,8 @@ try{
    const client={auth,from(table){let single=false;const query=new Proxy({}, {get(_,key){if(key==='single')return()=>{single=true;return query};if(key==='then')return async resolve=>{if(table==='admin_users'){calls.push({name:'admin_users',t:performance.now()});if(holdAdmin)await new Promise(r=>releaseAdmin=r)}return resolve({data:table==='admin_users'&&mode!=='nonadmin'?[{user_id:current?.user.id}]:table==='events'?(single?event:[event]):[],count:0,error:null})};return()=>query}});return query},async rpc(name){calls.push({name,t:performance.now()});if(!name.startsWith('get_'))throw Error('WRITE_FORBIDDEN '+name);return {data:name==='get_publication_canary_evidence'?[{proof_status:proofStatus,proof_count:0,technical_candidate:false}]:[],error:null}}};
    window.getDedicalivresSupabaseClient=()=>client;
    window.DEDICALIVRES_ADMIN_V11_BRIDGE={getClient:()=>client,isAuthenticated:()=>window.DEDICALIVRES_ADMIN_CONTEXT?.getState().authenticated===true};
+   // Offline engine fixture: tests V11 routing without querying the public agenda.
+   window.DedicalivresWidget={render(el){el.dataset.widgetEngineFixture='true'},refresh(){}};
    const visible=id=>{const e=document.querySelector(id);return !!e&&getComputedStyle(e).display!=='none'&&e.getClientRects().length>0};
    function sample(){if(document.getElementById('v11-login-form'))frames.push({t:performance.now(),login:visible('#v11-login-form'),auth:visible('#v11-auth-gate'),app:visible('.v11-app'),pending:visible('#v11-session-pending')});requestAnimationFrame(sample)}requestAnimationFrame(sample);
   },{event});
@@ -43,6 +45,29 @@ try{
   assert(await page.locator('.v11-app').isVisible());assert.equal(await page.locator('#v11-auth-gate').isVisible(),false);
   const measured=await page.evaluate(()=>{const f=window.__lab.frames,first=window.__lab.calls.find(x=>x.name==='getSession').t,ready=f.find(x=>x.app)?.t;const flashes=f.filter(x=>x.login&&(!ready||x.t<ready)),cards=f.filter(x=>x.auth&&(!ready||x.t<ready));return {firstSessionCall:first,firstAdminFrame:ready,restorationMs:ready-first,authCardFrames:cards.length,authCardVisibleSampleSpanMs:cards.length>1?cards.at(-1).t-cards[0].t:0,loginFrames:flashes.length,loginVisibleSampleSpanMs:flashes.length>1?flashes.at(-1).t-flashes[0].t:0}});if(!before){assert.equal(measured.loginFrames,0);assert.equal(measured.authCardFrames,0);}measurements.push({page:pageName,width,...measured});pass(pageName+'-'+width+'-initial-session-security');
   const refreshStart=await page.evaluate(()=>{window.__lab.frames.length=0;window.__lab.renew();return window.__lab.calls.filter(x=>x.name==='admin_users').length});await page.waitForFunction(n=>window.__lab.calls.filter(x=>x.name==='admin_users').length>n,refreshStart);await page.waitForFunction(()=>window.DEDICALIVRES_ADMIN_CONTEXT.getState().status==='ready');await page.waitForTimeout(40);if(!before)assert((await page.evaluate(()=>window.__lab.frames)).every(x=>x.app&&!x.login));pass(pageName+'-'+width+'-token-rechecked');
+  if(!before){
+   // Real admin.html + real shell/context under mocked authorized session.
+   await page.locator('[data-view="tools"]:visible').first().click();
+   await page.locator('[data-tool-open="partners"]').first().click();
+   await page.waitForFunction(()=>document.querySelectorAll('[data-v11-widget-tab]').length===3);
+   assert(await page.locator('[data-v11-widget-tab="agenda"]').isVisible());
+   assert(await page.locator('.v11-partner-widget-shell').isVisible());
+   await page.locator('[data-v11-widget-tab="hotte"]').click();
+   assert(await page.locator('#v11-widget-hotte').isVisible());
+   await page.locator('[data-v11-widget-tab="helloasso"]').click();
+   assert(await page.locator('#v11-widget-helloasso').isVisible());
+   await page.locator('[data-v11-widget-tab="agenda"]').click();
+   assert(await page.locator('.v11-partner-widget-shell').isVisible());
+   await page.locator('[data-tool-open="hotte"]').first().click();
+   assert(await page.locator('#v11-hotte-gestion').isVisible());
+   assert.equal((await page.locator('#v11-hotte-total-lots').innerText()).trim(),'4');
+   await page.locator('[data-v11-hotte-tab="visiteur"]').click();
+   assert(await page.locator('#v11-hotte-visiteur').isVisible());
+   assert.equal(await page.locator('#v11-hotte-visitor-iframe').getAttribute('sandbox'),'allow-scripts');
+   await page.screenshot({path:path.join(out,pageName+'-'+width+'-hotte-routed.png'),fullPage:true});
+   assert((await page.evaluate(()=>window.DEDICALIVRES_ADMIN_CONTEXT.getState())).status==='ready');
+   pass(pageName+'-'+width+'-hotte-routed-inside-real-v11');
+  }
   // Native panel and all original proof logic; presentation is exercised without recording proof.
   await page.locator('[data-view="events"]:visible').first().click();await page.locator('[data-event-detail="'+event.id+'"]').first().click();
   async function select(proof='none',id=event.id){await page.evaluate(({proof,id})=>{window.__lab.proof(proof);window.dispatchEvent(new CustomEvent('dedicalivres:admin-event-detail',{detail:{event:{...window.__lab.event,id}}}))},{proof,id});await page.waitForFunction(()=>!document.getElementById('v11-canary-proof-save').disabled||document.getElementById('v11-canary-proof-status').textContent.includes('inconnu'))}
