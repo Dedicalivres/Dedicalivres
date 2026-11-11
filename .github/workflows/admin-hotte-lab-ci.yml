@@ -20,7 +20,7 @@ permissions:
 jobs:
   hotte-lab:
     name: Hotte widgets / isolated browser
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - name: Checkout PR
@@ -87,7 +87,7 @@ jobs:
 
   admin-event-write-disposable-pg:
     name: Admin V11 event edit / disposable PostgreSQL
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - name: Checkout PR (never production)
