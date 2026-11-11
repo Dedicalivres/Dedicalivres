@@ -74,9 +74,10 @@ try{
   await select();const panel=page.locator('#v11-canary-proof');assert.equal(await panel.evaluate(e=>e.tagName==='DETAILS'?!e.open:false),!before);await panel.evaluate(e=>e.scrollIntoView({block:'start',behavior:'instant'}));await page.evaluate(()=>window.scrollBy(0,-80));const compact=await panel.boundingBox();if(engineName==='chromium')await page.screenshot({path:path.join(out,`${pageName}-${width}-canary.png`)});if(engineName==='chromium')await panel.screenshot({path:path.join(out,`${pageName}-${width}-canary-panel.png`)});
   if(!before){await panel.locator('summary').focus();await page.keyboard.press('Enter');assert(await panel.evaluate(e=>e.open));assert(await page.locator('[name="human_confirmed"]').isVisible());const expanded=await panel.boundingBox();measurements.at(-1).canary={compactHeight:compact.height,expandedHeight:expanded.height};if(engineName==='chromium')await page.screenshot({path:path.join(out,`${pageName}-${width}-canary-expanded.png`)});
    await select('valid');assert.equal(await panel.evaluate(e=>e.open),false);assert((await panel.locator('summary').innerText()).includes('valide'));await select('expired');assert((await panel.locator('summary').innerText()).includes('expirée'));await select('invalidated');assert((await panel.locator('summary').innerText()).includes('invalidée'));await select('future');assert((await panel.locator('summary').innerText()).includes('inconnu'));assert(await page.locator('#v11-canary-proof-save').isDisabled());await select('none');
-   // A real submit click is portable; WebKit does not always autofocus the invalid
-   // source field after a programmatic requestSubmit in headless mode.
-   await page.locator('#v11-canary-proof-save').click();
+   // Submit the invalid form while the disclosure is collapsed. Native invalid
+   // handling must reopen it; a user click cannot reach the hidden submit button.
+   // Headless WebKit does not reliably auto-focus the first invalid field.
+   await page.evaluate(()=>document.getElementById('v11-canary-proof-form').requestSubmit());
    const invalid=await page.evaluate(()=>{
      const form=document.getElementById('v11-canary-proof-form');
      const field=form.elements.namedItem('source_url');
