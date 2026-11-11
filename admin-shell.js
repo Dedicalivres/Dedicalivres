@@ -116,7 +116,22 @@
     console.error("V11 : formulaire de connexion absent du DOM");
   }
 
+  let activeV11View = "home";
+  let eventListPage = 0;
+  let eventListSize = 50;
+  let eventListFilters = "";
+  let eventListRequestKey = "";
+  let eventListRenderedKey = "";
+  let eventSearchTimer = null;
+  let lastCommunityRenderedRevision = null;
+  let lastPriorityRenderKey = "";
+  let lastTrafficRenderKey = "";
+
   function openView(name) {
+    activeV11View = name;
+    if (name === "events") queueMicrotask(() => { const state = context.getState(); renderEvents(state.events, state.status); });
+    if (name === "pilotage") void context.ensureModule("traffic");
+    if (name === "community") void context.ensureModule("community");
     panels.forEach((panel) => {
       panel.classList.toggle(
         "is-active",
@@ -1920,10 +1935,21 @@
   }
 
   async function refreshV11AfterEventAction(id) {
-    await context.refresh();
+    try {
+      await context.refreshEvent(id);
+    } catch (error) {
+      // The database write has already succeeded. A failed read-back must not
+      // be reported as an unsuccessful save or invite the user to save twice.
+      console.warn("V11 lecture après enregistrement indisponible", error);
+      v11ActionMessage(
+        "Modification enregistrée, mais actualisation indisponible. Utilisez Rafraîchir."
+      );
+      return;
+    }
 
     const state =
       context.getState();
+    if (state.status !== "ready" || state.authenticated !== true) return;
 
     const refreshed =
       (state.events || []).find(
@@ -3417,55 +3443,68 @@
 
 function renderEvents(events, status) {
     if (!eventsList) return;
-
-    const loading =
-      status === "loading" ||
-      status === "booting";
-
-    if (eventsLoading) {
-      if (loading) {
-        eventsLoading.hidden = false;
-        eventsLoading.textContent =
-          "Chargement des événements...";
-      } else if (status === "error") {
-        eventsLoading.hidden = false;
-        eventsLoading.textContent =
-          "Chargement impossible.";
-      } else {
-        eventsLoading.hidden = true;
-      }
+    const state = context.getState();
+    const scope = document.getElementById("v11-catalog-status");
+    if (scope) scope.textContent = state.eventCatalog.status === "ready"
+      ? `Catalogue de cette actualisation : ${state.eventCatalog.loaded} événements ; les nouveaux ajouts apparaîtront à l’actualisation suivante`
+      : state.eventCatalog.status === "error"
+        ? `Catalogue incomplet : ${state.eventCatalog.loaded} événements parcourus ; utilisez Actualiser pour reprendre`
+        : `Catalogue en cours : ${state.eventCatalog.loaded} / ${state.eventCatalog.total ?? "—"} ; priorités et indicateurs détaillés en attente`;
+    for (const name of ["traffic", "community"]) {
+      const label = document.getElementById(`v11-${name}-load-status`);
+      if (label) label.textContent = state.modules[name].status === "ready"
+        ? state.modules[name].stale
+          ? "Données précédentes conservées · échec de l'actualisation"
+          : state.modules[name].refreshing
+            ? "Actualisation en cours · valeurs précédentes affichées"
+            : `Données chargées le ${new Date(state.modules[name].refreshedAt).toLocaleString("fr-FR")}`
+        : ({ idle: "Chargement à l’ouverture de cet onglet", loading: "Chargement…", error: "Chargement impossible ; Réessayer ou Actualiser" })[state.modules[name].status];
     }
-
-    if (loading || status === "error") {
-      if (eventsVisibleCount) {
-        eventsVisibleCount.textContent = "0";
-      }
-
+    if (activeV11View !== "events") return;
+    if (status !== "ready" || !state.authenticated) {
+      eventListRequestKey = "";
+      eventListRenderedKey = "";
+      eventsList.replaceChildren();
+      if (eventsVisibleCount) eventsVisibleCount.textContent = "0";
       return;
     }
-
-    const filtered =
-      getFilteredEvents(events);
-
+    if (state.eventCatalog.status !== "ready") {
+      eventsList.replaceChildren();
+      eventsLoading.hidden = false;
+      eventsLoading.textContent = state.eventCatalog.error ? "Catalogue incomplet. Réessayez avec Actualiser." : "Chargement du catalogue complet pour conserver tous les filtres…";
+      eventsEmpty.hidden = true;
+      eventsVisibleCount.textContent = "0 / —";
+      return;
+    }
+    const filters = JSON.stringify([eventSearch?.value, eventStatusFilter?.value, eventTypeFilter?.value, eventQualityFilter?.value, eventRegistrationFilter?.value]);
+    if (filters !== eventListFilters) { eventListFilters = filters; eventListPage = 0; }
+    const filtered = getFilteredEvents(state.events);
+    const ids = filtered.map(row => row.id);
+    eventListPage = Math.min(eventListPage, Math.max(0, Math.ceil(ids.length / eventListSize) - 1));
+    const key = JSON.stringify([state.eventCatalog.revision, filters, eventListPage, eventListSize]);
+    if (activeV11View === "events" && eventListRequestKey !== key) {
+      eventListRequestKey = key;
+      void context.selectEventPage({ ids, page: eventListPage, size: eventListSize, key });
+      return;
+    }
+    const page = state.eventPage;
+    if (page.key !== key) return;
+    eventsLoading.hidden = !page.loading && !page.error;
+    eventsLoading.textContent = page.error ? page.error.message : "Chargement de la page…";
+    const totalPages = Math.max(1, Math.ceil(page.total / page.size));
+    const label = document.getElementById("v11-event-page-label");
+    if (label) label.textContent = `Page ${page.page + 1} / ${totalPages}`;
+    const prevButton = document.getElementById("v11-event-page-prev");
+    if (prevButton) prevButton.disabled = page.loading || page.page === 0;
+    const nextButton = document.getElementById("v11-event-page-next");
+    if (nextButton) nextButton.disabled = page.loading || page.page + 1 >= totalPages;
+    eventsVisibleCount.textContent = `${page.rows.length} affichés / ${page.total} résultats`;
+    eventsEmpty.hidden = page.loading || Boolean(page.error) || page.total !== 0;
+    const renderedKey = key + ":" + page.loading + ":" + Boolean(page.error);
+    if (renderedKey === eventListRenderedKey) return;
+    eventListRenderedKey = renderedKey;
     eventsList.replaceChildren();
-
-    filtered
-      .slice(0, 150)
-      .forEach((event) => {
-        eventsList.appendChild(
-          createEventCard(event)
-        );
-      });
-
-    if (eventsVisibleCount) {
-      eventsVisibleCount.textContent =
-        String(filtered.length);
-    }
-
-    if (eventsEmpty) {
-      eventsEmpty.hidden =
-        filtered.length !== 0;
-    }
+    page.rows.forEach(row => eventsList.appendChild(createEventCard(row)));
   }
 
 
@@ -3511,12 +3550,9 @@ function renderEvents(events, status) {
             )
         : [];
 
-    const pendingEvents =
-      events.filter(
-        (event) =>
-          event.validated !== true &&
-          event.rejected !== true
-      ).length;
+    const pendingEvents = state.eventCatalog?.status === "ready"
+      ? events.filter(event => event.validated !== true && event.rejected !== true).length
+      : (state.metrics?.eventsPending ?? 0);
 
     const pendingPresences =
       presences.filter(
@@ -3684,25 +3720,30 @@ function renderEvents(events, status) {
   }
 
   function renderPriority(state) {
-    if (!priorityList) {
-      return;
-    }
+    const priorAuthorCache = authorReadinessRenderCache;
+    authorReadinessRenderCache = new WeakMap();
+    try {
+    if (!priorityList) return;
+    const key = JSON.stringify([
+      state.eventCatalog.status, state.eventCatalog.revision,
+      state.metrics.eventsPending, state.modules.community.status,
+      state.modules.community.revision, state.modules.community.refreshedAt,
+      state.modules.community.stale
+    ]);
+    if (key === lastPriorityRenderKey) return;
+    lastPriorityRenderKey = key;
 
     const summary =
       getV11HomePriorities(state);
 
     setBoundText(
       "authors-editorial-pending",
-      String(
-        summary.editorialAuthors
-      )
+      state.modules.community.status === "ready" ? String(summary.editorialAuthors) : "—"
     );
 
     setBoundText(
       "testimonials-pending",
-      String(
-        summary.pendingTestimonials
-      )
+      state.modules.community.status === "ready" ? String(summary.pendingTestimonials) : "—"
     );
 
     priorityList.replaceChildren();
@@ -3714,6 +3755,12 @@ function renderEvents(events, status) {
     if (
       summary.priorities.length === 0
     ) {
+      if (state.eventCatalog.status !== "ready" || state.modules.community.status !== "ready") {
+        if (homePriorityTitle) homePriorityTitle.textContent = "Vérification partielle";
+        if (homePriorityDetail) homePriorityDetail.textContent = "Catalogue ou communauté encore incomplet ; aucune conclusion globale sur les files en attente.";
+        priorityList.textContent = "Ouvrez l’onglet Communauté pour vérifier les autres files.";
+        return;
+      }
       if (homePriorityTitle) {
         homePriorityTitle.textContent =
           "Aucune action urgente";
@@ -3746,17 +3793,20 @@ function renderEvents(events, status) {
         0
       );
 
+    const partial = state.eventCatalog.status !== "ready" ||
+      state.modules.community.status !== "ready" || state.modules.community.stale === true;
     if (homePriorityTitle) {
       homePriorityTitle.textContent =
-        total +
+        (partial ? "Au moins " : "") + total +
         " action" +
         (total > 1 ? "s" : "") +
         " à traiter";
     }
 
     if (homePriorityDetail) {
-      homePriorityDetail.textContent =
-        summary.priorities.length +
+      homePriorityDetail.textContent = partial
+        ? "Bilan partiel : catalogue ou Communauté à compléter."
+        : summary.priorities.length +
         " file" +
         (
           summary.priorities.length > 1
@@ -3785,8 +3835,10 @@ function renderEvents(events, status) {
           )
         );
       });
+    } finally {
+      authorReadinessRenderCache = priorAuthorCache;
+    }
   }
-
   function openV11HomePriority(target) {
     const state =
       context.getState();
@@ -4905,7 +4957,14 @@ function renderEvents(events, status) {
   }
 
 
+  // Cache STRICTEMENT limité au rendu synchrone en cours.
+  // Les actions d’édition et les chargements ultérieurs recalculent toujours les valeurs.
+  let authorReadinessRenderCache = null;
+
   function getV11AuthorEditorialReadiness(author) {
+    if (author && authorReadinessRenderCache?.has(author)) {
+      return authorReadinessRenderCache.get(author);
+    }
     const backofficeRecord =
       getV11AuthorBackofficeRecord(
         author
@@ -4954,7 +5013,7 @@ function renderEvents(events, status) {
       state = "almost";
     }
 
-    return {
+    const readiness = {
       score,
       state,
       completedCount:
@@ -4977,6 +5036,10 @@ function renderEvents(events, status) {
           ?.quality?.confidence || 0,
       record: backofficeRecord
     };
+    if (author && authorReadinessRenderCache) {
+      authorReadinessRenderCache.set(author, readiness);
+    }
+    return readiness;
   }
 
   function matchesV11AuthorEditorialFilter(
@@ -5479,6 +5542,9 @@ function renderEvents(events, status) {
 
 
   function renderAuthors(items) {
+    const priorAuthorCache = authorReadinessRenderCache;
+    authorReadinessRenderCache = new WeakMap();
+    try {
     if (!authorsList) return;
 
     renderV11AuthorReleaseGate(items);
@@ -5776,8 +5842,10 @@ function renderEvents(events, status) {
     }
 
     renderV11AuthorConsolidation();
+    } finally {
+      authorReadinessRenderCache = priorAuthorCache;
+    }
   }
-
   function formatV11TraceTime(date) {
     try {
       return new Intl.DateTimeFormat(
@@ -12244,6 +12312,7 @@ function renderEvents(events, status) {
   );
 
 function openCommunityView(name) {
+    void context.ensureModule("community");
     document
       .querySelectorAll(".v11-community-panel")
       .forEach((panel) => {
@@ -12448,7 +12517,12 @@ function openCommunityView(name) {
       );
     }
 
-    if (!authorized) return;
+    if (!authorized) {
+      lastCommunityRenderedRevision = null;
+      lastPriorityRenderKey = "";
+      lastTrafficRenderKey = "";
+      return;
+    }
 
     if (state.communityMetrics) {
       const communityMetrics = state.communityMetrics;
@@ -12624,21 +12698,25 @@ function openCommunityView(name) {
       state
     );
 
-    renderRanking(
-      topPages,
-      state.trafficDetails
-        ? state.trafficDetails.topPages
-        : []
-    );
+    const trafficKey = JSON.stringify([
+      state.modules.traffic.status, state.modules.traffic.revision,
+      state.modules.traffic.refreshedAt, state.modules.traffic.stale
+    ]);
+    if (trafficKey !== lastTrafficRenderKey) {
+      lastTrafficRenderKey = trafficKey;
+      renderRanking(topPages, state.trafficDetails?.topPages || []);
+      renderRanking(topReferrers, state.trafficDetails?.topReferrers || []);
+    }
 
-    renderRanking(
-      topReferrers,
-      state.trafficDetails
-        ? state.trafficDetails.topReferrers
-        : []
-    );
-
-    if (state.community) {
+    const communityKey = JSON.stringify([
+      state.modules.community.status, state.modules.community.revision,
+      state.modules.community.refreshedAt, state.modules.community.stale,
+      // Author completeness depends on events, not only the Community revision.
+      state.eventCatalog?.status, state.eventCatalog?.revision
+    ]);
+    if (state.community && state.modules.community.status === "ready" &&
+        communityKey !== lastCommunityRenderedRevision) {
+      lastCommunityRenderedRevision = communityKey;
       if (
         state.communityMetrics &&
         state.communityMetrics.presencePending === 0 &&
@@ -12714,16 +12792,34 @@ function openCommunityView(name) {
     control.addEventListener(
       name,
       () => {
-        const state =
-          context.getState();
-
-        renderEvents(
-          state.events || [],
-          state.status
-        );
+        eventListRequestKey = "";
+        const render = () => { const state = context.getState(); renderEvents(state.events, state.status); };
+        if (control === eventSearch) {
+          window.clearTimeout(eventSearchTimer);
+          eventSearchTimer = window.setTimeout(render, 200);
+        } else { window.clearTimeout(eventSearchTimer); render(); }
       }
     );
   });
+
+  for (const [id, delta] of [["v11-event-page-prev", -1], ["v11-event-page-next", 1]]) {
+    document.getElementById(id)?.addEventListener("click", () => {
+      eventListPage = Math.max(0, eventListPage + delta);
+      const state = context.getState(); renderEvents(state.events, state.status);
+    });
+  }
+  document.getElementById("v11-event-page-size")?.addEventListener("change", event => {
+    eventListSize = Number(event.target.value);
+    eventListPage = 0;
+    const state = context.getState(); renderEvents(state.events, state.status);
+  });
+  document.getElementById("v11-event-page-retry")?.addEventListener("click", () => {
+    eventListRequestKey = "";
+    const state = context.getState(); renderEvents(state.events, state.status);
+  });
+  for (const name of ["traffic", "community"]) {
+    document.getElementById(`v11-${name}-retry`)?.addEventListener("click", () => { void context.ensureModule(name, true); });
+  }
 
   // V11.44 reactive community filters
   [
@@ -12837,13 +12933,13 @@ function openCommunityView(name) {
             await context.refresh();
 
           toast(
-            state.status === "ready"
+            state.status === "ready" && !state.error
               ? "Données actualisées"
               : v11ErrorMessage(
                   state.error,
                   "Erreur de chargement. Réessayez."
                 ),
-            state.status === "ready"
+            state.status === "ready" && !state.error
               ? "ok"
               : "error"
           );
