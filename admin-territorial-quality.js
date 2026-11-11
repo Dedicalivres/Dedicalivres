@@ -1,4 +1,4 @@
-import {analyzeQuality,publishedDuplicateGroups} from './scripts/territorial-quality.mjs';
+import {analyzeQuality,publishedDuplicateGroups} from './scripts/territorial-quality.mjs?v=quality-collapsible-01';
 const context=window.DEDICALIVRES_ADMIN_CONTEXT;
 const host=document.getElementById('v11-territorial-quality');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
