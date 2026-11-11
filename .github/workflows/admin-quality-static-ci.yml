@@ -1,0 +1,40 @@
+name: Admin territorial quality isolated checks
+
+on:
+  pull_request:
+    paths:
+      - admin.html
+      - admin-v11.html
+      - admin-v11.css
+      - admin-territorial-quality.js
+      - scripts/territorial-quality.mjs
+      - scripts/territorial-catalog.mjs
+      - scripts/test-admin-territorial-quality.mjs
+      - scripts/test-admin-territorial-quality-ui.mjs
+      - docs/territoires/referentiel.json
+      - docs/territoires/signalements.json
+      - .github/workflows/admin-quality-static-ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  quality-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript parse checks
+        run: |
+          node --check admin-territorial-quality.js
+          node --check scripts/territorial-catalog.mjs
+          node --check scripts/territorial-quality.mjs
+      - name: Geographic and documentary alert regressions
+        run: node scripts/test-admin-territorial-quality.mjs
+      - name: Interactive panel without browser / network
+        run: node scripts/test-admin-territorial-quality-ui.mjs
+      - name: Admin V11 entrypoints mirrored
+        run: cmp -s admin.html admin-v11.html
