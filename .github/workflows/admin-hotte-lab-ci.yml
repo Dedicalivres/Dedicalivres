@@ -9,6 +9,7 @@ on:
       - 'admin-context.js'
       - 'admin-v11.css'
       - 'scripts/test-admin-v11-ux-quickfix-browser.mjs'
+      - 'tests/admin-origin.test.cjs'
       - 'admin-v11-hotte-tools.js'
       - 'admin-v11-hotte-tools.css'
       - 'scripts/test-admin-v11-hotte-*.mjs'
@@ -20,7 +21,11 @@ permissions:
 jobs:
   hotte-lab:
     name: Hotte widgets / isolated browser
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    # Pinned image: browser binaries + native WebKit libraries, no apt/distro DNS dependency.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      options: --user 1001
     timeout-minutes: 12
     steps:
       - name: Checkout PR
@@ -34,20 +39,15 @@ jobs:
       - name: Static guards for V11 and Hotte
         run: |
           node --check admin-v11-hotte-tools.js
+          node --test tests/admin-origin.test.cjs
           node --check scripts/test-admin-v11-hotte-browser.mjs
           node scripts/test-admin-v11-hotte-tools.mjs
 
       - name: Install isolated browser test dependencies
         run: npm install --ignore-scripts --no-save --package-lock=false playwright@1.62.1
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
       - name: Run isolated browser tests (external requests blocked)
         run: node scripts/test-admin-v11-hotte-browser.mjs
-
-      - name: Install WebKit for Safari-engine coverage
-        run: npx playwright install --with-deps webkit
 
       - name: Test Hotte widgets in isolated WebKit (Safari engine)
         env:
@@ -87,7 +87,7 @@ jobs:
 
   admin-event-write-disposable-pg:
     name: Admin V11 event edit / disposable PostgreSQL
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
       - name: Checkout PR (never production)
@@ -101,7 +101,7 @@ jobs:
           node --check admin-shell.js
           node --check scripts/test-admin-v11-event-write-pg-browser.mjs
           npm install --ignore-scripts --no-save --package-lock=false playwright@1.62.1 pg@8.16.3
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Real Admin edit -> fixture HTTP -> isolated PostgreSQL RLS -> rollback
         shell: bash
         env:

@@ -64,6 +64,9 @@
       "v11-event-registration-filter"
     );
 
+  const eventOriginFilter =
+    document.getElementById("v11-event-origin-filter");
+
   const eventsList =
     document.getElementById("v11-events-list");
 
@@ -949,7 +952,11 @@
         ? eventRegistrationFilter.value
         : "all";
 
+    const originFilter = eventOriginFilter?.value || "all";
+
     return events.filter((event) => {
+      if (originFilter !== "all" && getV11EventOrigin(event).key !== originFilter) return false;
+
       if (
         type !== "all" &&
         event.type !== type
@@ -1134,6 +1141,29 @@
     });
   }
 
+  // Ne pas déduire « Moi » ou « Auto-Matte » d'une URL documentaire.
+  // Les identifiants de lots importés indiquent une intégration interne, pas son opérateur.
+  function getV11EventOrigin(event) {
+    const sourceLabel = String(event?.source_label || "").trim();
+    const importId = String(event?.imported_source || "").trim();
+    const source = sourceLabel.toLocaleLowerCase("fr");
+    const batch = importId.toLocaleLowerCase("fr");
+
+    if (source === "soumission publique" || /^(public|submission-public)(?:$|[-_:/])/.test(batch)) {
+      return { key: "public", label: "Public · déclaré", detail: "Marqueur historique de soumission publique ; identité du déposant non attestée" };
+    }
+    if (/^(automatte|auto-matte|auto_matte)(?:$|[-_:/])/.test(batch)) {
+      return { key: "automatte", label: "Auto-Matte", detail: "Import identifié Auto-Matte : " + importId };
+    }
+    if (/^(internal-user|admin-manual|manual-admin|interne-moi)(?:$|[-_:/])/.test(batch)) {
+      return { key: "owner", label: "Interne · Moi", detail: "Soumission manuelle interne identifiée" };
+    }
+    if (importId) {
+      return { key: "internal", label: "Interne · import", detail: "Lot importé : " + importId + " ; opérateur non attribué" };
+    }
+    return { key: "unknown", label: "Origine non attribuée", detail: "Aucune provenance de soumission attestée pour cette fiche" };
+  }
+
   function createEventCard(event) {
     const article =
       document.createElement("article");
@@ -1171,6 +1201,17 @@
       event.type || "Autre";
 
     top.appendChild(typeBadge);
+
+    const origin = getV11EventOrigin(event);
+    // Ne pas ajouter une pastille neutre à la majorité des fiches historiques.
+    // L'origine inconnue reste visible dans le détail et le filtre dédié.
+    if (origin.key !== "unknown") {
+      const originBadge = document.createElement("span");
+      originBadge.className = "v11-origin-badge is-" + origin.key;
+      originBadge.textContent = origin.label;
+      originBadge.title = origin.detail;
+      top.appendChild(originBadge);
+    }
 
     if (event.featured === true) {
       const featured =
@@ -1583,6 +1624,9 @@
       ],
       ["Mise en avant", event.featured === true ? "Oui" : "Non"],
       ["Vérification humaine", event.verified === true ? "Vérifiée" : "Non vérifiée"],
+      ["Origine de la soumission", getV11EventOrigin(event).label],
+      ["Lot de collecte interne", event.imported_source],
+      ["Source documentaire déclarée", event.source_label],
       ["Contact proposant — nom/structure", event.submitter_name],
       ["Contact proposant — e-mail", event.submitter_email, "email"]
     ];
@@ -3487,7 +3531,7 @@ function renderEvents(events, status) {
       eventsVisibleCount.textContent = "0 / —";
       return;
     }
-    const filters = JSON.stringify([eventSearch?.value, eventStatusFilter?.value, eventTypeFilter?.value, eventQualityFilter?.value, eventRegistrationFilter?.value]);
+    const filters = JSON.stringify([eventSearch?.value, eventStatusFilter?.value, eventTypeFilter?.value, eventQualityFilter?.value, eventRegistrationFilter?.value, eventOriginFilter?.value]);
     if (filters !== eventListFilters) { eventListFilters = filters; eventListPage = 0; }
     const filtered = getFilteredEvents(state.events);
     const ids = filtered.map(row => row.id);
@@ -12791,7 +12835,8 @@ function openCommunityView(name) {
     eventStatusFilter,
     eventTypeFilter,
     eventQualityFilter,
-    eventRegistrationFilter
+    eventRegistrationFilter,
+    eventOriginFilter
   ].forEach((control) => {
     if (!control) return;
 

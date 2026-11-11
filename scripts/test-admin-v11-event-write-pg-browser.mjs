@@ -18,7 +18,7 @@ const id="11111111-1111-4111-8111-111111111111",
   admin="22222222-2222-4222-8222-222222222222",
   other="33333333-3333-4333-8333-333333333333";
 const original="Fiche fictive avant édition",edited="Fiche fictive éditée";
-const columns=new Set("id created_at title type city region country_code description website start_date end_date lat lng image_url validated rejected featured verified registration_force_status registration_note registration_audience registration_url registration_deadline registration_open_date registration_enabled".split(" "));
+const columns=new Set("id created_at title type city region country_code description website start_date end_date lat lng image_url validated rejected featured verified registration_force_status registration_note registration_audience registration_url registration_deadline registration_open_date registration_enabled source_label imported_source".split(" "));
 const columnsByTable={events:columns,admin_users:new Set(["user_id"]),
   event_submission_contacts:new Set(["event_id","submitter_name","submitter_email"])};
 let persona=admin,attempts=0,writes=0,server,browser;
@@ -37,7 +37,7 @@ async function initialize(){
   "REVOKE ALL ON FUNCTION private.is_admin() FROM PUBLIC",
   "GRANT USAGE ON SCHEMA auth,private TO authenticated",
   "GRANT EXECUTE ON FUNCTION auth.uid(),private.is_admin() TO authenticated",
-  "CREATE TABLE public.events(id uuid PRIMARY KEY,created_at timestamptz DEFAULT now(),title text NOT NULL,type text,city text,region text,country_code text,description text,website text,start_date date,end_date date,lat double precision,lng double precision,image_url text,validated boolean DEFAULT false,rejected boolean DEFAULT false,featured boolean DEFAULT false,verified boolean DEFAULT false,registration_force_status text,registration_note text,registration_audience text[] DEFAULT '{}',registration_url text,registration_deadline date,registration_open_date date,registration_enabled boolean DEFAULT false)",
+  "CREATE TABLE public.events(id uuid PRIMARY KEY,created_at timestamptz DEFAULT now(),title text NOT NULL,type text,city text,region text,country_code text,description text,website text,start_date date,end_date date,lat double precision,lng double precision,image_url text,validated boolean DEFAULT false,rejected boolean DEFAULT false,featured boolean DEFAULT false,verified boolean DEFAULT false,registration_force_status text,registration_note text,registration_audience text[] DEFAULT '{}',registration_url text,registration_deadline date,registration_open_date date,registration_enabled boolean DEFAULT false,source_label text,imported_source text)",
   "CREATE TABLE public.event_submission_contacts(event_id uuid PRIMARY KEY,submitter_name text,submitter_email text)",
   "GRANT SELECT,UPDATE ON public.events TO authenticated",
   "GRANT SELECT ON public.admin_users,public.event_submission_contacts TO authenticated",
@@ -49,7 +49,7 @@ async function initialize(){
   "CREATE POLICY contacts_admin ON public.event_submission_contacts FOR SELECT TO authenticated USING(private.is_admin())"
  ].join(";\n")+";");
  await pool.query("INSERT INTO public.admin_users VALUES($1)",[admin]);
- await pool.query("INSERT INTO public.events(id,title,type,city,region,country_code,start_date,description,validated,rejected) VALUES($1,$2,'Dédicace','Lille','Hauts-de-France','FR','2030-12-01','Donnée fictive',false,false)",[id,original]);
+ await pool.query("INSERT INTO public.events(id,title,type,city,region,country_code,start_date,description,validated,rejected,source_label,imported_source) VALUES($1,$2,'Dédicace','Lille','Hauts-de-France','FR','2030-12-01','Donnée fictive',false,false,'Annonce librairie','auto-matte:fixture')",[id,original]);
 }
 async function row(){
  return (await pool.query("SELECT title,city,validated,rejected FROM public.events WHERE id=$1",[id])).rows[0];
@@ -182,7 +182,15 @@ try{
  await page.waitForFunction(()=>window.DEDICALIVRES_ADMIN_CONTEXT?.getState().status==="ready");
  await page.locator('[data-view="events"]:visible').first().click();
  await page.waitForFunction(()=>window.DEDICALIVRES_ADMIN_CONTEXT.getState().eventCatalog.status==="ready");
- await page.locator('[data-event-detail="'+id+'"]').first().click();
+ await page.locator(".v11-origin-badge.is-automatte").waitFor();
+  assert.equal((await page.locator(".v11-origin-badge.is-automatte").first().innerText()).trim(),"Auto-Matte");
+  pass("real V11 renders attested Auto-Matte origin without implying validation");
+  await page.locator("#v11-event-origin-filter").selectOption("unknown");
+  await page.locator("#v11-events-empty").waitFor({state:"visible"});
+  await page.locator("#v11-event-origin-filter").selectOption("automatte");
+  await page.locator('[data-event-detail="'+id+'"]').first().waitFor();
+  pass("real V11 origin filter hides and restores events");
+  await page.locator('[data-event-detail="'+id+'"]').first().click();
  const currentUrl=page.url();
  async function save(title,city){
   await page.locator("#v11-event-edit").click();

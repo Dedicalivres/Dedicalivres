@@ -61,7 +61,7 @@
   let refreshTask = null;
   const moduleTasks = new Map();
   const moduleSequences = { traffic: 0, community: 0 };
-  const EVENT_COLUMNS = "id,created_at,title,type,city,region,start_date,end_date,validated,rejected,featured,verified,country_code,image_url,registration_force_status,registration_note,registration_audience,registration_url,registration_deadline,registration_open_date,registration_enabled,description,website,lat,lng";
+  const EVENT_COLUMNS = "id,created_at,title,type,city,region,start_date,end_date,validated,rejected,featured,verified,country_code,image_url,registration_force_status,registration_note,registration_audience,registration_url,registration_deadline,registration_open_date,registration_enabled,description,website,lat,lng,source_label,imported_source";
   const EMPTY_PAGE = () => ({ rows: [], total: 0, page: 0, size: 50, key: "", loading: false, error: null });
 
   function expiresAtMs(session) {

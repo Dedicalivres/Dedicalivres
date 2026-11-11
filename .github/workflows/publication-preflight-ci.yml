@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   public-calendar-startup:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -18,7 +18,7 @@ jobs:
       - name: Install isolated browser test dependencies
         run: npm install --ignore-scripts --no-save --package-lock=false playwright@1.62.1 leaflet@1.9.4
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: Test complete public calendar startup without production access
         env:
           TEST_OUTPUT: calendar-startup-evidence
