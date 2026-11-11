@@ -45,6 +45,15 @@ const corrected={...wrong,start_date:'2026-09-26'};
 assert(!observationStillCurrent(corrected,mons));
 assert(!analyzeQuality([corrected],registry,observations,today).some(x=>x.kind==='dates'));
 assert(analyzeQuality([{...base,start_date:'2026-02-30'}],registry,[],today).some(x=>x.kind==='dates'));
+// A linked historical duplicate report must disappear if either of its records
+// changes identity, even if city and date are still identical.
+const archivalPair=observations.filter(x=>x.kind==='duplicate' && x.relatedIds?.length);
+assert.equal(archivalPair.length,2);
+const pair=archivalPair.map(x=>({id:x.id,...x.observed,validated:true,rejected:false}));
+assert.equal(analyzeQuality(pair,registry,observations,today).filter(x=>x.origin==='documentary'&&x.kind==='duplicate').length,2);
+const peerChanged=[{...pair[0],title:'Autre événement distinct'},pair[1]];
+assert.equal(analyzeQuality(peerChanged,registry,observations,today).filter(x=>x.origin==='documentary'&&x.kind==='duplicate').length,0);
+
 
 // The review is a disclosure control, never an event write or publication engine.
 const ui=fs.readFileSync('admin-territorial-quality.js','utf8');
