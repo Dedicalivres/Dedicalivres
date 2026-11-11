@@ -104,6 +104,7 @@ async function query(spec){
   return {data,error:null,count,status:200};
  }catch(error){
   await client.query("ROLLBACK").catch(()=>{});
+  console.error("FIXTURE QUERY FAILED",table,spec.operation||"select",error.code||"",error.message);
   return {data:null,count:null,error:{message:error.message,code:error.code||"FIXTURE_ERROR"},status:400};
  }finally{client.release()}
 }
@@ -190,7 +191,19 @@ try{
   await page.locator("#v11-edit-save").click();
  }
  await save(edited,"Rennes");
- await page.waitForFunction(expected=>window.DEDICALIVRES_ADMIN_CONTEXT.getState().events.some(x=>x.title===expected),edited);
+ try {
+  await page.waitForFunction(expected=>window.DEDICALIVRES_ADMIN_CONTEXT.getState().events.some(x=>x.title===expected),edited,{timeout:10000});
+ } catch(error){
+  const details=await page.evaluate(()=>({
+   status:window.DEDICALIVRES_ADMIN_CONTEXT.getState().status,
+   catalog:window.DEDICALIVRES_ADMIN_CONTEXT.getState().eventCatalog,
+   eventPage:window.DEDICALIVRES_ADMIN_CONTEXT.getState().eventPage,
+   alerts:window.__lab.alerts,
+   title:window.DEDICALIVRES_ADMIN_CONTEXT.getState().events[0]?.title
+  }));
+  console.error("ISOLATED EDIT DIAGNOSTIC",JSON.stringify({details,db:await row(),attempts,writes,browserErrors:errors}));
+  throw error;
+ }
  assert.equal((await row()).title,edited);
  assert.equal((await row()).city,"Rennes");
  assert.equal(page.url(),currentUrl);
