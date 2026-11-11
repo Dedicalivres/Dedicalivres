@@ -46,11 +46,12 @@ export function analyzeQuality(events,registry,observations,today) {
  }
  for(const note of observations){
   const e=byId.get(String(note.id));if(!e||e.rejected===true)continue;
+  if(!observationStillCurrent(e,note))continue;
   if(note.relatedIds?.length){
    const related=note.relatedIds.map(id=>byId.get(id));
    if(related.some(x=>!x||x.validated!==true||x.rejected!==false))continue;
    if(related.some(x=>x.city!==e.city||x.start_date!==e.start_date))continue;
-  }else if(!observationStillCurrent(e,note)||matchesExpected(e,note.expected))continue;
+  }else if(matchesExpected(e,note.expected))continue;
   add(e,note.kind,note.reason,note.source,note.checkedOn,'documentary');
  }
  const priority=e=>!e.published?2:['future','ongoing','undated','invalid'].includes(e.status)?0:1;
