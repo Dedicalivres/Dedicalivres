@@ -56,6 +56,7 @@ jobs:
           node --check admin-territorial-quality.js
           node --check scripts/territorial-quality.mjs
           node scripts/test-admin-territorial-quality.mjs
+          node scripts/test-admin-territorial-quality-ui.mjs
 
       - name: Test batch limit and preflight
         run: node scripts/test-publication-batch-preflight.mjs
