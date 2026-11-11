@@ -1096,8 +1096,10 @@
   async function refreshData(options = {}) {
     if (lockIfExpired() || state.authenticated !== true) return snapshot();
 
-    const keepView = options?.keepAuthorizedView !== false &&
-      state.status === "ready" && state.eventCatalog.status === "ready";
+    // Keep a verified same-user view even while the background catalog is still loading.
+    // Only the complete-catalog path may perform an atomic full-snapshot swap.
+    const keepView = options?.keepAuthorizedView !== false && state.status === "ready";
+    const fullCatalogReady = state.eventCatalog.status === "ready";
     const epoch = ++authEpoch;
     scheduleExpiry(state.session);
     const requestedModules = ["traffic", "community"].filter(name => state.modules[name].status !== "idle");
@@ -1125,7 +1127,7 @@
       }
     }, 15000);
     try {
-      if (keepView) {
+      if (keepView && fullCatalogReady) {
         const rows = await readEventCatalogSnapshot(epoch);
         if (!canCommit(epoch) || watchdogTriggered || !rows) return snapshot();
         catalogGeneration += 1;
@@ -1143,11 +1145,13 @@
         state.metrics.eventsRejected = rows.filter(row => row.rejected === true).length;
         computeMetrics(rows);
       } else {
+        // The old catalog scan belongs to an earlier auth epoch; start a new one.
+        catalogTask = null;
         await Promise.all([loadEvents(epoch), loadGlobalEventMetrics(epoch)]);
       }
       if (!watchdogTriggered && canCommit(epoch)) {
         setState({ status: "ready", refreshing: false, error: null, refreshedAt: new Date().toISOString() });
-        if (!keepView) void ensureEventCatalog();
+        if (!(keepView && fullCatalogReady)) void ensureEventCatalog();
         for (const name of requestedModules) void ensureModule(name, true);
       }
     } catch (error) {
