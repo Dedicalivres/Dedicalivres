@@ -44,6 +44,7 @@ export function analyzeQuality(events,registry,observations,today) {
  for(const group of duplicateGroups(events.filter(e=>e.rejected!==true))){
   for(const id of group)add(byId.get(String(id)),'duplicate','Même titre, ville et dates qu’une autre annonce ('+group.filter(x=>x!==id).join(', ')+'). À comparer, sans retrait automatique.');
  }
+ const linkedEvidence=new Map(observations.filter(n=>n.relatedIds?.length).map(n=>[String(n.id),n]));
  for(const note of observations){
   const e=byId.get(String(note.id));if(!e||e.rejected===true)continue;
   if(!observationStillCurrent(e,note))continue;
@@ -51,6 +52,7 @@ export function analyzeQuality(events,registry,observations,today) {
    const related=note.relatedIds.map(id=>byId.get(id));
    if(related.some(x=>!x||x.validated!==true||x.rejected!==false))continue;
    if(related.some(x=>x.city!==e.city||x.start_date!==e.start_date))continue;
+   if(related.some(x=>{const evidence=linkedEvidence.get(String(x.id));return evidence&&!observationStillCurrent(x,evidence);} ))continue;
   }else if(matchesExpected(e,note.expected))continue;
   add(e,note.kind,note.reason,note.source,note.checkedOn,'documentary');
  }
