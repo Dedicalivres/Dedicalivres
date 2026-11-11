@@ -128,6 +128,17 @@ export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }
   if (image) person.image = image;
   if (clean(author.location)) person.homeLocation = clean(author.location);
   if (sameAs.length) person.sameAs = sameAs;
+  const profilePage = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "@id": `${canonical}#webpage`,
+    url: canonical,
+    name: title,
+    description,
+    inLanguage: "fr",
+    mainEntity: { "@id": person["@id"] },
+    isPartOf: { "@type": "WebSite", name: "Dédicalivres", url: SITE_URL }
+  };
   const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -169,7 +180,7 @@ export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }
     .replace(/<meta id="author-twitter-title"[^>]*>/, `<meta name="twitter:title" content="${escapeHtml(title)}" />`)
     .replace(/<meta id="author-twitter-description"[^>]*>/, `<meta name="twitter:description" content="${escapeHtml(description)}" />`)
     .replace(/<meta id="author-twitter-image"[^>]*>/, `<meta name="twitter:image" content="${escapeHtml(image)}" />`)
-    .replace("</head>", `<script type="application/ld+json">${JSON.stringify(person)}</script>\n<script type="application/ld+json">${JSON.stringify(breadcrumb)}</script>\n</head>`)
+    .replace("</head>", `<script type="application/ld+json">${JSON.stringify(person)}</script>\n<script type="application/ld+json">${JSON.stringify(profilePage)}</script>\n<script type="application/ld+json">${JSON.stringify(breadcrumb)}</script>\n</head>`)
     .replace(/<main[\s\S]*?<\/main>/, main)
     .replace(/<script\b[^>]*src="[^"]+"[^>]*><\/script>/g, "")
     .replace(/\s+(href|src|srcset)="(?!https?:|mailto:|#|\/)([^"]+)"/g, ' $1="/$2"')
