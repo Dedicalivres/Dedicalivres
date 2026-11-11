@@ -40,6 +40,8 @@ test("origine : distinguer les preuves d'une simple URL/source documentaire", ()
   for (const [name, event, expected] of fixtures) {
     assert.equal(classify(event).key, expected, name);
   }
+  assert.equal(classify({ source_label: "Soumission publique" }).label, "Public · déclaré");
+  assert.match(classify({ source_label: "Soumission publique" }).detail, /non attestée/);
 });
 
 test("origine : conserver distincte l'identité du collecteur et la source primaire", () => {
@@ -58,6 +60,8 @@ test("V11 : raccordement complet des données, filtre, badges et détail", () =>
   assert.match(shell, /eventRegistrationFilter\?\.value, eventOriginFilter\?\.value/);
   assert.match(shell, /eventRegistrationFilter,\s*eventOriginFilter\s*\]/);
   assert.match(shell, /originBadge\.textContent = origin\.label/);
+  assert.match(shell, /if \(origin\.key !== "unknown"\)/);
+  assert.match(mainHtml, /<option value="public">Public · déclaré<\/option>/);
   assert.match(shell, /\["Origine de la soumission", getV11EventOrigin\(event\)\.label\]/);
   assert.match(css, /\.v11-origin-badge\.is-automatte/);
   assert.equal(mainHtml, aliasHtml, "admin.html et admin-v11.html restent synchronisés");
