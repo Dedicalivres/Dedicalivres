@@ -74,7 +74,25 @@ try{
   await select();const panel=page.locator('#v11-canary-proof');assert.equal(await panel.evaluate(e=>e.tagName==='DETAILS'?!e.open:false),!before);await panel.evaluate(e=>e.scrollIntoView({block:'start',behavior:'instant'}));await page.evaluate(()=>window.scrollBy(0,-80));const compact=await panel.boundingBox();if(engineName==='chromium')await page.screenshot({path:path.join(out,`${pageName}-${width}-canary.png`)});if(engineName==='chromium')await panel.screenshot({path:path.join(out,`${pageName}-${width}-canary-panel.png`)});
   if(!before){await panel.locator('summary').focus();await page.keyboard.press('Enter');assert(await panel.evaluate(e=>e.open));assert(await page.locator('[name="human_confirmed"]').isVisible());const expanded=await panel.boundingBox();measurements.at(-1).canary={compactHeight:compact.height,expandedHeight:expanded.height};if(engineName==='chromium')await page.screenshot({path:path.join(out,`${pageName}-${width}-canary-expanded.png`)});
    await select('valid');assert.equal(await panel.evaluate(e=>e.open),false);assert((await panel.locator('summary').innerText()).includes('valide'));await select('expired');assert((await panel.locator('summary').innerText()).includes('expirée'));await select('invalidated');assert((await panel.locator('summary').innerText()).includes('invalidée'));await select('future');assert((await panel.locator('summary').innerText()).includes('inconnu'));assert(await page.locator('#v11-canary-proof-save').isDisabled());await select('none');
-   await page.evaluate(()=>document.getElementById('v11-canary-proof-form').requestSubmit());assert(await panel.evaluate(e=>e.open));assert((await page.evaluate(()=>document.activeElement?.name))==='source_url');
+   // A real submit click is portable; WebKit does not always autofocus the invalid
+   // source field after a programmatic requestSubmit in headless mode.
+   await page.locator('#v11-canary-proof-save').click();
+   const invalid=await page.evaluate(()=>{
+     const form=document.getElementById('v11-canary-proof-form');
+     const field=form.elements.namedItem('source_url');
+     return {formInvalid:!form.checkValidity(),sourceInvalid:!field.checkValidity(),
+       panelOpen:document.getElementById('v11-canary-proof').open,
+       activeName:document.activeElement?.name};
+   });
+   assert(invalid.formInvalid && invalid.sourceInvalid && invalid.panelOpen,
+     'invalid CANARY submission must be blocked and disclosure kept visible');
+   if(engineName==='chromium')assert.equal(invalid.activeName,'source_url');
+   else{
+     assert(await page.locator('[name="source_url"]').isVisible(),
+       'WebKit invalid source field remains visible and focusable');
+     await page.locator('[name="source_url"]').focus();
+     assert.equal(await page.evaluate(()=>document.activeElement?.name),'source_url');
+   }
    await page.locator('[name="source_url"]').fill('https://source.example.invalid/event');await page.locator('[name="source_identity"]').fill('Source fictive');await page.locator('[name="event_reference"]').fill('REF-FICTIVE');await page.locator('[name="human_confirmed"]').check();await page.locator('#v11-canary-proof-save').click();await page.waitForFunction(()=>document.getElementById('v11-canary-proof-feedback').textContent.includes('annulé'));assert(dialogs.length);assert((await page.locator('#v11-canary-proof-feedback').innerText()).includes('annulé'));assert(await panel.evaluate(e=>e.open));await select('none','22222222-2222-4222-8222-222222222222');assert.equal(await panel.evaluate(e=>e.open),false);assert.equal(await page.locator('[name="human_confirmed"]').isChecked(),false);
    await panel.locator('summary').click();await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));assert.equal(await panel.evaluate(e=>e.open),false);
    await panel.locator('summary').click();await page.locator('#v11-event-detail-close').click();await page.locator('[data-event-detail="'+event.id+'"]').first().click();assert.equal(await panel.evaluate(e=>e.open),false);
