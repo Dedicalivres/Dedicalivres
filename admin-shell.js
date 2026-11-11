@@ -1981,6 +1981,15 @@
     }
   }
 
+  // Supabase UPDATE without a returned row can silently match zero rows under RLS.
+  // Never report success or trigger publication side effects without a confirmed id.
+  function assertV11EventWriteConfirmed(response, id) {
+    if (response?.error) throw response.error;
+    if (!response?.data || String(response.data.id) !== String(id)) {
+      throw new Error("Écriture non confirmée : accès modifié ou événement introuvable. Actualisez avant de réessayer.");
+    }
+  }
+
   async function runV11EventAction(action) {
     if (v11EventActionRunning) return;
 
@@ -2068,11 +2077,11 @@
               validated: true,
               rejected: false
             })
-            .eq("id", event.id);
+            .eq("id", event.id)
+            .select("id")
+            .maybeSingle();
 
-        if (response.error) {
-          throw response.error;
-        }
+        assertV11EventWriteConfirmed(response, event.id);
 
         v11ActionMessage(
           "Événement validé · publication automatique planifiée."
@@ -2129,11 +2138,11 @@
             .update({
               featured: nextValue
             })
-            .eq("id", event.id);
+            .eq("id", event.id)
+            .select("id")
+            .maybeSingle();
 
-        if (response.error) {
-          throw response.error;
-        }
+        assertV11EventWriteConfirmed(response, event.id);
 
         v11ActionMessage(
           nextValue
@@ -3364,7 +3373,9 @@
         await client
           .from("events")
           .update(payload)
-          .eq("id", event.id);
+          .eq("id", event.id)
+          .select("id")
+          .maybeSingle();
 
       if (
         response.error &&
@@ -3392,12 +3403,12 @@
           await client
             .from("events")
             .update(legacyPayload)
-            .eq("id", event.id);
+            .eq("id", event.id)
+            .select("id")
+            .maybeSingle();
       }
 
-      if (response.error) {
-        throw response.error;
-      }
+      assertV11EventWriteConfirmed(response, event.id);
 
       if (editImage) {
         editImage.value = payload.image_url || "";
