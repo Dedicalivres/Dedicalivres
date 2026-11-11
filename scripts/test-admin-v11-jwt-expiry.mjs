@@ -214,7 +214,7 @@ function locked(lab, status = "expired") {
   lab.holdPrivateReads();
   const loading = lab.context.refresh();
   await flush();
-  assert.equal(lab.pendingReads.length, 13);
+  assert.equal(lab.pendingReads.length, 5, "lazy refresh starts only event/catalog reads before expiry");
   await lab.due(10_000);
   locked(lab);
   lab.releasePrivateReads();
