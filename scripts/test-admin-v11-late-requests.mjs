@@ -168,7 +168,7 @@ for (const scenario of ["signout", "expired", "nonadmin", "new-admin", "query-40
     assert.equal(state.status, scenario === "nonadmin" ? "forbidden" : "unauthenticated");
   }
   assert.equal(lab.reads.filter(table => table === "event_submission_contacts").length,
-    scenario === "new-admin" ? 1 : 0, `${scenario}: stale events do not start contact lookup`);
+    0, `${scenario}: no contact lookup before explicit event-page selection`);
   console.log(`PASS ${scenario}: stale initial event/catalog reads cannot restore private state`);
 }
 
