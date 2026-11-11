@@ -289,7 +289,9 @@ function locked(lab, status = "expired") {
   await lab.due(0); await flush(); assert.equal(lab.context.getState().status, "ready");
   await lab.due(15_000);
   assert.equal(lab.context.getState().status, "ready", "watchdog must not hide the verified admin view");
-  assert.match(lab.context.getState().error.message, /dépassé 15 secondes/, "watchdog warning stays visible");
+  assert.match(lab.context.getState().error.message,
+    /Lecture trop longue|dépassé 15 secondes/,
+    "query timeout at 10s or global watchdog at 15s stays explicit without hiding verified view");
   assert.equal(lab.context.getState().events.length, 1, "stale authorized catalog remains available");
   lab.releasePrivateReads(); await flush();
   assert.equal(lab.context.getState().status, "ready", "late response cannot erase preserved view");
