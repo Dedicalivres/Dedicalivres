@@ -1,0 +1,26 @@
+name: R2 admin ingest isolated security tests
+on:
+  pull_request:
+    paths:
+      - "worker/r2-admin-ingest.mjs"
+      - "worker/test-r2-admin-ingest.mjs"
+      - "worker/test-admin-event-image-opt-in.mjs"
+      - "worker/wrangler.r2-admin-ingest.example.toml"
+      - "admin-event-image.js"
+      - "docs/ACCES_R2_INGEST_SECURISÉ.md"
+      - ".github/workflows/test-r2-admin-ingest.yml"
+  workflow_dispatch:
+jobs:
+  r2-security-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Isolated tests (no secrets, no R2 or Supabase writes)
+        run: node --test worker/test-r2-admin-ingest.mjs worker/test-admin-event-image-opt-in.mjs
+      - name: Parse worker syntax
+        run: node --check worker/r2-admin-ingest.mjs
