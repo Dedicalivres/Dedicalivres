@@ -29,7 +29,27 @@ try{
     onAuthStateChange(fn){listener=fn;return {data:{subscription:{unsubscribe(){}}}}},
     async signOut(){current=null;listener('SIGNED_OUT',null);return {error:null}}
    };
-   const client={auth,from(table){let single=false;const query=new Proxy({}, {get(_,key){if(key==='single')return()=>{single=true;return query};if(key==='then')return async resolve=>{if(table==='admin_users'){calls.push({name:'admin_users',t:performance.now()});if(holdAdmin)await new Promise(r=>releaseAdmin=r)}return resolve({data:table==='admin_users'&&mode!=='nonadmin'?[{user_id:current?.user.id}]:table==='events'?(single?event:[event]):[],count:0,error:null})};return()=>query}});return query},async rpc(name){calls.push({name,t:performance.now()});if(!name.startsWith('get_'))throw Error('WRITE_FORBIDDEN '+name);return {data:name==='get_publication_canary_evidence'?[{proof_status:proofStatus,proof_count:0,technical_candidate:false}]:[],error:null}}};
+   const client={
+    auth,
+    from(table){
+     let single=false, eventCursor=false, exactCount=false;
+     const query=new Proxy({}, {get(_,key){
+      if(key==='single')return()=>{single=true;return query};
+      if(key==='select')return (_columns,opts={})=>{exactCount=opts?.count==='exact';return query};
+      if(key==='or')return()=>{if(table==='events')eventCursor=true;return query};
+      if(key==='is')return(column,value)=>{if(table==='events'&&column==='created_at'&&value===null)eventCursor=true;return query};
+      if(key==='then')return async resolve=>{
+       if(table==='admin_users'){calls.push({name:'admin_users',t:performance.now()});if(holdAdmin)await new Promise(r=>releaseAdmin=r)}
+       const data=table==='admin_users'&&mode!=='nonadmin'?[{user_id:current?.user.id}]
+        :table==='events'?(eventCursor?[]:single?event:[event]):[];
+       return resolve({data,count:table==='events'&&exactCount?1:0,error:null});
+      };
+      return()=>query;
+     }});
+     return query;
+    },
+    async rpc(name){calls.push({name,t:performance.now()});if(!name.startsWith('get_'))throw Error('WRITE_FORBIDDEN '+name);return {data:name==='get_publication_canary_evidence'?[{proof_status:proofStatus,proof_count:0,technical_candidate:false}]:[],error:null}}
+   };
    window.getDedicalivresSupabaseClient=()=>client;
    window.DEDICALIVRES_ADMIN_V11_BRIDGE={getClient:()=>client,isAuthenticated:()=>window.DEDICALIVRES_ADMIN_CONTEXT?.getState().authenticated===true};
    const visible=id=>{const e=document.querySelector(id);return !!e&&getComputedStyle(e).display!=='none'&&e.getClientRects().length>0};
@@ -44,7 +64,9 @@ try{
   const measured=await page.evaluate(()=>{const f=window.__lab.frames,first=window.__lab.calls.find(x=>x.name==='getSession').t,ready=f.find(x=>x.app)?.t;const flashes=f.filter(x=>x.login&&(!ready||x.t<ready)),cards=f.filter(x=>x.auth&&(!ready||x.t<ready));return {firstSessionCall:first,firstAdminFrame:ready,restorationMs:ready-first,authCardFrames:cards.length,authCardVisibleSampleSpanMs:cards.length>1?cards.at(-1).t-cards[0].t:0,loginFrames:flashes.length,loginVisibleSampleSpanMs:flashes.length>1?flashes.at(-1).t-flashes[0].t:0}});if(!before){assert.equal(measured.loginFrames,0);assert.equal(measured.authCardFrames,0);}measurements.push({page:pageName,width,...measured});pass(pageName+'-'+width+'-initial-session-security');
   const refreshStart=await page.evaluate(()=>{window.__lab.frames.length=0;window.__lab.renew();return window.__lab.calls.filter(x=>x.name==='admin_users').length});await page.waitForFunction(n=>window.__lab.calls.filter(x=>x.name==='admin_users').length>n,refreshStart);await page.waitForFunction(()=>window.DEDICALIVRES_ADMIN_CONTEXT.getState().status==='ready');await page.waitForTimeout(40);if(!before)assert((await page.evaluate(()=>window.__lab.frames)).every(x=>x.app&&!x.login));pass(pageName+'-'+width+'-token-rechecked');
   // Native panel and all original proof logic; presentation is exercised without recording proof.
-  await page.locator('[data-view="events"]:visible').first().click();await page.locator('[data-event-detail="'+event.id+'"]').first().click();
+  await page.locator('[data-view="events"]:visible').first().click();
+  await page.waitForFunction(()=>window.DEDICALIVRES_ADMIN_CONTEXT.getState().eventCatalog.status==='ready');
+  await page.locator('[data-event-detail="'+event.id+'"]').first().click();
   async function select(proof='none',id=event.id){await page.evaluate(({proof,id})=>{window.__lab.proof(proof);window.dispatchEvent(new CustomEvent('dedicalivres:admin-event-detail',{detail:{event:{...window.__lab.event,id}}}))},{proof,id});await page.waitForFunction(()=>!document.getElementById('v11-canary-proof-save').disabled||document.getElementById('v11-canary-proof-status').textContent.includes('inconnu'))}
   await select();const panel=page.locator('#v11-canary-proof');assert.equal(await panel.evaluate(e=>e.tagName==='DETAILS'?!e.open:false),!before);await panel.evaluate(e=>e.scrollIntoView({block:'start',behavior:'instant'}));await page.evaluate(()=>window.scrollBy(0,-80));const compact=await panel.boundingBox();await page.screenshot({path:path.join(out,`${pageName}-${width}-canary.png`)});await panel.screenshot({path:path.join(out,`${pageName}-${width}-canary-panel.png`)});
   if(!before){await panel.locator('summary').focus();await page.keyboard.press('Enter');assert(await panel.evaluate(e=>e.open));assert(await page.locator('[name="human_confirmed"]').isVisible());const expanded=await panel.boundingBox();measurements.at(-1).canary={compactHeight:compact.height,expandedHeight:expanded.height};await page.screenshot({path:path.join(out,`${pageName}-${width}-canary-expanded.png`)});
