@@ -22,6 +22,10 @@ jobs:
   hotte-lab:
     name: Hotte widgets / isolated browser
     runs-on: ubuntu-latest
+    # Pinned image: browser binaries + native WebKit libraries, no apt/distro DNS dependency.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      options: --user 1001
     timeout-minutes: 12
     steps:
       - name: Checkout PR
@@ -42,14 +46,8 @@ jobs:
       - name: Install isolated browser test dependencies
         run: npm install --ignore-scripts --no-save --package-lock=false playwright@1.62.1
 
-      - name: Install Chromium
-        run: npx playwright install chromium
-
       - name: Run isolated browser tests (external requests blocked)
         run: node scripts/test-admin-v11-hotte-browser.mjs
-
-      - name: Install WebKit for Safari-engine coverage
-        run: npx playwright install webkit
 
       - name: Test Hotte widgets in isolated WebKit (Safari engine)
         env:
