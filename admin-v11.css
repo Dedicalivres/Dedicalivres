@@ -7121,6 +7121,9 @@ label.is-artist-author {
 .v11-canary-proof > summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 5px; }
 
 /* DD-ADMIN-QUAL-01: unobtrusive, accessible quality review in Events. */
+/* Override the default 21px panel padding to keep collapsed height genuinely compact. */
+#v11-territorial-quality{padding:0;overflow:hidden}
+
 #v11-territorial-quality .v11-quality-collapsible{min-width:0}
 #v11-territorial-quality .v11-quality-summary{
  display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;
