@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const { chromium, webkit } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const engineName = process.env.BROWSER_ENGINE || 'chromium';
+if (!['chromium','webkit'].includes(engineName)) throw new Error('Unsupported browser engine: '+engineName);
+const browserEngine = engineName==='webkit' ? webkit : chromium;
 const root=process.cwd(),out=path.resolve(process.env.ADMIN_UX_PROOFS||'proofs-admin-ux'),before=process.env.ADMIN_UX_BASELINE==='1';
 fs.mkdirSync(out,{recursive:true});
 const asset=name=>before?execFileSync('git',['show','92d6bffc1748736ce09a11b9c230eb308990f11e:'+name],{encoding:'utf8'}):fs.readFileSync(name,'utf8');
@@ -11,7 +14,7 @@ const checks=[],measurements=[],blocked=[],errors=[],dialogs=[];const pass=name=
 const event={id:'11111111-1111-4111-8111-111111111111',title:'Rencontre fictive',city:'Lille',region:'Hauts-de-France',country_code:'FR',description:'Librairie fictive',website:'https://source.example.invalid/event',start_date:'2030-11-01',end_date:null,lat:null,lng:null};
 let browser;
 try{
- browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE||undefined});
+ browser=await browserEngine.launch({headless:true,...(engineName==='chromium'&&process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{})});
  for(const pageName of ['admin.html','admin-v11.html'])for(const width of [1280,390]){
   const context=await browser.newContext({viewport:{width,height:900}}),page=await context.newPage();
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',async d=>{dialogs.push({type:d.type(),answer:'dismiss'});await d.dismiss()});
@@ -82,5 +85,5 @@ try{
   if(!before){for(const mode of ['nonadmin','revoked','network','restore-error','expired','absent']){await page.evaluate(mode=>{window.__lab.mode(mode);window.DEDICALIVRES_ADMIN_CONTEXT.restoreSession()},mode);await page.waitForFunction(()=>['forbidden','unauthenticated','error','expired'].includes(window.DEDICALIVRES_ADMIN_CONTEXT.getState().status));assert.equal(await page.locator('.v11-app').isVisible(),false);assert(await page.locator('#v11-login-form').isVisible());}pass(pageName+'-'+width+'-denied-expired-network-no-private-content')}
   await context.close();
  }
- assert.deepEqual(errors,[]);assert.deepEqual(blocked,[]);fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({before,checks,measurements,errors,blocked,dialogs,production_requests:0,real_submissions:0},null,2));
+ assert.deepEqual(errors,[]);assert.deepEqual(blocked,[]);fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({engine:engineName,before,checks,measurements,errors,blocked,dialogs,production_requests:0,real_submissions:0},null,2));
 }finally{await browser?.close()}
