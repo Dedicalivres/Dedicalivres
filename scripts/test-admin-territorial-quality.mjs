@@ -29,7 +29,8 @@ const historical=observations.find(x=>x.id==='a1c0b6c6-5db0-4ca2-a37d-5f6397a55f
 assert(historical && historical.kind==='geography');
 const old={id:historical.id,...historical.observed,validated:true,rejected:false};
 assert.equal(observationStillCurrent(old,historical),true);
-assert(analyzeQuality([old],registry,observations,today).some(x=>x.id===old.id&&x.kind==='geography'));
+assert(analyzeQuality([old],registry,observations,today).some(x=>x.id===old.id&&x.kind==='geography'&&x.origin==='documentary'));
+assert(analyzeQuality([{...base,region:'Région inconnue'}],registry,[],today).some(x=>x.kind==='geography'&&x.origin==='automatic'));
 const changed={...old,city:'Rochefort-en-Terre'};
 assert.equal(observationStillCurrent(changed,historical),false);
 assert(!analyzeQuality([changed],registry,observations,today).some(x=>x.id===old.id&&x.kind==='geography'));
