@@ -36,5 +36,7 @@ jobs:
         run: node scripts/test-admin-territorial-quality.mjs
       - name: Interactive panel without browser / network
         run: node scripts/test-admin-territorial-quality-ui.mjs
+      - name: Existing territorial pages regression
+        run: node scripts/test-territorial-pages.mjs
       - name: Admin V11 entrypoints mirrored
         run: cmp -s admin.html admin-v11.html
