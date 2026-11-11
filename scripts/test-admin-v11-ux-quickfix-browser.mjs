@@ -101,7 +101,11 @@ try{
    await page.evaluate(()=>document.getElementById('v11-canary-direct-feedback').textContent='Erreur fictive : correction requise');await page.waitForFunction(()=>document.getElementById('v11-canary-proof').open);assert(await page.locator('#v11-canary-panel-feedback').isVisible());assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   }
   assert((await page.evaluate(()=>window.__lab.calls)).every(x=>!x.name.startsWith('record_')));pass(pageName+'-'+width+'-canary-details-and-guards');
-  if(!before){for(const mode of ['nonadmin','revoked','network','restore-error','expired','absent']){await page.evaluate(mode=>{window.__lab.mode(mode);window.DEDICALIVRES_ADMIN_CONTEXT.restoreSession()},mode);await page.waitForFunction(()=>['forbidden','unauthenticated','error','expired'].includes(window.DEDICALIVRES_ADMIN_CONTEXT.getState().status));assert.equal(await page.locator('.v11-app').isVisible(),false);assert(await page.locator('#v11-login-form').isVisible());}pass(pageName+'-'+width+'-denied-expired-network-no-private-content')}
+  if(!before){for(const mode of ['nonadmin','revoked','network','restore-error','expired','absent']){await page.evaluate(mode=>{window.__lab.mode(mode);window.DEDICALIVRES_ADMIN_CONTEXT.restoreSession()},mode);await page.waitForFunction(()=>['forbidden','unauthenticated','error','expired'].includes(window.DEDICALIVRES_ADMIN_CONTEXT.getState().status));assert.equal(await page.locator('.v11-app').isVisible(),false);
+    await page.locator('#v11-login-form').waitFor({state:'visible',timeout:5000});
+    assert(await page.locator('#v11-login-form').isVisible(),
+      engineName+' '+pageName+' '+width+' '+mode+' must offer login after denial');
+   }pass(pageName+'-'+width+'-denied-expired-network-no-private-content')}
   await context.close();
  }
  assert.deepEqual(errors,[]);assert.deepEqual(blocked,[]);fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({engine:engineName,before,checks,measurements,errors,blocked,dialogs,production_requests:0,real_submissions:0},null,2));
