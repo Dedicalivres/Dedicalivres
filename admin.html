@@ -6,7 +6,7 @@
   <title>Dédicalivres — Admin V11</title>
   <meta name="robots" content="noindex,nofollow">
   <style>.v11-app[hidden],#v11-auth-gate[hidden],#v11-login-form[hidden],#v11-session-pending[hidden]{display:none!important}</style>
-  <link rel="stylesheet" href="admin-v11.css?v=ux-quickfix-01">
+  <link rel="stylesheet" href="admin-v11.css?v=quality-collapsible-01">
   <link rel="stylesheet" href="admin-nfc-cockpit.css?v=nfc-cockpit-v1-layout-2">
   <link rel="stylesheet" href="admin-v11-hotte-tools.css?v=he08-lab-01">
 </head>
@@ -291,11 +291,11 @@
           </article>
 
           <article data-quality-filter="missing-website">
-            <span>Sans site officiel</span>
+            <span>Sans lien de source</span>
             <strong data-admin-bind="quality-missing-website">—</strong>
           </article>
 
-          <article data-quality-filter="soon">
+          <article data-quality-filter="soon" title="Échéance proche : information de calendrier, pas une anomalie">
             <span>Sous 14 jours</span>
             <strong data-admin-bind="quality-soon">—</strong>
           </article>
@@ -358,7 +358,7 @@
               <option value="all">Toutes</option>
               <option value="missing-image">Sans image</option>
               <option value="missing-coords">Sans coordonnées</option>
-              <option value="missing-website">Sans site officiel</option>
+              <option value="missing-website">Sans lien de source</option>
               <option value="text-issue">Texte à contrôler</option>
               <option value="soon">Sous 14 jours</option>
               <option value="featured-past">Mis en avant passés</option>
@@ -2682,7 +2682,7 @@
   <script defer src="admin-canary-evidence.js?v=canary-e2-2"></script>
   <script defer src="admin-ux-quickfix.js?v=ux-quickfix-01"></script>
   <script defer src="admin-canary-direct.js?v=canary-e5-d1-1"></script>
-  <script type="module" src="admin-territorial-quality.js?v=duplicate-review-1"></script>
+  <script type="module" src="admin-territorial-quality.js?v=quality-collapsible-01"></script>
   <script defer src="admin-watch.js?v=v11-watch-frozen"></script>
   <script defer src="admin-photo-batch.js?v=photo-batch-1"></script>
   <script defer src="admin-v11-exports.js?v=v11-exports-39-3"></script>
