@@ -1,4 +1,4 @@
-import {classify,duplicateGroups,normalize,territoryFor} from './territorial-catalog.mjs';
+import {classify,duplicateGroups,normalize,territoryFor} from './territorial-catalog.mjs?v=quality-collapsible-01';
 export function publishedDuplicateGroups(events) {
  const groups=new Map();
  for(const event of events||[]){
