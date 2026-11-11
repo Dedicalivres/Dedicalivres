@@ -1150,7 +1150,7 @@
     const batch = importId.toLocaleLowerCase("fr");
 
     if (source === "soumission publique" || /^(public|submission-public)(?:$|[-_:/])/.test(batch)) {
-      return { key: "public", label: "Public", detail: "Soumission publique identifiée" };
+      return { key: "public", label: "Public · déclaré", detail: "Marqueur historique de soumission publique ; identité du déposant non attestée" };
     }
     if (/^(automatte|auto-matte|auto_matte)(?:$|[-_:/])/.test(batch)) {
       return { key: "automatte", label: "Auto-Matte", detail: "Import identifié Auto-Matte : " + importId };
@@ -1203,11 +1203,15 @@
     top.appendChild(typeBadge);
 
     const origin = getV11EventOrigin(event);
-    const originBadge = document.createElement("span");
-    originBadge.className = "v11-origin-badge is-" + origin.key;
-    originBadge.textContent = origin.label;
-    originBadge.title = origin.detail;
-    top.appendChild(originBadge);
+    // Ne pas ajouter une pastille neutre à la majorité des fiches historiques.
+    // L'origine inconnue reste visible dans le détail et le filtre dédié.
+    if (origin.key !== "unknown") {
+      const originBadge = document.createElement("span");
+      originBadge.className = "v11-origin-badge is-" + origin.key;
+      originBadge.textContent = origin.label;
+      originBadge.title = origin.detail;
+      top.appendChild(originBadge);
+    }
 
     if (event.featured === true) {
       const featured =
