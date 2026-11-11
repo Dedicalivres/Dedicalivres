@@ -7119,3 +7119,28 @@ label.is-artist-author {
 .v11-canary-proof > summary { cursor: pointer; font-size: 1rem; }
 .v11-canary-proof > summary > span { display: block; margin: 6px 0 0 18px; color: var(--muted); font-size: .88rem; }
 .v11-canary-proof > summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 5px; }
+
+
+/* Admin V11 — provenance de la soumission (distincte du canal de découverte) */
+.v11-origin-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 23px;
+  padding: 1px 9px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.35;
+  background: rgba(255,255,255,.045);
+  color: var(--muted);
+}
+.v11-origin-badge.is-public { color: #d3d7df; border-color: rgba(211,215,223,.22); }
+.v11-origin-badge.is-owner { color: #8be7ff; border-color: rgba(81,215,232,.38); background: rgba(81,215,232,.10); }
+.v11-origin-badge.is-automatte { color: #d7b9ff; border-color: rgba(167,122,245,.38); background: rgba(167,122,245,.12); }
+.v11-origin-badge.is-internal { color: #9bdeeb; border-color: rgba(81,215,232,.25); background: rgba(81,215,232,.06); }
+.v11-origin-badge.is-unknown { color: var(--muted); }
+.v11-event-toolbar { grid-template-columns: minmax(220px, 1.6fr) repeat(5, minmax(130px, 1fr)); }
+@media (max-width: 1180px) { .v11-event-toolbar { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width: 680px) { .v11-event-toolbar { grid-template-columns: minmax(0,1fr); } }
