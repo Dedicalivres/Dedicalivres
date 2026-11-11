@@ -33,7 +33,7 @@ const matchesExpected=(event,expected)=>Object.entries(expected||{}).every(([key
 export function analyzeQuality(events,registry,observations,today) {
  const issues=[];
  const byId=new Map(events.map(e=>[String(e.id),e]));
- const add=(e,kind,reason,source=null,checkedOn=null)=>issues.push({id:String(e.id),title:e.title||'Sans titre',city:e.city||'',country:e.country_code||'',region:e.region||'',start_date:e.start_date||null,end_date:e.end_date||null,kind,reason,source,checkedOn,published:e.validated===true&&e.rejected===false,status:classify(e,today)});
+ const add=(e,kind,reason,source=null,checkedOn=null,origin='automatic')=>issues.push({origin,id:String(e.id),title:e.title||'Sans titre',city:e.city||'',country:e.country_code||'',region:e.region||'',start_date:e.start_date||null,end_date:e.end_date||null,kind,reason,source,checkedOn,published:e.validated===true&&e.rejected===false,status:classify(e,today)});
  for(const e of events){
   if(e.rejected===true)continue;
   if(!territoryFor(e,registry))add(e,'geography','Pays ou territoire absent / hors référentiel. Aucun classement géographique automatique.');
@@ -51,7 +51,7 @@ export function analyzeQuality(events,registry,observations,today) {
    if(related.some(x=>!x||x.validated!==true||x.rejected!==false))continue;
    if(related.some(x=>x.city!==e.city||x.start_date!==e.start_date))continue;
   }else if(!observationStillCurrent(e,note)||matchesExpected(e,note.expected))continue;
-  add(e,note.kind,note.reason,note.source,note.checkedOn);
+  add(e,note.kind,note.reason,note.source,note.checkedOn,'documentary');
  }
  const priority=e=>!e.published?2:['future','ongoing','undated','invalid'].includes(e.status)?0:1;
  return issues.sort((a,b)=>priority(a)-priority(b)||(a.start_date||'9999').localeCompare(b.start_date||'9999')||a.title.localeCompare(b.title,'fr'));
