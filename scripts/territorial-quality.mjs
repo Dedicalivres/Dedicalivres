@@ -13,6 +13,23 @@ export function publishedDuplicateGroups(events) {
  }
  return [...groups.values()].filter(group=>group.length>1);
 }
+// A dated documentary finding is only actionable while its observed context still matches.
+// Keep the source in signalements.json for audit, but do not re-alert on a changed record.
+export function observationStillCurrent(event, note) {
+ const observed=note?.observed;
+ if(!observed || typeof observed!=='object')return true;
+ const fields=note.kind==='geography'?['country_code','region','city']
+   :note.kind==='dates'?['start_date','end_date']
+   :note.kind==='incomplete'?['title','city']
+   :['country_code','region','city','title','start_date','end_date'];
+ return fields.every(key=>!Object.prototype.hasOwnProperty.call(observed,key)
+   || normalize(event[key])===normalize(observed[key]));
+}
+const matchesExpected=(event,expected)=>Object.entries(expected||{}).every(([key,value])=>
+  ['country_code','region','city'].includes(key)
+    ?normalize(event[key])===normalize(value)
+    :event[key]===value);
+
 export function analyzeQuality(events,registry,observations,today) {
  const issues=[];
  const byId=new Map(events.map(e=>[String(e.id),e]));
@@ -33,7 +50,7 @@ export function analyzeQuality(events,registry,observations,today) {
    const related=note.relatedIds.map(id=>byId.get(id));
    if(related.some(x=>!x||x.validated!==true||x.rejected!==false))continue;
    if(related.some(x=>x.city!==e.city||x.start_date!==e.start_date))continue;
-  }else if(Object.entries(note.expected||{}).every(([key,value])=>e[key]===value))continue;
+  }else if(!observationStillCurrent(e,note)||matchesExpected(e,note.expected))continue;
   add(e,note.kind,note.reason,note.source,note.checkedOn);
  }
  const priority=e=>!e.published?2:['future','ongoing','undated','invalid'].includes(e.status)?0:1;
