@@ -9,6 +9,7 @@ on:
       - 'admin-context.js'
       - 'admin-v11.css'
       - 'scripts/test-admin-v11-ux-quickfix-browser.mjs'
+      - 'tests/admin-origin.test.cjs'
       - 'admin-v11-hotte-tools.js'
       - 'admin-v11-hotte-tools.css'
       - 'scripts/test-admin-v11-hotte-*.mjs'
@@ -34,6 +35,7 @@ jobs:
       - name: Static guards for V11 and Hotte
         run: |
           node --check admin-v11-hotte-tools.js
+          node --test tests/admin-origin.test.cjs
           node --check scripts/test-admin-v11-hotte-browser.mjs
           node scripts/test-admin-v11-hotte-tools.mjs
 
