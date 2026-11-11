@@ -108,7 +108,7 @@ async function query(spec){
   return {data:null,count:null,error:{message:error.message,code:error.code||"FIXTURE_ERROR"},status:400};
  }finally{client.release()}
 }
-const scripts=["admin-context.js","admin-shell.js"];
+const scripts=["url-normalizer.js","admin-context.js","admin-shell.js"];
 let html=fs.readFileSync("admin.html","utf8")
  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,"")
  .replace(/<link\b[^>]*>/gi,"");
