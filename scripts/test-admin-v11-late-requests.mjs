@@ -136,7 +136,7 @@ for (const scenario of ["signout", "expired", "nonadmin", "new-admin", "query-40
   const lab = fixture();
   const loading = lab.context.signIn("admin@example.test", "local");
   await tick();
-  assert.equal(lab.pending.length, 13, `${scenario}: five loaders started`);
+  assert.equal(lab.pending.length, 5, `${scenario}: five initial event/catalog reads started (lazy secondary modules deferred)`);
   if (scenario === "signout") await lab.context.signOut();
   if (scenario === "expired") lab.changeUser(null);
   if (scenario === "nonadmin") lab.changeUser(reader);
@@ -168,8 +168,8 @@ for (const scenario of ["signout", "expired", "nonadmin", "new-admin", "query-40
     assert.equal(state.status, scenario === "nonadmin" ? "forbidden" : "unauthenticated");
   }
   assert.equal(lab.reads.filter(table => table === "event_submission_contacts").length,
-    scenario === "new-admin" ? 1 : 0, `${scenario}: stale events do not start contact lookup`);
-  console.log(`PASS ${scenario}: five late loaders cannot restore private state`);
+    0, `${scenario}: no contact lookup before explicit event-page selection`);
+  console.log(`PASS ${scenario}: stale initial event/catalog reads cannot restore private state`);
 }
 
 for (const event of ["TOKEN_REFRESHED", "SIGNED_IN", "USER_UPDATED"]) {
@@ -186,7 +186,7 @@ for (const event of ["TOKEN_REFRESHED", "SIGNED_IN", "USER_UPDATED"]) {
     assert.equal(lab.context.getState().session.access_token, authorizedSession.access_token,
       "preserve only the previously authorized session, not the pending token");
   } else assertPrivateEmpty(lab.context.getState());
-  await waitFor(() => lab.pending.length === 13);
+  await waitFor(() => lab.pending.length === 5);
   assert.equal(lab.reads.filter(table => table === "admin_users").length, adminReads + 1,
     `${event}: admin rights rechecked`);
   lab.completeOldReads();

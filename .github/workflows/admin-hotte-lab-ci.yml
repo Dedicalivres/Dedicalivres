@@ -6,6 +6,9 @@ on:
       - 'admin.html'
       - 'admin-v11.html'
       - 'admin-shell.js'
+      - 'admin-context.js'
+      - 'admin-v11.css'
+      - 'scripts/test-admin-v11-ux-quickfix-browser.mjs'
       - 'admin-v11-hotte-tools.js'
       - 'admin-v11-hotte-tools.css'
       - 'scripts/test-admin-v11-hotte-*.mjs'
@@ -56,6 +59,12 @@ jobs:
           ADMIN_UX_PROOFS: hotte-auth-ui-evidence
         run: node scripts/test-admin-v11-ux-quickfix-browser.mjs
 
+      - name: Recheck V11 auth and navigation under isolated WebKit (desktop + mobile 390px)
+        env:
+          BROWSER_ENGINE: webkit
+          ADMIN_UX_PROOFS: hotte-auth-webkit-evidence
+        run: node scripts/test-admin-v11-ux-quickfix-browser.mjs
+
       - name: Check real V11 routing with mocked authorized session
         env:
           ADMIN_UX_PROOFS: hotte-routed-ui-evidence
@@ -72,7 +81,52 @@ jobs:
           path: |
             hotte-browser-evidence/
             hotte-auth-ui-evidence/
+            hotte-auth-webkit-evidence/
             hotte-routed-ui-evidence/
+          if-no-files-found: ignore
+
+  admin-event-write-disposable-pg:
+    name: Admin V11 event edit / disposable PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout PR (never production)
+        uses: actions/checkout@v4
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and isolated dependencies
+        run: |
+          node --check admin-shell.js
+          node --check scripts/test-admin-v11-event-write-pg-browser.mjs
+          npm install --ignore-scripts --no-save --package-lock=false playwright@1.62.1 pg@8.16.3
+          npx playwright install --with-deps chromium
+      - name: Real Admin edit -> fixture HTTP -> isolated PostgreSQL RLS -> rollback
+        shell: bash
+        env:
+          PR278_DISPOSABLE_PG: "YES"
+          PGHOST: "127.0.0.1"
+          PGPORT: "55432"
+          PGDATABASE: "postgres"
+        run: |
+          set -euo pipefail
+          # Disposable container published exclusively on loopback.
+          container=$(docker run --rm -d -p 127.0.0.1:55432:5432 \
+            -e POSTGRES_PASSWORD=disposable-test-only postgres:17-alpine)
+          trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          for _ in $(seq 1 45); do
+            if docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          docker exec "$container" pg_isready -h 127.0.0.1 -U postgres
+          node scripts/test-admin-v11-event-write-pg-browser.mjs
+      - name: Preserve isolated edit and rollback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-v11-event-write-disposable-pg
+          path: pr278-disposable-pg-evidence/
           if-no-files-found: ignore
 
   baseline-publication-qualification:

@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const { chromium, webkit } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const engineName = process.env.BROWSER_ENGINE || 'chromium';
+if (!['chromium','webkit'].includes(engineName)) throw new Error('Unsupported browser engine: '+engineName);
+const browserEngine = engineName==='webkit' ? webkit : chromium;
 const root=process.cwd(),out=path.resolve(process.env.ADMIN_UX_PROOFS||'proofs-admin-ux'),before=process.env.ADMIN_UX_BASELINE==='1';
 fs.mkdirSync(out,{recursive:true});
 const asset=name=>before?execFileSync('git',['show','92d6bffc1748736ce09a11b9c230eb308990f11e:'+name],{encoding:'utf8'}):fs.readFileSync(name,'utf8');
@@ -11,7 +14,7 @@ const checks=[],measurements=[],blocked=[],errors=[],dialogs=[];const pass=name=
 const event={id:'11111111-1111-4111-8111-111111111111',title:'Rencontre fictive',city:'Lille',region:'Hauts-de-France',country_code:'FR',description:'Librairie fictive',website:'https://source.example.invalid/event',start_date:'2030-11-01',end_date:null,lat:null,lng:null};
 let browser;
 try{
- browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE||undefined});
+ browser=await browserEngine.launch({headless:true,...(engineName==='chromium'&&process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{})});
  for(const pageName of ['admin.html','admin-v11.html'])for(const width of [1280,390]){
   const context=await browser.newContext({viewport:{width,height:900}}),page=await context.newPage();
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',async d=>{dialogs.push({type:d.type(),answer:'dismiss'});await d.dismiss()});
@@ -29,7 +32,27 @@ try{
     onAuthStateChange(fn){listener=fn;return {data:{subscription:{unsubscribe(){}}}}},
     async signOut(){current=null;listener('SIGNED_OUT',null);return {error:null}}
    };
-   const client={auth,from(table){let single=false;const query=new Proxy({}, {get(_,key){if(key==='single')return()=>{single=true;return query};if(key==='then')return async resolve=>{if(table==='admin_users'){calls.push({name:'admin_users',t:performance.now()});if(holdAdmin)await new Promise(r=>releaseAdmin=r)}return resolve({data:table==='admin_users'&&mode!=='nonadmin'?[{user_id:current?.user.id}]:table==='events'?(single?event:[event]):[],count:0,error:null})};return()=>query}});return query},async rpc(name){calls.push({name,t:performance.now()});if(!name.startsWith('get_'))throw Error('WRITE_FORBIDDEN '+name);return {data:name==='get_publication_canary_evidence'?[{proof_status:proofStatus,proof_count:0,technical_candidate:false}]:[],error:null}}};
+   const client={
+    auth,
+    from(table){
+     let single=false, eventCursor=false, exactCount=false;
+     const query=new Proxy({}, {get(_,key){
+      if(key==='single')return()=>{single=true;return query};
+      if(key==='select')return (_columns,opts={})=>{exactCount=opts?.count==='exact';return query};
+      if(key==='or')return()=>{if(table==='events')eventCursor=true;return query};
+      if(key==='is')return(column,value)=>{if(table==='events'&&column==='created_at'&&value===null)eventCursor=true;return query};
+      if(key==='then')return async resolve=>{
+       if(table==='admin_users'){calls.push({name:'admin_users',t:performance.now()});if(holdAdmin)await new Promise(r=>releaseAdmin=r)}
+       const data=table==='admin_users'&&mode!=='nonadmin'?[{user_id:current?.user.id}]
+        :table==='events'?(eventCursor?[]:single?event:[event]):[];
+       return resolve({data,count:table==='events'&&exactCount?1:0,error:null});
+      };
+      return()=>query;
+     }});
+     return query;
+    },
+    async rpc(name){calls.push({name,t:performance.now()});if(!name.startsWith('get_'))throw Error('WRITE_FORBIDDEN '+name);return {data:name==='get_publication_canary_evidence'?[{proof_status:proofStatus,proof_count:0,technical_candidate:false}]:[],error:null}}
+   };
    window.getDedicalivresSupabaseClient=()=>client;
    window.DEDICALIVRES_ADMIN_V11_BRIDGE={getClient:()=>client,isAuthenticated:()=>window.DEDICALIVRES_ADMIN_CONTEXT?.getState().authenticated===true};
    const visible=id=>{const e=document.querySelector(id);return !!e&&getComputedStyle(e).display!=='none'&&e.getClientRects().length>0};
@@ -38,18 +61,39 @@ try{
   await context.route('**/*',async route=>{const req=route.request(),u=new URL(req.url());if(req.method()!=='GET'||u.origin!=='http://ux-fixture.test'){blocked.push({method:req.method(),origin:u.origin});return route.abort()}if(u.pathname==='/'+pageName)return route.fulfill({contentType:'text/html',body:html});if(u.pathname==='/assets/brand/logo-dedicalivres-sombre.webp')return route.fulfill({contentType:'image/webp',body:fs.readFileSync(root+u.pathname)});if(scripts.includes(u.pathname.slice(1))){await gate;return route.fulfill({contentType:'text/javascript',body:asset(u.pathname.slice(1))})}return route.fulfill({status:404,body:''})});
   await page.goto('http://ux-fixture.test/'+pageName,{waitUntil:'commit'});await page.locator('#v11-login-form').waitFor({state:'attached'});await page.waitForTimeout(80);
   assert.equal(await page.locator('.v11-app').isVisible(),false);assert.equal(await page.locator('#v11-login-form').isVisible(),before);
-  await page.screenshot({path:path.join(out,`${pageName}-${width}-boot.png`)});releaseScripts();await page.waitForFunction(()=>window.__lab.calls.some(x=>x.name==='getSession'));
+  if(engineName==='chromium')await page.screenshot({path:path.join(out,`${pageName}-${width}-boot.png`)});releaseScripts();await page.waitForFunction(()=>window.__lab.calls.some(x=>x.name==='getSession'));
   await page.waitForTimeout(120);await page.evaluate(()=>window.__lab.releaseSession());await page.waitForFunction(()=>window.__lab.calls.some(x=>x.name==='getUser'));assert.equal(await page.locator('.v11-app').isVisible(),false);await page.waitForTimeout(120);await page.evaluate(()=>window.__lab.releaseIdentity());await page.waitForFunction(()=>window.__lab.calls.some(x=>x.name==='admin_users'));assert.equal(await page.locator('.v11-app').isVisible(),false);await page.waitForTimeout(120);await page.evaluate(()=>window.__lab.releaseAdmin());await page.waitForFunction(()=>window.DEDICALIVRES_ADMIN_CONTEXT.getState().status==='ready');await page.waitForTimeout(50);
   assert(await page.locator('.v11-app').isVisible());assert.equal(await page.locator('#v11-auth-gate').isVisible(),false);
   const measured=await page.evaluate(()=>{const f=window.__lab.frames,first=window.__lab.calls.find(x=>x.name==='getSession').t,ready=f.find(x=>x.app)?.t;const flashes=f.filter(x=>x.login&&(!ready||x.t<ready)),cards=f.filter(x=>x.auth&&(!ready||x.t<ready));return {firstSessionCall:first,firstAdminFrame:ready,restorationMs:ready-first,authCardFrames:cards.length,authCardVisibleSampleSpanMs:cards.length>1?cards.at(-1).t-cards[0].t:0,loginFrames:flashes.length,loginVisibleSampleSpanMs:flashes.length>1?flashes.at(-1).t-flashes[0].t:0}});if(!before){assert.equal(measured.loginFrames,0);assert.equal(measured.authCardFrames,0);}measurements.push({page:pageName,width,...measured});pass(pageName+'-'+width+'-initial-session-security');
   const refreshStart=await page.evaluate(()=>{window.__lab.frames.length=0;window.__lab.renew();return window.__lab.calls.filter(x=>x.name==='admin_users').length});await page.waitForFunction(n=>window.__lab.calls.filter(x=>x.name==='admin_users').length>n,refreshStart);await page.waitForFunction(()=>window.DEDICALIVRES_ADMIN_CONTEXT.getState().status==='ready');await page.waitForTimeout(40);if(!before)assert((await page.evaluate(()=>window.__lab.frames)).every(x=>x.app&&!x.login));pass(pageName+'-'+width+'-token-rechecked');
   // Native panel and all original proof logic; presentation is exercised without recording proof.
-  await page.locator('[data-view="events"]:visible').first().click();await page.locator('[data-event-detail="'+event.id+'"]').first().click();
+  await page.locator('[data-view="events"]:visible').first().click();
+  await page.waitForFunction(()=>window.DEDICALIVRES_ADMIN_CONTEXT.getState().eventCatalog.status==='ready');
+  await page.locator('[data-event-detail="'+event.id+'"]').first().click();
   async function select(proof='none',id=event.id){await page.evaluate(({proof,id})=>{window.__lab.proof(proof);window.dispatchEvent(new CustomEvent('dedicalivres:admin-event-detail',{detail:{event:{...window.__lab.event,id}}}))},{proof,id});await page.waitForFunction(()=>!document.getElementById('v11-canary-proof-save').disabled||document.getElementById('v11-canary-proof-status').textContent.includes('inconnu'))}
-  await select();const panel=page.locator('#v11-canary-proof');assert.equal(await panel.evaluate(e=>e.tagName==='DETAILS'?!e.open:false),!before);await panel.evaluate(e=>e.scrollIntoView({block:'start',behavior:'instant'}));await page.evaluate(()=>window.scrollBy(0,-80));const compact=await panel.boundingBox();await page.screenshot({path:path.join(out,`${pageName}-${width}-canary.png`)});await panel.screenshot({path:path.join(out,`${pageName}-${width}-canary-panel.png`)});
-  if(!before){await panel.locator('summary').focus();await page.keyboard.press('Enter');assert(await panel.evaluate(e=>e.open));assert(await page.locator('[name="human_confirmed"]').isVisible());const expanded=await panel.boundingBox();measurements.at(-1).canary={compactHeight:compact.height,expandedHeight:expanded.height};await page.screenshot({path:path.join(out,`${pageName}-${width}-canary-expanded.png`)});
+  await select();const panel=page.locator('#v11-canary-proof');assert.equal(await panel.evaluate(e=>e.tagName==='DETAILS'?!e.open:false),!before);await panel.evaluate(e=>e.scrollIntoView({block:'start',behavior:'instant'}));await page.evaluate(()=>window.scrollBy(0,-80));const compact=await panel.boundingBox();if(engineName==='chromium')await page.screenshot({path:path.join(out,`${pageName}-${width}-canary.png`)});if(engineName==='chromium')await panel.screenshot({path:path.join(out,`${pageName}-${width}-canary-panel.png`)});
+  if(!before){await panel.locator('summary').focus();await page.keyboard.press('Enter');assert(await panel.evaluate(e=>e.open));assert(await page.locator('[name="human_confirmed"]').isVisible());const expanded=await panel.boundingBox();measurements.at(-1).canary={compactHeight:compact.height,expandedHeight:expanded.height};if(engineName==='chromium')await page.screenshot({path:path.join(out,`${pageName}-${width}-canary-expanded.png`)});
    await select('valid');assert.equal(await panel.evaluate(e=>e.open),false);assert((await panel.locator('summary').innerText()).includes('valide'));await select('expired');assert((await panel.locator('summary').innerText()).includes('expirée'));await select('invalidated');assert((await panel.locator('summary').innerText()).includes('invalidée'));await select('future');assert((await panel.locator('summary').innerText()).includes('inconnu'));assert(await page.locator('#v11-canary-proof-save').isDisabled());await select('none');
-   await page.evaluate(()=>document.getElementById('v11-canary-proof-form').requestSubmit());assert(await panel.evaluate(e=>e.open));assert((await page.evaluate(()=>document.activeElement?.name))==='source_url');
+   // Submit the invalid form while the disclosure is collapsed. Native invalid
+   // handling must reopen it; a user click cannot reach the hidden submit button.
+   // Headless WebKit does not reliably auto-focus the first invalid field.
+   await page.evaluate(()=>document.getElementById('v11-canary-proof-form').requestSubmit());
+   const invalid=await page.evaluate(()=>{
+     const form=document.getElementById('v11-canary-proof-form');
+     const field=form.elements.namedItem('source_url');
+     return {formInvalid:!form.checkValidity(),sourceInvalid:!field.checkValidity(),
+       panelOpen:document.getElementById('v11-canary-proof').open,
+       activeName:document.activeElement?.name};
+   });
+   assert(invalid.formInvalid && invalid.sourceInvalid && invalid.panelOpen,
+     'invalid CANARY submission must be blocked and disclosure kept visible');
+   if(engineName==='chromium')assert.equal(invalid.activeName,'source_url');
+   else{
+     assert(await page.locator('[name="source_url"]').isVisible(),
+       'WebKit invalid source field remains visible and focusable');
+     await page.locator('[name="source_url"]').focus();
+     assert.equal(await page.evaluate(()=>document.activeElement?.name),'source_url');
+   }
    await page.locator('[name="source_url"]').fill('https://source.example.invalid/event');await page.locator('[name="source_identity"]').fill('Source fictive');await page.locator('[name="event_reference"]').fill('REF-FICTIVE');await page.locator('[name="human_confirmed"]').check();await page.locator('#v11-canary-proof-save').click();await page.waitForFunction(()=>document.getElementById('v11-canary-proof-feedback').textContent.includes('annulé'));assert(dialogs.length);assert((await page.locator('#v11-canary-proof-feedback').innerText()).includes('annulé'));assert(await panel.evaluate(e=>e.open));await select('none','22222222-2222-4222-8222-222222222222');assert.equal(await panel.evaluate(e=>e.open),false);assert.equal(await page.locator('[name="human_confirmed"]').isChecked(),false);
    await panel.locator('summary').click();await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));assert.equal(await panel.evaluate(e=>e.open),false);
    await panel.locator('summary').click();await page.locator('#v11-event-detail-close').click();await page.locator('[data-event-detail="'+event.id+'"]').first().click();assert.equal(await panel.evaluate(e=>e.open),false);
@@ -57,8 +101,12 @@ try{
    await page.evaluate(()=>document.getElementById('v11-canary-direct-feedback').textContent='Erreur fictive : correction requise');await page.waitForFunction(()=>document.getElementById('v11-canary-proof').open);assert(await page.locator('#v11-canary-panel-feedback').isVisible());assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   }
   assert((await page.evaluate(()=>window.__lab.calls)).every(x=>!x.name.startsWith('record_')));pass(pageName+'-'+width+'-canary-details-and-guards');
-  if(!before){for(const mode of ['nonadmin','revoked','network','restore-error','expired','absent']){await page.evaluate(mode=>{window.__lab.mode(mode);window.DEDICALIVRES_ADMIN_CONTEXT.restoreSession()},mode);await page.waitForFunction(()=>['forbidden','unauthenticated','error','expired'].includes(window.DEDICALIVRES_ADMIN_CONTEXT.getState().status));assert.equal(await page.locator('.v11-app').isVisible(),false);assert(await page.locator('#v11-login-form').isVisible());}pass(pageName+'-'+width+'-denied-expired-network-no-private-content')}
+  if(!before){for(const mode of ['nonadmin','revoked','network','restore-error','expired','absent']){await page.evaluate(mode=>{window.__lab.mode(mode);window.DEDICALIVRES_ADMIN_CONTEXT.restoreSession()},mode);await page.waitForFunction(()=>['forbidden','unauthenticated','error','expired'].includes(window.DEDICALIVRES_ADMIN_CONTEXT.getState().status));assert.equal(await page.locator('.v11-app').isVisible(),false);
+    await page.locator('#v11-login-form').waitFor({state:'visible',timeout:5000});
+    assert(await page.locator('#v11-login-form').isVisible(),
+      engineName+' '+pageName+' '+width+' '+mode+' must offer login after denial');
+   }pass(pageName+'-'+width+'-denied-expired-network-no-private-content')}
   await context.close();
  }
- assert.deepEqual(errors,[]);assert.deepEqual(blocked,[]);fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({before,checks,measurements,errors,blocked,dialogs,production_requests:0,real_submissions:0},null,2));
+ assert.deepEqual(errors,[]);assert.deepEqual(blocked,[]);fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({engine:engineName,before,checks,measurements,errors,blocked,dialogs,production_requests:0,real_submissions:0},null,2));
 }finally{await browser?.close()}
