@@ -287,7 +287,11 @@ function locked(lab, status = "expired") {
   await ready(lab, lab.session("admin", 10)); lab.holdPrivateReads();
   lab.emit("TOKEN_REFRESHED", lab.session("admin", 30, "slow-data-renewal"));
   await lab.due(0); await flush(); assert.equal(lab.context.getState().status, "ready");
-  await lab.due(15_000); assert.equal(lab.context.getState().status, "error", "watchdog still applies");
-  lab.releasePrivateReads(); await flush(); assert.equal(lab.context.getState().status, "error");
-  console.log("PASS preserved-view refresh retains the data watchdog");
+  await lab.due(15_000);
+  assert.equal(lab.context.getState().status, "ready", "watchdog must not hide the verified admin view");
+  assert.match(lab.context.getState().error.message, /dépassé 15 secondes/, "watchdog warning stays visible");
+  assert.equal(lab.context.getState().events.length, 1, "stale authorized catalog remains available");
+  lab.releasePrivateReads(); await flush();
+  assert.equal(lab.context.getState().status, "ready", "late response cannot erase preserved view");
+  console.log("PASS preserved-view refresh warns after 15s without hiding verified admin data");
 }
