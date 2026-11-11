@@ -6,7 +6,7 @@
   <title>Dédicalivres — Admin V11</title>
   <meta name="robots" content="noindex,nofollow">
   <style>.v11-app[hidden],#v11-auth-gate[hidden],#v11-login-form[hidden],#v11-session-pending[hidden]{display:none!important}</style>
-  <link rel="stylesheet" href="admin-v11.css?v=ux-quickfix-01">
+  <link rel="stylesheet" href="admin-v11.css?v=origin-badges-20261111">
   <link rel="stylesheet" href="admin-nfc-cockpit.css?v=nfc-cockpit-v1-layout-2">
   <link rel="stylesheet" href="admin-v11-hotte-tools.css?v=he08-lab-01">
 </head>
@@ -336,6 +336,18 @@
               <option value="Festival">Festival</option>
               <option value="Dédicace">Dédicace</option>
               <option value="Autre">Autre</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Origine</span>
+            <select id="v11-event-origin-filter">
+              <option value="all">Toutes</option>
+              <option value="owner">Interne · Moi</option>
+              <option value="automatte">Auto-Matte</option>
+              <option value="internal">Autres imports internes</option>
+              <option value="public">Public</option>
+              <option value="unknown">Non attribuée</option>
             </select>
           </label>
 
@@ -2668,7 +2680,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="config.js?v=shared-client-6-community-archive"></script>
   <script defer src="url-normalizer.js?v=1"></script>
-  <script defer src="admin-context.js?v=dd-admin-release-p0-20261111-r1"></script>
+  <script defer src="admin-context.js?v=origin-badges-20261111"></script>
   <script defer src="duplicate-detection.js?v=v11-18-1"></script>
   <script defer src="admin-v11-bridge.js?v=v11-bridge-40b"></script>
   <script defer src="admin-event-image.js?v=event-image-r2-1"></script>
@@ -2678,7 +2690,7 @@
   <script defer src="author-publication.js?v=author-publication-v2"></script>
   <script defer src="admin-event-deletion.js?v=safe-delete-1"></script>
   <script defer src="event-text-quality.js?v=p1-4-1"></script>
-  <script defer src="admin-shell.js?v=dd-admin-release-p0-20261111-r1"></script>
+  <script defer src="admin-shell.js?v=origin-badges-20261111"></script>
   <script defer src="admin-canary-evidence.js?v=canary-e2-2"></script>
   <script defer src="admin-ux-quickfix.js?v=ux-quickfix-01"></script>
   <script defer src="admin-canary-direct.js?v=canary-e5-d1-1"></script>
