@@ -2,7 +2,13 @@
 export const normalize = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 export function territoryFor(event, registry) {
   const country=registry.find(c=>c.code===event.country_code);
-  return country?.territories.find(t=>t.label===event.region) ?? null;
+  const region=String(event.region ?? '').trim();
+  if(!country || !region)return null;
+  // An alias typographique (d'Azur / d’Azur) ne doit pas produire une fausse alerte.
+  // Le pays explicite reste obligatoire : aucune inférence à partir de la ville.
+  return country.territories.find(t=>t.label===region)
+    ?? country.territories.find(t=>normalize(t.label)===normalize(region))
+    ?? null;
 }
 export function validDate(value) {
   return typeof value==='string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10)===value;
