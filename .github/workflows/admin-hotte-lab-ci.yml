@@ -43,13 +43,13 @@ jobs:
         run: npm install --ignore-scripts --no-save --package-lock=false playwright@1.62.1
 
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run isolated browser tests (external requests blocked)
         run: node scripts/test-admin-v11-hotte-browser.mjs
 
       - name: Install WebKit for Safari-engine coverage
-        run: npx playwright install --with-deps webkit
+        run: npx playwright install webkit
 
       - name: Test Hotte widgets in isolated WebKit (Safari engine)
         env:
@@ -103,7 +103,7 @@ jobs:
           node --check admin-shell.js
           node --check scripts/test-admin-v11-event-write-pg-browser.mjs
           npm install --ignore-scripts --no-save --package-lock=false playwright@1.62.1 pg@8.16.3
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Real Admin edit -> fixture HTTP -> isolated PostgreSQL RLS -> rollback
         shell: bash
         env:
