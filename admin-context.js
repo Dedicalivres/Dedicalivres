@@ -893,28 +893,40 @@
     return task;
   }
 
-  async function selectEventPage({ ids, page = 0, size = 50, key }) {
+  async function selectEventPage({ ids, page = 0, size = 50, key, initial = false }) {
     const epoch = authEpoch;
-    if (!canCommit(epoch) || state.eventCatalog.status !== "ready") return snapshot();
+    if (!canCommit(epoch) || (initial
+      ? state.eventCatalog.status !== "loading"
+      : state.eventCatalog.status !== "ready")) return snapshot();
     const generation = catalogGeneration;
     const sequence = ++pageSequence;
     size = [25, 50, 100, 150].includes(Number(size)) ? Number(size) : 50;
     const allowed = new Set(state.events.map(row => row.id));
     if (!Array.isArray(ids) || new Set(ids).size !== ids.length || ids.some(id => !allowed.has(id))) throw new Error("Sélection hors catalogue autorisé");
+    if (initial && (page !== 0 || size !== 50 || ids.length !== state.events.length ||
+      ids.some((id, index) => id !== state.events[index].id))) {
+      throw new Error("Aperçu initial hors première page autorisée");
+    }
     page = Math.max(0, Math.min(Math.trunc(page) || 0, Math.max(0, Math.ceil(ids.length / size) - 1)));
     const selected = ids.slice(page * size, (page + 1) * size);
-    const current = () => canCommit(epoch) && generation === catalogGeneration && sequence === pageSequence;
-    state.eventPage = { rows: [], total: ids.length, page, size, key, loading: true, error: null };
+    const current = () => canCommit(epoch) && generation === catalogGeneration && sequence === pageSequence &&
+      state.eventCatalog.status === (initial ? "loading" : "ready");
+    state.eventPage = { rows: [], total: initial ? null : ids.length, page, size, key, loading: true, error: null };
     notify();
     try {
       let rows = [];
       if (selected.length) {
-        const result = await checked(getClient().from("events").select(EVENT_COLUMNS)
-          .in("id", selected).order("created_at", { ascending: false, nullsFirst: false }).order("id", { ascending: false }).limit(size));
-        if (!current()) return snapshot();
-        const mapped = new Map((result.data || []).map(row => [row.id, row]));
-        if (mapped.size !== selected.length) throw new Error("Catalogue modifié ou accès changé ; actualisez avant de poursuivre.");
-        rows = selected.map(id => mapped.get(id));
+        if (initial) {
+          const mapped = new Map(state.events.map(row => [row.id, row]));
+          rows = selected.map(id => mapped.get(id));
+        } else {
+          const result = await checked(getClient().from("events").select(EVENT_COLUMNS)
+            .in("id", selected).order("created_at", { ascending: false, nullsFirst: false }).order("id", { ascending: false }).limit(size));
+          if (!current()) return snapshot();
+          const mapped = new Map((result.data || []).map(row => [row.id, row]));
+          if (mapped.size !== selected.length) throw new Error("Catalogue modifié ou accès changé ; actualisez avant de poursuivre.");
+          rows = selected.map(id => mapped.get(id));
+        }
         const contacts = await checked(getClient().from("event_submission_contacts")
           .select("event_id,submitter_name,submitter_email").in("event_id", selected));
         if (!current()) return snapshot();
@@ -924,7 +936,7 @@
       if (!current()) return snapshot();
       const updated = new Map(rows.map(row => [row.id, row]));
       state.events = state.events.map(row => updated.get(row.id) || row);
-      state.eventPage = { rows, total: ids.length, page, size, key, loading: false, error: null };
+      state.eventPage = { rows, total: initial ? null : ids.length, page, size, key, loading: false, error: null };
       notify();
     } catch (error) {
       handleReadFailure(error, epoch);
