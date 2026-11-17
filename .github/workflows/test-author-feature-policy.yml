@@ -1,0 +1,35 @@
+name: Author feature policy tests
+on:
+  pull_request:
+    paths:
+      - 'scripts/author-public-features.mjs'
+      - 'scripts/test-author-public-features.mjs'
+      - 'scripts/author-bnf-cache-policy.mjs'
+      - 'scripts/test-author-bnf-cache-policy.mjs'
+      - 'scripts/author-tier-rollout-audit.mjs'
+      - 'scripts/test-author-tier-rollout-audit.mjs'
+      - '.github/workflows/test-author-feature-policy.yml'
+  workflow_dispatch:
+jobs:
+  author-feature-policy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: |
+          node --check scripts/author-public-features.mjs
+          node --check scripts/test-author-public-features.mjs
+          node --check scripts/author-bnf-cache-policy.mjs
+          node --check scripts/test-author-bnf-cache-policy.mjs
+          node --check scripts/author-tier-rollout-audit.mjs
+          node --check scripts/test-author-tier-rollout-audit.mjs
+      - name: Run policy tests
+        run: |
+          node scripts/test-author-public-features.mjs
+          node scripts/test-author-bnf-cache-policy.mjs
+          node scripts/test-author-tier-rollout-audit.mjs
