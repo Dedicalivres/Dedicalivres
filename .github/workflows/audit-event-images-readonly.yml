@@ -1,0 +1,32 @@
+name: Audit des images des événements (lecture seule)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 7 * * 3,6'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Contrôler les règles d'audit
+        run: node scripts/test-event-image-provenance.mjs
+      - name: Analyser les événements validés sans modifier Supabase
+        shell: bash
+        run: |
+          node scripts/audit-event-images-readonly.mjs --json "--from=$(date -u +%F)" > "$RUNNER_TEMP/audit-images.json"
+          node -e "const r=require(process.env.RUNNER_TEMP+'/audit-images.json'); console.log('Événements examinés:',r.examined,'Signalés:',r.flagged_events,JSON.stringify(r.counts))"
+      - name: Conserver le rapport sans changement du site
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-images-evenements
+          path: ${{ runner.temp }}/audit-images.json
+          retention-days: 14
