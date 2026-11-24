@@ -1,0 +1,41 @@
+name: Author live presence tests
+on:
+  pull_request:
+    paths:
+      - 'author-presences-live.js'
+      - 'scripts/author-static-page.mjs'
+      - 'scripts/test-author-presences-live.mjs'
+      - 'scripts/test-author-presences-browser.mjs'
+      - 'auteurs/**'
+      - '.github/workflows/author-presences-live.yml'
+  workflow_dispatch:
+jobs:
+  author-presence-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test scripts/test-author-presences-live.mjs
+  author-presence-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts --no-save --package-lock=false playwright@1.62.1
+      - run: npx playwright install chromium
+      - run: node scripts/test-author-presences-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: author-browser-evidence
+          path: author-browser-evidence/
+          if-no-files-found: ignore
