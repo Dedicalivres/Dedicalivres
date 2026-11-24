@@ -34,6 +34,27 @@ try {
    return route.fulfill({body,contentType});
   }catch{return route.fulfill({status:404,body:"not found"});}
  });
+ const noJs=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}});
+ // Serve the same static files without external network access, even when JS is disabled.
+ await noJs.route("**/*",async route=>{
+  const u=new URL(route.request().url());
+  if(u.origin!=="http://author.test")return route.abort();
+  const pathname=u.pathname.endsWith("/")?u.pathname+"index.html":u.pathname;
+  const file=path.resolve(root,"."+pathname);
+  if(!file.startsWith(root+path.sep))return route.abort();
+  try{
+   const body=await fs.readFile(file);
+   return route.fulfill({body,contentType:({".html":"text/html",".css":"text/css",".js":"application/javascript"})[path.extname(file)]||"application/octet-stream"});
+  }catch{return route.fulfill({status:404,body:"not found"});}
+ });
+ try{
+  const staticPage=await noJs.newPage();
+  await staticPage.goto("http://author.test/auteurs/katell-poquet/");
+  assert.match(await staticPage.locator("h1").textContent(),/Katell/i);
+  assert.ok(await staticPage.locator("#author-events-past .event-card").count()>0);
+  assert.equal(await staticPage.locator('link[rel="canonical"]').getAttribute("href"),"https://dedicalivres.fr/auteurs/katell-poquet/");
+  assert.equal(await staticPage.locator('p.author-note[role="status"]').count(),0);
+ }finally{await noJs.close();}
  const page=await context.newPage();
  page.on("pageerror",err=>errors.push(err.message));
  const url="http://author.test/auteurs/katell-poquet/";

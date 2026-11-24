@@ -69,7 +69,19 @@ assert.match(rendered.html, /Événements en cours/);
 assert.match(rendered.html, /Événements à venir/);
 assert.match(rendered.html, /Événements passés/);
 assert.match(rendered.html, /event\.html\?id=ongoing/);
-assert.doesNotMatch(rendered.html, /supabase-js|config\.js|author\.js/, "Le HTML initial doit être autonome et indexable.");
+// Le HTML reste autonome : seuls trois scripts différés de lecture publique sont autorisés.
+const externalScripts = [...rendered.html.matchAll(/<script\b([^>]*\bsrc="([^"]+)"[^>]*)><\/script>/g)];
+assert.deepEqual(externalScripts.map(m => m[2].split("?")[0]), ["/config.js", "/event-canonical.js", "/author-presences-live.js"]);
+assert.ok(externalScripts.every(m => /\bdefer\b/.test(m[1]) && !/\basync\b/.test(m[1])));
+assert.doesNotMatch(rendered.html, /supabase-js|author\.js/);
+const initialHtml = rendered.html.replace(/<script\b[\s\S]*?<\/script>/g, "");
+assert.match(initialHtml, /<h1[^>]*>Aline Exemple<\/h1>/);
+assert.match(initialHtml, /Aline Exemple écrit des romans/);
+for (const eventId of ["ongoing", "future", "past"]) {
+  assert.match(initialHtml, new RegExp('data-event-id="' + eventId + '"'));
+  assert.ok(initialHtml.includes("Événement " + eventId));
+}
+assert.doesNotMatch(initialHtml, /data-event-id="(?:private|rejected)"/);
 assert.match(rendered.html, /href="\/auteurs\/">Auteurs<\/a>/);
 assert.equal(rendered.breadcrumb.itemListElement[1].item, authorIndexUrl());
 
