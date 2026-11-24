@@ -174,6 +174,7 @@ export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }
     .replace(/<script\b[^>]*src="[^"]+"[^>]*><\/script>/g, "")
     .replace(/\s+(href|src|srcset)="(?!https?:|mailto:|#|\/)([^"]+)"/g, ' $1="/$2"')
     .replace(/<body([^>]*)>/, `<body$1 data-generated-author-page="true">`)
+    .replace("</body>", "<script defer src=\"/config.js?v=shared-client-1\"></script>\n<script defer src=\"/event-canonical.js?v=1\"></script>\n<script defer src=\"/author-presences-live.js?v=1\"></script>\n</body>")
     .replace(/[ \t]+$/gm, "")
     .replace(/\n{3,}/g, "\n\n");
   return { html, canonical, groups, description, title, person, breadcrumb };
