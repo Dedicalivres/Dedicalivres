@@ -1,0 +1,21 @@
+name: Author live presence tests
+on:
+  pull_request:
+    paths:
+      - 'author-presences-live.js'
+      - 'scripts/author-static-page.mjs'
+      - 'scripts/test-author-presences-live.mjs'
+      - 'auteurs/**'
+      - '.github/workflows/author-presences-live.yml'
+  workflow_dispatch:
+jobs:
+  author-presence-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test scripts/test-author-presences-live.mjs
