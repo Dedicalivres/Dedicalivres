@@ -17,7 +17,7 @@ test("anonymous public filters and pagination",async()=>{
  const calls=[];const rows=Array.from({length:100},(_,i)=>make(i+1,"2027-01-01",null));
  const data=[[{id:make(1).events.id}],rows,[make(101,"2027-01-01",null)]];
  const actual=await load("katell-poquet",cfg,async(url,options)=>{calls.push([new URL(url),options]);return {ok:true,json:async()=>data.shift()};});
- assert.equal(actual.length,101);assert.equal(calls[0][0].searchParams.get("publication_ready"),"eq.true");assert.equal(calls[0][0].searchParams.get("published"),"eq.true");assert.equal(calls[1][0].searchParams.get("archived_at"),"is.null");assert.equal(calls[2][0].searchParams.get("offset"),"100");assert.equal(calls[1][1].credentials,"omit");assert.equal(calls[1][1].cache,"no-store");
+ assert.equal(actual.length,101);assert.equal(calls[0][0].searchParams.has("publication_ready"),false);assert.equal(calls[0][0].searchParams.has("editorial_status"),false);assert.equal(calls[0][0].searchParams.get("published"),"eq.true");assert.equal(calls[1][0].searchParams.has("archived_at"),false);assert.ok(!calls[1][0].searchParams.get("select").includes("archived_at"));assert.equal(calls[2][0].searchParams.get("offset"),"100");assert.equal(calls[1][1].credentials,"omit");assert.equal(calls[1][1].cache,"no-store");
 });
 test("missing author and failed fetch are distinguished",async()=>{
  assert.equal(await load("katell-poquet",cfg,async()=>({ok:true,json:async()=>[]})),null);

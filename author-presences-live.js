@@ -9,7 +9,7 @@
     const groups = {ongoing:[],upcoming:[],past:[]}, seen = new Set();
     for (const row of rows) {
       const e = row.events;
-      if (row.validated !== true || row.rejected === true || row.archived_at !== null ||
+      if (row.validated !== true || row.rejected === true || row.archived_at != null ||
           !e || e.validated !== true || e.rejected !== false || !uuid.test(e.id) || seen.has(e.id)) continue;
       seen.add(e.id);
       const start = clean(e.start_date), end = clean(e.end_date || start);
@@ -30,14 +30,15 @@
       if (!Array.isArray(rows)) throw Error("Réponse invalide");
       return rows;
     }
-    const authors = await query("authors",{select:"id",slug:"eq."+slug,validated:"eq.true",published:"eq.true",publication_ready:"eq.true",editorial_status:"eq.READY",merged_into:"is.null",limit:"2"});
+    // RLS enforces publication_ready, editorial_status and archived_at; these columns are intentionally not public.
+    const authors = await query("authors",{select:"id",slug:"eq."+slug,validated:"eq.true",published:"eq.true",merged_into:"is.null",limit:"2"});
     if (!authors.length) return null;
     if (authors.length !== 1 || !uuid.test(authors[0].id)) throw Error("Identité ambiguë");
     const all = [];
     for (let offset=0; offset<10000; offset+=100) {
       const rows = await query("event_authors_presence",{
-        select:"id,validated,rejected,archived_at,events(id,title,city,country_code,region,start_date,end_date,type,image_url,validated,rejected)",
-        author_id:"eq."+authors[0].id,validated:"eq.true",rejected:"not.is.true",archived_at:"is.null",
+        select:"id,validated,rejected,events(id,title,city,country_code,region,start_date,end_date,type,image_url,validated,rejected)",
+        author_id:"eq."+authors[0].id,validated:"eq.true",rejected:"not.is.true",
         order:"id.asc",limit:"100",offset:String(offset)});
       all.push(...rows);
       if (rows.length < 100) return all;
