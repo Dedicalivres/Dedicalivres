@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createRequire} from "node:module";
+import vm from "node:vm";
 import fs from "node:fs";
 import {renderAuthorStaticPage} from "./author-static-page.mjs";
-const require=createRequire(import.meta.url);
-const {classify,load,dayParis}=require("../author-presences-live.js");
+const harness={exports:{}};
+vm.runInThisContext("(function(module){\n"+fs.readFileSync("author-presences-live.js","utf8")+"\n})")(harness);
+const {classify,load,dayParis}=harness.exports;
 const make=(n,start,end,overrides={})=>({validated:true,rejected:false,archived_at:null,events:{id:"00000000-0000-0000-0000-"+String(n).padStart(12,"0"),start_date:start,end_date:end,validated:true,rejected:false},...overrides});
 test("classifies and deduplicates, excludes rejected/archived/unvalidated",()=>{
  const future=make(1,"2027-01-01","2027-01-02"),past=make(2,"2026-11-01","2026-11-01"),ongoing=make(3,"2026-11-24","2026-11-25");
