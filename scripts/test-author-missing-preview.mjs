@@ -13,3 +13,22 @@ test("exact scope and existing index cards unchanged",()=>{
  for(const line of original.split("\n"))if(line.includes("<url>"))assert.ok(files.get("sitemap-seo-auteurs.xml").includes(line));
 });
 test("unexpected catalog change stops preview",()=>{assert.throws(()=>preparePreview({catalog:catalog.slice(1)}));assert.throws(()=>preparePreview({catalog:[...catalog,catalog[0]]}));});
+
+test("all 26 pages: canonical, author identity, scripts, Leaflet CSS, unique presence cards and index/sitemap parity",()=>{
+ const {files}=preparePreview({catalog,now:new Date("2026-11-25T12:00:00Z")});
+ const index=files.get("auteurs/index.html"), sitemap=files.get("sitemap-seo-auteurs.xml");
+ const links=[...index.matchAll(/href="https:\/\/dedicalivres\.fr\/auteurs\/([a-z0-9-]+)\/"/g)].map(m=>m[1]);
+ const xml=[...sitemap.matchAll(/<loc>https:\/\/dedicalivres\.fr\/auteurs\/([a-z0-9-]+)\/<\/loc>/g)].map(m=>m[1]);
+ assert.equal(links.length,26);assert.equal(new Set(links).size,26);assert.deepEqual([...links].sort(),[...xml].sort());
+ for(const slug of links){
+  const file="auteurs/"+slug+"/index.html",html=files.get(file)??fs.readFileSync(file,"utf8");
+  assert.ok(html.includes('rel="canonical" href="https://dedicalivres.fr/auteurs/'+slug+'/"'),slug+" canonical");
+  assert.ok(html.includes('data-author-slug="'+slug+'"'),slug+" identity");
+  assert.match(html,/<script defer src="\/config\.js[^"]*"><\/script>\s*<script defer src="\/event-canonical\.js[^"]*"><\/script>\s*<script defer src="\/author-presences-live\.js[^"]*"><\/script>/);
+  assert.ok(html.includes("leaflet.css"),slug+" map CSS");
+  for(const group of ["ongoing","upcoming","past"])assert.ok(html.includes('id="author-events-'+group+'"'),slug+" "+group);
+  const events=[...html.matchAll(/data-event-id="([^"]+)"/g)].map(m=>m[1]);
+  assert.equal(new Set(events).size,events.length,slug+" duplicate event cards");
+  assert.doesNotMatch(html,/<meta[^>]*name="robots"[^>]*content="[^"]*noindex/i);
+ }
+});
