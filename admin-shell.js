@@ -3607,6 +3607,7 @@ function renderEvents(events, status) {
   let v11FirstHomePriority = null;
 
   function getV11HomePriorities(state) {
+    const compact = state.modules.community.status === "ready" ? null : state.communitySummary?.metrics;
     const events =
       Array.isArray(state?.events)
         ? state.events
@@ -3703,7 +3704,7 @@ function renderEvents(events, status) {
       },
       {
         key: "presence-pending",
-        count: pendingPresences,
+        count: compact?.actionPresencePending ?? pendingPresences,
         title: "Présences à modérer",
         detail:
           "Déclarations de présence à contrôler.",
@@ -3711,7 +3712,7 @@ function renderEvents(events, status) {
       },
       {
         key: "testimonials-pending",
-        count: pendingTestimonials,
+        count: compact?.pendingTestimonials ?? pendingTestimonials,
         title: "Témoignages à modérer",
         detail:
           "Témoignages en attente de décision.",
@@ -3727,7 +3728,7 @@ function renderEvents(events, status) {
       },
       {
         key: "authors-almost",
-        count: almostAuthors,
+        count: compact?.almostAuthors ?? almostAuthors,
         title: "Auteurs presque prêts",
         detail:
           "Fiches à 80 % ou plus pouvant être finalisées rapidement.",
@@ -3742,9 +3743,9 @@ function renderEvents(events, status) {
         ),
 
       editorialAuthors:
-        editorialAuthors.length,
+        compact?.editorialAuthors ?? editorialAuthors.length,
 
-      pendingTestimonials
+      pendingTestimonials: compact?.pendingTestimonials ?? pendingTestimonials
     };
   }
 
@@ -3815,22 +3816,26 @@ function renderEvents(events, status) {
       state.eventCatalog.status, state.eventCatalog.revision,
       state.metrics.eventsPending, state.modules.community.status,
       state.modules.community.revision, state.modules.community.refreshedAt,
-      state.modules.community.stale
+      state.modules.community.stale, state.communitySummary?.status, state.communitySummary?.revision
     ]);
     if (key === lastPriorityRenderKey) return;
     lastPriorityRenderKey = key;
 
     const summary =
       getV11HomePriorities(state);
+    const communityKnown = state.modules.community.status === "ready" || Boolean(state.communitySummary?.metrics);
+    const communityFresh = state.modules.community.status === "ready"
+      ? state.modules.community.stale !== true && state.modules.community.refreshing !== true
+      : state.communitySummary?.status === "ready";
 
     setBoundText(
       "authors-editorial-pending",
-      state.modules.community.status === "ready" ? String(summary.editorialAuthors) : "—"
+      communityKnown ? String(summary.editorialAuthors) : "—"
     );
 
     setBoundText(
       "testimonials-pending",
-      state.modules.community.status === "ready" ? String(summary.pendingTestimonials) : "—"
+      communityKnown ? String(summary.pendingTestimonials) : "—"
     );
 
     priorityList.replaceChildren();
@@ -3842,10 +3847,12 @@ function renderEvents(events, status) {
     if (
       summary.priorities.length === 0
     ) {
-      if (state.eventCatalog.status !== "ready" || state.modules.community.status !== "ready") {
+      if (state.eventCatalog.status !== "ready" || !communityFresh) {
         if (homePriorityTitle) homePriorityTitle.textContent = "Vérification partielle";
         if (homePriorityDetail) homePriorityDetail.textContent = "Catalogue ou communauté encore incomplet ; aucune conclusion globale sur les files en attente.";
-        priorityList.textContent = "Ouvrez l’onglet Communauté pour vérifier les autres files.";
+        priorityList.textContent = state.communitySummary?.status === "error"
+          ? "Compteurs Communauté indisponibles ou non actualisés ; utilisez Actualiser."
+          : "Vérification automatique des compteurs en cours…";
         return;
       }
       if (homePriorityTitle) {
@@ -3880,8 +3887,7 @@ function renderEvents(events, status) {
         0
       );
 
-    const partial = state.eventCatalog.status !== "ready" ||
-      state.modules.community.status !== "ready" || state.modules.community.stale === true;
+    const partial = state.eventCatalog.status !== "ready" || !communityFresh;
     if (homePriorityTitle) {
       homePriorityTitle.textContent =
         (partial ? "Au moins " : "") + total +
@@ -12611,50 +12617,21 @@ function openCommunityView(name) {
       return;
     }
 
-    if (state.communityMetrics) {
-      const communityMetrics = state.communityMetrics;
+    {
+      const communityMetrics = state.modules.community.status === "ready"
+        ? state.communityMetrics : (state.communitySummary?.metrics || {});
 
-      if (communityMetrics.presenceTotal !== null) {
-        setBoundText(
-          "presence-total",
-          String(communityMetrics.presenceTotal)
-        );
-      }
+      setBoundText("presence-total", Number.isInteger(communityMetrics.presenceTotal) ? String(communityMetrics.presenceTotal) : "—");
 
-      if (communityMetrics.presencePending !== null) {
-        setBoundText(
-          "presence-pending",
-          String(communityMetrics.presencePending)
-        );
-      }
+      setBoundText("presence-pending", Number.isInteger(communityMetrics.presencePending) ? String(communityMetrics.presencePending) : "—");
 
-      if (communityMetrics.presenceValidated !== null) {
-        setBoundText(
-          "presence-validated",
-          String(communityMetrics.presenceValidated)
-        );
-      }
+      setBoundText("presence-validated", Number.isInteger(communityMetrics.presenceValidated) ? String(communityMetrics.presenceValidated) : "—");
 
-      if (communityMetrics.presenceRejected !== null) {
-        setBoundText(
-          "presence-rejected",
-          String(communityMetrics.presenceRejected)
-        );
-      }
+      setBoundText("presence-rejected", Number.isInteger(communityMetrics.presenceRejected) ? String(communityMetrics.presenceRejected) : "—");
 
-      if (communityMetrics.authorsTotal !== null) {
-        setBoundText(
-          "authors-total",
-          String(communityMetrics.authorsTotal)
-        );
-      }
+      setBoundText("authors-total", Number.isInteger(communityMetrics.authorsTotal) ? String(communityMetrics.authorsTotal) : "—");
 
-      if (communityMetrics.testimonialsTotal !== null) {
-        setBoundText(
-          "testimonials-total",
-          String(communityMetrics.testimonialsTotal)
-        );
-      }
+      setBoundText("testimonials-total", Number.isInteger(communityMetrics.testimonialsTotal) ? String(communityMetrics.testimonialsTotal) : "—");
     }
 
     if (state.metrics.qualityMissingImage !== null) {
