@@ -48,3 +48,18 @@ test("map uses only valid coordinates from classified unique public events",()=>
  const points=mapPoints(classify([a,a,b,c,d],"2026-11-25"));
  assert.deepEqual(points.map(p=>[p.coords,p.past]),[[[48,-3],false],[[47,-2],true]]);
 });
+
+test("published author index, sitemap and profile pages agree with no duplicate presence cards",()=>{
+ const index=fs.readFileSync("auteurs/index.html","utf8"), sitemap=fs.readFileSync("sitemap-seo-auteurs.xml","utf8");
+ const links=[...index.matchAll(/href="https:\/\/dedicalivres\.fr\/auteurs\/([a-z0-9-]+)\/"/g)].map(m=>m[1]);
+ const xml=[...sitemap.matchAll(/<loc>https:\/\/dedicalivres\.fr\/auteurs\/([a-z0-9-]+)\/<\/loc>/g)].map(m=>m[1]);
+ assert.equal(new Set(links).size,links.length);assert.deepEqual([...links].sort(),[...xml].sort());
+ for(const slug of links){
+  const html=fs.readFileSync("auteurs/"+slug+"/index.html","utf8");
+  assertScripts(html,slug);assert.ok(html.includes('data-author-slug="'+slug+'"'));assert.ok(html.includes("leaflet.css"));
+  for(const group of ["ongoing","upcoming","past"])assert.ok(html.includes('id="author-events-'+group+'"'));
+  assert.equal((html.match(/<h1\b/g)||[]).length,1);
+  const ids=[...html.matchAll(/data-event-id="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(ids).size,ids.length);
+  assert.doesNotMatch(html,/<meta[^>]*name="robots"[^>]*content="[^"]*noindex/i);
+ }
+});
