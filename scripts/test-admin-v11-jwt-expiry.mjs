@@ -50,15 +50,21 @@ function fixture() {
       onAuthStateChange(callback) { listener = callback; return { data: { subscription: {} } }; }
     },
     from(table) {
-      let columns;
+      let columns, options, cursor = false;
       const query = {
-        select(value) { columns = value; return query; },
+        select(value, opts) { columns = value; options = opts; return query; },
+        range() { return query; },
+        or() { cursor = true; return query; },
+        is() { cursor = true; return query; },
+        lt() { cursor = true; return query; },
         eq() { return query; }, gte() { return query; },
         order() { return query; }, limit() { return query; },
         then(resolve, reject) {
           const result = table === "admin_users"
             ? { data: admin ? [{ user_id: current?.user.id }] : [], error: null }
-            : { data: columns?.includes("title") ? [{ id: "private-event" }] : [], count: 1, error: null };
+            : { data: options?.head ? null : table === "events" && columns?.includes("title") && !cursor
+                ? [{ id: "11111111-1111-4111-8111-111111111111", created_at: "2026-01-01T00:00:00Z" }] : [],
+                count: table === "events" || table === "site_visits" ? 1 : 0, error: null };
           if (holdReads && table !== "admin_users") {
             return new Promise(done => pendingReads.push(() => done(result))).then(resolve, reject);
           }
@@ -103,6 +109,10 @@ async function ready(lab, session) {
   await lab.context.restoreSession();
   assert.equal(lab.context.getState().status, "ready");
   assert.equal(lab.context.getState().events.length, 1);
+  await flush();
+  assert.equal(lab.context.getState().eventCatalog.status, "ready");
+  assert.equal(lab.context.getState().communitySummary.status, "ready");
+  assert.equal(lab.context.getState().metrics.visitsToday, 1);
 }
 
 function locked(lab, status = "expired") {
@@ -113,6 +123,9 @@ function locked(lab, status = "expired") {
   assert.equal(state.events.length, 0);
   assert.equal(state.community.presences.length, 0);
   assert.equal(state.metrics.eventsTotal, null);
+  assert.equal(state.metrics.visitsToday, null);
+  assert.equal(state.metrics.visitsTotal, null);
+  assert.equal(state.communitySummary.metrics, null);
 }
 
 {
@@ -214,13 +227,13 @@ function locked(lab, status = "expired") {
   lab.holdPrivateReads();
   const loading = lab.context.refresh();
   await flush();
-  assert.equal(lab.pendingReads.length, 5, "lazy refresh starts only event/catalog reads before expiry");
+  assert.equal(lab.pendingReads.length, 8, "refresh starts seven summary reads plus the first catalog page before expiry");
   await lab.due(10_000);
   locked(lab);
   lab.releasePrivateReads();
   await loading;
   locked(lab);
-  console.log("PASS five late loaders cannot restore data after local expiry");
+  console.log("PASS eight late loaders including home summaries cannot restore data after local expiry");
 }
 
 {
