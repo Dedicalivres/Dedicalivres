@@ -27,7 +27,7 @@
       visits7d: null,
       visits30d: null,
       visitsTotal: null,
-      visitsStatus: "Trafic chargé à l’ouverture de l’onglet"
+      visitsStatus: "Compteurs de trafic en attente"
     },
     trafficDetails: {
       topPages: [],
@@ -60,7 +60,9 @@
   let catalogTask = null;
   let refreshTask = null;
   const moduleTasks = new Map();
-  const moduleSequences = { traffic: 0, community: 0 };
+  const moduleSequences = { traffic: 0, community: 0, trafficSummary: 0 };
+  let trafficSummaryTask = null;
+  let trafficSummaryReadyEpoch = null;
   const EVENT_COLUMNS = "id,created_at,title,type,city,region,start_date,end_date,validated,rejected,featured,verified,country_code,image_url,registration_force_status,registration_note,registration_audience,registration_url,registration_deadline,registration_open_date,registration_enabled,description,website,lat,lng,source_label,imported_source";
   const EMPTY_PAGE = () => ({ rows: [], total: 0, page: 0, size: 50, key: "", loading: false, error: null });
 
@@ -117,6 +119,9 @@
     catalogTask = null;
     refreshTask = null;
     moduleTasks.clear();
+    trafficSummaryTask = null;
+    trafficSummaryReadyEpoch = null;
+    moduleSequences.trafficSummary += 1;
     moduleSequences.traffic += 1;
     moduleSequences.community += 1;
     state.eventCatalog = { status: "idle", loaded: 0, total: null, revision: catalogGeneration, error: null };
@@ -138,7 +143,7 @@
       visits7d: null,
       visits30d: null,
       visitsTotal: null,
-      visitsStatus: "Trafic chargé à l’ouverture de l’onglet"
+      visitsStatus: "Compteurs de trafic en attente"
     };
     state.trafficDetails = { topPages: [], topReferrers: [] };
     state.community = { presences: [], authors: [], testimonials: [] };
@@ -498,7 +503,7 @@
         .from("site_visits")
         .select("id", { count: "exact", head: true })
         .gte("created_at", thirtyDays.toISOString())
-    ]);
+    ].map(checked));
 
     const results = [
       totalResult,
@@ -516,13 +521,56 @@
       throw Object.assign(new Error(failed.error.message || "Trafic indisponible"), failed.error, { status: failed.status || failed.error.status });
     }
 
-    state.metrics.visitsTotal = totalResult.count || 0;
-    state.metrics.visitsToday = todayResult.count || 0;
-    state.metrics.visits7d = sevenResult.count || 0;
-    state.metrics.visits30d = thirtyResult.count || 0;
+    if (results.some(result => !Number.isInteger(result.count) || result.count < 0)) {
+      throw new Error("Compteurs de trafic incomplets");
+    }
+    state.metrics.visitsTotal = totalResult.count;
+    state.metrics.visitsToday = todayResult.count;
+    state.metrics.visits7d = sevenResult.count;
+    state.metrics.visits30d = thirtyResult.count;
     state.metrics.visitsStatus = "Pages vues enregistrées";
   }
 
+
+  // Summary and detailed traffic have independent lifecycles. Never fetch
+  // visitor rows to display the four count-only indicators.
+  function ensureTrafficSummary(force = false) {
+    const epoch = authEpoch;
+    if (!canCommit(epoch)) return Promise.resolve(snapshot());
+    if (trafficSummaryTask?.epoch === epoch) return trafficSummaryTask.promise;
+    if (!force && trafficSummaryReadyEpoch === epoch) return Promise.resolve(snapshot());
+    const token = { epoch, module: "trafficSummary", sequence: ++moduleSequences.trafficSummary };
+    const task = Promise.resolve().then(async () => {
+      if (!canCommit(token)) return snapshot();
+      state.metrics.visitsStatus = "Actualisation des compteurs de trafic…";
+      notify();
+      try {
+        await loadTrafficMetrics(token);
+        if (canCommit(token)) {
+          trafficSummaryReadyEpoch = epoch;
+          notify();
+        }
+        return snapshot();
+      } catch (error) {
+        handleReadFailure(error, token);
+        if (canCommit(token)) {
+          trafficSummaryReadyEpoch = null;
+          moduleSequences.trafficSummary += 1;
+          state.metrics.visitsStatus = state.metrics.visitsTotal === null
+            ? "Compteurs de trafic indisponibles"
+            : "Compteurs de trafic non actualisés";
+          notify();
+        }
+        throw error;
+      }
+    });
+    trafficSummaryTask = { epoch, promise: task };
+    const release = () => {
+      if (trafficSummaryTask?.promise === task) trafficSummaryTask = null;
+    };
+    task.then(release, release);
+    return task;
+  }
 
   async function loadTrafficDetails(epoch) {
     const client = getClient();
@@ -967,7 +1015,7 @@
       let timer;
       try {
         const work = name === "traffic"
-          ? Promise.all([loadTrafficMetrics(token), loadTrafficDetails(token)]) : loadCommunity(token);
+          ? Promise.all([ensureTrafficSummary(force), loadTrafficDetails(token)]) : loadCommunity(token);
         await Promise.race([work, new Promise((_, reject) => {
           timer = window.setTimeout(() => reject(new Error("Module trop long ; réessayez.")), 10000);
         })]);
@@ -1116,6 +1164,8 @@
     scheduleExpiry(state.session);
     const requestedModules = ["traffic", "community"].filter(name => state.modules[name].status !== "idle");
     moduleTasks.clear();
+    trafficSummaryTask = null;
+    moduleSequences.trafficSummary += 1;
     // Invalidate old secondary requests even if an earlier task is still in flight.
     for (const name of ["traffic", "community"]) {
       moduleSequences[name] += 1;
@@ -1164,6 +1214,7 @@
       if (!watchdogTriggered && canCommit(epoch)) {
         setState({ status: "ready", refreshing: false, error: null, refreshedAt: new Date().toISOString() });
         if (!(keepView && fullCatalogReady)) void ensureEventCatalog();
+        if (!requestedModules.includes("traffic")) void ensureTrafficSummary().catch(() => {});
         for (const name of requestedModules) void ensureModule(name, true);
       }
     } catch (error) {
