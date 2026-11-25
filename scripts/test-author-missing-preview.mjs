@@ -14,8 +14,7 @@ test("exact scope and existing index cards unchanged",()=>{
 });
 test("unexpected catalog change stops preview",()=>{assert.throws(()=>preparePreview({catalog:catalog.slice(1)}));assert.throws(()=>preparePreview({catalog:[...catalog,catalog[0]]}));});
 
-test("all 26 pages: canonical, author identity, scripts, Leaflet CSS, unique presence cards and index/sitemap parity",()=>{
- const {files}=preparePreview({catalog,now:new Date("2026-11-25T12:00:00Z")});
+function audit26(files){
  const index=files.get("auteurs/index.html"), sitemap=files.get("sitemap-seo-auteurs.xml");
  const links=[...index.matchAll(/href="https:\/\/dedicalivres\.fr\/auteurs\/([a-z0-9-]+)\/"/g)].map(m=>m[1]);
  const xml=[...sitemap.matchAll(/<loc>https:\/\/dedicalivres\.fr\/auteurs\/([a-z0-9-]+)\/<\/loc>/g)].map(m=>m[1]);
@@ -31,4 +30,11 @@ test("all 26 pages: canonical, author identity, scripts, Leaflet CSS, unique pre
   assert.equal(new Set(events).size,events.length,slug+" duplicate event cards");
   assert.doesNotMatch(html,/<meta[^>]*name="robots"[^>]*content="[^"]*noindex/i);
  }
+}
+test("all 26 pages: canonical, identity, scripts, Leaflet CSS, unique presence cards and index/sitemap parity",()=>audit26(preparePreview({catalog,now:new Date("2026-11-25T12:00:00Z")}).files));
+test("audit actual public-catalog preview and reconcile event counts",{skip:!fs.existsSync(".author-preview/manifest.json")},()=>{
+ const manifest=JSON.parse(fs.readFileSync(".author-preview/manifest.json","utf8"));
+ assert.equal(manifest.mode,"PREVIEW_ONLY");assert.equal(manifest.existingProfilesPreserved,19);assert.equal(manifest.files.length,9);assert.equal(manifest.profiles.length,7);
+ const files=new Map(manifest.files.map(name=>[name,fs.readFileSync(".author-preview/"+name,"utf8")]));audit26(files);
+ for(const p of manifest.profiles){const html=files.get("auteurs/"+p.slug+"/index.html");assert.equal([...html.matchAll(/data-event-id="([^"]+)"/g)].length,p.ongoing+p.upcoming+p.past,p.slug+" event count");}
 });
