@@ -39,3 +39,12 @@ test("future generated author pages retain live scripts",()=>{
  const {html}=renderAuthorStaticPage({baseHtml,author:{pseudo:"Test",slug:"test"},events:[],generatedAt:"2026-11-24"});
  assertScripts(html,"test");
 });
+
+test("map uses only valid coordinates from classified unique public events",()=>{
+ const {mapPoints}=harness.exports;
+ const a=make(1,"2099-01-01",null), b=make(2,"2020-01-01",null), c=make(3,"2099-01-01",null), d=make(4,"2099-01-01",null);
+ Object.assign(a.events,{lat:48,lng:-3});Object.assign(b.events,{lat:"47",lng:"-2"});
+ Object.assign(c.events,{lat:null,lng:null});Object.assign(d.events,{lat:100,lng:0});
+ const points=mapPoints(classify([a,a,b,c,d],"2026-11-25"));
+ assert.deepEqual(points.map(p=>[p.coords,p.past]),[[[48,-3],false],[[47,-2],true]]);
+});
