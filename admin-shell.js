@@ -3607,7 +3607,7 @@ function renderEvents(events, status) {
   let v11FirstHomePriority = null;
 
   function getV11HomePriorities(state) {
-    const compact = state.modules.community.status === "ready" ? null : state.communitySummary?.metrics;
+    const compact = state.communitySummary?.metrics || null;
     const events =
       Array.isArray(state?.events)
         ? state.events
@@ -3824,9 +3824,7 @@ function renderEvents(events, status) {
     const summary =
       getV11HomePriorities(state);
     const communityKnown = state.modules.community.status === "ready" || Boolean(state.communitySummary?.metrics);
-    const communityFresh = state.modules.community.status === "ready"
-      ? state.modules.community.stale !== true && state.modules.community.refreshing !== true
-      : state.communitySummary?.status === "ready";
+    const communityFresh = state.communitySummary?.status === "ready";
 
     setBoundText(
       "authors-editorial-pending",
@@ -12618,8 +12616,8 @@ function openCommunityView(name) {
     }
 
     {
-      const communityMetrics = state.modules.community.status === "ready"
-        ? state.communityMetrics : (state.communitySummary?.metrics || {});
+      const communityMetrics = state.communitySummary?.metrics ||
+        (state.modules.community.status === "ready" ? state.communityMetrics : {});
 
       setBoundText("presence-total", Number.isInteger(communityMetrics.presenceTotal) ? String(communityMetrics.presenceTotal) : "—");
 
@@ -12999,7 +12997,9 @@ function openCommunityView(name) {
 
           toast(
             state.status === "ready" && !state.error
-              ? "Données actualisées"
+              ? (state.communitySummary?.status === "ready" && state.metrics.visitsStatus === "Pages vues enregistrées"
+                  ? "Données actualisées"
+                  : "Catalogue actualisé · compteurs traités séparément")
               : v11ErrorMessage(
                   state.error,
                   "Erreur de chargement. Réessayez."
