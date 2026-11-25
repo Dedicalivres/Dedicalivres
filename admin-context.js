@@ -923,6 +923,15 @@
 
       testimonialsTotal: state.community.testimonials.length
     };
+    // A successfully completed detailed read is also a valid summary.
+    // Invalidate any older compact response so it cannot overwrite this result.
+    moduleSequences.communitySummary += 1;
+    communitySummaryTask = null;
+    state.communitySummary = {
+      status: "ready",
+      revision: state.communitySummary.revision + 1,
+      metrics: summarizeCommunity(state.community.presences, state.community.authors, state.community.testimonials)
+    };
   }
 
   // Only database-owned cursor values enter PostgREST grammar. User search never does.
@@ -1084,7 +1093,7 @@
     return snapshot();
   }
 
-  function ensureModule(name, force = false) {
+  function ensureModule(name, force = false, reuseTrafficSummary = false) {
     if (!["traffic", "community"].includes(name)) return Promise.reject(new Error("Module inconnu"));
     const epoch = authEpoch;
     if (!canCommit(epoch)) return Promise.resolve(snapshot());
@@ -1103,7 +1112,7 @@
       let timer;
       try {
         const work = name === "traffic"
-          ? Promise.all([ensureTrafficSummary(), loadTrafficDetails(token)]) : loadCommunity(token);
+          ? Promise.all([ensureTrafficSummary(force && !reuseTrafficSummary), loadTrafficDetails(token)]) : loadCommunity(token);
         await Promise.race([work, new Promise((_, reject) => {
           timer = window.setTimeout(() => reject(new Error("Module trop long ; réessayez.")), 10000);
         })]);
@@ -1324,7 +1333,7 @@
         // Avoid a second traffic count when opening/refreshing its detailed view.
         for (const name of requestedModules) {
           void (home?.[name] || Promise.resolve()).then(() => {
-            if (canCommit(epoch)) void ensureModule(name, true);
+            if (canCommit(epoch)) void ensureModule(name, true, true);
           });
         }
       }
