@@ -66,11 +66,19 @@
     footer.append(link);body.append(footer);card.append(body);return card;
   }
 
+  function hasAuthorMapCoordinates(event) {
+    const rawLat=event?.lat, rawLng=event?.lng;
+    const usable=value => (typeof value==="number" || (typeof value==="string" && value.trim()!=="")) && Number.isFinite(Number(value));
+    if (!usable(rawLat) || !usable(rawLng)) return false;
+    const lat=Number(rawLat), lng=Number(rawLng);
+    const bounds={FR:[41,51.2,-5.6,9.7],BE:[49.4,51.6,2.5,6.5],CH:[45.7,47.9,5.8,10.7],LU:[49.4,50.2,5.7,6.6],MC:[43.70,43.79,7.35,7.48]};
+    const country=String(event.country_code || "FR").trim().toUpperCase();
+    const box=Object.hasOwn(bounds,country) ? bounds[country] : null;
+    return !!box && lat>=box[0] && lat<=box[1] && lng>=box[2] && lng<=box[3];
+  }
+
   function mapPoints(groups) {
-    return ids.flatMap(id => groups[id].filter(e => e.lat != null && e.lng != null &&
-      clean(e.lat) !== "" && clean(e.lng) !== "" && Number.isFinite(Number(e.lat)) &&
-      Number.isFinite(Number(e.lng)) && Math.abs(Number(e.lat)) <= 90 &&
-      Math.abs(Number(e.lng)) <= 180).map(e => ({event:e, past:id==="past", coords:[Number(e.lat),Number(e.lng)]})));
+    return ids.flatMap(id => groups[id].filter(hasAuthorMapCoordinates).map(e => ({event:e, past:id==="past", coords:[Number(e.lat),Number(e.lng)]})));
   }
   async function renderMap(doc, groups, anchor) {
     const points=mapPoints(groups);
