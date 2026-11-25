@@ -11,7 +11,7 @@ const events=[
  {id:'event-valid',title:'Autre rencontre',country_code:'FR',region:'Bretagne',
   city:'Rennes',start_date:'2026-12-04',end_date:'2026-12-04',validated:true,rejected:false}
 ];
-const state={authenticated:true,status:'ready',events};
+const state={authenticated:true,status:'ready',eventCatalog:{status:'ready'},events};
 let subscriber=null;
 const context={
  subscribe(fn){subscriber=fn;},
@@ -41,6 +41,7 @@ Object.defineProperty(host,'innerHTML',{
  get(){return markup;},
  set(value){markup=value;detailsOpen=/id='v11-territorial-details'[^>]*\sopen/.test(value);}
 });
+Object.defineProperty(host,'textContent',{set(value){markup=String(value);}});
 globalThis.window={DEDICALIVRES_ADMIN_CONTEXT:context};
 globalThis.document={getElementById(id){return id==='v11-territorial-quality'?host:null;}};
 const seen=[];
@@ -55,6 +56,10 @@ await new Promise(resolve=>setImmediate(resolve));
 assert.equal(host.hidden,false);
 assert(subscriber);
 assert.deepEqual(seen,files);
+subscriber({...state,eventCatalog:{status:'loading'},events:events.slice(0,1)});
+assert.match(markup,/Chargement des contrôles territoriaux/);
+assert.doesNotMatch(markup,/priorité\(s\)/,'No partial quality totals before the complete catalog');
+subscriber(state);
 assert.match(markup,/<details id='v11-territorial-details'/);
 assert.equal(detailsOpen,false,'Must start collapsed');
 assert.match(markup,/Contrôles qualité/);

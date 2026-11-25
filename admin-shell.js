@@ -147,7 +147,7 @@
     .querySelectorAll("[data-quality-filter]")
     .forEach((card) => {
       card.addEventListener("click", () => {
-        if (!eventQualityFilter) return;
+        if (!eventQualityFilter || context.getState().eventCatalog.status !== "ready") return;
 
         eventQualityFilter.value =
           card.dataset.qualityFilter || "all";
@@ -1541,6 +1541,15 @@
 
   let currentEventDeletionImpact = null;
 
+  function syncEventDetailActions(event, complete) {
+    if (eventValidateButton) eventValidateButton.disabled = !complete || v11EventActionRunning ||
+      (event.validated === true && event.rejected !== true);
+    if (eventRejectButton) eventRejectButton.disabled = !complete || v11EventActionRunning || event.rejected === true;
+    if (eventFeaturedButton) eventFeaturedButton.disabled = !complete || v11EventActionRunning || event.rejected === true;
+    if (eventEditButton) eventEditButton.disabled = !complete || v11EventActionRunning;
+    if (eventDeleteStart) eventDeleteStart.disabled = !complete || v11EventActionRunning;
+  }
+
   function renderEventDetail(event) {
     if (!eventDetail || !eventDetailContent || !event) {
       return;
@@ -1549,26 +1558,9 @@
     eventDetail.hidden = false;
     selectedV11EventId = String(event.id);
 
-    if (eventValidateButton) {
-      eventValidateButton.disabled =
-        v11EventActionRunning ||
-        (
-          event.validated === true &&
-          event.rejected !== true
-        );
-    }
-
-    if (eventRejectButton) {
-      eventRejectButton.disabled =
-        v11EventActionRunning ||
-        event.rejected === true;
-    }
+    syncEventDetailActions(event, context.getState().eventCatalog.status === "ready");
 
     if (eventFeaturedButton) {
-      eventFeaturedButton.disabled =
-        v11EventActionRunning ||
-        event.rejected === true;
-
       eventFeaturedButton.textContent =
         event.featured === true
           ? "Retirer la mise en avant"
@@ -3523,12 +3515,52 @@ function renderEvents(events, status) {
       if (eventsVisibleCount) eventsVisibleCount.textContent = "0";
       return;
     }
+    const complete = state.eventCatalog.status === "ready";
+    for (const control of [eventSearch, eventStatusFilter, eventTypeFilter,
+      eventQualityFilter, eventRegistrationFilter, eventOriginFilter]) {
+      if (control) control.disabled = !complete;
+    }
+    for (const card of document.querySelectorAll("[data-quality-filter]")) {
+      card.setAttribute("aria-disabled", complete ? "false" : "true");
+    }
+    const pageSizeControl = document.getElementById("v11-event-page-size");
+    if (pageSizeControl) pageSizeControl.disabled = !complete;
+    if (eventDetail && !eventDetail.hidden && selectedV11EventId) {
+      const selected = state.events.find(row => String(row.id) === selectedV11EventId);
+      if (selected) syncEventDetailActions(selected, complete);
+      else { eventDetail.hidden = true; selectedV11EventId = null; }
+    }
     if (state.eventCatalog.status !== "ready") {
-      eventsList.replaceChildren();
+      const defaultFilters = !eventSearch?.value && eventStatusFilter?.value === "all" &&
+        eventTypeFilter?.value === "all" && eventQualityFilter?.value === "all" &&
+        eventRegistrationFilter?.value === "all" && eventOriginFilter?.value === "all";
+      const canPreview = state.eventCatalog.status === "loading" && defaultFilters && state.events.length > 0;
+      const key = JSON.stringify(["initial", state.eventCatalog.revision]);
+      if (canPreview && eventListRequestKey !== key) {
+        eventListRequestKey = key;
+        void context.selectEventPage({ ids: state.events.map(row => row.id), key, initial: true });
+      }
+      const page = state.eventPage;
+      const rows = canPreview && page.key === key && !page.loading && !page.error ? page.rows : [];
+      const renderedKey = JSON.stringify([key, rows.length, page.loading, Boolean(page.error), canPreview]);
+      if (renderedKey !== eventListRenderedKey) {
+        eventListRenderedKey = renderedKey;
+        eventsList.replaceChildren();
+        rows.forEach(row => eventsList.appendChild(createEventCard(row)));
+      }
       eventsLoading.hidden = false;
-      eventsLoading.textContent = state.eventCatalog.error ? "Catalogue incomplet. Réessayez avec Actualiser." : "Chargement du catalogue complet pour conserver tous les filtres…";
+      eventsLoading.textContent = state.eventCatalog.error
+        ? "Catalogue incomplet. Réessayez avec Actualiser."
+        : canPreview
+          ? "Catalogue en cours de chargement · aperçu des 50 premières fiches, tous statuts. Filtres et actions disponibles après vérification du catalogue."
+          : "Catalogue en cours de chargement · filtres exhaustifs en attente.";
       eventsEmpty.hidden = true;
-      eventsVisibleCount.textContent = "0 / —";
+      eventsVisibleCount.textContent = rows.length ? `${rows.length} premières fiches affichées · total en attente` : "Total en attente";
+      const pageLabel = document.getElementById("v11-event-page-label");
+      if (pageLabel) pageLabel.textContent = "Aperçu initial";
+      for (const id of ["v11-event-page-prev", "v11-event-page-next"]) {
+        const button = document.getElementById(id); if (button) button.disabled = true;
+      }
       return;
     }
     const filters = JSON.stringify([eventSearch?.value, eventStatusFilter?.value, eventTypeFilter?.value, eventQualityFilter?.value, eventRegistrationFilter?.value, eventOriginFilter?.value]);
@@ -3536,7 +3568,7 @@ function renderEvents(events, status) {
     const filtered = getFilteredEvents(state.events);
     const ids = filtered.map(row => row.id);
     eventListPage = Math.min(eventListPage, Math.max(0, Math.ceil(ids.length / eventListSize) - 1));
-    const key = JSON.stringify([state.eventCatalog.revision, filters, eventListPage, eventListSize]);
+    const key = JSON.stringify(["complete", state.eventCatalog.revision, filters, eventListPage, eventListSize]);
     if (activeV11View === "events" && eventListRequestKey !== key) {
       eventListRequestKey = key;
       void context.selectEventPage({ ids, page: eventListPage, size: eventListSize, key });
