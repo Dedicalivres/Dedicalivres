@@ -38,6 +38,7 @@
       authors: [],
       testimonials: []
     },
+    communitySummary: { status: "idle", metrics: null, revision: 0 },
     communityMetrics: {
       presenceTotal: null,
       presencePending: null,
@@ -60,8 +61,9 @@
   let catalogTask = null;
   let refreshTask = null;
   const moduleTasks = new Map();
-  const moduleSequences = { traffic: 0, community: 0, trafficSummary: 0 };
+  const moduleSequences = { traffic: 0, community: 0, trafficSummary: 0, communitySummary: 0 };
   let trafficSummaryTask = null;
+  let communitySummaryTask = null;
   let trafficSummaryReadyEpoch = null;
   const EVENT_COLUMNS = "id,created_at,title,type,city,region,start_date,end_date,validated,rejected,featured,verified,country_code,image_url,registration_force_status,registration_note,registration_audience,registration_url,registration_deadline,registration_open_date,registration_enabled,description,website,lat,lng,source_label,imported_source";
   const EMPTY_PAGE = () => ({ rows: [], total: 0, page: 0, size: 50, key: "", loading: false, error: null });
@@ -120,6 +122,8 @@
     refreshTask = null;
     moduleTasks.clear();
     trafficSummaryTask = null;
+    communitySummaryTask = null;
+    moduleSequences.communitySummary += 1;
     trafficSummaryReadyEpoch = null;
     moduleSequences.trafficSummary += 1;
     moduleSequences.traffic += 1;
@@ -147,6 +151,7 @@
     };
     state.trafficDetails = { topPages: [], topReferrers: [] };
     state.community = { presences: [], authors: [], testimonials: [] };
+    state.communitySummary = { status: "idle", metrics: null, revision: 0 };
     state.communityMetrics = {
       presenceTotal: null,
       presencePending: null,
@@ -186,6 +191,7 @@
         authors: [...state.community.authors],
         testimonials: [...state.community.testimonials]
       },
+      communitySummary: { ...state.communitySummary, metrics: state.communitySummary.metrics ? { ...state.communitySummary.metrics } : null },
       communityMetrics: { ...state.communityMetrics },
       error: state.error,
       refreshedAt: state.refreshedAt,
@@ -665,6 +671,136 @@
   }
 
 
+  // Paging prevents silent truncation at 250 presences, 500 authors, 100 testimonials.
+  // Fixed sort on timestamp + UUID prevents unstable ordering on equal timestamps.
+  async function readAllCommunity(client, epoch, table, columns, pageSize) {
+    const rows = [];
+    const seen = new Set();
+    let expectedTotal = null;
+    for (let offset = 0; ; offset += pageSize) {
+      if (!canCommit(epoch)) return { data: [], error: null };
+      const response = await checked(
+        client.from(table)
+          .select(columns, offset === 0 ? { count: "exact" } : {})
+          .order("created_at", { ascending: false, nullsFirst: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + pageSize - 1)
+      );
+      if (!canCommit(epoch)) return { data: [], error: null };
+      if (offset === 0) {
+        expectedTotal = response.count;
+        if (!Number.isInteger(expectedTotal) || expectedTotal < 0) {
+          throw new Error("Total Communauté indisponible : " + table);
+        }
+      }
+      const chunk = response.data || [];
+      if (!Array.isArray(chunk)) throw new Error("Réponse Communauté invalide : " + table);
+      for (const row of chunk) {
+        if (!row || row.id == null || seen.has(row.id)) {
+          throw new Error("Pagination Communauté incohérente : " + table);
+        }
+        seen.add(row.id);
+        rows.push(row);
+      }
+      if (chunk.length < pageSize) {
+        // Offset pages can shift under concurrent additions/removals.
+        // Reject an inconsistent result instead of publishing a partial list.
+        const after = await checked(client.from(table).select("id", { count: "exact", head: true }));
+        if (!canCommit(epoch)) return { data: [], error: null };
+        if (!Number.isInteger(after.count) ||
+            rows.length !== expectedTotal || after.count !== expectedTotal) {
+          throw new Error("Communauté modifiée pendant la pagination : " + table + "; actualisez.");
+        }
+        return { data: rows, error: null };
+      }
+      if (rows.length > expectedTotal) {
+        throw new Error("Pagination Communauté incohérente : " + table);
+      }
+    }
+  }
+
+
+  // Project only fields needed by the initial dashboard, without contact
+  // emails, messages, notes, or full detail rows. Keep exact pagination checks.
+  function summarizeCommunity(presences, authors, testimonials) {
+    presences = presences.filter(row => !row.archived_at);
+    authors = authors.filter(row => !row.merged_into);
+    testimonials = testimonials.filter(row => !row.archived_at);
+    const norm = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const clean = value => String(value || "").trim();
+    const ids = new Set(), slugs = new Set(), names = new Set();
+    for (const row of presences) {
+      if (row.validated !== true || row.rejected === true || !(row.event_id || row.events?.id)) continue;
+      const id = clean(row.author_id), slug = clean(row.author_slug || row.author_identity_key), name = norm(row.pseudo);
+      if (id) ids.add(id);
+      if (slug) slugs.add(slug);
+      if (name) names.add(name);
+    }
+    let editorialAuthors = 0, almostAuthors = 0;
+    for (const author of authors) {
+      if (author.published === true) continue;
+      const score = [
+        Boolean(clean(author.pseudo)),
+        Boolean(clean(author.avatar_url)),
+        ["author", "artist_author", "hybrid"].includes(author.profile_type),
+        Boolean(clean(author.bio)),
+        ids.has(clean(author.id)) || slugs.has(clean(author.slug)) || names.has(norm(author.pseudo))
+      ].filter(Boolean).length * 20;
+      if (score < 100) editorialAuthors++;
+      if (score >= 80 && score < 100) almostAuthors++;
+    }
+    return {
+      presenceTotal: presences.length,
+      presencePending: presences.filter(row => row.validated === false && row.rejected !== true).length,
+      presenceValidated: presences.filter(row => row.validated === true && row.rejected !== true).length,
+      presenceRejected: presences.filter(row => row.rejected === true).length,
+      authorsTotal: authors.length,
+      testimonialsTotal: testimonials.length,
+      actionPresencePending: presences.filter(row => row.validated !== true && row.rejected !== true).length,
+      pendingTestimonials: testimonials.filter(row => row.validated !== true && row.rejected !== true).length,
+      editorialAuthors, almostAuthors
+    };
+  }
+
+  function ensureCommunitySummary() {
+    const epoch = authEpoch;
+    if (!canCommit(epoch)) return Promise.resolve(snapshot());
+    if (communitySummaryTask?.epoch === epoch) return communitySummaryTask.promise;
+    const token = { epoch, module: "communitySummary", sequence: ++moduleSequences.communitySummary };
+    const previous = state.communitySummary;
+    const task = Promise.resolve().then(async () => {
+      if (!canCommit(token)) return snapshot();
+      state.communitySummary = { ...previous, status: "loading" };
+      notify();
+      try {
+        const client = getClient();
+        if (!client) throw new Error("Client Supabase indisponible");
+        const archive = window.DEDICALIVRES_CONFIG?.adminV11CommunityArchiveEnabled === true ? ",archived_at" : "";
+        const [p, a, t] = await Promise.all([
+          readAllCommunity(client, token, "event_authors_presence", "id,validated,rejected,author_id,author_slug,author_identity_key,pseudo,event_id,events(id)" + archive, 250),
+          readAllCommunity(client, token, "authors", "id,pseudo,slug,published,avatar_url,profile_type,bio,merged_into", 250),
+          readAllCommunity(client, token, "testimonials", "id,validated,rejected" + archive, 100)
+        ]);
+        if (canCommit(token)) {
+          state.communitySummary = { status: "ready", metrics: summarizeCommunity(p.data, a.data, t.data), revision: previous.revision + 1 };
+          notify();
+        }
+      } catch (error) {
+        handleReadFailure(error, token);
+        if (canCommit(token)) {
+          moduleSequences.communitySummary += 1;
+          state.communitySummary = { ...previous, status: "error" };
+          notify();
+        }
+      }
+      return snapshot();
+    });
+    communitySummaryTask = { epoch, promise: task };
+    const release = () => { if (communitySummaryTask?.promise === task) communitySummaryTask = null; };
+    task.then(release, release);
+    return task;
+  }
+
   async function loadCommunity(epoch) {
     const client = getClient();
 
@@ -722,57 +858,9 @@
       testimonialColumns.push("archived_at", "archived_by", "archive_reason");
     }
 
-    // Paging prevents silent truncation at 250 presences, 500 authors, 100 testimonials.
-    // Fixed sort on timestamp + UUID prevents unstable ordering on equal timestamps.
-    async function readAllCommunity(table, columns, pageSize) {
-      const rows = [];
-      const seen = new Set();
-      let expectedTotal = null;
-      for (let offset = 0; ; offset += pageSize) {
-        if (!canCommit(epoch)) return { data: [], error: null };
-        const response = await checked(
-          client.from(table)
-            .select(columns, offset === 0 ? { count: "exact" } : {})
-            .order("created_at", { ascending: false, nullsFirst: false })
-            .order("id", { ascending: false })
-            .range(offset, offset + pageSize - 1)
-        );
-        if (!canCommit(epoch)) return { data: [], error: null };
-        if (offset === 0) {
-          expectedTotal = response.count;
-          if (!Number.isInteger(expectedTotal) || expectedTotal < 0) {
-            throw new Error("Total Communauté indisponible : " + table);
-          }
-        }
-        const chunk = response.data || [];
-        if (!Array.isArray(chunk)) throw new Error("Réponse Communauté invalide : " + table);
-        for (const row of chunk) {
-          if (!row || row.id == null || seen.has(row.id)) {
-            throw new Error("Pagination Communauté incohérente : " + table);
-          }
-          seen.add(row.id);
-          rows.push(row);
-        }
-        if (chunk.length < pageSize) {
-          // Offset pages can shift under concurrent additions/removals.
-          // Reject an inconsistent result instead of publishing a partial list.
-          const after = await checked(client.from(table).select("id", { count: "exact", head: true }));
-          if (!canCommit(epoch)) return { data: [], error: null };
-          if (!Number.isInteger(after.count) ||
-              rows.length !== expectedTotal || after.count !== expectedTotal) {
-            throw new Error("Communauté modifiée pendant la pagination : " + table + "; actualisez.");
-          }
-          return { data: rows, error: null };
-        }
-        if (rows.length > expectedTotal) {
-          throw new Error("Pagination Communauté incohérente : " + table);
-        }
-      }
-    }
-
     const [presencesResult, authorsResult, testimonialsResult] = await Promise.all([
-      readAllCommunity("event_authors_presence", presenceColumns.join(", "), 250),
-      readAllCommunity("authors", [
+      readAllCommunity(client, epoch, "event_authors_presence", presenceColumns.join(", "), 250),
+      readAllCommunity(client, epoch, "authors", [
         "id", "pseudo", "slug", "published_by", "published_at",
         "publication_ready_by", "publication_ready_at", "merged_at",
         "shop_url", "bio", "website", "validated", "profile_type",
@@ -780,7 +868,7 @@
         "editorial_status_at", "editorial_status_by", "avatar_url",
         "location", "merged_into", "created_at"
       ].join(", "), 250),
-      readAllCommunity("testimonials", testimonialColumns.join(", "), 100)
+      readAllCommunity(client, epoch, "testimonials", testimonialColumns.join(", "), 100)
     ]);
 
     if (presencesResult.error) {
@@ -1165,6 +1253,8 @@
     const requestedModules = ["traffic", "community"].filter(name => state.modules[name].status !== "idle");
     moduleTasks.clear();
     trafficSummaryTask = null;
+    communitySummaryTask = null;
+    moduleSequences.communitySummary += 1;
     moduleSequences.trafficSummary += 1;
     // Invalidate old secondary requests even if an earlier task is still in flight.
     for (const name of ["traffic", "community"]) {
@@ -1215,6 +1305,7 @@
         setState({ status: "ready", refreshing: false, error: null, refreshedAt: new Date().toISOString() });
         if (!(keepView && fullCatalogReady)) void ensureEventCatalog();
         if (!requestedModules.includes("traffic")) void ensureTrafficSummary().catch(() => {});
+        if (!requestedModules.includes("community")) void ensureCommunitySummary();
         for (const name of requestedModules) void ensureModule(name, true);
       }
     } catch (error) {
