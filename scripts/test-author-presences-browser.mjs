@@ -62,7 +62,8 @@ try {
  await page.goto(url);
  const status=page.locator('p.author-note[role="status"]');
  await status.filter({hasText:"Présences actualisées."}).waitFor();
- await page.locator(".test-map-marker").first().waitFor();
+ await page.locator(".test-map-marker").first().waitFor({state:"attached"});
+ assert.ok(await page.locator("#author-travel-map").isVisible());
  assert.equal(await page.locator(".test-map-marker").count(),8);
  assert.equal(await page.locator('.test-map-marker[data-color="#16803c"]').count(),7);
  assert.equal(await page.locator('.test-map-marker[data-color="#b93646"]').count(),1);
