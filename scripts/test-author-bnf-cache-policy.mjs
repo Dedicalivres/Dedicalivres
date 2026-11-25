@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import { normalizeBnfRecord } from "./author-bnf-cache-policy.mjs";
+const record = { noticeUrl:"https://catalogue.bnf.fr/ark:/12148/example",noticeId:"ark:/12148/example",authorAuthorityId:"ark:/12148/author",title:"Roman exemple",coverUrl:"https://example.com/cover.jpg",verifiedMatch:true };
+const valid = normalizeBnfRecord(record);
+assert.equal(valid.eligible,true);
+assert.equal(valid.coverUrl,null);
+assert.equal(valid.cacheKey,"bnf:ark:/12148/author:ark:/12148/example");
+assert.equal(normalizeBnfRecord({...record,verifiedMatch:false}).eligible,false);
+assert.equal(normalizeBnfRecord({...record,noticeUrl:"https://catalogue.bnf.fr.evil.example/x"}).eligible,false);
+assert.equal(normalizeBnfRecord({...record,noticeUrl:"http://catalogue.bnf.fr/x"}).eligible,false);
+assert.equal(normalizeBnfRecord({...record,authorAuthorityId:""}).eligible,false);
+assert.equal(normalizeBnfRecord({...record,coverReuseAuthorized:true}).coverUrl,record.coverUrl);
+console.log("PASS BnF cache normalization, authority match and cover reuse policy");
