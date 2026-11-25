@@ -37,7 +37,7 @@
     const all = [];
     for (let offset=0; offset<10000; offset+=100) {
       const rows = await query("event_authors_presence",{
-        select:"id,validated,rejected,events(id,title,city,country_code,region,start_date,end_date,type,image_url,validated,rejected)",
+        select:"id,validated,rejected,events(id,title,city,country_code,region,start_date,end_date,type,image_url,lat,lng,validated,rejected)",
         author_id:"eq."+authors[0].id,validated:"eq.true",rejected:"not.is.true",
         order:"id.asc",limit:"100",offset:String(offset)});
       all.push(...rows);
@@ -65,6 +65,42 @@
     link.href=root.DEDICALIVRES_EVENT_CANONICAL?.href(event.id)||"/event.html?id="+encodeURIComponent(event.id);
     footer.append(link);body.append(footer);card.append(body);return card;
   }
+
+  function mapPoints(groups) {
+    return ids.flatMap(id => groups[id].filter(e => e.lat != null && e.lng != null &&
+      clean(e.lat) !== "" && clean(e.lng) !== "" && Number.isFinite(Number(e.lat)) &&
+      Number.isFinite(Number(e.lng)) && Math.abs(Number(e.lat)) <= 90 &&
+      Math.abs(Number(e.lng)) <= 180).map(e => ({event:e, past:id==="past", coords:[Number(e.lat),Number(e.lng)]})));
+  }
+  async function renderMap(doc, groups, anchor) {
+    const points=mapPoints(groups);
+    if(!points.length)return;
+    const section=doc.createElement("section");section.className="section";
+    const heading=doc.createElement("h2");heading.textContent="Carte des déplacements littéraires";
+    const legend=doc.createElement("p");legend.textContent="Vert : en cours ou à venir · Rouge : terminé";
+    const mapNode=doc.createElement("div");mapNode.id="author-travel-map";mapNode.className="author-travel-map";
+    mapNode.style.minHeight="320px";mapNode.setAttribute("aria-label",heading.textContent);
+    section.append(heading,legend,mapNode);anchor.before(section);
+    try {
+      if(!root.L)await new Promise((resolve,reject)=>{
+        const script=doc.createElement("script");script.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+        script.onload=resolve;script.onerror=reject;doc.head.append(script);
+      });
+      const L=root.L;
+      const map=L.map(mapNode,{scrollWheelZoom:false}).setView([46.7,2.5],5);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
+      for(const p of points){
+        const popup=doc.createElement("div");
+        const title=doc.createElement("strong");title.textContent=p.event.title||"Événement littéraire";
+        const info=doc.createElement("p");info.textContent=[p.past?"Terminé":"En cours ou à venir",p.event.start_date,p.event.city].filter(Boolean).join(" · ");
+        const link=doc.createElement("a");link.textContent="Voir l’événement";link.href=root.DEDICALIVRES_EVENT_CANONICAL?.href(p.event.id)||"/event.html?id="+encodeURIComponent(p.event.id);
+        popup.append(title,info,link);
+        L.circleMarker(p.coords,{radius:p.past?7:9,color:p.past?"#b93646":"#16803c",fillOpacity:.88,weight:3}).addTo(map).bindPopup(popup);
+      }
+      map.fitBounds(points.map(p=>p.coords),{padding:[42,42],maxZoom:7});
+      map.invalidateSize();
+    } catch {mapNode.textContent="Carte temporairement indisponible. Les présences restent consultables ci-dessous.";}
+  }
   async function refresh(doc, cfg, fetcher, now=new Date()) {
     const main=doc.querySelector("main[data-generated-author-page][data-author-slug]");
     if(!main)return;
@@ -82,9 +118,10 @@
         return fragment;
       });
       grids.forEach((g,i)=>g.replaceChildren(fragments[i]));
+      void renderMap(doc,groups,grids[0].parentNode).catch(()=>{});
       status.textContent=rows===null?"Fiche non disponible dans le catalogue public.":"Présences actualisées.";
     } catch {status.textContent="Actualisation indisponible : affichage de la dernière version enregistrée.";}
   }
-  if(typeof module==="object" && module.exports) module.exports={classify,load,dayParis,refresh};
+  if(typeof module==="object" && module.exports) module.exports={classify,load,dayParis,refresh,mapPoints};
   else if(root.document) refresh(root.document,root.DEDICALIVRES_CONFIG,root.fetch.bind(root));
 })(typeof window!=="undefined"?window:globalThis);
