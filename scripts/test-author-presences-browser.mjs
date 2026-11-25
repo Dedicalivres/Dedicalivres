@@ -7,7 +7,7 @@ const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:390,height:844}});
 const errors=[], calls=[];
 const id=n=>"00000000-0000-0000-0000-"+String(n).padStart(12,"0");
-const row=(n,title,start,end)=>({id:id(n+100),validated:true,rejected:false,events:{id:id(n),title,city:"Pontivy",country_code:"FR",region:"Bretagne",start_date:start,end_date:end,type:"Salon",validated:true,rejected:false}});
+const row=(n,title,start,end)=>({id:id(n+100),validated:true,rejected:false,events:{id:id(n),title,city:"Pontivy",lat:48+n/100,lng:-3,country_code:"FR",region:"Bretagne",start_date:start,end_date:end,type:"Salon",validated:true,rejected:false}});
 let fail=false;
 const future=Array.from({length:7},(_,i)=>row(i+1,"Futur "+(i+1),"2099-01-"+String(i+1).padStart(2,"0"),"2099-01-"+String(i+1).padStart(2,"0")));
 const past=row(8,"Historique vérifié","2020-01-01","2020-01-01");
@@ -24,6 +24,7 @@ try {
    if(u.pathname.endsWith("/event_authors_presence"))return route.fulfill({headers:cors,json:[...future,future[0],past,excluded]});
    return route.fulfill({status:404,headers:cors,json:[]});
   }
+  if(u.hostname==="unpkg.com" && u.pathname.endsWith("/leaflet.js"))return route.fulfill({contentType:"application/javascript",body:`window.L={map(node){return {setView(){return this},fitBounds(){},invalidateSize(){}}},tileLayer(){return {addTo(){}}},circleMarker(coords,options){return {addTo(){const el=document.createElement("span");el.className="test-map-marker";el.dataset.color=options.color;document.getElementById("author-travel-map").append(el);return this},bindPopup(){return this}}}};`});
   if(u.origin!=="http://author.test")return route.abort();
   const pathname=u.pathname.endsWith("/")?u.pathname+"index.html":u.pathname;
   const file=path.resolve(root,"."+pathname);
@@ -61,6 +62,10 @@ try {
  await page.goto(url);
  const status=page.locator('p.author-note[role="status"]');
  await status.filter({hasText:"Présences actualisées."}).waitFor();
+ await page.locator(".test-map-marker").first().waitFor();
+ assert.equal(await page.locator(".test-map-marker").count(),8);
+ assert.equal(await page.locator('.test-map-marker[data-color="#16803c"]').count(),7);
+ assert.equal(await page.locator('.test-map-marker[data-color="#b93646"]').count(),1);
  assert.equal(await page.locator("#author-events-upcoming .event-card").count(),7);
  assert.equal(await page.locator("#author-events-past .event-card").count(),1);
  assert.equal(await page.locator("#author-events-ongoing .event-card").count(),0);
