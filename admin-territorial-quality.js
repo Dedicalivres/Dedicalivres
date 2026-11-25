@@ -19,7 +19,7 @@ function render(next){
  if(!state?.authenticated){host.hidden=true;host.replaceChildren();return;}
  host.hidden=false;
  if(loadError){host.textContent='Contrôle territorial indisponible. Aucune annonce modifiée.';return;}
- if(!assets||state.status!=='ready'){
+ if(!assets||state.status!=='ready'||state.eventCatalog?.status!=='ready'){
   host.textContent=state.status==='error'?'Catalogue admin indisponible : contrôle territorial non effectué.':'Chargement des contrôles territoriaux…';return;
  }
  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris'}).format(new Date());

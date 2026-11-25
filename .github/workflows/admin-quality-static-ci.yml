@@ -5,6 +5,9 @@ on:
     paths:
       - admin.html
       - admin-v11.html
+      - admin-context.js
+      - admin-shell.js
+      - scripts/test-admin-initial-counters.mjs
       - admin-v11.css
       - admin-territorial-quality.js
       - scripts/territorial-quality.mjs
@@ -29,9 +32,13 @@ jobs:
           node-version: '22'
       - name: JavaScript parse checks
         run: |
+          node --check admin-context.js
+          node --check admin-shell.js
           node --check admin-territorial-quality.js
           node --check scripts/territorial-catalog.mjs
           node --check scripts/territorial-quality.mjs
+      - name: Initial dashboard counter regressions
+        run: node scripts/test-admin-initial-counters.mjs
       - name: Geographic and documentary alert regressions
         run: node scripts/test-admin-territorial-quality.mjs
       - name: Interactive panel without browser / network

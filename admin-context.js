@@ -27,7 +27,7 @@
       visits7d: null,
       visits30d: null,
       visitsTotal: null,
-      visitsStatus: "Trafic chargé à l’ouverture de l’onglet"
+      visitsStatus: "Compteurs de trafic en attente"
     },
     trafficDetails: {
       topPages: [],
@@ -38,6 +38,7 @@
       authors: [],
       testimonials: []
     },
+    communitySummary: { status: "idle", metrics: null, revision: 0 },
     communityMetrics: {
       presenceTotal: null,
       presencePending: null,
@@ -60,7 +61,10 @@
   let catalogTask = null;
   let refreshTask = null;
   const moduleTasks = new Map();
-  const moduleSequences = { traffic: 0, community: 0 };
+  const moduleSequences = { traffic: 0, community: 0, trafficSummary: 0, communitySummary: 0 };
+  let trafficSummaryTask = null;
+  let communitySummaryTask = null;
+  let trafficSummaryReadyEpoch = null;
   const EVENT_COLUMNS = "id,created_at,title,type,city,region,start_date,end_date,validated,rejected,featured,verified,country_code,image_url,registration_force_status,registration_note,registration_audience,registration_url,registration_deadline,registration_open_date,registration_enabled,description,website,lat,lng,source_label,imported_source";
   const EMPTY_PAGE = () => ({ rows: [], total: 0, page: 0, size: 50, key: "", loading: false, error: null });
 
@@ -117,6 +121,11 @@
     catalogTask = null;
     refreshTask = null;
     moduleTasks.clear();
+    trafficSummaryTask = null;
+    communitySummaryTask = null;
+    moduleSequences.communitySummary += 1;
+    trafficSummaryReadyEpoch = null;
+    moduleSequences.trafficSummary += 1;
     moduleSequences.traffic += 1;
     moduleSequences.community += 1;
     state.eventCatalog = { status: "idle", loaded: 0, total: null, revision: catalogGeneration, error: null };
@@ -138,10 +147,11 @@
       visits7d: null,
       visits30d: null,
       visitsTotal: null,
-      visitsStatus: "Trafic chargé à l’ouverture de l’onglet"
+      visitsStatus: "Compteurs de trafic en attente"
     };
     state.trafficDetails = { topPages: [], topReferrers: [] };
     state.community = { presences: [], authors: [], testimonials: [] };
+    state.communitySummary = { status: "idle", metrics: null, revision: 0 };
     state.communityMetrics = {
       presenceTotal: null,
       presencePending: null,
@@ -181,6 +191,7 @@
         authors: [...state.community.authors],
         testimonials: [...state.community.testimonials]
       },
+      communitySummary: { ...state.communitySummary, metrics: state.communitySummary.metrics ? { ...state.communitySummary.metrics } : null },
       communityMetrics: { ...state.communityMetrics },
       error: state.error,
       refreshedAt: state.refreshedAt,
@@ -498,7 +509,7 @@
         .from("site_visits")
         .select("id", { count: "exact", head: true })
         .gte("created_at", thirtyDays.toISOString())
-    ]);
+    ].map(checked));
 
     const results = [
       totalResult,
@@ -516,13 +527,56 @@
       throw Object.assign(new Error(failed.error.message || "Trafic indisponible"), failed.error, { status: failed.status || failed.error.status });
     }
 
-    state.metrics.visitsTotal = totalResult.count || 0;
-    state.metrics.visitsToday = todayResult.count || 0;
-    state.metrics.visits7d = sevenResult.count || 0;
-    state.metrics.visits30d = thirtyResult.count || 0;
+    if (results.some(result => !Number.isInteger(result.count) || result.count < 0)) {
+      throw new Error("Compteurs de trafic incomplets");
+    }
+    state.metrics.visitsTotal = totalResult.count;
+    state.metrics.visitsToday = todayResult.count;
+    state.metrics.visits7d = sevenResult.count;
+    state.metrics.visits30d = thirtyResult.count;
     state.metrics.visitsStatus = "Pages vues enregistrées";
   }
 
+
+  // Summary and detailed traffic have independent lifecycles. Never fetch
+  // visitor rows to display the four count-only indicators.
+  function ensureTrafficSummary(force = false) {
+    const epoch = authEpoch;
+    if (!canCommit(epoch)) return Promise.resolve(snapshot());
+    if (trafficSummaryTask?.epoch === epoch) return trafficSummaryTask.promise;
+    if (!force && trafficSummaryReadyEpoch === epoch) return Promise.resolve(snapshot());
+    const token = { epoch, module: "trafficSummary", sequence: ++moduleSequences.trafficSummary };
+    const task = Promise.resolve().then(async () => {
+      if (!canCommit(token)) return snapshot();
+      state.metrics.visitsStatus = "Actualisation des compteurs de trafic…";
+      notify();
+      try {
+        await loadTrafficMetrics(token);
+        if (canCommit(token)) {
+          trafficSummaryReadyEpoch = epoch;
+          notify();
+        }
+        return snapshot();
+      } catch (error) {
+        handleReadFailure(error, token);
+        if (canCommit(token)) {
+          trafficSummaryReadyEpoch = null;
+          moduleSequences.trafficSummary += 1;
+          state.metrics.visitsStatus = state.metrics.visitsTotal === null
+            ? "Compteurs de trafic indisponibles"
+            : "Compteurs de trafic non actualisés";
+          notify();
+        }
+        throw error;
+      }
+    });
+    trafficSummaryTask = { epoch, promise: task };
+    const release = () => {
+      if (trafficSummaryTask?.promise === task) trafficSummaryTask = null;
+    };
+    task.then(release, release);
+    return task;
+  }
 
   async function loadTrafficDetails(epoch) {
     const client = getClient();
@@ -617,6 +671,136 @@
   }
 
 
+  // Paging prevents silent truncation at 250 presences, 500 authors, 100 testimonials.
+  // Fixed sort on timestamp + UUID prevents unstable ordering on equal timestamps.
+  async function readAllCommunity(client, epoch, table, columns, pageSize) {
+    const rows = [];
+    const seen = new Set();
+    let expectedTotal = null;
+    for (let offset = 0; ; offset += pageSize) {
+      if (!canCommit(epoch)) return { data: [], error: null };
+      const response = await checked(
+        client.from(table)
+          .select(columns, offset === 0 ? { count: "exact" } : {})
+          .order("created_at", { ascending: false, nullsFirst: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + pageSize - 1)
+      );
+      if (!canCommit(epoch)) return { data: [], error: null };
+      if (offset === 0) {
+        expectedTotal = response.count;
+        if (!Number.isInteger(expectedTotal) || expectedTotal < 0) {
+          throw new Error("Total Communauté indisponible : " + table);
+        }
+      }
+      const chunk = response.data || [];
+      if (!Array.isArray(chunk)) throw new Error("Réponse Communauté invalide : " + table);
+      for (const row of chunk) {
+        if (!row || row.id == null || seen.has(row.id)) {
+          throw new Error("Pagination Communauté incohérente : " + table);
+        }
+        seen.add(row.id);
+        rows.push(row);
+      }
+      if (chunk.length < pageSize) {
+        // Offset pages can shift under concurrent additions/removals.
+        // Reject an inconsistent result instead of publishing a partial list.
+        const after = await checked(client.from(table).select("id", { count: "exact", head: true }));
+        if (!canCommit(epoch)) return { data: [], error: null };
+        if (!Number.isInteger(after.count) ||
+            rows.length !== expectedTotal || after.count !== expectedTotal) {
+          throw new Error("Communauté modifiée pendant la pagination : " + table + "; actualisez.");
+        }
+        return { data: rows, error: null };
+      }
+      if (rows.length > expectedTotal) {
+        throw new Error("Pagination Communauté incohérente : " + table);
+      }
+    }
+  }
+
+
+  // Project only fields needed by the initial dashboard, without contact
+  // emails, messages, notes, or full detail rows. Keep exact pagination checks.
+  function summarizeCommunity(presences, authors, testimonials) {
+    presences = presences.filter(row => !row.archived_at);
+    authors = authors.filter(row => !row.merged_into);
+    testimonials = testimonials.filter(row => !row.archived_at);
+    const norm = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const clean = value => String(value || "").trim();
+    const ids = new Set(), slugs = new Set(), names = new Set();
+    for (const row of presences) {
+      if (row.validated !== true || row.rejected === true || !(row.event_id || row.events?.id)) continue;
+      const id = clean(row.author_id), slug = clean(row.author_slug || row.author_identity_key), name = norm(row.pseudo);
+      if (id) ids.add(id);
+      if (slug) slugs.add(slug);
+      if (name) names.add(name);
+    }
+    let editorialAuthors = 0, almostAuthors = 0;
+    for (const author of authors) {
+      if (author.published === true) continue;
+      const score = [
+        Boolean(clean(author.pseudo)),
+        Boolean(clean(author.avatar_url)),
+        ["author", "artist_author", "hybrid"].includes(author.profile_type),
+        Boolean(clean(author.bio)),
+        ids.has(clean(author.id)) || slugs.has(clean(author.slug)) || names.has(norm(author.pseudo))
+      ].filter(Boolean).length * 20;
+      if (score < 100) editorialAuthors++;
+      if (score >= 80 && score < 100) almostAuthors++;
+    }
+    return {
+      presenceTotal: presences.length,
+      presencePending: presences.filter(row => row.validated === false && row.rejected !== true).length,
+      presenceValidated: presences.filter(row => row.validated === true && row.rejected !== true).length,
+      presenceRejected: presences.filter(row => row.rejected === true).length,
+      authorsTotal: authors.length,
+      testimonialsTotal: testimonials.length,
+      actionPresencePending: presences.filter(row => row.validated !== true && row.rejected !== true).length,
+      pendingTestimonials: testimonials.filter(row => row.validated !== true && row.rejected !== true).length,
+      editorialAuthors, almostAuthors
+    };
+  }
+
+  function ensureCommunitySummary() {
+    const epoch = authEpoch;
+    if (!canCommit(epoch)) return Promise.resolve(snapshot());
+    if (communitySummaryTask?.epoch === epoch) return communitySummaryTask.promise;
+    const token = { epoch, module: "communitySummary", sequence: ++moduleSequences.communitySummary };
+    const previous = state.communitySummary;
+    const task = Promise.resolve().then(async () => {
+      if (!canCommit(token)) return snapshot();
+      state.communitySummary = { ...previous, status: "loading" };
+      notify();
+      try {
+        const client = getClient();
+        if (!client) throw new Error("Client Supabase indisponible");
+        const archive = window.DEDICALIVRES_CONFIG?.adminV11CommunityArchiveEnabled === true ? ",archived_at" : "";
+        const [p, a, t] = await Promise.all([
+          readAllCommunity(client, token, "event_authors_presence", "id,validated,rejected,author_id,author_slug,author_identity_key,pseudo,event_id,events(id)" + archive, 250),
+          readAllCommunity(client, token, "authors", "id,pseudo,slug,published,avatar_url,profile_type,bio,merged_into", 250),
+          readAllCommunity(client, token, "testimonials", "id,validated,rejected" + archive, 100)
+        ]);
+        if (canCommit(token)) {
+          state.communitySummary = { status: "ready", metrics: summarizeCommunity(p.data, a.data, t.data), revision: previous.revision + 1 };
+          notify();
+        }
+      } catch (error) {
+        handleReadFailure(error, token);
+        if (canCommit(token)) {
+          moduleSequences.communitySummary += 1;
+          state.communitySummary = { ...previous, status: "error" };
+          notify();
+        }
+      }
+      return snapshot();
+    });
+    communitySummaryTask = { epoch, promise: task };
+    const release = () => { if (communitySummaryTask?.promise === task) communitySummaryTask = null; };
+    task.then(release, release);
+    return task;
+  }
+
   async function loadCommunity(epoch) {
     const client = getClient();
 
@@ -674,57 +858,9 @@
       testimonialColumns.push("archived_at", "archived_by", "archive_reason");
     }
 
-    // Paging prevents silent truncation at 250 presences, 500 authors, 100 testimonials.
-    // Fixed sort on timestamp + UUID prevents unstable ordering on equal timestamps.
-    async function readAllCommunity(table, columns, pageSize) {
-      const rows = [];
-      const seen = new Set();
-      let expectedTotal = null;
-      for (let offset = 0; ; offset += pageSize) {
-        if (!canCommit(epoch)) return { data: [], error: null };
-        const response = await checked(
-          client.from(table)
-            .select(columns, offset === 0 ? { count: "exact" } : {})
-            .order("created_at", { ascending: false, nullsFirst: false })
-            .order("id", { ascending: false })
-            .range(offset, offset + pageSize - 1)
-        );
-        if (!canCommit(epoch)) return { data: [], error: null };
-        if (offset === 0) {
-          expectedTotal = response.count;
-          if (!Number.isInteger(expectedTotal) || expectedTotal < 0) {
-            throw new Error("Total Communauté indisponible : " + table);
-          }
-        }
-        const chunk = response.data || [];
-        if (!Array.isArray(chunk)) throw new Error("Réponse Communauté invalide : " + table);
-        for (const row of chunk) {
-          if (!row || row.id == null || seen.has(row.id)) {
-            throw new Error("Pagination Communauté incohérente : " + table);
-          }
-          seen.add(row.id);
-          rows.push(row);
-        }
-        if (chunk.length < pageSize) {
-          // Offset pages can shift under concurrent additions/removals.
-          // Reject an inconsistent result instead of publishing a partial list.
-          const after = await checked(client.from(table).select("id", { count: "exact", head: true }));
-          if (!canCommit(epoch)) return { data: [], error: null };
-          if (!Number.isInteger(after.count) ||
-              rows.length !== expectedTotal || after.count !== expectedTotal) {
-            throw new Error("Communauté modifiée pendant la pagination : " + table + "; actualisez.");
-          }
-          return { data: rows, error: null };
-        }
-        if (rows.length > expectedTotal) {
-          throw new Error("Pagination Communauté incohérente : " + table);
-        }
-      }
-    }
-
     const [presencesResult, authorsResult, testimonialsResult] = await Promise.all([
-      readAllCommunity("event_authors_presence", presenceColumns.join(", "), 250),
-      readAllCommunity("authors", [
+      readAllCommunity(client, epoch, "event_authors_presence", presenceColumns.join(", "), 250),
+      readAllCommunity(client, epoch, "authors", [
         "id", "pseudo", "slug", "published_by", "published_at",
         "publication_ready_by", "publication_ready_at", "merged_at",
         "shop_url", "bio", "website", "validated", "profile_type",
@@ -732,7 +868,7 @@
         "editorial_status_at", "editorial_status_by", "avatar_url",
         "location", "merged_into", "created_at"
       ].join(", "), 250),
-      readAllCommunity("testimonials", testimonialColumns.join(", "), 100)
+      readAllCommunity(client, epoch, "testimonials", testimonialColumns.join(", "), 100)
     ]);
 
     if (presencesResult.error) {
@@ -786,6 +922,15 @@
       }).length,
 
       testimonialsTotal: state.community.testimonials.length
+    };
+    // A successfully completed detailed read is also a valid summary.
+    // Invalidate any older compact response so it cannot overwrite this result.
+    moduleSequences.communitySummary += 1;
+    communitySummaryTask = null;
+    state.communitySummary = {
+      status: "ready",
+      revision: state.communitySummary.revision + 1,
+      metrics: summarizeCommunity(state.community.presences, state.community.authors, state.community.testimonials)
     };
   }
 
@@ -893,28 +1038,40 @@
     return task;
   }
 
-  async function selectEventPage({ ids, page = 0, size = 50, key }) {
+  async function selectEventPage({ ids, page = 0, size = 50, key, initial = false }) {
     const epoch = authEpoch;
-    if (!canCommit(epoch) || state.eventCatalog.status !== "ready") return snapshot();
+    if (!canCommit(epoch) || (initial
+      ? state.eventCatalog.status !== "loading"
+      : state.eventCatalog.status !== "ready")) return snapshot();
     const generation = catalogGeneration;
     const sequence = ++pageSequence;
     size = [25, 50, 100, 150].includes(Number(size)) ? Number(size) : 50;
     const allowed = new Set(state.events.map(row => row.id));
     if (!Array.isArray(ids) || new Set(ids).size !== ids.length || ids.some(id => !allowed.has(id))) throw new Error("Sélection hors catalogue autorisé");
+    if (initial && (page !== 0 || size !== 50 || ids.length !== state.events.length ||
+      ids.some((id, index) => id !== state.events[index].id))) {
+      throw new Error("Aperçu initial hors première page autorisée");
+    }
     page = Math.max(0, Math.min(Math.trunc(page) || 0, Math.max(0, Math.ceil(ids.length / size) - 1)));
     const selected = ids.slice(page * size, (page + 1) * size);
-    const current = () => canCommit(epoch) && generation === catalogGeneration && sequence === pageSequence;
-    state.eventPage = { rows: [], total: ids.length, page, size, key, loading: true, error: null };
+    const current = () => canCommit(epoch) && generation === catalogGeneration && sequence === pageSequence &&
+      state.eventCatalog.status === (initial ? "loading" : "ready");
+    state.eventPage = { rows: [], total: initial ? null : ids.length, page, size, key, loading: true, error: null };
     notify();
     try {
       let rows = [];
       if (selected.length) {
-        const result = await checked(getClient().from("events").select(EVENT_COLUMNS)
-          .in("id", selected).order("created_at", { ascending: false, nullsFirst: false }).order("id", { ascending: false }).limit(size));
-        if (!current()) return snapshot();
-        const mapped = new Map((result.data || []).map(row => [row.id, row]));
-        if (mapped.size !== selected.length) throw new Error("Catalogue modifié ou accès changé ; actualisez avant de poursuivre.");
-        rows = selected.map(id => mapped.get(id));
+        if (initial) {
+          const mapped = new Map(state.events.map(row => [row.id, row]));
+          rows = selected.map(id => mapped.get(id));
+        } else {
+          const result = await checked(getClient().from("events").select(EVENT_COLUMNS)
+            .in("id", selected).order("created_at", { ascending: false, nullsFirst: false }).order("id", { ascending: false }).limit(size));
+          if (!current()) return snapshot();
+          const mapped = new Map((result.data || []).map(row => [row.id, row]));
+          if (mapped.size !== selected.length) throw new Error("Catalogue modifié ou accès changé ; actualisez avant de poursuivre.");
+          rows = selected.map(id => mapped.get(id));
+        }
         const contacts = await checked(getClient().from("event_submission_contacts")
           .select("event_id,submitter_name,submitter_email").in("event_id", selected));
         if (!current()) return snapshot();
@@ -924,7 +1081,7 @@
       if (!current()) return snapshot();
       const updated = new Map(rows.map(row => [row.id, row]));
       state.events = state.events.map(row => updated.get(row.id) || row);
-      state.eventPage = { rows, total: ids.length, page, size, key, loading: false, error: null };
+      state.eventPage = { rows, total: initial ? null : ids.length, page, size, key, loading: false, error: null };
       notify();
     } catch (error) {
       handleReadFailure(error, epoch);
@@ -936,7 +1093,7 @@
     return snapshot();
   }
 
-  function ensureModule(name, force = false) {
+  function ensureModule(name, force = false, reuseTrafficSummary = false) {
     if (!["traffic", "community"].includes(name)) return Promise.reject(new Error("Module inconnu"));
     const epoch = authEpoch;
     if (!canCommit(epoch)) return Promise.resolve(snapshot());
@@ -955,7 +1112,7 @@
       let timer;
       try {
         const work = name === "traffic"
-          ? Promise.all([loadTrafficMetrics(token), loadTrafficDetails(token)]) : loadCommunity(token);
+          ? Promise.all([ensureTrafficSummary(force && !reuseTrafficSummary), loadTrafficDetails(token)]) : loadCommunity(token);
         await Promise.race([work, new Promise((_, reject) => {
           timer = window.setTimeout(() => reject(new Error("Module trop long ; réessayez.")), 10000);
         })]);
@@ -1104,6 +1261,10 @@
     scheduleExpiry(state.session);
     const requestedModules = ["traffic", "community"].filter(name => state.modules[name].status !== "idle");
     moduleTasks.clear();
+    trafficSummaryTask = null;
+    communitySummaryTask = null;
+    moduleSequences.communitySummary += 1;
+    moduleSequences.trafficSummary += 1;
     // Invalidate old secondary requests even if an earlier task is still in flight.
     for (const name of ["traffic", "community"]) {
       moduleSequences[name] += 1;
@@ -1114,7 +1275,22 @@
         state.modules[name] = { ...old, refreshing: false };
       }
     }
+    // On an already authorized screen, refresh the home counters immediately,
+    // without waiting for the full event catalog to be downloaded.
+    if (state.communitySummary.metrics) state.communitySummary = { ...state.communitySummary, status: "loading" };
+    if (state.metrics.visitsTotal !== null) state.metrics.visitsStatus = "Actualisation des compteurs de trafic…";
     setState({ status: keepView ? "ready" : "loading", refreshing: true, error: null });
+    let homeCounterTasks = null;
+    const refreshHomeCounters = () => {
+      if (!homeCounterTasks && canCommit(epoch)) {
+        homeCounterTasks = {
+          traffic: ensureTrafficSummary().catch(() => {}),
+          community: ensureCommunitySummary()
+        };
+      }
+      return homeCounterTasks;
+    };
+    if (keepView) refreshHomeCounters();
     let watchdogTriggered = false;
     const watchdog = window.setTimeout(() => {
       if (epoch === authEpoch && state.refreshing) {
@@ -1152,7 +1328,14 @@
       if (!watchdogTriggered && canCommit(epoch)) {
         setState({ status: "ready", refreshing: false, error: null, refreshedAt: new Date().toISOString() });
         if (!(keepView && fullCatalogReady)) void ensureEventCatalog();
-        for (const name of requestedModules) void ensureModule(name, true);
+        const home = refreshHomeCounters();
+        // Previously opened modules can update behind the home summary.
+        // Avoid a second traffic count when opening/refreshing its detailed view.
+        for (const name of requestedModules) {
+          void (home?.[name] || Promise.resolve()).then(() => {
+            if (canCommit(epoch)) void ensureModule(name, true, true);
+          });
+        }
       }
     } catch (error) {
       handleReadFailure(error, epoch);

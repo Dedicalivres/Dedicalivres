@@ -3,8 +3,8 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const source = fs.readFileSync("admin-context.js", "utf8");
-const oldUser = { id: "old-admin" };
-const nextUser = { id: "next-admin" };
+const oldUser = { id: "11111111-1111-4111-8111-111111111111" };
+const nextUser = { id: "22222222-2222-4222-8222-222222222222" };
 const reader = { id: "reader" };
 const session = user => ({ access_token: user.id, user, expires_at: Math.floor(Date.now() / 1000) + 3600 });
 const tick = () => new Promise(resolve => setImmediate(resolve));
@@ -37,15 +37,16 @@ function fixture() {
   class CustomEvent {
     constructor(type, options) { this.type = type; this.detail = options.detail; }
   }
-  const response = (table, columns) => {
+  const response = (table, columns, options, cursor) => {
+    if (options?.head) return { count: table === "site_visits" ? (currentSession?.user.id === nextUser.id ? 11 : 7) : 1, data: null, error: null };
     if (table === "events" && typeof columns === "string" && columns.includes("title")) {
-      return { data: [{ id: currentSession?.user.id || "old-admin", title: "private-event" }], error: null };
+      return { data: cursor ? [] : [{ id: currentSession?.user.id || oldUser.id, title: "private-event", created_at: "2026-01-01T00:00:00Z" }], count: 1, error: null };
     }
     if (table === "event_authors_presence") {
-      return { data: [{ id: "private-presence" }], error: null };
+      return { data: [{ id: "private-presence" }], count: 1, error: null };
     }
-    if (table === "authors") return { data: [{ id: "private-author" }], error: null };
-    if (table === "testimonials") return { data: [{ id: "private-testimonial" }], error: null };
+    if (table === "authors") return { data: [{ id: "private-author" }], count: 1, error: null };
+    if (table === "testimonials") return { data: [{ id: "private-testimonial" }], count: 1, error: null };
     if (table === "site_visits" && typeof columns === "string" && columns.includes("page")) {
       return { data: [{ path: "/private-page", referrer: "https://private.test" }], error: null };
     }
@@ -70,9 +71,13 @@ function fixture() {
       }
     },
     from(table) {
-      let columns;
+      let columns, options, cursor = false;
       const query = {
-        select(value) { columns = value; return query; },
+        select(value, opts) { columns = value; options = opts; return query; },
+        range() { return query; },
+        or() { cursor = true; return query; },
+        is() { cursor = true; return query; },
+        lt() { cursor = true; return query; },
         eq() { return query; },
         gte() { return query; },
         order() { return query; },
@@ -85,11 +90,15 @@ function fixture() {
               error: null
             }).then(resolve, reject);
           }
+          const value = response(table, columns, options, cursor);
           if (holdOldReads) {
-            return new Promise(done => pending.push(override => done(override || response(table, columns))))
-              .then(resolve, reject);
+            return new Promise(done => {
+              const release = override => done(override || value);
+              release.table = table;
+              pending.push(release);
+            }).then(resolve, reject);
           }
-          return Promise.resolve(response(table, columns)).then(resolve, reject);
+          return Promise.resolve(value).then(resolve, reject);
         }
       };
       return query;
@@ -130,6 +139,8 @@ function assertPrivateEmpty(state) {
   assert.equal(state.metrics.visitsTotal, null);
   assert.equal(state.trafficDetails.topPages.length, 0);
   assert.equal(state.communityMetrics.presenceTotal, null);
+  assert.equal(state.communitySummary.metrics, null);
+  assert.equal(state.metrics.visitsToday, null);
 }
 
 for (const scenario of ["signout", "expired", "nonadmin", "new-admin", "query-401"]) {
@@ -177,6 +188,8 @@ for (const event of ["TOKEN_REFRESHED", "SIGNED_IN", "USER_UPDATED"]) {
   lab.releaseNewReads();
   await lab.context.signIn("admin@example.test", "local");
   assert.equal(lab.context.getState().status, "ready");
+  await waitFor(() => lab.context.getState().eventCatalog.status === "ready" &&
+    lab.context.getState().communitySummary.status === "ready" && lab.context.getState().metrics.visitsTotal === 7);
   const adminReads = lab.reads.filter(table => table === "admin_users").length;
   lab.holdReads();
   const authorizedSession = lab.context.getState().session;
@@ -186,11 +199,16 @@ for (const event of ["TOKEN_REFRESHED", "SIGNED_IN", "USER_UPDATED"]) {
     assert.equal(lab.context.getState().session.access_token, authorizedSession.access_token,
       "preserve only the previously authorized session, not the pending token");
   } else assertPrivateEmpty(lab.context.getState());
-  await waitFor(() => lab.pending.length === 5);
+  const expected = event === "TOKEN_REFRESHED" ? 8 : 5;
+  await waitFor(() => lab.pending.length === expected);
+  assert.deepEqual(lab.pending.map(item => item.table).sort(), event === "TOKEN_REFRESHED"
+    ? ["authors", "event_authors_presence", "events", "site_visits", "site_visits", "site_visits", "site_visits", "testimonials"].sort()
+    : Array(5).fill("events"), `${event}: only expected summary and event requests`);
   assert.equal(lab.reads.filter(table => table === "admin_users").length, adminReads + 1,
     `${event}: admin rights rechecked`);
   lab.completeOldReads();
-  await waitFor(() => lab.context.getState().status === "ready");
+  await waitFor(() => lab.context.getState().status === "ready" && !lab.context.getState().refreshing &&
+    lab.context.getState().communitySummary.status === "ready" && lab.context.getState().metrics.visitsTotal === 7);
   assert.equal(lab.context.getState().session.user.id, oldUser.id);
   assert.equal(lab.context.getState().events[0].id, oldUser.id);
   console.log(`PASS ${event}: same admin revalidated with expiry and stale-request guards`);
@@ -218,4 +236,37 @@ for (const event of ["TOKEN_REFRESHED", "SIGNED_IN", "USER_UPDATED"]) {
   assertPrivateEmpty(lab.context.getState());
   assert.equal(lab.context.getState().status, "unauthenticated");
   console.log("PASS user switch and SIGNED_OUT: old data removed immediately");
+}
+
+// Home summaries must not restore private counts after a session ends or changes.
+for (const scenario of ["summary-signout", "summary-new-admin"]) {
+  const lab = fixture();
+  lab.releaseNewReads();
+  await lab.context.signIn("admin@example.test", "local");
+  await waitFor(() => lab.context.getState().eventCatalog.status === "ready" &&
+    lab.context.getState().communitySummary.status === "ready" && lab.context.getState().metrics.visitsTotal === 7);
+  lab.holdReads();
+  const refreshing = lab.context.refresh();
+  await waitFor(() => lab.pending.length === 8);
+  assert.equal(lab.pending.filter(item => item.table === "site_visits").length, 4);
+  assert.equal(lab.pending.filter(item => ["authors", "event_authors_presence", "testimonials"].includes(item.table)).length, 3);
+  if (scenario === "summary-signout") {
+    await lab.context.signOut();
+    assertPrivateEmpty(lab.context.getState());
+  } else {
+    lab.releaseNewReads();
+    lab.changeUser(nextUser);
+    await waitFor(() => lab.context.getState().status === "ready" &&
+      lab.context.getState().communitySummary.status === "ready" && lab.context.getState().metrics.visitsTotal === 11);
+  }
+  lab.completeOldReads();
+  await refreshing;
+  await tick();
+  if (scenario === "summary-signout") assertPrivateEmpty(lab.context.getState());
+  else {
+    assert.equal(lab.context.getState().session.user.id, nextUser.id);
+    assert.equal(lab.context.getState().metrics.visitsTotal, 11);
+    assert.equal(lab.context.getState().communitySummary.status, "ready");
+  }
+  console.log(`PASS ${scenario}: stale home summaries cannot restore old private counts`);
 }

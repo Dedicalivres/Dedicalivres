@@ -147,7 +147,7 @@
     .querySelectorAll("[data-quality-filter]")
     .forEach((card) => {
       card.addEventListener("click", () => {
-        if (!eventQualityFilter) return;
+        if (!eventQualityFilter || context.getState().eventCatalog.status !== "ready") return;
 
         eventQualityFilter.value =
           card.dataset.qualityFilter || "all";
@@ -1541,6 +1541,15 @@
 
   let currentEventDeletionImpact = null;
 
+  function syncEventDetailActions(event, complete) {
+    if (eventValidateButton) eventValidateButton.disabled = !complete || v11EventActionRunning ||
+      (event.validated === true && event.rejected !== true);
+    if (eventRejectButton) eventRejectButton.disabled = !complete || v11EventActionRunning || event.rejected === true;
+    if (eventFeaturedButton) eventFeaturedButton.disabled = !complete || v11EventActionRunning || event.rejected === true;
+    if (eventEditButton) eventEditButton.disabled = !complete || v11EventActionRunning;
+    if (eventDeleteStart) eventDeleteStart.disabled = !complete || v11EventActionRunning;
+  }
+
   function renderEventDetail(event) {
     if (!eventDetail || !eventDetailContent || !event) {
       return;
@@ -1549,26 +1558,9 @@
     eventDetail.hidden = false;
     selectedV11EventId = String(event.id);
 
-    if (eventValidateButton) {
-      eventValidateButton.disabled =
-        v11EventActionRunning ||
-        (
-          event.validated === true &&
-          event.rejected !== true
-        );
-    }
-
-    if (eventRejectButton) {
-      eventRejectButton.disabled =
-        v11EventActionRunning ||
-        event.rejected === true;
-    }
+    syncEventDetailActions(event, context.getState().eventCatalog.status === "ready");
 
     if (eventFeaturedButton) {
-      eventFeaturedButton.disabled =
-        v11EventActionRunning ||
-        event.rejected === true;
-
       eventFeaturedButton.textContent =
         event.featured === true
           ? "Retirer la mise en avant"
@@ -3523,12 +3515,52 @@ function renderEvents(events, status) {
       if (eventsVisibleCount) eventsVisibleCount.textContent = "0";
       return;
     }
+    const complete = state.eventCatalog.status === "ready";
+    for (const control of [eventSearch, eventStatusFilter, eventTypeFilter,
+      eventQualityFilter, eventRegistrationFilter, eventOriginFilter]) {
+      if (control) control.disabled = !complete;
+    }
+    for (const card of document.querySelectorAll("[data-quality-filter]")) {
+      card.setAttribute("aria-disabled", complete ? "false" : "true");
+    }
+    const pageSizeControl = document.getElementById("v11-event-page-size");
+    if (pageSizeControl) pageSizeControl.disabled = !complete;
+    if (eventDetail && !eventDetail.hidden && selectedV11EventId) {
+      const selected = state.events.find(row => String(row.id) === selectedV11EventId);
+      if (selected) syncEventDetailActions(selected, complete);
+      else { eventDetail.hidden = true; selectedV11EventId = null; }
+    }
     if (state.eventCatalog.status !== "ready") {
-      eventsList.replaceChildren();
+      const defaultFilters = !eventSearch?.value && eventStatusFilter?.value === "all" &&
+        eventTypeFilter?.value === "all" && eventQualityFilter?.value === "all" &&
+        eventRegistrationFilter?.value === "all" && eventOriginFilter?.value === "all";
+      const canPreview = state.eventCatalog.status === "loading" && defaultFilters && state.events.length > 0;
+      const key = JSON.stringify(["initial", state.eventCatalog.revision]);
+      if (canPreview && eventListRequestKey !== key) {
+        eventListRequestKey = key;
+        void context.selectEventPage({ ids: state.events.map(row => row.id), key, initial: true });
+      }
+      const page = state.eventPage;
+      const rows = canPreview && page.key === key && !page.loading && !page.error ? page.rows : [];
+      const renderedKey = JSON.stringify([key, rows.length, page.loading, Boolean(page.error), canPreview]);
+      if (renderedKey !== eventListRenderedKey) {
+        eventListRenderedKey = renderedKey;
+        eventsList.replaceChildren();
+        rows.forEach(row => eventsList.appendChild(createEventCard(row)));
+      }
       eventsLoading.hidden = false;
-      eventsLoading.textContent = state.eventCatalog.error ? "Catalogue incomplet. Réessayez avec Actualiser." : "Chargement du catalogue complet pour conserver tous les filtres…";
+      eventsLoading.textContent = state.eventCatalog.error
+        ? "Catalogue incomplet. Réessayez avec Actualiser."
+        : canPreview
+          ? "Catalogue en cours de chargement · aperçu des 50 premières fiches, tous statuts. Filtres et actions disponibles après vérification du catalogue."
+          : "Catalogue en cours de chargement · filtres exhaustifs en attente.";
       eventsEmpty.hidden = true;
-      eventsVisibleCount.textContent = "0 / —";
+      eventsVisibleCount.textContent = rows.length ? `${rows.length} premières fiches affichées · total en attente` : "Total en attente";
+      const pageLabel = document.getElementById("v11-event-page-label");
+      if (pageLabel) pageLabel.textContent = "Aperçu initial";
+      for (const id of ["v11-event-page-prev", "v11-event-page-next"]) {
+        const button = document.getElementById(id); if (button) button.disabled = true;
+      }
       return;
     }
     const filters = JSON.stringify([eventSearch?.value, eventStatusFilter?.value, eventTypeFilter?.value, eventQualityFilter?.value, eventRegistrationFilter?.value, eventOriginFilter?.value]);
@@ -3536,7 +3568,7 @@ function renderEvents(events, status) {
     const filtered = getFilteredEvents(state.events);
     const ids = filtered.map(row => row.id);
     eventListPage = Math.min(eventListPage, Math.max(0, Math.ceil(ids.length / eventListSize) - 1));
-    const key = JSON.stringify([state.eventCatalog.revision, filters, eventListPage, eventListSize]);
+    const key = JSON.stringify(["complete", state.eventCatalog.revision, filters, eventListPage, eventListSize]);
     if (activeV11View === "events" && eventListRequestKey !== key) {
       eventListRequestKey = key;
       void context.selectEventPage({ ids, page: eventListPage, size: eventListSize, key });
@@ -3575,6 +3607,7 @@ function renderEvents(events, status) {
   let v11FirstHomePriority = null;
 
   function getV11HomePriorities(state) {
+    const compact = state.communitySummary?.metrics || null;
     const events =
       Array.isArray(state?.events)
         ? state.events
@@ -3671,7 +3704,7 @@ function renderEvents(events, status) {
       },
       {
         key: "presence-pending",
-        count: pendingPresences,
+        count: compact?.actionPresencePending ?? pendingPresences,
         title: "Présences à modérer",
         detail:
           "Déclarations de présence à contrôler.",
@@ -3679,7 +3712,7 @@ function renderEvents(events, status) {
       },
       {
         key: "testimonials-pending",
-        count: pendingTestimonials,
+        count: compact?.pendingTestimonials ?? pendingTestimonials,
         title: "Témoignages à modérer",
         detail:
           "Témoignages en attente de décision.",
@@ -3695,7 +3728,7 @@ function renderEvents(events, status) {
       },
       {
         key: "authors-almost",
-        count: almostAuthors,
+        count: compact?.almostAuthors ?? almostAuthors,
         title: "Auteurs presque prêts",
         detail:
           "Fiches à 80 % ou plus pouvant être finalisées rapidement.",
@@ -3710,9 +3743,9 @@ function renderEvents(events, status) {
         ),
 
       editorialAuthors:
-        editorialAuthors.length,
+        compact?.editorialAuthors ?? editorialAuthors.length,
 
-      pendingTestimonials
+      pendingTestimonials: compact?.pendingTestimonials ?? pendingTestimonials
     };
   }
 
@@ -3783,22 +3816,24 @@ function renderEvents(events, status) {
       state.eventCatalog.status, state.eventCatalog.revision,
       state.metrics.eventsPending, state.modules.community.status,
       state.modules.community.revision, state.modules.community.refreshedAt,
-      state.modules.community.stale
+      state.modules.community.stale, state.communitySummary?.status, state.communitySummary?.revision
     ]);
     if (key === lastPriorityRenderKey) return;
     lastPriorityRenderKey = key;
 
     const summary =
       getV11HomePriorities(state);
+    const communityKnown = state.modules.community.status === "ready" || Boolean(state.communitySummary?.metrics);
+    const communityFresh = state.communitySummary?.status === "ready";
 
     setBoundText(
       "authors-editorial-pending",
-      state.modules.community.status === "ready" ? String(summary.editorialAuthors) : "—"
+      communityKnown ? String(summary.editorialAuthors) : "—"
     );
 
     setBoundText(
       "testimonials-pending",
-      state.modules.community.status === "ready" ? String(summary.pendingTestimonials) : "—"
+      communityKnown ? String(summary.pendingTestimonials) : "—"
     );
 
     priorityList.replaceChildren();
@@ -3810,10 +3845,12 @@ function renderEvents(events, status) {
     if (
       summary.priorities.length === 0
     ) {
-      if (state.eventCatalog.status !== "ready" || state.modules.community.status !== "ready") {
+      if (state.eventCatalog.status !== "ready" || !communityFresh) {
         if (homePriorityTitle) homePriorityTitle.textContent = "Vérification partielle";
         if (homePriorityDetail) homePriorityDetail.textContent = "Catalogue ou communauté encore incomplet ; aucune conclusion globale sur les files en attente.";
-        priorityList.textContent = "Ouvrez l’onglet Communauté pour vérifier les autres files.";
+        priorityList.textContent = state.communitySummary?.status === "error"
+          ? "Compteurs Communauté indisponibles ou non actualisés ; utilisez Actualiser."
+          : "Vérification automatique des compteurs en cours…";
         return;
       }
       if (homePriorityTitle) {
@@ -3848,8 +3885,7 @@ function renderEvents(events, status) {
         0
       );
 
-    const partial = state.eventCatalog.status !== "ready" ||
-      state.modules.community.status !== "ready" || state.modules.community.stale === true;
+    const partial = state.eventCatalog.status !== "ready" || !communityFresh;
     if (homePriorityTitle) {
       homePriorityTitle.textContent =
         (partial ? "Au moins " : "") + total +
@@ -12579,50 +12615,21 @@ function openCommunityView(name) {
       return;
     }
 
-    if (state.communityMetrics) {
-      const communityMetrics = state.communityMetrics;
+    {
+      const communityMetrics = state.communitySummary?.metrics ||
+        (state.modules.community.status === "ready" ? state.communityMetrics : {});
 
-      if (communityMetrics.presenceTotal !== null) {
-        setBoundText(
-          "presence-total",
-          String(communityMetrics.presenceTotal)
-        );
-      }
+      setBoundText("presence-total", Number.isInteger(communityMetrics.presenceTotal) ? String(communityMetrics.presenceTotal) : "—");
 
-      if (communityMetrics.presencePending !== null) {
-        setBoundText(
-          "presence-pending",
-          String(communityMetrics.presencePending)
-        );
-      }
+      setBoundText("presence-pending", Number.isInteger(communityMetrics.presencePending) ? String(communityMetrics.presencePending) : "—");
 
-      if (communityMetrics.presenceValidated !== null) {
-        setBoundText(
-          "presence-validated",
-          String(communityMetrics.presenceValidated)
-        );
-      }
+      setBoundText("presence-validated", Number.isInteger(communityMetrics.presenceValidated) ? String(communityMetrics.presenceValidated) : "—");
 
-      if (communityMetrics.presenceRejected !== null) {
-        setBoundText(
-          "presence-rejected",
-          String(communityMetrics.presenceRejected)
-        );
-      }
+      setBoundText("presence-rejected", Number.isInteger(communityMetrics.presenceRejected) ? String(communityMetrics.presenceRejected) : "—");
 
-      if (communityMetrics.authorsTotal !== null) {
-        setBoundText(
-          "authors-total",
-          String(communityMetrics.authorsTotal)
-        );
-      }
+      setBoundText("authors-total", Number.isInteger(communityMetrics.authorsTotal) ? String(communityMetrics.authorsTotal) : "—");
 
-      if (communityMetrics.testimonialsTotal !== null) {
-        setBoundText(
-          "testimonials-total",
-          String(communityMetrics.testimonialsTotal)
-        );
-      }
+      setBoundText("testimonials-total", Number.isInteger(communityMetrics.testimonialsTotal) ? String(communityMetrics.testimonialsTotal) : "—");
     }
 
     if (state.metrics.qualityMissingImage !== null) {
@@ -12990,7 +12997,9 @@ function openCommunityView(name) {
 
           toast(
             state.status === "ready" && !state.error
-              ? "Données actualisées"
+              ? (state.communitySummary?.status === "ready" && state.metrics.visitsStatus === "Pages vues enregistrées"
+                  ? "Données actualisées"
+                  : "Catalogue actualisé · compteurs traités séparément")
               : v11ErrorMessage(
                   state.error,
                   "Erreur de chargement. Réessayez."
