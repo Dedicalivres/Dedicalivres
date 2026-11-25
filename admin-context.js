@@ -1103,7 +1103,7 @@
       let timer;
       try {
         const work = name === "traffic"
-          ? Promise.all([ensureTrafficSummary(force), loadTrafficDetails(token)]) : loadCommunity(token);
+          ? Promise.all([ensureTrafficSummary(), loadTrafficDetails(token)]) : loadCommunity(token);
         await Promise.race([work, new Promise((_, reject) => {
           timer = window.setTimeout(() => reject(new Error("Module trop long ; réessayez.")), 10000);
         })]);
@@ -1266,7 +1266,22 @@
         state.modules[name] = { ...old, refreshing: false };
       }
     }
+    // On an already authorized screen, refresh the home counters immediately,
+    // without waiting for the full event catalog to be downloaded.
+    if (state.communitySummary.metrics) state.communitySummary = { ...state.communitySummary, status: "loading" };
+    if (state.metrics.visitsTotal !== null) state.metrics.visitsStatus = "Actualisation des compteurs de trafic…";
     setState({ status: keepView ? "ready" : "loading", refreshing: true, error: null });
+    let homeCounterTasks = null;
+    const refreshHomeCounters = () => {
+      if (!homeCounterTasks && canCommit(epoch)) {
+        homeCounterTasks = {
+          traffic: ensureTrafficSummary().catch(() => {}),
+          community: ensureCommunitySummary()
+        };
+      }
+      return homeCounterTasks;
+    };
+    if (keepView) refreshHomeCounters();
     let watchdogTriggered = false;
     const watchdog = window.setTimeout(() => {
       if (epoch === authEpoch && state.refreshing) {
@@ -1304,9 +1319,14 @@
       if (!watchdogTriggered && canCommit(epoch)) {
         setState({ status: "ready", refreshing: false, error: null, refreshedAt: new Date().toISOString() });
         if (!(keepView && fullCatalogReady)) void ensureEventCatalog();
-        if (!requestedModules.includes("traffic")) void ensureTrafficSummary().catch(() => {});
-        if (!requestedModules.includes("community")) void ensureCommunitySummary();
-        for (const name of requestedModules) void ensureModule(name, true);
+        const home = refreshHomeCounters();
+        // Previously opened modules can update behind the home summary.
+        // Avoid a second traffic count when opening/refreshing its detailed view.
+        for (const name of requestedModules) {
+          void (home?.[name] || Promise.resolve()).then(() => {
+            if (canCommit(epoch)) void ensureModule(name, true);
+          });
+        }
       }
     } catch (error) {
       handleReadFailure(error, epoch);
