@@ -22,3 +22,16 @@ Statut : prototype isolé, NO-GO fusion et production. Aucun Codex.
 Revert des commits audio sur branche uniquement; ne pas modifier la PR #295. Si activation future, couper le flag et endpoint, révoquer pointeurs, régénérer les pages, purger caches; ne jamais restaurer un consentement retiré. Aucun changement réel aujourd'hui.
 ## Limites
 Prototype local uniquement; pas d'upload ni de vraie modération, pas de serveur de diffusion, pas de transcodage ni de contrôle média réel, SQL non exécuté. Les règles pures sont des plans et exigent des entrées serveur fiables. Les limites 120 s, 10 Mo et 6000 caractères sont provisoires.
+
+## Recette automatisée des navigateurs (optionnelle, environnement isolé)
+Le script `scripts/test-author-audio-browser.py` utilise Python Playwright, à installer dans un environnement virtuel local distinct :
+
+```sh
+python3 -m venv /tmp/dedicalivres-audio-venv
+source /tmp/dedicalivres-audio-venv/bin/activate
+python -m pip install playwright==1.51.0
+python -m playwright install chromium webkit
+python scripts/test-author-audio-browser.py --browser both
+```
+
+Le script sert uniquement une copie temporaire du prototype sur loopback, utilise des WAV synthétiques, contrôle le refus d'autorisation simulé sur les deux moteurs et utilise un microphone fictif Chromium. Il ne remplace pas les essais Safari et microphone réel. Dans l'environnement ChatGPT, les navigations localhost et fichier ont été bloquées par la politique du navigateur : aucun PASS navigateur revendiqué. La syntaxe JS du prototype a été vérifiée par Node 22. Le consentement du prototype est désormais annulé à chaque modification de transcription.
