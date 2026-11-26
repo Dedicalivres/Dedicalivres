@@ -2,8 +2,8 @@
  * Author public presentation rules.
  * No database mutation and no external network access.
  *
- * A published profile is always eligible for its basic page. Rich modules
- * require a verified, non-rejected presence linked to a validated event.
+ * A published profile is eligible for its page and reviewed bibliography.
+ * Event modules still require a verified, non-rejected presence.
  * An admin-only partner designation is independent of participation.
  */
 export function isConfirmedParticipation(presence) {
@@ -32,7 +32,8 @@ export function authorPublicFeatures({ author, presences = [] } = {}) {
     profileVisible,
     tier: !profileVisible ? "unpublished" : hasParticipation ? "participant" : "registered",
     eventsVisible: Boolean(hasParticipation),
-    bibliographyVisible: Boolean(hasParticipation),
+    // Eligibility only: gallery still requires explicit human-approved notices.
+    bibliographyVisible: Boolean(profileVisible && author?.id),
     booksVisible: Boolean(hasParticipation),
     // Only an explicit admin-controlled true value grants the designation.
     partnerBadgeVisible: Boolean(profileVisible && author?.is_partner === true)
