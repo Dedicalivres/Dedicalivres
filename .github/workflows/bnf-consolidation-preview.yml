@@ -26,6 +26,7 @@ jobs:
       - run: node --test scripts/test-author-presences-live.mjs
       - run: node scripts/test-author-seo-pages.mjs
       - run: node scripts/preview-author-bnf-gallery.mjs
+      - run: node scripts/preview-author-bnf-admin.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: bnf-gallery-synthetic-preview
