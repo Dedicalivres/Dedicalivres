@@ -22,8 +22,8 @@ def request_url(name=None, authority=None, start=1):
     if bool(name) == bool(authority):
         raise ValueError("Select exactly one search mode")
     if authority:
-        if not re.fullmatch(r"[0-9]{8,10}", authority):
-            raise ValueError("Expected numeric authority notice identifier")
+        if not re.fullmatch(r"[0-9]{8}", authority):
+            raise ValueError("Expected eight-digit internal BnF authority identifier")
         query = f'bib.author2bib any "{authority}"'
     else:
         if not re.fullmatch(r"[\w .’'-]{3,100}", name, re.UNICODE):
@@ -34,7 +34,9 @@ def request_url(name=None, authority=None, start=1):
         "recordSchema": "dublincore", "startRecord": start, "maximumRecords": 20,
     })
 
-def parse(xml):
+def parse(xml, start=1):
+    if type(start) is not int or not 1 <= start <= 100_000:
+        raise ValueError("Invalid SRU page offset")
     root = ET.fromstring(xml)
     if root.tag != SRU + "searchRetrieveResponse":
         raise ValueError("Unexpected SRU response")
@@ -60,9 +62,13 @@ def parse(xml):
                         "publishers": values("publisher"), "dates": values("date"),
                         "identifiers": identifiers, "bnf_arks": arks,
                         "status": "human_review_required"})
-    if total and not results:
-        raise ValueError("Nonempty catalog without records")
-    return {"total": total, "records": results, "partial": total > len(results)}
+    if len(results) > 20 or len(results) > max(0, total - start + 1):
+        raise ValueError("Inconsistent SRU page count")
+    if total >= start and not results:
+        raise ValueError("Expected records on SRU page")
+    next_start = start + len(results) if results and start + len(results) <= total else None
+    return {"total": total, "records": results, "partial": start > 1 or next_start is not None,
+            "has_more": next_start is not None, "next_start_record": next_start}
 
 def lookup(name=None, authority=None, start=1):
     url = request_url(name, authority, start)
@@ -77,7 +83,7 @@ def lookup(name=None, authority=None, start=1):
             "license": "Licence ouverte de l'État (métadonnées, hors droits de tiers)",
             "retrieved_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "query_url": url, "mode": "authority_candidate" if authority else "name_candidate",
-            "publication_allowed": False, "start_record": start, **parse(data)}
+            "publication_allowed": False, "start_record": start, **parse(data, start)}
 
 # Local candidate snapshots only; never a store for human decisions.
 def snapshot_path(directory, url):
