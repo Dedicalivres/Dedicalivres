@@ -1,4 +1,5 @@
 import canonicalMap from "../docs/territoires/event-canonical-map.json" with { type: "json" };
+import { renderReviewedGallery } from "./author-bnf-reviewed-gallery.mjs";
 
 const SITE_URL = "https://dedicalivres.fr";
 
@@ -107,7 +108,9 @@ function renderEventSection(id, heading, label, events) {
   </section>`;
 }
 
-export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }) {
+// Bibliography input is an explicit trusted build-time review snapshot, never public API input.
+// Existing callers omit it; no live lookup, database write, or automatic publication.
+export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt, bibliography }) {
   const name = clean(author.pseudo || "Auteur");
   const slug = clean(author.slug);
   const canonical = canonicalUrl(slug);
@@ -143,6 +146,13 @@ export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }
     artist_author: "Artiste-auteur",
     hybrid: "Profil hybride"
   }[clean(author.profile_type)] || "Auteur";
+  const gallery = bibliography && author?.id ? renderReviewedGallery({
+    author,
+    presences: bibliography.presences,
+    candidates: bibliography.candidates,
+    reviews: bibliography.reviews
+  }).replace('<section aria-labelledby="bnf-heading">', '<section class="section author-bnf" aria-labelledby="bnf-heading">') : "";
+  const galleryStyle = gallery ? `<style id="author-bnf-style">.author-bnf{min-width:0}.author-bnf .bnf-gallery{display:flex;gap:1rem;overflow-x:auto;list-style:none;padding:0 0 1rem;scroll-snap-type:x proximity}.author-bnf .bnf-gallery>li{flex:0 0 min(17rem,80%);min-width:0;box-sizing:border-box;overflow-wrap:anywhere;border:1px solid currentColor;border-radius:12px;padding:1rem;scroll-snap-align:start}.author-bnf .bnf-gallery h3{margin-top:0}.author-bnf a:focus-visible{outline:2px solid currentColor;outline-offset:3px}</style>\n` : "";
   const main = `<main class="container section" data-generated-author-page="true" data-author-slug="${escapeHtml(slug)}">
     <nav class="detail-back-link" aria-label="Fil d’Ariane"><a href="/">Accueil</a><span aria-hidden="true"> › </span><a href="/auteurs/">Auteurs</a><span aria-hidden="true"> › </span><span>${escapeHtml(name)}</span></nav>
     <article class="author-profile"><div class="author-profile-inner">
@@ -152,7 +162,7 @@ export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }
       <div class="author-actions">${sameAs.map((url, index) => `<a class="${index ? "btn-secondary" : "btn-primary author-action-primary"}" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${index ? "Boutique / précommande" : "Vitrine / profil"}</a>`).join("")}<a class="btn-secondary" href="/#agenda">Voir l’agenda</a></div>
       <p class="author-note"><span>Historique des présences indiquées sur Dédicalivres, sous contrôle de modération.</span></p></div>
     </div></article>
-    ${renderEventSection("ongoing", "Événements en cours", "Présences en cours indiquées sur Dédicalivres", groups.ongoing)}
+    ${gallery ? gallery + "\n    " : ""}${renderEventSection("ongoing", "Événements en cours", "Présences en cours indiquées sur Dédicalivres", groups.ongoing)}
     ${renderEventSection("upcoming", "Événements à venir", "Présences à venir indiquées sur Dédicalivres", groups.upcoming)}
     ${renderEventSection("past", "Événements passés", "Historique des présences indiquées sur Dédicalivres", groups.past)}
   </main>`;
@@ -169,8 +179,8 @@ export function renderAuthorStaticPage({ baseHtml, author, events, generatedAt }
     .replace(/<meta id="author-twitter-title"[^>]*>/, `<meta name="twitter:title" content="${escapeHtml(title)}" />`)
     .replace(/<meta id="author-twitter-description"[^>]*>/, `<meta name="twitter:description" content="${escapeHtml(description)}" />`)
     .replace(/<meta id="author-twitter-image"[^>]*>/, `<meta name="twitter:image" content="${escapeHtml(image)}" />`)
-    .replace("</head>", `<script type="application/ld+json">${JSON.stringify(person)}</script>\n<script type="application/ld+json">${JSON.stringify(breadcrumb)}</script>\n</head>`)
-    .replace(/<main[\s\S]*?<\/main>/, main)
+    .replace("</head>", () => `${galleryStyle}<script type="application/ld+json">${JSON.stringify(person)}</script>\n<script type="application/ld+json">${JSON.stringify(breadcrumb)}</script>\n</head>`)
+    .replace(/<main[\s\S]*?<\/main>/, () => main)
     .replace(/<script\b[^>]*src="[^"]+"[^>]*><\/script>/g, "")
     .replace(/\s+(href|src|srcset)="(?!https?:|mailto:|#|\/)([^"]+)"/g, ' $1="/$2"')
     .replace(/<body([^>]*)>/, `<body$1 data-generated-author-page="true">`)
