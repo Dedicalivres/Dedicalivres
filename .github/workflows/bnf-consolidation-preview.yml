@@ -21,6 +21,7 @@ jobs:
       - run: node scripts/test-author-public-features.mjs
       - run: node scripts/test-author-bnf-cache-policy.mjs
       - run: node --test scripts/test-author-bnf-reviewed-gallery.mjs
+      - run: node --test scripts/test-author-bnf-admin-review-draft.mjs
       - run: python3 scripts/test_preview_bnf_author.py
       - run: node --test scripts/test-author-presences-live.mjs
       - run: node scripts/test-author-seo-pages.mjs
