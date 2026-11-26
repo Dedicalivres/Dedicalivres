@@ -107,7 +107,7 @@ $("record").addEventListener("click",async()=>{
  }catch(e){stream?.getTracks().forEach(t=>t.stop());if(token===generation){reset();status("Microphone refusé ou indisponible. Tu peux importer un fichier.",true);}}
 });
 $("stop").addEventListener("click",()=>session?.stop());
-$("transcript").addEventListener("input",invalidate);
+$("transcript").addEventListener("input",()=>{$("consent").checked=false;invalidate();});
 $("consent").addEventListener("change",invalidate);
 $("preview").addEventListener("click",()=>{
  if(!ready||!url)return;const transcript=$("transcript").value.trim();
