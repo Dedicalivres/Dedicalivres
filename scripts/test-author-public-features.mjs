@@ -9,10 +9,15 @@ const features = (overrides={}, presences=[]) => authorPublicFeatures({author:{.
 assert.equal(features().tier,"registered");
 assert.equal(features().profileVisible,true);
 assert.equal(features().eventsVisible,false);
-assert.equal(features().bibliographyVisible,false);
+assert.equal(features().bibliographyVisible,true);
+assert.equal(features({published:false}).bibliographyVisible,false);
+assert.equal(features({validated:false}).bibliographyVisible,false);
+assert.equal(features({merged_into:"other"}).bibliographyVisible,false);
+assert.equal(features({id:null}).bibliographyVisible,false);
 assert.equal(features().booksVisible,false);
 assert.equal(features({is_partner:true}).partnerBadgeVisible,true);
-assert.equal(features({is_partner:true}).bibliographyVisible,false,"Partner badge must not unlock BnF");
+assert.equal(features({is_partner:true}).bibliographyVisible,true,"Published author eligibility is independent of partner status");
+assert.equal(features({published:false,is_partner:true}).bibliographyVisible,false);
 assert.equal(features({},[verified]).tier,"participant");
 assert.equal(features({},[verified]).eventsVisible,true);
 assert.equal(features({},[verified]).bibliographyVisible,true);
