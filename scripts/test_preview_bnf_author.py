@@ -14,6 +14,13 @@ class PilotTests(unittest.TestCase):
     def test_authority_query(self):
         self.assertIn("bib.author2bib", request_url(authority="13935859"))
         with self.assertRaises(ValueError): request_url(authority="bad")
+    def test_pagination_bounds(self):
+        url = request_url(authority="11918746", start=21)
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+        self.assertEqual(params["startRecord"], ["21"])
+        self.assertEqual(params["maximumRecords"], ["20"])
+        for invalid in (0, -1, 100001, True, "21"):
+            with self.assertRaises(ValueError): request_url(authority="11918746", start=invalid)
     def test_refuse_injection(self):
         with self.assertRaises(ValueError): request_url(name='foo" or bib.anywhere all "bar')
     def test_error_is_not_empty(self):
