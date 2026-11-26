@@ -1,6 +1,8 @@
 import unittest
+import datetime
+import tempfile
 import urllib.parse
-from preview_bnf_author import request_url, parse
+from preview_bnf_author import request_url, parse, save_snapshot, read_snapshot, snapshot_path
 FIXTURE = b"""<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/" xmlns:dc="http://purl.org/dc/elements/1.1/"><numberOfRecords>21</numberOfRecords><records><record><recordIdentifier>ark:/12148/cb123456789</recordIdentifier><recordData><dc:dc><dc:title>Example book</dc:title><dc:creator>Example author</dc:creator><dc:identifier>9780000000000</dc:identifier></dc:dc></recordData></record></records></searchRetrieveResponse>"""
 class PilotTests(unittest.TestCase):
     def test_candidate_only(self):
@@ -26,4 +28,30 @@ class PilotTests(unittest.TestCase):
     def test_error_is_not_empty(self):
         with self.assertRaises(ValueError): parse(b"<html/>")
         with self.assertRaises(ValueError): parse(b'<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/"><numberOfRecords>0</numberOfRecords><diagnostics/></searchRetrieveResponse>')
+    def test_candidate_snapshot(self):
+        utc = datetime.timezone.utc
+        stamp = datetime.datetime(2026, 11, 26, tzinfo=utc)
+        url = request_url(name="Example author")
+        result = {"query_url": url, "retrieved_at": stamp.isoformat(),
+                  "publication_allowed": False, **parse(FIXTURE)}
+        with tempfile.TemporaryDirectory() as directory:
+            save_snapshot(directory, result)
+            fresh = read_snapshot(directory, url, stamp + datetime.timedelta(days=1))
+            self.assertFalse(fresh["cache_stale"])
+            self.assertEqual(fresh["cache_age_seconds"], 86400)
+            self.assertFalse(fresh["publication_allowed"])
+            stale = read_snapshot(directory, url, stamp + datetime.timedelta(days=7))
+            self.assertTrue(stale["cache_stale"])
+            self.assertEqual(stale["records"][0]["status"], "human_review_required")
+            with self.assertRaises(FileNotFoundError):
+                read_snapshot(directory, request_url(name="Example author", start=21), stamp)
+            with self.assertRaises(ValueError):
+                read_snapshot(directory, url, stamp - datetime.timedelta(seconds=1))
+            save_snapshot(directory, {**result, "publication_allowed": True})
+            with self.assertRaises(ValueError):
+                read_snapshot(directory, url, stamp)
+            save_snapshot(directory, result)
+            snapshot_path(directory, url).write_text("invalid JSON", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                read_snapshot(directory, url, stamp)
 if __name__ == "__main__": unittest.main()
