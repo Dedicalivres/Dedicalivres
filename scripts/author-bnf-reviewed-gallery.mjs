@@ -9,13 +9,20 @@ const esc = v => clean(v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":
 const noticeUrl = id => "https://catalogue.bnf.fr/" + id;
 export function reviewedBooks({author, presences, candidates, reviews} = {}) {
   if (!authorPublicFeatures({author,presences}).bibliographyVisible) return [];
+  const allReviews = Array.isArray(reviews) ? reviews : [];
+  // Until an explicit, reviewed alias-to-authority mapping exists, never mix
+  // distinct authorities on one profile, even if individual titles were approved.
+  const authorities = new Set(allReviews.filter(r => r?.authorId === author.id &&
+    r.decision === "approved" && ark.test(clean(r.authorityId)))
+    .map(r => clean(r.authorityId).toLowerCase()));
+  if (authorities.size > 1) return [];
   const groups = new Map();
   for (const candidate of Array.isArray(candidates) ? candidates : []) {
     const ids = candidate?.bnf_arks;
     if (candidate?.status !== "human_review_required" || !Array.isArray(ids) ||
         ids.length !== 1 || !ark.test(ids[0])) continue;
     const id = ids[0];
-    const decisions = (Array.isArray(reviews) ? reviews : []).filter(r =>
+    const decisions = allReviews.filter(r =>
       r?.authorId === author.id && r.noticeId === id);
     // Ambiguous or superseded decisions are not interpreted here.
     if (decisions.length !== 1) continue;
