@@ -4,6 +4,8 @@ on:
     paths:
       - 'scripts/*bnf*'
       - 'scripts/*author-public-features*'
+      - 'scripts/author-static-page.mjs'
+      - 'author.html'
       - '.github/workflows/bnf-consolidation-preview.yml'
 permissions:
   contents: read
@@ -21,9 +23,10 @@ jobs:
       - run: node --test scripts/test-author-bnf-reviewed-gallery.mjs
       - run: python3 scripts/test_preview_bnf_author.py
       - run: node --test scripts/test-author-presences-live.mjs
+      - run: node scripts/test-author-seo-pages.mjs
       - run: node scripts/preview-author-bnf-gallery.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: bnf-gallery-synthetic-preview
-          path: bnf-preview-artifact/index.html
+          path: bnf-preview-artifact/*.html
           retention-days: 7
