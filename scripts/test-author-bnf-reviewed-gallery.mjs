@@ -27,3 +27,33 @@ test("editions group only with explicit reviewed work key",()=>{
  assert.equal(reviewedBooks({...input,candidates:[candidate,c2],reviews:[review,r2]}).length,2);
  assert.equal(reviewedBooks({...input,candidates:[candidate,c2],reviews:[{...review,workKey:"fixture-work"},{...r2,workKey:"fixture-work"}]})[0].editions.length,2);
 });
+
+import fs from "node:fs";
+import {renderAuthorStaticPage} from "./author-static-page.mjs";
+test("static author renderer: optional reviewed gallery preserves SEO, events and scripts",()=>{
+ const baseHtml=fs.readFileSync("author.html","utf8");
+ const profile={...author,pseudo:"Auteur fictif",slug:"fixture-auteur",bio:"Biographie de test"};
+ const args={baseHtml,author:profile,events:[{id:"fixture-event",title:"Rencontre fictive",start_date:"2026-12-01",validated:true,rejected:false}],generatedAt:"2026-11-26"};
+ const baseline=renderAuthorStaticPage(args);
+ const active=renderAuthorStaticPage({...args,bibliography:input});
+ assert.match(active.html,/<section class="section author-bnf" aria-labelledby="bnf-heading">/);
+ assert.match(active.html,/&lt;Roman fictif&gt;/);
+ assert.match(active.html,/id="author-bnf-style"/);
+ assert.match(active.html,/scroll-snap-type:x proximity/);
+ assert.doesNotMatch(active.html,/fixture-reviewer|fixture only/);
+ assert.equal(active.canonical,baseline.canonical);
+ assert.equal(active.title,baseline.title);
+ assert.deepEqual(active.person,baseline.person);
+ assert.deepEqual(active.groups,baseline.groups);
+ assert.deepEqual([...active.html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m=>m[1]),[...baseline.html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m=>m[1]));
+ assert.match(active.html,/data-event-id="fixture-event"/);
+ assert.equal((active.html.match(/<h1\b/g)||[]).length,1);
+ for(const bibliography of [{...input,reviews:[]},{...input,presences:[]},{...input,reviews:[{...review,authorId:"other"}]},{...input,author:{...profile,id:"other"},presences:[{...presence,author_id:"other"}]}]){
+   assert.equal(renderAuthorStaticPage({...args,bibliography}).html,baseline.html);
+ }
+ assert.doesNotMatch(baseline.html,/bnf-heading|author-bnf-style/);
+ const special="Titre $& <script>alert(1)</script>";
+ const safe=renderAuthorStaticPage({...args,bibliography:{...input,candidates:[{...candidate,titles:[special]}],reviews:[{...review,title:special}]}});
+ assert.ok(safe.html.includes("Titre $&amp; &lt;script&gt;alert(1)&lt;/script&gt;"));
+ assert.doesNotMatch(safe.html,/<script>alert\(1\)<\/script>/);
+});
