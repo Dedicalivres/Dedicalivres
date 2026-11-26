@@ -13,6 +13,8 @@ DC = "{http://purl.org/dc/elements/1.1/}"
 ARK = re.compile(r"ark:/12148/cb[0-9]+[a-z0-9]", re.I)
 
 def request_url(name=None, authority=None, start=1):
+    if type(start) is not int or not 1 <= start <= 100_000:
+        raise ValueError("Expected startRecord between 1 and 100000")
     if bool(name) == bool(authority):
         raise ValueError("Select exactly one search mode")
     if authority:
@@ -58,8 +60,8 @@ def parse(xml):
         raise ValueError("Nonempty catalog without records")
     return {"total": total, "records": results, "partial": total > len(results)}
 
-def lookup(name=None, authority=None):
-    url = request_url(name, authority)
+def lookup(name=None, authority=None, start=1):
+    url = request_url(name, authority, start)
     request = urllib.request.Request(url, headers={"User-Agent": "Dedicalivres-BnF-preview/0.1", "Accept": "application/xml"})
     with urllib.request.urlopen(request, timeout=25) as response:
         if urllib.parse.urlparse(response.geturl()).hostname != "catalogue.bnf.fr":
@@ -71,12 +73,13 @@ def lookup(name=None, authority=None):
             "license": "Licence ouverte de l'État (métadonnées, hors droits de tiers)",
             "retrieved_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "query_url": url, "mode": "authority_candidate" if authority else "name_candidate",
-            "publication_allowed": False, **parse(data)}
+            "publication_allowed": False, "start_record": start, **parse(data)}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--name")
     group.add_argument("--authority")
+    parser.add_argument("--start", type=int, default=1, help="1-based SRU record offset; candidates only")
     args = parser.parse_args()
-    print(json.dumps(lookup(args.name, args.authority), ensure_ascii=False, indent=2))
+    print(json.dumps(lookup(args.name, args.authority, args.start), ensure_ascii=False, indent=2))
