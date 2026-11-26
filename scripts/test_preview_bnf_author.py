@@ -15,7 +15,8 @@ class PilotTests(unittest.TestCase):
         self.assertEqual(urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["query"], ['bib.anywhere all "Dylan Heskin"'])
     def test_authority_query(self):
         self.assertIn("bib.author2bib", request_url(authority="13935859"))
-        with self.assertRaises(ValueError): request_url(authority="bad")
+        for invalid in ("bad", "1234567", "123456789", "1234567890"):
+            with self.assertRaises(ValueError): request_url(authority=invalid)
     def test_pagination_bounds(self):
         url = request_url(authority="11918746", start=21)
         params = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
@@ -23,6 +24,18 @@ class PilotTests(unittest.TestCase):
         self.assertEqual(params["maximumRecords"], ["20"])
         for invalid in (0, -1, 100001, True, "21"):
             with self.assertRaises(ValueError): request_url(authority="11918746", start=invalid)
+    def test_last_page_and_next_offset(self):
+        first = parse(FIXTURE)
+        self.assertTrue(first["has_more"])
+        self.assertEqual(first["next_start_record"], 2)
+        last = parse(FIXTURE, start=21)
+        self.assertTrue(last["partial"])
+        self.assertFalse(last["has_more"])
+        self.assertIsNone(last["next_start_record"])
+        with self.assertRaises(ValueError): parse(FIXTURE, start=22)
+        empty = b'<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/"><numberOfRecords>21</numberOfRecords></searchRetrieveResponse>'
+        self.assertFalse(parse(empty, start=22)["has_more"])
+        with self.assertRaises(ValueError): parse(empty, start=21)
     def test_refuse_injection(self):
         with self.assertRaises(ValueError): request_url(name='foo" or bib.anywhere all "bar')
     def test_error_is_not_empty(self):
