@@ -7,8 +7,12 @@ const id="ark:/12148/cb123456789";
 const candidate={bnf_arks:[id],titles:["<Roman fictif>"],status:"human_review_required"};
 const review={authorId:author.id,noticeId:id,authorityId:"ark:/12148/cb987654321",title:candidate.titles[0],decision:"approved",reviewerId:"fixture-reviewer",evidence:"fixture only",checkedAt:"2026-11-25T00:00:00Z",publisher:"Éditeur fictif",year:"2026"};
 const input={author,presences:[presence],candidates:[candidate],reviews:[review]};
-test("registered author or missing verification remains locked",()=>{
- for(const presences of [[],[{...presence,presence_verified:false}],[{...presence,author_id:"other"}]]) assert.equal(renderReviewedGallery({...input,presences}),"");
+test("published authors with no events may show reviewed books; unpublished profiles remain locked",()=>{
+ for(const presences of [[],[{...presence,presence_verified:false}],[{...presence,author_id:"other"}]]) {
+  assert.match(renderReviewedGallery({...input,presences}),/bnf-heading/);
+  assert.equal(renderReviewedGallery({...input,presences,reviews:[]}),"");
+ }
+ for(const overrides of [{published:false},{validated:false},{merged_into:"other"},{id:null}]) assert.equal(renderReviewedGallery({...input,author:{...author,...overrides}}),"");
 });
 test("no automatic publication, rejected or contradictory decisions",()=>{
  for(const reviews of [[],[{...review,decision:"rejected"}],[review,{...review,decision:"rejected"}],[{...review,reviewerId:""}],[{...review,authorId:"other"}],[{...review,authorityId:"invalid"}]]) assert.deepEqual(reviewedBooks({...input,reviews}),[]);
@@ -48,7 +52,8 @@ test("static author renderer: optional reviewed gallery preserves SEO, events an
  assert.deepEqual([...active.html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m=>m[1]),[...baseline.html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m=>m[1]));
  assert.match(active.html,/data-event-id="fixture-event"/);
  assert.equal((active.html.match(/<h1\b/g)||[]).length,1);
- for(const bibliography of [{...input,reviews:[]},{...input,presences:[]},{...input,reviews:[{...review,authorId:"other"}]},{...input,author:{...profile,id:"other"},presences:[{...presence,author_id:"other"}]}]){
+ assert.match(renderAuthorStaticPage({...args,events:[],bibliography:{...input,presences:[]}}).html,/bnf-heading/);
+ for(const bibliography of [{...input,reviews:[]},{...input,presences:[],reviews:[]},{...input,reviews:[{...review,authorId:"other"}]},{...input,author:{...profile,id:"other"},reviews:[{...review,authorId:"other"}]}]){
    assert.equal(renderAuthorStaticPage({...args,bibliography}).html,baseline.html);
  }
  assert.doesNotMatch(baseline.html,/bnf-heading|author-bnf-style/);
