@@ -17,6 +17,15 @@ test("published authors with no events may show reviewed books; unpublished prof
 test("no automatic publication, rejected or contradictory decisions",()=>{
  for(const reviews of [[],[{...review,decision:"rejected"}],[review,{...review,decision:"rejected"}],[{...review,reviewerId:""}],[{...review,authorId:"other"}],[{...review,authorityId:"invalid"}]]) assert.deepEqual(reviewedBooks({...input,reviews}),[]);
 });
+test("homonyms cannot mix approved authorities on one profile",()=>{
+ const id2="ark:/12148/cb123456788", c2={...candidate,bnf_arks:[id2]};
+ const different={...review,noticeId:id2,authorityId:"ark:/12148/cb987654322"};
+ assert.deepEqual(reviewedBooks({...input,candidates:[candidate,c2],reviews:[review,different]}),[]);
+ assert.equal(renderReviewedGallery({...input,candidates:[candidate,c2],reviews:[review,different]}),"");
+ assert.equal(reviewedBooks({...input,candidates:[candidate,c2],reviews:[review,{...different,authorityId:review.authorityId}]}).length,2);
+ assert.equal(reviewedBooks({...input,reviews:[review,{...different,authorId:"other"}]}).length,1);
+ assert.equal(reviewedBooks({...input,reviews:[review,{...different,decision:"rejected"}]}).length,1);
+});
 test("untrusted or ambiguous notices are excluded",()=>{
  for(const candidates of [[{...candidate,bnf_arks:["javascript:alert(1)"]}],[{...candidate,bnf_arks:[id,"ark:/12148/cb111111111"]}],[{...candidate,titles:["Other title"]}]]) assert.deepEqual(reviewedBooks({...input,candidates}),[]);
 });
