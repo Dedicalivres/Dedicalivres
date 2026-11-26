@@ -1,0 +1,24 @@
+# FRONT-AUTEURS-AUDIO-01 — reprise Mac
+Statut : prototype isolé, NO-GO fusion et production. Aucun Codex.
+## Points de raccord identifiés
+- author-contribute.html / author-contribute.js : formulaire existant, upload de portrait via imageUploadEndpoint R2 puis insertion author_profile_submissions. Ne pas envoyer l'audio via cet endpoint image public.
+- admin-author-profile-submissions.js : modération existante et contrôle de version des profils; réutiliser son parcours, pas ses permissions sans audit.
+- scripts/author-static-page.mjs et author.js : deux chemins de rendu, préserver Person, canonical, événements et carte. Le composant public de test n'est pas raccordé.
+- Worker et configuration R2 effectifs : non audités; recherche de R2_BUCKET sans résultat. Ne présumer ni bucket privé ni possibilité de transcodage.
+## Architecture cible
+1. Identité auteur vérifiée par session ou parcours de contribution contrôlé et preuve de rattachement. Un nom ou un slug ne suffit pas. Jeton court, limité à une soumission, protection CSRF et débit/quota.
+2. Upload sur stockage privé, clé aléatoire non fournie par client, durée et taille mesurées côté serveur. Vérifier conteneur, flux audio seul, décodage complet borné, type réel, hash et absence de métadonnées inutiles. Transcoder hors Worker si nécessaire vers MP3 ou M4A AAC mono, 64 kbit/s cible, à confirmer. Ne jamais exécuter un fichier importé. Ne pas exposer le fichier brut.
+3. Consentement explicite versionné lié au digest et à la transcription, identité, date, journal privé. Aucun clonage vocal. Un remplacement reste privé jusqu'à décision humaine; l'ancien reste disponible sauf retrait.
+4. Admin authentifié, écoute via URL privée courte, motif et revision attendue, transaction atomique, journal append-only. Approbation et publication séparées. Vérifier l'identité et le rôle sur serveur, jamais à partir d'un booléen client.
+5. Fichier canonique privé R2 servi via endpoint même origine /media/author-audio/{authorId}/{recordId}, chaque requête vérifie la fiche publique, le pointeur actif, le consentement et le statut. GET/HEAD/Range, type exact, nosniff, aucun redirect public, no-store pour permettre retrait; vérifier également purge CDN et transcription HTML statique. Une copie téléchargée antérieurement ne peut pas être rappelée. Aucun lien public vers un brouillon.
+6. Retrait coupe le flux et la transcription, régénère les pages statiques; si échec de publication conserver le dernier état sûr. Proposer 30 jours pour refus/remplacements, suppression anticipée sur demande selon obligations légales et sauvegardes; durée à valider. Journal minimal, pas de tracking écoute individuel.
+## Recette
+- Copie Git isolée et propre, Node 22. Lancer node scripts/recipe-author-audio.mjs. Ce lanceur teste syntaxe, structure et règles pures, pas le navigateur, la base ou R2.
+- Servir docs/author-audio-local-preview.html par localhost (python3 -m http.server 8765 --bind 127.0.0.1 depuis une copie dédiée ne contenant que le HTML, jamais depuis le dépôt complet). iPhone physique : HTTPS de test de confiance nécessaire pour microphone, pas de tunnel public ni données réelles.
+- Safari Mac/iPhone/iPad et Chromium : autoriser/refuser micro, enregistrer/arrêter, interruption, annuler pendant demande, retirer, importer MP3/M4A/WAV/WebM, fichier invalide, >10 Mo et >120 s, transcription obligatoire, consentement obligatoire pour dossier local, prévisualisation et écoute, aucune requête externe. Vérifier codecs réels, durée WebM estimée non autoritative, clavier/VoiceOver, largeur 320/390/768/1440 px. Tester réseau lent et échec de lecture dans futur vrai flux. Aucun enregistrement réel envoyé.
+- docs/author-audio-storage-draft.sql : brouillon non exécuté, pas une migration. Vérifier types UUID, FKs composites, état réel de la base, rôle admin et schémas exposés. Base locale jetable uniquement. Préparer tests de droits effectifs, accès direct aux objets, consentement retiré, course publication/retrait, double requête, fusion de profils et expiration d'URL. Ne pas connecter de projet Supabase distant.
+- Après qualification locale, intégrer les deux renderers et formulaire/admin sur branche, tester toutes les fiches et les CI historiques, contrôler que les pages sans audio restent identiques. Tester le HEAD exact; aucun déploiement sans autorisation.
+## Rollback
+Revert des commits audio sur branche uniquement; ne pas modifier la PR #295. Si activation future, couper le flag et endpoint, révoquer pointeurs, régénérer les pages, purger caches; ne jamais restaurer un consentement retiré. Aucun changement réel aujourd'hui.
+## Limites
+Prototype local uniquement; pas d'upload ni de vraie modération, pas de serveur de diffusion, pas de transcodage ni de contrôle média réel, SQL non exécuté. Les règles pures sont des plans et exigent des entrées serveur fiables. Les limites 120 s, 10 Mo et 6000 caractères sont provisoires.
