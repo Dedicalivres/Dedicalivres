@@ -10,7 +10,7 @@ Ne pas utiliser Codex, fusionner, déployer, écrire dans Supabase réel ou modi
 
 ## Ordre de recette Mac
 1. Vérifier les modifications locales et récupérer la branche sans écraser de travail concurrent. Noter le HEAD et vérifier les CI de ce HEAD. Travailler sur une copie isolée.
-2. À la racine du dépôt, exécuter :
+2. Dans une copie Git isolée, propre et sans dossier `bnf-preview-artifact` existant, avec Node 22, Python 3 et Git, lancer `node scripts/recipe-bnf-local.mjs`. Le lanceur regroupe les neuf commandes ci-dessous, conserve un rapport JSON et les logs dans un répertoire temporaire annoncé, et vérifie l'absence de changements suivis. Il ne lance ni SQL, ni requête SRU réelle. Les tests existants utilisent des données fictives et des réponses réseau simulées ; ce lanceur n'est pas un sandbox réseau. Le verdict concerne seulement les fixtures. Pour une reprise manuelle :
 ```sh
 node scripts/test-author-public-features.mjs
 node scripts/test-author-bnf-cache-policy.mjs
