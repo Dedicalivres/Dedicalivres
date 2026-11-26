@@ -1,0 +1,26 @@
+name: BnF consolidation isolated preview
+on:
+  pull_request:
+    paths:
+      - 'scripts/*bnf*'
+      - 'scripts/*author-public-features*'
+      - 'scripts/author-static-page.mjs'
+      - 'author.html'
+      - '.github/workflows/bnf-consolidation-preview.yml'
+permissions:
+  contents: read
+jobs:
+  fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/recipe-bnf-local.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bnf-gallery-synthetic-preview
+          path: bnf-preview-artifact/*.html
+          retention-days: 7
