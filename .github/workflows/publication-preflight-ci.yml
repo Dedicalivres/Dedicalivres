@@ -23,6 +23,9 @@ jobs:
         env:
           TEST_OUTPUT: calendar-startup-evidence
         run: node scripts/test-calendar-startup.mjs
+
+      - name: Test public participation submission offline
+        run: npm run test:public-presence
       - name: Preserve browser evidence
         if: always()
         uses: actions/upload-artifact@v4
