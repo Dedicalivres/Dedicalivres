@@ -23,13 +23,17 @@
     return;
   }
 
-  const supabaseClient =
-    (typeof window.getDedicalivresSupabaseClient === "function" && window.getDedicalivresSupabaseClient()) ||
-    window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-
-  if (!window.DEDICALIVRES_SUPABASE_CLIENT) {
-    window.DEDICALIVRES_SUPABASE_CLIENT = supabaseClient;
-  }
+  // Public participation must always use the anonymous role, even on a
+  // browser with an existing ADMIN or other authenticated session.
+  // Never reuse, replace or sign out the shared/admin client.
+  const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
+    auth: {
+      storageKey: "dedicalivres-public-presence-anonymous-v1",
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  });
 
   const params = new URLSearchParams(window.location.search);
   const eventId =
@@ -119,7 +123,7 @@
 
           <label class="participant-author-field">
             <span>Lien auteur / réseau social</span>
-            <input name="author_profile_url" type="url" placeholder="Site auteur, Instagram, Facebook, Linktree…" />
+            <input name="author_profile_url" type="text" inputmode="url" autocomplete="url" placeholder="Site auteur, Instagram, Facebook, Linktree…" />
           </label>
 
           <label class="participant-author-field">
@@ -135,7 +139,7 @@
 
           <label class="participant-author-field">
             <span>Lien livre / boutique / maison d’édition</span>
-            <input name="book_or_publisher_url" type="url" placeholder="Page du livre, boutique auteur, éditeur, librairie…" />
+            <input name="book_or_publisher_url" type="text" inputmode="url" autocomplete="url" placeholder="Page du livre, boutique auteur, éditeur, librairie…" />
           </label>
 
           <label class="participant-author-field">
@@ -172,7 +176,7 @@
               </label>
               <label>
                 <span>Site de la maison d’édition</span>
-                <input name="organization_website" type="url" placeholder="https://..." />
+                <input name="organization_website" type="text" inputmode="url" autocomplete="url" placeholder="https://..." />
               </label>
               <label>
                 <span>Nom du contact — privé</span>
@@ -221,32 +225,35 @@
       const feedback = document.getElementById("author-presence-feedback");
       const submitButton = form.querySelector('button[type="submit"]');
 
-      const formData = new FormData(form);
-      const participantType = cleanSelectValue(
-        formData.get("participant_type"),
-        ["author", "artist_author", "hybrid", "publisher"],
-        "author"
-      );
-      const isPublisher = participantType === "publisher";
-      const organizationName = cleanText(formData.get("organization_name")).slice(0, 160);
-      const pseudo = isPublisher ? organizationName : cleanText(formData.get("pseudo"));
-      const authorIdentityKey = isPublisher ? "" : slugifyAuthorIdentity(pseudo);
-      const publicationMode = cleanSelectValue(formData.get("publication_mode"), ["self_published", "publisher", "hybrid", "unknown"], "unknown");
-
-      const authorProfileUrl = normalizeWebsite(
-        isPublisher ? formData.get("organization_website") : formData.get("author_profile_url")
-      );
-      const authorProfileUrlType = cleanSelectValue(formData.get("author_profile_url_type"), ["site_officiel", "instagram", "facebook", "linktree", "autre"], "autre");
-
-      const bookOrPublisherUrl = normalizeOptionalWebsite(formData.get("book_or_publisher_url"));
-      const bookOrPublisherUrlType = cleanSelectValue(formData.get("book_or_publisher_url_type"), ["boutique_auteur", "page_livre", "maison_edition", "librairie", "amazon", "autre"], "autre");
-
-      const publisherName = cleanText(formData.get("publisher_name")).slice(0, 120);
-      const contactName = cleanText(formData.get("contact_name")).slice(0, 160);
-      const contactEmail = cleanText(formData.get("contact_email")).slice(0, 254).toLowerCase();
-      const portraitFile = isPublisher ? null : formData.get("author_portrait");
+      if (submitButton?.disabled) return;
 
       try {
+        const formData = new FormData(form);
+        const participantType = cleanSelectValue(
+          formData.get("participant_type"),
+          ["author", "artist_author", "hybrid", "publisher"],
+          "author"
+        );
+        const isPublisher = participantType === "publisher";
+        const organizationName = cleanText(formData.get("organization_name")).slice(0, 160);
+        const pseudo = isPublisher ? organizationName : cleanText(formData.get("pseudo"));
+        const authorIdentityKey = isPublisher ? "" : slugifyAuthorIdentity(pseudo);
+        const publicationMode = cleanSelectValue(formData.get("publication_mode"), ["self_published", "publisher", "hybrid", "unknown"], "unknown");
+
+        const authorProfileUrl = normalizePresenceLink(
+          isPublisher ? formData.get("organization_website") : formData.get("author_profile_url"),
+          isPublisher ? "le site de la maison d’édition" : "le lien auteur"
+        );
+        const authorProfileUrlType = cleanSelectValue(formData.get("author_profile_url_type"), ["site_officiel", "instagram", "facebook", "linktree", "autre"], "autre");
+
+        const bookOrPublisherUrl = normalizePresenceLink(formData.get("book_or_publisher_url"), "le second lien");
+        const bookOrPublisherUrlType = cleanSelectValue(formData.get("book_or_publisher_url_type"), ["boutique_auteur", "page_livre", "maison_edition", "librairie", "amazon", "autre"], "autre");
+
+        const publisherName = cleanText(formData.get("publisher_name")).slice(0, 120);
+        const contactName = cleanText(formData.get("contact_name")).slice(0, 160);
+        const contactEmail = cleanText(formData.get("contact_email")).slice(0, 254).toLowerCase();
+        const portraitFile = isPublisher ? null : formData.get("author_portrait");
+
         if (formData.get("legal_accept") !== "on") {
           throw new Error("Merci de valider l’autorisation de relecture, modération et publication avant l’envoi.");
         }
@@ -258,18 +265,25 @@
         if (authorProfileUrl && !isValidUrl(authorProfileUrl)) throw new Error("Merci d’indiquer un lien valide ou de laisser le champ vide.");
         if (bookOrPublisherUrl && !isValidUrl(bookOrPublisherUrl)) throw new Error("Merci d’indiquer un second lien valide ou de laisser le champ vide.");
         if (contactEmail && !isValidEmail(contactEmail)) throw new Error("Merci d’indiquer une adresse e-mail de contact valide.");
-        validateAuthorPortraitFile(portraitFile);
-
         setButtonLoading(submitButton, true, "Envoi…");
         setFeedback(feedback, "", "Envoi de votre demande…");
 
         let authorPortraitUrl = null;
         let authorPortraitStorageKey = null;
 
+        let portraitOmitted = false;
         if (portraitFile instanceof File && portraitFile.size > 0) {
-          const uploadedPortrait = await uploadAuthorPortrait(portraitFile, authorIdentityKey);
-          authorPortraitUrl = uploadedPortrait.url;
-          authorPortraitStorageKey = uploadedPortrait.storageKey;
+          try {
+            validateAuthorPortraitFile(portraitFile);
+            const uploadedPortrait = await uploadAuthorPortrait(portraitFile, authorIdentityKey);
+            authorPortraitUrl = uploadedPortrait.url;
+            authorPortraitStorageKey = uploadedPortrait.storageKey;
+          } catch (portraitError) {
+            // A portrait is optional: keep the declaration pending for moderation.
+            console.warn("Portrait facultatif non transmis :", portraitError);
+            portraitOmitted = true;
+            setFeedback(feedback, "", "Le portrait n’a pas pu être transmis. Envoi de votre présence sans portrait…");
+          }
         }
 
         const extendedPayload = {
@@ -315,7 +329,9 @@
 
         form.reset();
         syncParticipantTypeForm(form);
-        setFeedback(feedback, "success", "Merci, votre demande a bien été envoyée. Elle sera vérifiée avant affichage public.");
+        setFeedback(feedback, "success", portraitOmitted
+          ? "Merci, votre présence a bien été envoyée pour vérification, sans le portrait (envoi de l’image impossible). Vous pouvez nous contacter pour compléter votre fiche ; ne renvoyez pas la participation."
+          : "Merci, votre demande a bien été envoyée. Elle sera vérifiée avant affichage public.");
       } catch (error) {
         console.error("Erreur auteur présent :", error);
         setFeedback(feedback, "error", error.message || "Une erreur est survenue.");
@@ -1018,10 +1034,12 @@
     return window.DEDICALIVRES_URLS.normalizeOptional(value);
   }
 
-  function normalizeOptionalWebsite(value) {
-    const raw = cleanText(value);
-    if (!raw) return "";
-    return normalizeWebsite(raw);
+  function normalizePresenceLink(value, label) {
+    try {
+      return normalizeWebsite(value);
+    } catch {
+      throw new Error("Merci de vérifier " + label + " ou de laisser le champ vide s’il est facultatif.");
+    }
   }
 
   function isValidUrl(value) {
